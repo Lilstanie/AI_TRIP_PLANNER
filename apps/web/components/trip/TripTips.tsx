@@ -48,7 +48,7 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
   if (!items.length) return null;
   return (
     <details
-      className="trip-tips"
+      className="disclosure trip-tips"
       open={open}
       onClick={(event) => {
         if (!(event.target instanceof HTMLElement) || !event.target.closest("summary")) return;

@@ -10,16 +10,16 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 
 ## 布局
 
-| 区域           | 内容                                                                                                                                                   | 实现                                                                                                                    |
-| -------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                                      | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                            |
-| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                                             | `ChatsPanel`、`TripCover`                                                                                               |
-| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                                                | `TripsPage`、`TripCover`                                                                                                |
-| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换       | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton`                                      |
-| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                                               | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts`             |
-| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder                                  | `ChatPanel`                                                                                                             |
-| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                                       | `TripMapCanvas`、`TripMap`                                                                                              |
-| Trip 工作区    | 桌面端专用的行程与联动地图；平板端行程／地图切换；手机端沿用 Trip 标签页。行程包含预算、未解决冲突、提示、日期条、所选日期的停靠点与预订，然后是 Ideas | `WorkspaceView`、`TripEditor`、`TripPanel`、`TripTips`、`TripMapCanvas`、`timeline/TimelineStop`、`timeline/BookingRow` |
+| 区域           | 内容                                                                                                                                                                                                             | 实现                                                                                                                    |
+| -------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| 侧边栏         | Logo、带数量的 Chats 和 Trips、保存或同步状态、Settings & account                                                                                                                                                | `WorkspaceSidebar`、`BrandMark`、`icons.tsx`                                                                            |
+| Chats 面板     | 在侧边栏旁滑出：搜索、New chat、New trip，然后是行程和聊天                                                                                                                                                       | `ChatsPanel`、`TripCover`                                                                                               |
+| Your trips     | 通过 Trips 打开，替代聊天和地图：行程卡片（Upcoming、Past）、Calendar 标签页和 New trip                                                                                                                          | `TripsPage`、`TripCover`                                                                                                |
+| 顶栏           | 桌面：左上 Conversation \| Trajectory 与 Agent Team；Brief 标签仅在旅客开始后出现；右侧保留数据模式；有 Plan 才显示 Trip。界面语言只在设置中切换                                                                 | `WorkspaceView`、`TripFactChips`、`TeamControl`、`ChatViewTabs`、`PhoneTeamButton`                                      |
+| 行程事实编辑器 | 每个标签对应一个编辑器，全部为居中对话框；Preferences 保存旅客自己的列表                                                                                                                                         | `FactPopover`、`FactFields`、`TripCalendar`、`WhereFields`、`PreferenceList`、`lib/workspace/trip-facts.ts`             |
+| 聊天           | Conversation 或 Trajectory、规划 transcript、输入区；空白未动聊天在输入区旁显示建议芯片；聚焦且为空时轮换 placeholder                                                                                            | `ChatPanel`                                                                                                             |
+| 地图           | 仅包含地图、带标签的标记、按天着色的弧形行程线、地点弹窗、地图状态，以及定位／地图类型／缩放控件                                                                                                                 | `TripMapCanvas`、`TripMap`                                                                                              |
+| Trip 工作区    | 桌面端专用的行程与联动地图；平板端行程／地图切换；手机端沿用 Trip 标签页。行程以单行预算摘要开头（明细按需展开），然后是按需展开的提示、日期条、所选日期的停靠点与预订，最后是 Ideas；所有展开／收起共用同一动效 | `WorkspaceView`、`TripEditor`、`TripPanel`、`TripTips`、`TripMapCanvas`、`timeline/TimelineStop`、`timeline/BookingRow` |
 
 - **侧边栏。**
   - 展开宽度为 240 px（视口小于 1250 px 时为 220 px），或折叠成 64 px 的图标栏。切换按钮使用 `aria-expanded`，偏好保存在目录布局中。
@@ -237,6 +237,7 @@ Trip 行程不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 - **立即应用。** 服务器接受编辑后立即应用，没有审阅步骤。被拒绝的编辑不改变方案，阻碍项以提示显示在当天上方，并写明其所涉及的停靠点。应用编辑后显示“Undo last change”，撤销以同样的检查和方式应用。应用编辑后的路段核查不会替换方案，因此撤销步骤保留。撤销步骤覆盖编辑重新安排时间的已排定停靠点；Ideas 保持原样，不会阻止撤销。来自聊天的新方案会清除撤销步骤；若某次更改仍在方案中，聊天会说明它已被替换（“The new plan replaced your last change to the timeline.”，带 Dismiss 按钮）。手机宽度（520 px 及以下）时，Undo 按钮至少为 44 × 44 CSS px；`phone-undo-hit-area.e2e.mjs` 会在 375 × 812 下检查尺寸，并保存截图和测量结果。
 - **编辑与后台工作。** 编辑开始时正在运行的路段核查或地点保存会被取消，并在编辑完成后重新请求，因此其结果绝不会替换编辑正在检查的方案。编辑进行中若方案从别处变化，它不会被取消：其结果以过时处理，并提示旅行者重新尝试该修改。
 - **动效。** 切换日期时当天列表淡入；地点卡片和审阅面板上浮出现；应用编辑后，被改动的站点短暂以强调色高亮；服务商核实的路段沿时间线自上而下绘出。每种动效同时有文字或颜色信号，在减弱动态效果设置下都不播放。
+  行程面板的可展开区域（预算明细、Travel tips）共用同一展开／收起动效：`motion.css` 中的 `disclosure` 类按 `--disclosure-duration` 与 `--disclosure-ease` 为高度和不透明度做动画，下方内容只移动一次、不跳动；在减弱动态效果设置下立即切换。
 - 编辑待处理时，聊天输入区无法发送（`ChatPanel` `locked`），但聊天不显示思考行或停止按钮：待处理编辑不是聊天请求。
 
 - 活动只分配一次稳定 ID，重排和恢复时保留。`editVersion` 独立于 orchestrator 的编排轮次，只有基础版本仍匹配时才能应用编辑。

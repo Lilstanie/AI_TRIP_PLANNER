@@ -58,7 +58,7 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
           {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
         </p>
         <details
-          className="trip-panel__budget-summary trip-budget"
+          className="disclosure trip-panel__budget-summary trip-budget"
           open={budgetOpen}
           onToggle={(event) => setBudgetOpen(event.currentTarget.open)}
         >
