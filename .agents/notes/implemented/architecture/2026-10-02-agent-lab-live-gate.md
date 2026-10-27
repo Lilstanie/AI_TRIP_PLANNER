@@ -11,6 +11,8 @@ model key set, a visitor could spend the deployment's quota without live ever be
 between a public request and the deployment's models and providers if live were offered. The page also could not
 say whether a result was fixture or live, or report real usage honestly.
 
+The anonymous-live access decision below is partly superseded by the [model access boundary](2026-10-27-model-access-boundary.md).
+
 ## Decision
 
 Fixture is isolated by construction. A fixture run executes under `runWithDataMode("mock")` and

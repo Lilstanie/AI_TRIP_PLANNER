@@ -20,6 +20,7 @@
     "@neondatabase/serverless": "^1.1.0",
     "@photostructure/tz-lookup": "11.7.0",
     "@tanstack/react-virtual": "3.14.22",
+    "@trip/agents": "workspace:^",
     "@trip/orchestrator": "workspace:*",
     "@trip/services": "workspace:*",
     "@trip/shared": "workspace:*",
