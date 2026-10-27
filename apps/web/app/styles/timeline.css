@@ -764,7 +764,11 @@ button.timeline-stop__time:disabled {
   margin-inline-start: var(--space-2);
 }
 
+.timeline-ideas__head ~ .timeline-ideas {
+  margin-top: 0;
+}
 .timeline-ideas__head {
+  margin-top: var(--space-4);
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -790,9 +794,9 @@ button.timeline-stop__time:disabled {
   flex-wrap: wrap;
   gap: var(--space-1);
 }
-.add-panel button,
-.add-panel input:not([type="checkbox"]) {
-  min-height: 44px;
+[data-phone] .add-panel button,
+[data-phone] .add-panel input:not([type="checkbox"]) {
+  min-height: 44px !important;
 }
 .add-panel [role="tab"][aria-selected="true"],
 .add-panel__filters [aria-pressed="true"] {

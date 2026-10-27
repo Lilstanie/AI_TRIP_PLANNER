@@ -450,39 +450,38 @@ export function TripEditor({
       </div>
       {adding?.kind === "day" && panel({ kind: "day", day })}
 
-      <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
-        <div className="timeline-ideas__head">
-          <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
-            {t("Ideas")}
-          </h4>
-          <button
-            type="button"
-            disabled={locked}
-            aria-label={t("Add to Ideas")}
-            onClick={() => setAdding({ kind: "ideas" })}
-          >
-            {t("Add")}
-          </button>
-        </div>
-        {adding?.kind === "ideas" && panel({ kind: "ideas" })}
-        {ideas.length > 0 && (
-          <>
-            <p className="timeline-ideas__hint">
-              {t("Set aside for later. Schedule one on a day from its menu.")}
-            </p>
-            <ol className="timeline" aria-label={t("Stops, {v0}", { v0: t("Ideas") })}>
-              {ideas.map((idea, position) => (
-                <TimelineStop
-                  key={idea.id ?? `idea-${position}`}
-                  {...stopProps(idea)}
-                  index={0}
-                  count={1}
-                />
-              ))}
-            </ol>
-          </>
-        )}
-      </section>
+      <div className="timeline-ideas__head">
+        <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
+          {t("Ideas")}
+        </h4>
+        <button
+          type="button"
+          disabled={locked}
+          aria-label={t("Add to Ideas")}
+          onClick={() => setAdding({ kind: "ideas" })}
+        >
+          {t("Add")}
+        </button>
+      </div>
+      {adding?.kind === "ideas" && panel({ kind: "ideas" })}
+
+      {ideas.length > 0 && (
+        <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
+          <p className="timeline-ideas__hint">
+            {t("Set aside for later. Schedule one on a day from its menu.")}
+          </p>
+          <ol className="timeline" aria-label={t("Stops, {v0}", { v0: t("Ideas") })}>
+            {ideas.map((idea, position) => (
+              <TimelineStop
+                key={idea.id ?? `idea-${position}`}
+                {...stopProps(idea)}
+                index={0}
+                count={1}
+              />
+            ))}
+          </ol>
+        </section>
+      )}
     </section>
   );
 }

@@ -227,15 +227,17 @@ try {
     "preview-edit keeps Ideas unscheduled",
   );
 
-  const add = page.getByRole("button", { name: "Add place" });
-  check((await add.count()) === 1, "the Trip timeline exposes a direct Add place action");
+  const add = page.getByRole("button", { name: /^Add to Day \d+$/ });
+  check((await add.count()) === 1, "the Trip timeline exposes a direct Add button on the day");
   if (await add.count()) {
     await add.click();
-    const search = page.getByRole("searchbox", { name: "Search places" });
+    const search = page
+      .getByRole("region", { name: "Add to trip" })
+      .getByRole("searchbox", { name: "Search places" });
     await search.fill("Fixture No Coordinate Place");
     await search.press("Enter");
-    await page.getByRole("button", { name: "Use Fixture No Coordinate Place" }).waitFor();
-    await page.getByRole("button", { name: "Use Fixture No Coordinate Place" }).click();
+    await page.getByRole("button", { name: "Add Fixture No Coordinate Place" }).waitFor();
+    await page.getByRole("button", { name: "Add Fixture No Coordinate Place" }).click();
     const previous = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
         item.startsWith("trip-workspace-catalog"),
@@ -252,7 +254,7 @@ try {
     });
     await waitUntil(() => editRequests.some((request) => request.operation?.kind === "add"));
     await waitForPlanLocation("Fixture No Coordinate Place");
-    await page.getByRole("region", { name: "Add place" }).waitFor({ state: "detached" });
+    await page.getByRole("region", { name: "Add to trip" }).waitFor({ state: "detached" });
     const saved = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
         item.startsWith("trip-workspace-catalog"),
@@ -303,14 +305,15 @@ try {
     );
 
     if (created?.id) {
-      await page.getByRole("button", { name: "Add place" }).click();
-      await page.getByLabel("Place name").fill("Second Direct Stop");
+      await page.getByRole("button", { name: /^Add to Day \d+$/ }).click();
+      await page.getByRole("tab", { name: "Custom", exact: true }).click();
+      await page.getByRole("textbox", { name: "Name", exact: true }).fill("Second Direct Stop");
       await page.getByRole("button", { name: "Add", exact: true }).click();
       await waitUntil(() =>
         editRequests.some((request) => request.operation?.location === "Second Direct Stop"),
       );
       await waitForPlanLocation("Second Direct Stop");
-      await page.getByRole("region", { name: "Add place" }).waitFor({ state: "detached" });
+      await page.getByRole("region", { name: "Add to trip" }).waitFor({ state: "detached" });
 
       await page.getByRole("button", { name: "Undo last change" }).click();
       await waitUntil(() => editRequests.some((request) => request.operation?.kind === "undo"));
@@ -459,9 +462,10 @@ try {
       "the added Stop survives reopening the Trip",
     );
 
-    await page.getByRole("button", { name: "Add place" }).click();
-    await page.getByLabel("Place name").fill("Manual Unlocated Place");
-    await page.getByRole("button", { name: "Save as Idea" }).click();
+    await page.getByRole("button", { name: "Add to Ideas", exact: true }).click();
+    await page.getByRole("tab", { name: "Custom", exact: true }).click();
+    await page.getByRole("textbox", { name: "Name", exact: true }).fill("Manual Unlocated Place");
+    await page.getByRole("button", { name: "Add", exact: true }).click();
     await waitUntil(() =>
       editRequests.some(
         (request) =>
@@ -488,7 +492,7 @@ try {
         idea.day === undefined &&
         idea.startTime === undefined &&
         idea.endTime === undefined,
-      "Save as Idea leaves the Stop unscheduled",
+      "adding from Ideas leaves the Stop unscheduled",
     );
     check(
       !idea?.placeId && !idea?.savedPlace && idea?.estCost === undefined,
