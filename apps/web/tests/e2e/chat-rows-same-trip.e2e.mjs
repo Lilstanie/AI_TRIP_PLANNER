@@ -32,7 +32,7 @@ try {
   await planSuggestedTrip(page);
   await selectMine();
   await mine
-    .locator(".chats-panel__actions")
+    .locator(".sidebar-nav, .chats-panel__section-head")
     .getByRole("button", { name: "New trip", exact: true })
     .click();
   await page.keyboard.press("Escape");

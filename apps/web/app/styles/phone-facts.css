@@ -122,9 +122,6 @@
   justify-content: center;
   -webkit-tap-highlight-color: transparent;
 }
-.phone-topbar__team .team-trigger__avatars .assistant-icon + .assistant-icon {
-  margin-inline-start: -8px;
-}
 .phone-topbar__team .team-trigger__count {
   display: inline-flex;
   align-items: center;

@@ -6,10 +6,9 @@
 
 这里列出的原始浏览器脚本不在 CI 中运行；独立的 CLI 验收任务覆盖其注册的 fixture 旅程，因此原始脚本仍可能在 `main` 上失败一段时间才被发现。判断一个失败的脚本是不是你引入的回归之前，先看这份清单；发现某个脚本在 `main` 上失败，或修好了一个，请更新它。每一项都写明最后检查的日期和失败的内容。
 
-| 脚本           | 在 `main` 上检查 | 失败内容                                                                                                                                    | Issue |
-| -------------- | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `liquid-glass` | 2026-10-09       | 手机宽度下点击 Chat 标签超时：开发服务器出错后，Next.js 的开发浮层（`nextjs-portal`）挡住了它。用 `--prod` 运行可以区分真实失败和浮层问题。 | 暂无  |
-| `thinking-orb` | 2026-10-09       | 1440 浅色下 "running subagents show orbs (0)"：没有出现 `.thinking-row__leading canvas.thinking-orb`，随后的等待超时。                      | 暂无  |
+| 脚本           | 在 `main` 上检查 | 失败内容                                                                                                               | Issue |
+| -------------- | ---------------- | ---------------------------------------------------------------------------------------------------------------------- | ----- |
+| `thinking-orb` | 2026-10-09       | 1440 浅色下 "running subagents show orbs (0)"：没有出现 `.thinking-row__leading canvas.thinking-orb`，随后的等待超时。 | 暂无  |
 
 以下失败也在未修改的基线 `42fded7` 上复现（2026-10-10）：使用生产服务器，设置 `DATA_MODE=mock`、`USE_MOCK_TOOLS=true`，并清空 `MOCK_GOOGLE_MAPS`、模型和 Clerk 变量：
 
@@ -45,6 +44,16 @@
   保留键盘激活，并对这个边界施加 16 倍 CPU 限速，完成后恢复正常速度。重现命令为
   `pnpm --filter @trip/web e2e run agent-lab-replay --dev`；原来的全局键盘调用即使等待 30 秒也会失败。
   这是测试驱动的竞态，不是 replay API 故障。
+
+- `liquid-glass` 和 `glass-calibration` 曾等待渐进式空工作区不再显示的语言按钮和 When 芯片（2026-10-27，#731）。两个脚本现在先规划行程，在 1440x1000 和 390x844、浅色和深色下运行，并通过
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
+  以及对 `glass-calibration` 的同样命令。
+
+- `team-panel-desktop`、`team-thinking` 和 `trajectory-demo` 在 `main` 上就已失败（2026-10-27，#734），与玻璃和待处理项票据无关。渐进式空工作区把团队控件移到顶栏左侧分组，因此“按钮在 Trip 左侧”无从检查；弹出层名为“专家团队”而非 Agent Team；规划期间按钮的无障碍名称带有“, N working”，精确名称定位器因此超时；点击信息流左上角会落在已固定的面板上；轨迹 Tab 的选中状态和筛选标签在点击后晚一帧才出现；手机上名册位于模态框内折叠的区域，模态框关闭后仍留在 DOM 中。脚本现已改用当前的前提，并通过
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`。
+
+- `trajectory-tab` 的“轨迹 Tab 上到达的回复在返回对话时可见”在 `main` `629cf2a` 上就已失败（2026-10-27，#740）：Tab 按钮移到了工作区顶栏，顶栏直接设置聊天视图，聊天面板因此从未记录信息流的滚动位置，新回复留在可视区域之下（1440 下差 365 px）。面板现在无论由谁切换视图，都会自行记录信息流的滚动位置和上次显示的消息。
+  `phone-map-empty-hint` 已按 #737 的决定检查 1440 下空地图区域隐藏；六次运行中失败一次，原因是 `locator.evaluate` 读取的节点已被水合替换（返回空字符串），现改为读取当前节点。`sidebar-entries` 属于侧栏相关票据，在集成分支上通过；两者均无需条目。
 
 <a id="not-failures"></a>
 

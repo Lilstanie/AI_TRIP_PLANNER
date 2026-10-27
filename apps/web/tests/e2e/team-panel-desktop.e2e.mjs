@@ -25,6 +25,7 @@ const IDS = [
   "dining",
 ];
 const BUTTON = { en: "Agent Team", zh: "智能体团队" };
+const DIALOG = { en: "Specialist team", zh: "专家团队" };
 const STATUS = {
   en: { idle: "Idle", needs: "Needs change", none: "Not involved" },
   zh: { idle: "空闲", needs: "需修改", none: "未参与" },
@@ -52,6 +53,12 @@ const box = (page) => page.locator(".chat__form textarea");
 const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null"));
 const replies = (page) => page.locator(".msg-item--agent");
+
+async function clickOutside(page) {
+  const stream = page.locator(".chat__stream");
+  const frame = await stream.boundingBox();
+  await stream.click({ position: { x: 20, y: Math.max(20, (frame?.height ?? 200) - 20) } });
+}
 
 async function submit(page, text) {
   await box(page).fill(text);
@@ -118,7 +125,7 @@ try {
     const panel = page.locator(".team-panel");
     const rows = panel.locator(".team-panel__row");
     const assignments = panel.locator(".team-panel__assignment");
-    const dialog = page.getByRole("dialog", { name: BUTTON[locale] });
+    const dialog = page.getByRole("dialog", { name: DIALOG[locale] });
     const pin = async () => {
       await button.focus();
       await page.keyboard.press("Enter");
@@ -141,14 +148,33 @@ try {
 
     check((await button.count()) === 1, `${label}: the top bar has one Agent Team button`);
     check(
-      await page.evaluate(
-        () =>
-          document
-            .querySelector(".topbar-actions .team-trigger")
-            ?.closest(".team-control")
-            ?.nextElementSibling?.classList.contains("trip-trigger") ?? false,
-      ),
-      `${label}: the button sits left of Trip`,
+      await page.evaluate(() => {
+        const trigger = document.querySelector(".topbar-leading .team-control .team-trigger");
+        const actions = document.querySelector(".topbar-actions");
+        if (!trigger || !actions) return false;
+        return trigger.getBoundingClientRect().right <= actions.getBoundingClientRect().left + 1;
+      }),
+      `${label}: the button sits left of the top bar actions`,
+    );
+    const idleAvatars = await page.evaluate(() =>
+      [...document.querySelectorAll(".team-trigger .team-trigger__avatars .assistant-icon")]
+        .filter((icon) => getComputedStyle(icon).display !== "none")
+        .map((icon) =>
+          [...icon.classList].find(
+            (name) => name.startsWith("assistant-icon--") && name !== "assistant-icon--working",
+          ),
+        ),
+    );
+    check(
+      idleAvatars.length === (width > 1000 ? 3 : 1),
+      `${label}: the idle capsule shows ${width > 1000 ? "three avatars" : "one avatar"}`,
+      idleAvatars,
+    );
+    const capsule = await button.boundingBox();
+    check(
+      capsule && capsule.width <= (width > 1000 ? 150 : 80),
+      `${label}: the capsule is narrower than the six-avatar trigger`,
+      capsule?.width,
     );
     check((await panel.count()) === 0, `${label}: the panel is closed at first`);
 
@@ -247,7 +273,7 @@ try {
       `${label}: Esc from elsewhere leaves focus where it was`,
     );
     await pin();
-    await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
+    await clickOutside(page);
     await panel.waitFor({ state: "detached" });
     check(true, `${label}: a click outside closes the pinned panel`);
 
@@ -261,6 +287,9 @@ try {
           return {
             working: Number(trigger?.getAttribute("data-working")),
             text: trigger?.textContent ?? "",
+            avatars: [...trigger.querySelectorAll(".team-trigger__avatars .assistant-icon")].map(
+              (icon) => icon.classList.contains("assistant-icon--working"),
+            ),
             labelShown:
               getComputedStyle(trigger.querySelector(".team-trigger__label")).display !== "none",
             activity: document.querySelectorAll(".chat__stream > .agent-activity").length,
@@ -289,8 +318,18 @@ try {
       caught?.rows,
     );
     check(
-      caught && caught.labelShown === width > 1000,
-      `${label}: the button label shows only above 1000px`,
+      caught &&
+        caught.avatars.length <= 3 &&
+        caught.avatars.length >= 1 &&
+        caught.avatars.every(
+          (working, index, all) => !working || all.slice(0, index).every(Boolean),
+        ),
+      `${label}: the capsule shows at most three avatars, working ones first`,
+      caught?.avatars,
+    );
+    check(
+      caught && caught.labelShown === false,
+      `${label}: the capsule hides the text label below 1280px of workspace width`,
       caught?.labelShown,
     );
     if (width > 1000)
@@ -304,7 +343,7 @@ try {
       `${label}: the thinking process stays in the live area while planning`,
       caught?.activity,
     );
-    await page.locator(".chat__stream").click({ position: { x: 20, y: 20 } });
+    await clickOutside(page);
     await panel.waitFor({ state: "detached" });
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 240_000 });
     await page.waitForTimeout(800);
@@ -366,6 +405,10 @@ try {
     await panel.locator('.team-panel__row[data-assistant="accommodation"] button').click();
     await panel.waitFor({ state: "detached" });
     const tab = page.getByRole("tab", { name: LAYOUT[locale].tab });
+    await page
+      .locator("[data-trajectory-filter]")
+      .waitFor({ timeout: 3000 })
+      .catch(() => undefined);
     check(
       (await tab.getAttribute("aria-selected")) === "true",
       `${label}: pressing a specialist opens the Trajectory tab`,
@@ -376,6 +419,9 @@ try {
       `${label}: the trajectory names the filtered specialist`,
       await chip.allInnerTexts(),
     );
+    await page.locator("[data-trajectory-simple]").waitFor();
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+    await page.locator("[data-trajectory-scroll]").waitFor();
     const filtered = await page.evaluate(() =>
       [...document.querySelectorAll("[data-trajectory-scroll] tr[data-record-index]")].map(
         (row) => ({

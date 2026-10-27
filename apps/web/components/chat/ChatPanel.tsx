@@ -34,6 +34,7 @@ export function ChatPanel({
   phone = false,
   showTabs = true,
   blankUntouched = false,
+  conversationId,
   onCancel,
   error,
   onAttachFiles,
@@ -69,6 +70,7 @@ export function ChatPanel({
   showTabs?: boolean;
 
   blankUntouched?: boolean;
+  conversationId?: string | undefined;
 
   onCancel?: () => void;
 
@@ -120,10 +122,9 @@ export function ChatPanel({
     messages: Message[];
     activity: AgentProgressEvent[];
   } | null>(null);
+  const lastTop = useRef<number | null>(null);
   const choose = (next: ChatView) => {
     if (next === view) return;
-    if (next === "trajectory")
-      savedScroll.current = { top: stream.current?.scrollTop ?? 0, messages, activity };
     setView(next);
   };
   const { focus } = useTrajectoryFocus();
@@ -140,6 +141,11 @@ export function ChatPanel({
     choose("trajectory");
   });
   useLayoutEffect(() => {
+    if (view === "trajectory") {
+      if (savedScroll.current === null && lastTop.current !== null)
+        savedScroll.current = { top: lastTop.current, messages, activity };
+      return;
+    }
     const saved = savedScroll.current;
     if (view !== "conversation" || saved === null) return;
     const node = stream.current;
@@ -192,6 +198,9 @@ export function ChatPanel({
         hidden={showTrajectory}
         {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
         aria-busy={busy}
+        onScroll={(event) => {
+          lastTop.current = event.currentTarget.scrollTop;
+        }}
       >
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
@@ -224,6 +233,7 @@ export function ChatPanel({
           aria-labelledby="chat-tab-trajectory"
         >
           <TrajectoryTab
+            key={conversationId}
             messages={messages}
             live={activity}
             busy={busy}
@@ -288,9 +298,11 @@ export function ChatPanel({
           />
         </form>
       )}
-      <p className="disclaimer">
-        {t("Estimates require verification. Nothing here makes a booking.")}
-      </p>
+      {!(phone && blankUntouched) && (
+        <p className="disclaimer">
+          {t("Estimates require verification. Nothing here makes a booking.")}
+        </p>
+      )}
     </section>
   );
 }

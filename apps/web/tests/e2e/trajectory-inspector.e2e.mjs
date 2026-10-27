@@ -177,6 +177,7 @@ try {
     failStay = false;
 
     await page.getByRole("tab", { name: copy.trajectory, exact: true }).click();
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
     const view = page.locator("[data-trajectory-scroll]");
     await view.waitFor({ timeout: 10_000 });
     const rows = await ledgerRows(page);

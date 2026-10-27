@@ -48,9 +48,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         data-working={team.working}
         onClick={openTeamSheet}
       >
-        <TeamAvatars
-          rows={[team.rows.find((row) => row.status === "working") ?? team.rows[0]].filter(Boolean)}
-        />
+        <TeamAvatars rows={team.rows} />
         {team.working > 0 && (
           <span className="team-trigger__count" aria-hidden="true">
             <span className="team-trigger__count-full">
@@ -113,6 +111,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
           />
         </details>
         <PhoneTrajectory
+          key={model.history.catalog.activeConversationId}
           messages={messages}
           activity={activity}
           busy={busy}

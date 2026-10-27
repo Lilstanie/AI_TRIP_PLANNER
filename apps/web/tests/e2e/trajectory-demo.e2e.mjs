@@ -136,6 +136,10 @@ try {
       });
       const bar = page.locator(".phone-tabbar");
       const toChat = async () => {
+        if (phone && (await page.locator("dialog.phone-trajectory[open]").count())) {
+          await page.keyboard.press("Escape");
+          await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+        }
         if (phone) await bar.getByRole("tab", { name: copy.chat }).click();
         else await page.locator("#chat-tab-conversation").click();
         await page.locator(".chat__stream").waitFor({ state: "visible" });
@@ -165,12 +169,22 @@ try {
         });
       };
       const openPanel = async () => {
-        if (phone) await trigger.click();
-        else {
+        if (phone) {
+          await trigger.click();
+          const roster = page.locator("dialog.phone-trajectory[open] .phone-trajectory__team");
+          if (!(await roster.evaluate((node) => node.open)))
+            await roster.locator("> summary").click();
+        } else {
           await page.mouse.move(5, 500);
           await trigger.hover();
         }
         await panel.waitFor();
+      };
+
+      const closePanel = async () => {
+        await page.keyboard.press("Escape");
+        if (phone) await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+        else await panel.waitFor({ state: "detached" });
       };
 
       await step(1, "team-working", async () => {
@@ -196,8 +210,7 @@ try {
           statuses,
         );
         await snap("panel-live");
-        await page.keyboard.press("Escape");
-        await panel.waitFor({ state: "detached" });
+        await closePanel();
         await answered(page, before);
         await page.evaluate(() => {
           window.__slow = false;
@@ -229,13 +242,20 @@ try {
           kinds,
         );
         await snap("panel-revision");
-        await page.keyboard.press("Escape");
-        await panel.waitFor({ state: "detached" });
+        await closePanel();
       });
 
       await step(3, "trajectory", async () => {
         await replies.last().scrollIntoViewIfNeeded();
         await page.locator(SUMMARY).nth(1).click();
+        await page.locator("[data-trajectory-simple]").waitFor();
+        check(
+          (await page
+            .locator('[data-simple-turn="2"] [data-simple-toggle]')
+            .getAttribute("aria-expanded")) === "true",
+          `${label} step 3: the summary opens the simple list at the revision turn`,
+        );
+        await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
         await page.locator("[data-trajectory-scroll]").waitFor();
         await page.waitForTimeout(600);
         const inView = await page.evaluate(() => {
@@ -282,6 +302,23 @@ try {
         await page.locator('.team-panel__row[data-assistant="dining"] button').click();
         const filter = page.locator("[data-trajectory-filter]");
         await filter.waitFor();
+        await page.locator("[data-trajectory-simple]").waitFor();
+        const simpleOwners = await page
+          .locator("[data-trajectory-simple] [data-simple-turn]")
+          .evaluateAll((nodes) =>
+            nodes.map((node) =>
+              [...node.querySelectorAll("[data-simple-avatar]")].map((a) =>
+                a.getAttribute("data-simple-avatar"),
+              ),
+            ),
+          );
+        check(
+          simpleOwners.length >= 1 && simpleOwners.every((ids) => ids.includes("dining")),
+          `${label} step 5: the simple list lists only turns that specialist took part in`,
+          simpleOwners,
+        );
+        await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+        await page.locator("[data-trajectory-scroll]").waitFor();
         const owners = await page
           .locator("[data-trajectory-scroll] tr[data-record-index]")
           .evaluateAll((nodes) => [...new Set(nodes.map((n) => n.getAttribute("data-assistant")))]);

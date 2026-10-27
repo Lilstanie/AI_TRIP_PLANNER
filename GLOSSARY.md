@@ -40,6 +40,10 @@ _Avoid_: pipeline, orchestration loop
 A problem found between sections of a plan, such as an overrun budget or overlapping times, that names the specialist to revise.
 _Avoid_: issue, error
 
+**Open item**:
+Something in a trip the traveller should look at, such as a conflict on a stop, a stop without a located place, a place whose lookup failed, or an edit issue that names no stop.
+_Avoid_: issue, problem
+
 **Targeted revision**:
 Asking only the specialist a conflict names to fix it, within the planning loop's round limit.
 _Avoid_: repair loop, bounded revision, retry, re-plan
@@ -53,7 +57,7 @@ The piece of work the Coordinator gives one specialist in a round: its first dis
 _Avoid_: task, job, subtask
 
 **Trajectory**:
-The ordered record of one chat: for each traveller message, what the Coordinator, each specialist and their tools did, round by round, up to the reply.
+The ordered record of one chat: for each traveller message, what the Coordinator, each specialist and their tools did, round by round, up to the reply. It opens as a simple list with one row per turn, and the full view (ledger, timeline, inspector) shows the same turns in detail.
 _Avoid_: trace (that is the Agent Lab's), log, timeline (that is the itinerary's)
 
 **Plan score**:

@@ -23,6 +23,10 @@ const COPY = {
     dining: "Food & dining",
     coordinator: "Coordinator",
     toolbar: "Trajectory toolbar",
+    simpleSwitch: "Simple",
+    fullSwitch: "Full view",
+    done: "Done",
+    failed: "Failed",
     timeline: "Trajectory timeline",
     details: "Event details",
     close: "Close details",
@@ -54,6 +58,10 @@ const COPY = {
     dining: "餐饮",
     coordinator: "协调员",
     toolbar: "轨迹工具栏",
+    simpleSwitch: "简洁",
+    fullSwitch: "完整视图",
+    done: "完成",
+    failed: "失败",
     timeline: "轨迹时间线",
     details: "事件详情",
     close: "关闭详情",
@@ -266,13 +274,132 @@ try {
     const scrollBefore = await stream.evaluate((node) => node.scrollTop);
     await trajectoryTab.click();
     const view = page.locator("[data-trajectory-scroll]");
-    await view.waitFor({ timeout: 10_000 });
+    const simple = page.locator("[data-trajectory-simple]");
+    await simple.waitFor({ timeout: 10_000 });
     check(
       (await trajectoryTab.getAttribute("aria-selected")) === "true" &&
         (await conversationTab.getAttribute("aria-selected")) === "false",
       `${label}: the Trajectory tab becomes selected`,
     );
     check(!(await stream.isVisible()), `${label}: the conversation stream is hidden`);
+    check((await view.count()) === 0, `${label}: the tab opens on the simple list, not the ledger`);
+    const simpleSwitch = page.getByRole("button", { name: copy.simpleSwitch, exact: true });
+    const fullSwitch = page.getByRole("button", { name: copy.fullSwitch, exact: true });
+    check(
+      (await simpleSwitch.getAttribute("aria-pressed")) === "true" &&
+        (await fullSwitch.getAttribute("aria-pressed")) === "false",
+      `${label}: the switch shows the simple list is the current view`,
+    );
+    const simpleRows = simple.locator("[data-simple-turn]");
+    const simpleFacts = await simpleRows.evaluateAll((nodes) =>
+      nodes.map((node) => ({
+        turn: Number(node.getAttribute("data-simple-turn")),
+        result: node.getAttribute("data-turn-result"),
+        summary: node.querySelector("[data-simple-summary]")?.textContent ?? "",
+        resultText: node.querySelector("[data-simple-result]")?.textContent ?? "",
+        avatars: [...node.querySelectorAll("[data-simple-avatar]")].map((avatar) =>
+          avatar.getAttribute("data-simple-avatar"),
+        ),
+        expanded: node.querySelector("[data-simple-toggle]")?.getAttribute("aria-expanded"),
+      })),
+    );
+    check(simpleFacts.length === 3, `${label}: one simple row per traveller message`, simpleFacts);
+    check(
+      simpleFacts[0]?.summary.includes("Tokyo from Sydney") &&
+        simpleFacts[1]?.summary.includes("find a cheaper stay again") &&
+        simpleFacts[2]?.summary.includes("find another stay"),
+      `${label}: each row summarises what the traveller said`,
+      simpleFacts.map((fact) => fact.summary),
+    );
+    check(
+      simpleFacts.every(
+        (fact) =>
+          fact.avatars.length > 0 &&
+          new Set(fact.avatars).size === fact.avatars.length &&
+          !fact.avatars.includes("coordinator"),
+      ) &&
+        simpleFacts[0]?.avatars.length === 5 &&
+        simpleFacts[1]?.avatars.includes("accommodation") &&
+        simpleFacts[1]?.avatars.includes("dining"),
+      `${label}: avatars are the distinct specialists that took part, never the Coordinator`,
+      simpleFacts.map((fact) => fact.avatars),
+    );
+    check(
+      simpleFacts.map((fact) => fact.result).join() === "done,done,failed" &&
+        simpleFacts[0]?.resultText === copy.done &&
+        simpleFacts[2]?.resultText === copy.failed,
+      `${label}: the result says done, done and failed`,
+      simpleFacts.map((fact) => [fact.result, fact.resultText]),
+    );
+    check(
+      simpleFacts.every((fact) => fact.expanded === "false"),
+      `${label}: every row starts collapsed`,
+    );
+    check(
+      locale === "en" || (await simple.getByText(copy.foreign).count()) === 0,
+      `${label}: the simple list uses the interface language`,
+    );
+    check(
+      await page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth),
+      `${label}: the simple list does not overflow sideways`,
+    );
+    await page.screenshot({ path: `${out}/${label}-simple.png` });
+
+    const rowToggle = (turn) => simple.locator(`[data-simple-turn="${turn}"] [data-simple-toggle]`);
+    await rowToggle(2).click();
+    const expanded = await simple
+      .locator('[data-simple-turn="2"] [data-simple-round]')
+      .evaluateAll((nodes) =>
+        nodes.map((node) => ({
+          round: node.getAttribute("data-simple-round"),
+          assignments: [...node.querySelectorAll("[data-simple-assignment]")].map(
+            (item) => item.textContent ?? "",
+          ),
+        })),
+      );
+    check(
+      expanded.map((item) => item.round).join() === "1,2" &&
+        expanded[0]?.assignments.some((text) => text.includes(copy.custom)) &&
+        expanded[0]?.assignments.some((text) => text.includes(copy.sentBack)) &&
+        expanded[1]?.assignments.some((text) => text.includes(copy.dining)) &&
+        expanded[1]?.assignments.some((text) => text.includes(copy.scored)),
+      `${label}: expanding a row lists its rounds and assignments in order`,
+      expanded,
+    );
+    await page.screenshot({ path: `${out}/${label}-simple-expanded.png` });
+    await rowToggle(3).click();
+    check(
+      (await simple.locator('[data-simple-toggle][aria-expanded="true"]').count()) === 1 &&
+        (await rowToggle(2).getAttribute("aria-expanded")) === "false",
+      `${label}: expanding another row collapses the first`,
+    );
+    await rowToggle(2).click();
+    await fullSwitch.click();
+    await view.waitFor({ timeout: 10_000 });
+    check(
+      (await simple.count()) === 0 && (await fullSwitch.getAttribute("aria-pressed")) === "true",
+      `${label}: the switch opens the full view in place of the simple list`,
+    );
+    await page.waitForTimeout(900);
+    const turnTwoUser = view.locator("tr[data-turn-start]").nth(1);
+    const inView = await turnTwoUser.evaluate((row) => {
+      const pane = document.querySelector("[data-trajectory-scroll]").getBoundingClientRect();
+      const box = row.getBoundingClientRect();
+      return box.top >= pane.top - 1 && box.bottom <= pane.bottom + 1;
+    });
+    check(
+      inView && (await turnTwoUser.innerText()).includes("find a cheaper stay again"),
+      `${label}: the full view shows the turn that was open in the simple list`,
+    );
+    await simpleSwitch.click();
+    await simple.waitFor({ timeout: 10_000 });
+    check(
+      (await rowToggle(2).getAttribute("aria-expanded")) === "true" &&
+        (await simple.locator('[data-simple-toggle][aria-expanded="true"]').count()) === 1,
+      `${label}: switching back keeps the same turn open`,
+    );
+    await fullSwitch.click();
+    await view.waitFor({ timeout: 10_000 });
 
     const rows = await ledgerRows(page);
     const turns = turnsOf(rows);
@@ -551,6 +678,12 @@ try {
       { timeout: 15_000 },
     );
     await trajectoryTab.click();
+    await simple.waitFor({ timeout: 10_000 });
+    check(
+      (await view.count()) === 0,
+      `${label}: reopening the tab after the full view starts on the simple list again`,
+    );
+    await fullSwitch.click();
     await view.waitFor({ timeout: 10_000 });
     const reloaded = turnsOf(await ledgerRows(page));
     check(reloaded.length === 3, `${label}: all three turns survive a reload`, reloaded.length);

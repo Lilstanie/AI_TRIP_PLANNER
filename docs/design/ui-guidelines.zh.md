@@ -78,14 +78,15 @@ Trip 关闭时，现有工作区网格仍由侧边栏、聊天和地图组成，
 
 ### 玻璃
 
-玻璃采用 Liquid Glass，即 iOS 26 中半透明、模糊、略提高饱和度并带明亮镜面边缘的材质。它应用于**每个悬浮层**：侧边栏、Chats 面板、顶部栏胶囊、分段控件、输入框、空状态卡片、提示、地图覆盖层、抽屉、旅行信息浮层、对话框、旅行卡片标题和旅行日历。`apps/web/app/styles/glass.css` 维护该列表。
+玻璃采用 Liquid Glass，即 iOS 26 中半透明、模糊、略提高饱和度并带明亮镜面边缘的材质。它**只用于悬浮表面**：顶部栏、侧边栏和 Chats 面板、弹出层（现在是 Agent Team 面板，之后还有待处理项弹出层）、浮层与对话框、抽屉，以及手机的标签栏和顶部栏。悬浮在地图或对话之上的控件（输入框、地图控件、提示）使用同一材质。**内容保持实色**：聊天气泡、空聊天卡片、地点卡片、旅行卡片标题和旅行日历网格使用 `--surface`，不模糊。`apps/web/app/styles/glass.css` 维护选择器列表。
 
-- 玻璃值仅来自 `tokens.css` 中的语义 token（`--glass-bg`、`--glass-bg-strong`、`--glass-border`、`--glass-edge`、`--glass-highlight`、`--glass-sheen`、`--glass-shadow`、`--glass-blur`、`--glass-saturate`），同时提供浅色和深色值。文字密集的层使用 `--glass-bg-strong`。
-- 玻璃绝不叠加在玻璃上：玻璃层内的菜单、工具提示和建议列表使用不透明材质；抽屉内的分段轨道使用填充。
-- 玻璃上的文字和图标，在它们可能覆盖的最复杂背景上仍须满足 WCAG AA。不满足时，提高填充不透明度，不要添加文字阴影。
-- 不支持 `backdrop-filter`、启用 `prefers-reduced-transparency: reduce` 或 `prefers-contrast: more` 时，玻璃回退到 `--surface`；在 forced-colors 模式下回退到系统颜色。
+- **Token**（`tokens.css`，含浅色和深色值）：`--glass-tint`（填充）、`--glass-blur`、`--glass-saturate`、`--glass-border`、`--glass-edge`、`--glass-highlight`、`--glass-sheen`、`--glass-shadow`，以及用于弹出层、浮层和对话框的 `--glass-shadow-raised`。只有一种填充：浅色为 88% 白，深色为 88% 的 `#1e1e20`。
+- **新表面使用的类**：给任何新的悬浮表面加 `glass-float`（获得填充、模糊、饱和度、边框和 `--glass-shadow`）；需要 `--glass-shadow-raised` 的弹出层或浮层再加 `glass-float--raised`。减少透明度、`prefers-contrast`、forced-colors 以及不支持 `backdrop-filter` 的回退会自动作用于这两个类。待处理项弹出层使用 `glass-float glass-float--raised`。承载 fixed 定位子元素的容器（例如承载信息浮层的手机顶部栏）自身不得使用 `backdrop-filter`，应把材质放在 `::before` 上。
+- 玻璃绝不叠加在玻璃上：玻璃层内的菜单、工具提示、行和建议列表使用不透明材质；抽屉内的分段轨道使用填充。
+- 玻璃上的正文和次要文字，相对页面颜色以及该层可能覆盖的最复杂背景（浅色取 `rgb(160 160 160)`，深色取 `rgb(96 96 96)`）都须满足 WCAG AA（4.5:1）。不满足时，提高填充不透明度，不要添加文字阴影。`glass-calibration` 对每个表面进行测量。
+- 不支持 `backdrop-filter`、启用 `prefers-reduced-transparency: reduce` 或 `prefers-contrast: more` 时，玻璃回退为实色 `--surface`、无模糊；在 forced-colors 模式下回退到系统颜色。
 
-材质保留 24 px 模糊，将饱和度收敛至 150%，使用边缘高光代替大面积内发光；`--glass-sheen` 分别定义明暗主题的轻微反光。普通/密集文字填充的浅色不透明度为 64%/86%，深色为 60%/88%。这些值是 Web 适配参数；减少透明度、提高对比度及强制颜色模式都移除反光和模糊，控件保留实色边界。
+材质保留 24 px 模糊、150% 饱和度，使用边缘高光代替大面积内发光；`--glass-sheen` 定义轻微反光。这些值是 Web 适配参数。`glass-calibration` 和 `liquid-glass` 在 1440x1000 和 390x844、浅色和深色下，把截图和 `results.json` 保存到 `output/playwright/`；失败场景列在 `apps/web/tests/e2e/glass-tokens.failures.md`。
 
 实现方法见 [better-ui 玻璃参考](../../.agents/skills/better-ui/references/glass.md)。
 

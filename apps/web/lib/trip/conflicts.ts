@@ -37,13 +37,23 @@ function addTo<K>(map: Map<K, Notice[]>, key: K, notice: Notice) {
   map.set(key, list);
 }
 
-export function placeConflicts(plan: TripPlan): ConflictPlacement {
-  const placement: ConflictPlacement = { budget: [], days: new Map(), stops: new Map() };
-  const itinerary =
-    plan.sections.find((section) => section.id === "itinerary")?.proposal?.items ?? [];
-  const stops = itinerary.filter(
+const itineraryStops = (plan: TripPlan) =>
+  (plan.sections.find((section) => section.id === "itinerary")?.proposal?.items ?? []).filter(
     (item) => item.kind === "activity" && item.day !== undefined && item.id,
   );
+
+export function unplacedIssues(plan: TripPlan): Notice[] {
+  const stopIds = new Set(itineraryStops(plan).map((stop) => stop.id));
+  const found: Notice[] = [];
+  for (const issue of plan.editIssues ?? [])
+    if (issue.code !== "price_unverified" && !issue.activityIds.some((id) => stopIds.has(id)))
+      addOnce(found, readStoredNotice(issue.message));
+  return found;
+}
+
+export function placeConflicts(plan: TripPlan): ConflictPlacement {
+  const placement: ConflictPlacement = { budget: [], days: new Map(), stops: new Map() };
+  const stops = itineraryStops(plan);
   const scheduled = plan.sections
     .flatMap((section) => section.proposal?.items ?? [])
     .filter((item) => item.day !== undefined && item.startTime && item.endTime);

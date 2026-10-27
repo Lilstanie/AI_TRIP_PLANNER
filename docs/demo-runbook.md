@@ -71,7 +71,7 @@ The Stage 2 assistants demo runs in mock mode with no keys, in English or Chines
 Type `@` in the message box and pick an assistant from the menu (arrows, then Tab or Enter), or type its name.
 The Specialist team button in the top bar, or the avatar button beside the trip title on a phone, opens the team panel.
 
-1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the avatars on the Specialist team button show who is working; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that turn in the trajectory.
+1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the three stacked avatars on the Agent Team capsule show who is working, with an "N working" count; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that turn in the trajectory.
 2. Type `@` and pick Stay from the menu, then `find a cheaper stay`. Only the accommodation specialist works and only its section changes.
 3. Lower the budget until the plan overruns, then repeat step 2. The panel shows the conflict, the specialist sent back for a revision, the revision score and the stop line.
 4. Type `@Stay`, then press Backspace once to select the whole mention and again to delete it.
@@ -89,11 +89,23 @@ The trajectory part of the Stage 2 demo also runs in mock mode with no keys, in 
 
 1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, open the Specialist team panel: one specialist is working.
 2. Lower the budget until the plan overruns, then send `@Stay find a cheaper stay again`. The panel shows the conflict check and the revision assignment.
-3. Press the summary line above the finished reply. The Trajectory tab opens with that reply's turn centred in the ledger (on a phone, the Trajectory tab of the bottom bar).
+3. Press the summary line above the finished reply. The Trajectory tab opens on its simple list with that reply's turn open (on a phone, the Trajectory tab of the bottom bar). Press Full view: the ledger centres that turn.
 4. Press the conflict check that names Food & dining. The inspector shows the decision and the specialist it sends back, with no token or duration field.
-5. Close the inspector, open the Specialist team panel and press Food & dining. The ledger keeps only that specialist's records; Show all records restores it.
+5. Close the inspector, open the Specialist team panel and press Food & dining. The simple list keeps only that specialist's turns; press Full view and the ledger keeps only that specialist's records; Show all records restores it.
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` repeats the five steps at 1440 px and 390 px in both languages and saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/trajectory-demo/result.json`, listing each step with its screenshots and checks, as the demo record. `summary-jump` checks the summary line on a three-turn chat and saves `output/playwright/summary-jump/`.
+
+## Redesigned workspace walkthrough
+
+The redesigned workspace also runs in mock mode with no keys. Follow it in light and dark, at 1440 px and on a 390x844 or 360x800 phone.
+
+1. Open the blank workspace. Desktop keeps its map area hidden; on a phone, Map shows a basemap with one hint and a button to Chat, and nothing asks for location until Locate me is pressed. Chat, Mine and the empty Trajectory sheet each show one sentence and one action.
+2. On desktop use the sidebar: New trip opens the new-trip dialog, Calendar opens Trips on its calendar view, and the plus on the Chats row starts a chat.
+3. Plan the first example trip. While it runs the Agent Team capsule shows three stacked avatars and "N working"; afterwards it shows the avatars only. One press (the capsule, or on a phone the same capsule) opens the six-row team panel.
+4. Open Trajectory (the tab on desktop; the capsule on a phone). It opens on the simple list; expand a row for its rounds, then press Full view for the ledger.
+5. Open the trip. The open-items badge beside the title lists conflicts, unlocated places and failed lookups; a row opens its stop. The budget is one summary line that opens its breakdown on demand.
+
+`DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e workspace-walkthrough --prod` repeats the five steps at the three sizes in both appearances. It saves numbered screenshots (`<size>-<theme>/NN-<step>.png`) and `output/playwright/workspace-walkthrough/<LABEL>/summary.json`, which lists every check, the number of presses needed to reach the Agent Team and the Trajectory (two or fewer at every size) and the ordered screenshot set. Failure scenarios are in `apps/web/tests/e2e/workspace-walkthrough.failures.md`.
 
 ## If something fails on the day
 

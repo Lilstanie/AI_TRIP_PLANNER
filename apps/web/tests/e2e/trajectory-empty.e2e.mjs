@@ -17,15 +17,14 @@ const COPY = {
     locale: "en-AU",
     tab: /^Trajectory/,
     chat: /^Chat/,
-    empty:
-      "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.",
+    empty: "Each step the assistant takes will be listed here after you send a message.",
     plan: "Plan in Chat",
   },
   zh: {
     locale: "zh-CN",
     tab: /^轨迹/,
     chat: /^聊天/,
-    empty: "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
+    empty: "发送消息后，助手的每一步都会列在这里。",
     plan: "去聊天规划",
   },
 };
@@ -94,11 +93,14 @@ try {
     await page.waitForTimeout(800);
     await page.locator(".phone-topbar__team").tap();
     await panel.waitFor();
-    await panel.getByRole("toolbar").waitFor({ timeout: 10_000 });
+    await panel.locator("[data-trajectory-simple]").waitFor({ timeout: 10_000 });
     check(
-      (await empty.count()) === 0,
-      `${label}: the ledger replaces the empty state after the first message`,
+      (await empty.count()) === 0 && (await panel.locator("[data-simple-turn]").count()) === 1,
+      `${label}: the simple list replaces the empty state after the first message`,
     );
+    await page.screenshot({ path: `${out}/${label}-simple.png` });
+    await panel.getByRole("button", { name: /^(Full view|完整视图)$/ }).tap();
+    await panel.getByRole("toolbar").waitFor({ timeout: 10_000 });
     const rows = panel.locator("tr[data-record-index]");
     check(
       (await rows.count()) > 0,

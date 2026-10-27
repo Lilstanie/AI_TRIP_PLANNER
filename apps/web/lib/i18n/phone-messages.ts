@@ -5,8 +5,8 @@ export const PHONE_ZH = {
   "No trip yet. Plan one in Chat and your itinerary and budget will appear here.":
     "还没有行程。在聊天里规划后，日程和预算会显示在这里。",
   "Plan in Chat": "去聊天规划",
-  "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.":
-    "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
+  "Each step the assistant takes will be listed here after you send a message.":
+    "发送消息后，助手的每一步都会列在这里。",
 
   "Settings & account": "设置与账户",
 
@@ -15,7 +15,8 @@ export const PHONE_ZH = {
   "Resize day stops, half height": "调整当日站点面板，半屏",
   "Resize day stops, full height": "调整当日站点面板，全屏",
   "Choose map day": "选择地图日期",
-  "Plan a trip in Chat to see your day stops here.": "在聊天里规划行程后，这里会显示当日站点。",
+  "Where are you going?": "你想去哪里？",
+  "Nothing planned for this day yet.": "这一天还没有安排。",
 
   "Trip updated": "行程已更新",
 } as const;

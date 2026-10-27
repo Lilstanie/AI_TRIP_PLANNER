@@ -1,3 +1,27 @@
+:root {
+  interpolate-size: allow-keywords;
+  --disclosure-duration: var(--duration);
+  --disclosure-ease: var(--ease-out);
+}
+.disclosure::details-content {
+  block-size: 0;
+  opacity: 0;
+  overflow: clip;
+  transition:
+    block-size var(--disclosure-duration) var(--disclosure-ease),
+    opacity var(--disclosure-duration) var(--disclosure-ease),
+    content-visibility var(--disclosure-duration) var(--disclosure-ease) allow-discrete;
+}
+.disclosure[open]::details-content {
+  block-size: auto;
+  opacity: 1;
+}
+@media (prefers-reduced-motion: reduce) {
+  .disclosure::details-content {
+    transition: none;
+  }
+}
+
 :root[data-transition] .workspace-main {
   view-transition-name: workspace-main;
 }
@@ -335,7 +359,7 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
 
 html[data-transition] .chats-panel,
 .chats-panel:not(.is-open) {
-  --glass-fill: var(--glass-bg-strong);
+  --glass-fill: var(--glass-tint);
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }

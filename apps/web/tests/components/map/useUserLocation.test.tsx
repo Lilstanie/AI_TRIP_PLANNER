@@ -1,14 +1,15 @@
 import { act, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
-import { LocationPrompt } from "@/components/map/LocationPrompt";
 import { LOCATION_CHOICE_KEY, useUserLocation } from "@/components/map/useUserLocation";
 
 function Probe() {
-  const { asking, allow, dismiss, location } = useUserLocation();
+  const { location, request } = useUserLocation();
   return (
     <>
       <p data-testid="status">{location.status}</p>
-      {asking && <LocationPrompt onAllow={allow} onDismiss={dismiss} />}
+      <button type="button" onClick={request}>
+        Locate me
+      </button>
     </>
   );
 }
@@ -33,60 +34,34 @@ afterEach(() => {
   getCurrentPosition.mockClear();
 });
 
-const prompt = () => screen.queryByRole("region", { name: "Show where you are on the map?" });
-
 describe("useUserLocation", () => {
-  it("asks in the app on open and calls the browser only after Allow location", async () => {
+  it("never asks on open and calls the browser only after Locate me", async () => {
     setBrowser("prompt");
     render(<Probe />);
-    await waitFor(() => expect(prompt()).not.toBeNull());
+    await act(async () => {});
     expect(getCurrentPosition).not.toHaveBeenCalled();
+    expect(screen.getByTestId("status").textContent).toBe("idle");
 
-    fireEvent.click(screen.getByRole("button", { name: "Allow location" }));
+    fireEvent.click(screen.getByRole("button", { name: "Locate me" }));
     expect(getCurrentPosition).toHaveBeenCalledOnce();
-    expect(prompt()).toBeNull();
     expect(screen.getByTestId("status").textContent).toBe("success");
     expect(localStorage.getItem(LOCATION_CHOICE_KEY)).toBe("allowed");
 
     expect(JSON.stringify({ ...localStorage })).not.toMatch(/151\.21/);
   });
 
-  it("remembers Not now and does not ask again", async () => {
-    setBrowser("prompt");
-    const { unmount } = render(<Probe />);
-    await waitFor(() => expect(prompt()).not.toBeNull());
-    fireEvent.click(screen.getByRole("button", { name: "Not now" }));
-    expect(prompt()).toBeNull();
-    expect(localStorage.getItem(LOCATION_CHOICE_KEY)).toBe("dismissed");
-    unmount();
-
-    render(<Probe />);
-    await act(async () => {});
-    expect(prompt()).toBeNull();
-    expect(getCurrentPosition).not.toHaveBeenCalled();
-  });
-
-  it("shows the position without asking when an earlier Allow is still granted", async () => {
+  it("shows the position without asking when an earlier tap is still granted", async () => {
     setBrowser("granted");
     localStorage.setItem(LOCATION_CHOICE_KEY, "allowed");
     render(<Probe />);
     await waitFor(() => expect(getCurrentPosition).toHaveBeenCalledOnce());
-    expect(prompt()).toBeNull();
   });
 
-  it("asks again, without calling the browser, when permission was reset after an Allow", async () => {
+  it("does not call the browser on open when permission was reset after an earlier tap", async () => {
     setBrowser("prompt");
     localStorage.setItem(LOCATION_CHOICE_KEY, "allowed");
     render(<Probe />);
-    await waitFor(() => expect(prompt()).not.toBeNull());
-    expect(getCurrentPosition).not.toHaveBeenCalled();
-  });
-
-  it("does not ask when the browser already blocks location", async () => {
-    setBrowser("denied");
-    render(<Probe />);
     await act(async () => {});
-    expect(prompt()).toBeNull();
     expect(getCurrentPosition).not.toHaveBeenCalled();
   });
 });

@@ -6,6 +6,8 @@ import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "./useTripPlaces";
 import type { UserLocation } from "./useUserLocation";
 import { MapPinIcon } from "../ui/icons";
+import { useSettings } from "../account/SettingsProvider";
+import { useHomeBase } from "./useHomeBase";
 
 const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
   ssr: false,
@@ -30,7 +32,9 @@ export function TripMapCanvas({
   visible = true,
   focusedDay,
   focusRequest,
+  onOpenChat,
 }: {
+  onOpenChat?(): void;
   phone?: boolean;
   visible?: boolean;
   focusedDay?: number;
@@ -46,7 +50,9 @@ export function TripMapCanvas({
 
   userLocation: UserLocation;
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
+  const homeCity = useSettings().settings.travel.homeCity;
+  const home = useHomeBase(destination ? "" : homeCity, tripPlaces.dataMode, locale);
   const {
     itinerary,
     destinations,
@@ -67,8 +73,41 @@ export function TripMapCanvas({
   const selected = selectedActivity ? itinerary.stop(selectedActivity)?.place?.id : undefined;
   const canShowMap = destinations.length > 0 || itinerary.markersFor().length > 0;
 
-  if (!destination || !canShowMap) {
-    const locating = !!destination && (!destinationsSettled || loading);
+  if (!destination) {
+    return (
+      <section
+        className="trip-map-canvas"
+        aria-label={t("Trip map")}
+        data-basemap-centre={home ? "home" : "world"}
+      >
+        <TripMap
+          quiet
+          center={home}
+          mockData={tripPlaces.dataMode === "mock"}
+          forceOsmProvider={tripPlaces.forceOsm}
+          allowOsmFallback={tripPlaces.allowFallback}
+          stops={[]}
+          phone={phone}
+          visible={visible}
+          onSelect={onSelectActivity}
+          routes={[]}
+          viewKey={viewKey}
+          userLocation={userLocation}
+        />
+        <div className="trip-map-start glass-float" role="status">
+          <p>{t("Where are you going?")}</p>
+          {onOpenChat && (
+            <button type="button" className="primary" onClick={onOpenChat}>
+              {t("Plan in Chat")}
+            </button>
+          )}
+        </div>
+      </section>
+    );
+  }
+
+  if (!canShowMap) {
+    const locating = !destinationsSettled || loading;
     return (
       <section className="trip-map-canvas trip-map-canvas--empty" aria-label={t("Trip map")}>
         <div className="map-placeholder" role="status">
@@ -76,28 +115,18 @@ export function TripMapCanvas({
             <MapPinIcon />
           </span>
           <h2>
-            {!destination
-              ? t("Your map will appear here")
-              : locating
-                ? t("Locating {v0}…", { v0: destination })
-                : t("{destination} could not be shown on the map yet", { destination })}
+            {locating
+              ? t("Locating {v0}…", { v0: destination })
+              : t("{destination} could not be shown on the map yet", { destination })}
           </h2>
           <p>
-            {!destination
-              ? phone
-                ? t("Tell us a destination and dates in the chat, or tap New trip at the top.")
-                : t(
-                    "Tell us a destination and dates in the chat, or add them in the bar at the top.",
-                  )
-              : locating
-                ? t("Your itinerary stays available while places load.")
-                : unavailable || destinationsUnavailable
-                  ? t("Map places are temporarily unavailable. Your plan is unchanged.")
-                  : t(
-                      "Your plan is unchanged. Activities appear once they have a confirmed place.",
-                    )}
+            {locating
+              ? t("Your itinerary stays available while places load.")
+              : unavailable || destinationsUnavailable
+                ? t("Map places are temporarily unavailable. Your plan is unchanged.")
+                : t("Your plan is unchanged. Activities appear once they have a confirmed place.")}
           </p>
-          {destination && !locating && (unavailable > 0 || destinationsUnavailable) && (
+          {!locating && (unavailable > 0 || destinationsUnavailable) && (
             <button type="button" onClick={retry}>
               {t("Retry places")}
             </button>

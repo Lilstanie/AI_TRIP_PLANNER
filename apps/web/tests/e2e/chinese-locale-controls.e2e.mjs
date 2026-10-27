@@ -161,7 +161,7 @@ try {
   );
   await englishPage.getByRole("tab", { name: "Mine", exact: true }).click();
   await englishPage
-    .locator(".chats-panel__actions")
+    .locator(".sidebar-nav, .chats-panel__section-head")
     .getByRole("button", { name: "New trip", exact: true })
     .click();
   await englishPage.keyboard.press("Escape");

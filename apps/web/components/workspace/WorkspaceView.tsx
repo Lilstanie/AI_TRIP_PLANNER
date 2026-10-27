@@ -10,15 +10,15 @@ import { useLegRoutes } from "../trip/useLegRoutes";
 import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
+import { OpenItemsBadge } from "../trip/OpenItemsBadge";
 import { TripPanel } from "../trip/TripPanel";
-import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { SidebarResizer } from "./SidebarResizer";
 import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
-import { TripsPage } from "./TripsPage";
+import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
@@ -197,7 +197,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       searchRef={searchRef}
     />
   );
-  const showTrips = () => viewTransition(layout.showTrips);
+  const [tripsTab, setTripsTab] = useState<TripsTab>("trips");
+  const showTrips = () => {
+    setTripsTab("trips");
+    viewTransition(layout.showTrips);
+  };
+  const showCalendar = () => {
+    setTripsTab("calendar");
+    viewTransition(layout.showTrips);
+  };
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
@@ -280,6 +288,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         tripCount={catalog.trips.length}
         onChats={() => undefined}
         onTrips={showTrips}
+        onCalendar={showCalendar}
+        onNewTrip={swap(session.newTrip)}
+        onNewChat={swap(session.newChat)}
+        tripsView={tripsTab}
         onSettings={openSettings}
         saveState={saveState}
         syncStatus={syncStatus}
@@ -302,15 +314,21 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     </button>
   );
 
+  const openItems = plan && (
+    <OpenItemsBadge
+      plan={plan}
+      tripPlaces={tripPlaces}
+      onSelectStop={session.selectStop}
+      onSelectDay={layout.pickMapDay}
+    />
+  );
+
   const tripContent = (
     <>
       {plan ? (
         <TripPanel
           key={plan.tripId}
           plan={plan}
-          tripPlaces={tripPlaces}
-          onSelectStop={session.selectStop}
-          onSelectDay={layout.pickMapDay}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
             <TripEditor
@@ -352,9 +370,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               {t("Plan in Chat")}
             </button>
           )}
-          <button type="button" onClick={edit}>
-            {t("Add trip details")}
-          </button>
+          {!phone && (
+            <button type="button" onClick={edit}>
+              {t("Add trip details")}
+            </button>
+          )}
         </div>
       )}
     </>
@@ -384,6 +404,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             chatsButton={chatsButton}
             onChats={toggleChats}
             onTrips={showTrips}
+            onCalendar={showCalendar}
+            onNewTrip={swap(session.newTrip)}
+            onNewChat={swap(session.newChat)}
+            tripsView={tripsTab}
             onSettings={openSettings}
             saveState={saveState}
             syncStatus={syncStatus}
@@ -411,6 +435,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             <main className="workspace-shell workspace-shell--trips">
               <TripsPage
+                tab={tripsTab}
+                onTab={setTripsTab}
                 trips={catalog.trips}
                 activeTripId={blank ? undefined : catalog.activeTripId}
                 onOpenTrip={swap(session.selectTrip)}
@@ -441,6 +467,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               {phone ? (
                 <>
                   <PhoneTripTitle model={model} />
+                  {openItems}
                   <PhoneTeamButton model={model} turn={teamTurn} />
                 </>
               ) : (
@@ -459,6 +486,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       {history.activeTripName ?? plan.brief.destination}
                     </h1>
                   )}
+                  {openItems}
                 </div>
               )}
               {(briefChrome || openFact) && (
@@ -588,9 +616,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   </button>
                 </div>
               )}
-              {userLocation.asking && (
-                <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
-              )}
             </div>
             <main
               className="workspace-shell"
@@ -659,6 +684,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       phone={phone}
                       showTabs={false}
                       blankUntouched={untouched}
+                      conversationId={history.catalog.activeConversationId}
                       view={chatView}
                       onViewChange={setChatView}
                       onAttachFiles={composerAttachments.addFiles}
@@ -680,6 +706,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       focusedDay={phone ? layout.mapDay : undefined}
                       focusRequest={phone ? layout.mapFocus : undefined}
                       phone={phone}
+                      onOpenChat={phone ? () => selectView("chat") : undefined}
                       visible={!narrow || mobileView === "map"}
                       showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                       userLocation={userLocation}

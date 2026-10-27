@@ -7,10 +7,9 @@ registered fixture journeys. A raw script can fail on `main` before anyone notic
 before deciding whether a failing script is your regression; update it when you find a script that fails on
 `main` or fix one. Each entry says when it was last checked and what fails.
 
-| Script         | Checked on `main` | What fails                                                                                                                                                                                | Issue    |
-| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `liquid-glass` | 2026-10-09        | At phone width, clicking the Chat tab times out: the Next.js dev overlay (`nextjs-portal`) covers it after a dev-server error. Run with `--prod` to tell a real failure from the overlay. | none yet |
-| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out.                                                   | none yet |
+| Script         | Checked on `main` | What fails                                                                                                                              | Issue    |
+| -------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out. | none yet |
 
 The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
 server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
@@ -47,6 +46,32 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   throttling, restoring normal speed afterwards. Reproduce with
   `pnpm --filter @trip/web e2e run agent-lab-replay --dev`; the original global keyboard call fails
   this check even with the 30-second chooser timeout. This is a test-driver race, not a replay API failure.
+
+- `liquid-glass` and `glass-calibration` waited on a language button and a When chip that the
+  progressive-empty workspace no longer shows (2026-10-27, #731). Both scripts now plan a trip
+  first, run at 1440x1000 and 390x844 in light and dark, and pass with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
+  and the same command for `glass-calibration`.
+
+- `team-panel-desktop`, `team-thinking` and `trajectory-demo` already failed on `main` (2026-10-27, #734),
+  independent of the glass and open-items tickets. The progressive-empty workspace moved the team
+  control into the leading top bar group, so "the button sits left of Trip" had no Trip to find; the
+  popover is named Specialist team, not Agent Team; the button's accessible name carries ", N working"
+  while planning, so an exact-name locator timed out; clicks at the stream's top-left landed on the
+  pinned panel; the trajectory tab selection and filter chip render a tick after the press; and on the
+  phone the roster sits in a closed fold inside the sheet that stays in the DOM after it closes. The
+  scripts now use those current premises and pass with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
+
+- `trajectory-tab` already failed "a reply that arrived on the Trajectory tab is in view when
+  Conversation returns" on `main` `629cf2a` (2026-10-27, #740): the tab buttons moved into the
+  workspace top bar, which sets the chat view directly, so the chat panel never recorded the stream's
+  scroll position and the new reply stayed below the fold (gap 365 px at 1440). The panel now tracks
+  the stream's scroll position and the messages it last showed itself, whoever changes the view.
+  `phone-map-empty-hint` already encodes the #737 decision that the empty 1440 map area is hidden; it
+  failed once in six runs because `locator.evaluate` read the panel's visibility from a node that
+  hydration had replaced (empty string), so it now reads the live node. `sidebar-entries` belongs to
+  the sidebar tickets and passes on the integration branch; neither needs an entry.
 
 ## Not failures
 

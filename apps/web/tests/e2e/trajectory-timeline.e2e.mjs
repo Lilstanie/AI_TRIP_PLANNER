@@ -173,6 +173,7 @@ try {
     await send(page, `@${copy.stay} find a stay near Shinjuku`);
     await send(page, `@${copy.dining} I land on flight QF25 at night`);
     await trajectoryTab.click();
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
     await page.locator("[data-trajectory-scroll]").waitFor({ timeout: 10_000 });
     await page.waitForTimeout(500);
 
@@ -422,6 +423,7 @@ try {
     const lineCount = await page.evaluate(() => window.__gate.lines);
     check(lineCount >= 6, `${label}: the fixture run streams several events`, lineCount);
     await trajectoryTab.click();
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
     await page.locator("[data-trajectory-scroll]").waitFor({ timeout: 10_000 });
     const startRows = await ledgerRows(page);
     const startTail = await lastIndex(page);

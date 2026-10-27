@@ -107,12 +107,20 @@ try {
       page.locator(".phone-tabbar").getByRole("tab", { name: new RegExp(`^${name}`) });
     await tab("Map").click();
     const sheet = page.locator(".phone-map-sheet");
-    check(await sheet.isVisible(), `${width}: sheet before plan`);
+    check((await sheet.count()) === 0, `${width}: no sheet before plan`);
     check(
-      await sheet.innerText().then((text) => text.includes("Plan a trip")),
-      `${width}: empty guidance`,
+      await page.locator(".trip-map-start").getByText("Where are you going?").isVisible(),
+      `${width}: empty hint before plan`,
     );
     const handle = sheet.locator(".phone-map-sheet__handle");
+    await tab("Mine").click();
+    const live = page.getByRole("button", { name: /^Live data/ });
+    if (await live.count()) await live.first().click();
+    await tab("Chat").click();
+    await page.locator(".chat-empty__suggestions button").first().click();
+    await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
+    await tab("Map").click();
+    await sheet.locator(".phone-map-sheet__stops button").first().waitFor();
     await handle.press("Home");
     check((await sheet.getAttribute("data-snap")) === "handle", `${width}: Home collapses`);
     await handle.press("ArrowUp");
@@ -132,14 +140,6 @@ try {
       await sheet.evaluate((node) => parseFloat(getComputedStyle(node).transitionDuration) <= 0.01),
       `${width}: reduced motion`,
     );
-    await tab("Mine").click();
-    const live = page.getByRole("button", { name: /^Live data/ });
-    if (await live.count()) await live.first().click();
-    await tab("Chat").click();
-    await page.locator(".chat-empty__suggestions button").first().click();
-    await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
-    await tab("Map").click();
-    await sheet.locator(".phone-map-sheet__stops button").first().waitFor();
     const days = sheet.locator(".phone-map-sheet__days button");
     check((await days.count()) > 1, `${width}: day switcher`);
     for (const language of ["en", "zh"]) {
