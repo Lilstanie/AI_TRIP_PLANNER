@@ -40,6 +40,10 @@ _Avoid_: pipeline, orchestration loop
 A problem found between sections of a plan, such as an overrun budget or overlapping times, that names the specialist to revise.
 _Avoid_: issue, error
 
+**Open item**:
+Something in a trip the traveller should look at, such as a conflict on a stop, a stop without a located place, or a place whose lookup failed.
+_Avoid_: issue, problem
+
 **Targeted revision**:
 Asking only the specialist a conflict names to fix it, within the planning loop's round limit.
 _Avoid_: repair loop, bounded revision, retry, re-plan

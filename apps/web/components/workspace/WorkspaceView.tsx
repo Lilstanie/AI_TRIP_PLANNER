@@ -10,6 +10,7 @@ import { useLegRoutes } from "../trip/useLegRoutes";
 import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
+import { OpenItemsBadge } from "../trip/OpenItemsBadge";
 import { TripPanel } from "../trip/TripPanel";
 import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
@@ -302,15 +303,21 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     </button>
   );
 
+  const openItems = plan && (
+    <OpenItemsBadge
+      plan={plan}
+      tripPlaces={tripPlaces}
+      onSelectStop={session.selectStop}
+      onSelectDay={layout.pickMapDay}
+    />
+  );
+
   const tripContent = (
     <>
       {plan ? (
         <TripPanel
           key={plan.tripId}
           plan={plan}
-          tripPlaces={tripPlaces}
-          onSelectStop={session.selectStop}
-          onSelectDay={layout.pickMapDay}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
             <TripEditor
@@ -441,6 +448,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               {phone ? (
                 <>
                   <PhoneTripTitle model={model} />
+                  {openItems}
                   <PhoneTeamButton model={model} turn={teamTurn} />
                 </>
               ) : (
@@ -459,6 +467,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       {history.activeTripName ?? plan.brief.destination}
                     </h1>
                   )}
+                  {openItems}
                 </div>
               )}
               {(briefChrome || openFact) && (
