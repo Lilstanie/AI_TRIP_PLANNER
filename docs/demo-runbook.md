@@ -95,6 +95,18 @@ The trajectory part of the Stage 2 demo also runs in mock mode with no keys, in 
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` repeats the five steps at 1440 px and 390 px in both languages and saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/trajectory-demo/result.json`, listing each step with its screenshots and checks, as the demo record. `summary-jump` checks the summary line on a three-turn chat and saves `output/playwright/summary-jump/`.
 
+## Redesigned workspace walkthrough
+
+The redesigned workspace also runs in mock mode with no keys. Follow it in light and dark, at 1440 px and on a 390x844 or 360x800 phone.
+
+1. Open the blank workspace. Desktop keeps its map area hidden; on a phone, Map shows a basemap with one hint and a button to Chat, and nothing asks for location until Locate me is pressed. Chat, Mine and the empty Trajectory sheet each show one sentence and one action.
+2. On desktop use the sidebar: New trip opens the new-trip dialog, Calendar opens Trips on its calendar view, and the plus on the Chats row starts a chat.
+3. Plan the first example trip. While it runs the Agent Team capsule shows three stacked avatars and "N working"; afterwards it shows the avatars only. One press (the capsule, or on a phone the same capsule) opens the six-row team panel.
+4. Open Trajectory (the tab on desktop; the capsule on a phone). It opens on the simple list; expand a row for its rounds, then press Full view for the ledger.
+5. Open the trip. The open-items badge beside the title lists conflicts, unlocated places and failed lookups; a row opens its stop. The budget is one summary line that opens its breakdown on demand.
+
+`DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e workspace-walkthrough --prod` repeats the five steps at the three sizes in both appearances. It saves numbered screenshots (`<size>-<theme>/NN-<step>.png`) and `output/playwright/workspace-walkthrough/<LABEL>/summary.json`, which lists every check, the number of presses needed to reach the Agent Team and the Trajectory (two or fewer at every size) and the ordered screenshot set. Failure scenarios are in `apps/web/tests/e2e/workspace-walkthrough.failures.md`.
+
 ## If something fails on the day
 
 | Symptom                            | Action                                                                                                                           |

@@ -104,6 +104,20 @@ pnpm --filter @trip/web start -p 3000
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` 会在 1440 px 和 390 px、两种语言下重复这五步，保存带编号的截图（`<language>-<width>-NN-<step>.png`），并把 `output/playwright/trajectory-demo/result.json`（列出每一步的截图和检查）作为演示记录。`summary-jump` 在三轮对话中检查摘要行，并在 `output/playwright/summary-jump/` 保存结果。
 
+<a id="redesigned-workspace-walkthrough"></a>
+
+## 重新设计的工作区演示流程
+
+重新设计的工作区同样可以在示例模式下无需密钥运行。请在浅色和深色下，分别用 1440 px、390x844 和 360x800 的手机尺寸走一遍。
+
+1. 打开空白工作区。桌面端地图区域保持隐藏；手机上“地图”显示底图、一条提示和一个去聊天的按钮，点按“显示我的位置”之前不会请求定位。聊天、我的和空的轨迹面板各只显示一句话和一个操作。
+2. 桌面端使用侧边栏：“新行程”打开新行程对话框，“日历”打开行程页的日历视图，“聊天”行上的加号开始新聊天。
+3. 规划第一个示例行程。运行时智能体团队胶囊显示三个叠放的头像和“N 个正在工作”；完成后只显示头像。按一次胶囊（手机上是同一个胶囊）即可打开六行的团队面板。
+4. 打开轨迹（桌面端是标签页，手机上是胶囊）。它默认显示简洁列表；展开一行查看各轮，再点“完整视图”查看完整记录。
+5. 打开行程。标题旁的待处理事项徽标列出冲突、尚未定位的地点和查询失败的地点，点一行会打开对应站点。预算是一行摘要，按需展开明细。
+
+`DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e workspace-walkthrough --prod` 会在三种尺寸、两种外观下重复这五步。它保存按顺序编号的截图（`<size>-<theme>/NN-<step>.png`）和 `output/playwright/workspace-walkthrough/<LABEL>/summary.json`；后者列出每项检查、到达智能体团队和轨迹所需的点按次数（任何尺寸都不超过两次）以及有序的截图清单。失败场景见 `apps/web/tests/e2e/workspace-walkthrough.failures.md`。
+
 <a id="if-something-fails-on-the-day"></a>
 
 ## 当天出问题怎么办

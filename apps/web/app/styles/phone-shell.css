@@ -93,6 +93,7 @@ dialog.phone-trajectory[open] {
 }
 .trajectory-empty {
   display: grid;
+  align-content: start;
   justify-items: start;
   gap: var(--space-3);
   padding: var(--space-4) var(--space-3);
