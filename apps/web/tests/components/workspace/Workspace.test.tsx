@@ -601,7 +601,7 @@ describe("Workspace interactions", () => {
     expect(screen.getByRole("button", { name: "Agent Team" })).toBeTruthy();
     expect(screen.getByLabelText("Example trips")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
-    expect(screen.getByText("Your map will appear here")).toBeTruthy();
+    expect(screen.getByText("Where are you going?")).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
 

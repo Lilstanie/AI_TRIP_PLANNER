@@ -11,7 +11,6 @@ import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
 import { TripPanel } from "../trip/TripPanel";
-import { LocationPrompt } from "../map/LocationPrompt";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -588,9 +587,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   </button>
                 </div>
               )}
-              {userLocation.asking && (
-                <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
-              )}
             </div>
             <main
               className="workspace-shell"
@@ -680,6 +676,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       focusedDay={phone ? layout.mapDay : undefined}
                       focusRequest={phone ? layout.mapFocus : undefined}
                       phone={phone}
+                      onOpenChat={phone ? () => selectView("chat") : undefined}
                       visible={!narrow || mobileView === "map"}
                       showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
                       userLocation={userLocation}

@@ -218,44 +218,6 @@
   font-size: var(--font-size-meta);
 }
 
-.location-prompt {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: var(--space-2) var(--space-3);
-  padding: var(--space-2) var(--space-4);
-  border-bottom: 1px solid var(--border);
-  background: var(--accent-bg);
-}
-.location-prompt__icon {
-  display: grid;
-  flex: none;
-  color: var(--accent);
-}
-.location-prompt__icon .icon {
-  width: 20px;
-  height: 20px;
-}
-.location-prompt__text {
-  flex: 1 1 28ch;
-  min-width: 0;
-}
-.location-prompt h2 {
-  margin: 0;
-  font-size: var(--font-size-body);
-  line-height: var(--line-height-body);
-}
-.location-prompt p {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-}
-.location-prompt__actions {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
 .map-controls {
   position: absolute;
   z-index: 4;
@@ -393,4 +355,27 @@
 
 .trip-map-marker__badge {
   background: var(--day-color, var(--accent-fill));
+}
+
+.trip-map-hint {
+  position: absolute;
+  z-index: 4;
+  bottom: var(--space-4);
+  left: 50%;
+  display: grid;
+  justify-items: center;
+  gap: var(--space-2);
+  width: max-content;
+  max-width: calc(100% - 2 * var(--space-4));
+  padding: var(--space-3) var(--space-4);
+  border-radius: var(--radius-xl);
+  color: var(--text);
+  text-align: center;
+  transform: translateX(-50%);
+}
+.trip-map-hint p {
+  margin: 0;
+}
+.trip-map-hint button {
+  min-height: 44px;
 }

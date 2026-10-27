@@ -28,6 +28,8 @@ type Coordinate = { lat: number; lng: number };
 export type MapStop = { place: GooglePlace; number: number; day?: number };
 
 const LABEL_ZOOM = 12;
+const HOME_ZOOM = 9;
+const WORLD_ZOOM = 2;
 
 function coordinate(place: GooglePlace): Coordinate | undefined {
   if (!place.location) return undefined;
@@ -69,7 +71,11 @@ export function TripMap({
   phone = false,
   visible = true,
   focusRequest,
+  quiet = false,
+  center,
 }: {
+  quiet?: boolean;
+  center?: Coordinate;
   mockData?: boolean;
   forceOsmProvider?: boolean;
   allowOsmFallback?: boolean;
@@ -123,6 +129,10 @@ export function TripMap({
   const mappedPlaces = useMemo(() => mapped.map((stop) => stop.place), [mapped]);
   const initialFocus = useRef(destinations.length ? destinations : mappedPlaces);
   initialFocus.current = destinations.length ? destinations : mappedPlaces;
+  const centerRef = useRef(center);
+  centerRef.current = center;
+  const quietRef = useRef(quiet);
+  quietRef.current = quiet;
   const selectedStop = mapped.find((stop) => stop.place.id === selected);
   const focusDay = selectedStop?.day;
   const popupOpen = !!selectedStop && closedFor !== selected;
@@ -192,12 +202,16 @@ export function TripMap({
     void loadRenderer(forceOsm || forceOsmProvider, allowOsmFallback)
       .then(({ maps, provider }) => {
         if (disposed || !root.current) return;
-        const start = positions(initialFocus.current)[0];
+        const start = positions(initialFocus.current)[0] ?? centerRef.current;
         const map = new maps.Map(root.current, {
           dark,
           mock,
           center: start ?? { lat: 0, lng: 0 },
-          zoom: start ? 12 : 3,
+          zoom: positions(initialFocus.current)[0]
+            ? 12
+            : centerRef.current
+              ? HOME_ZOOM
+              : WORLD_ZOOM,
 
           disableDefaultUI: true,
           mapTypeControl: false,
@@ -223,7 +237,9 @@ export function TripMap({
         };
         labels();
         listeners.push(
-          map.addListener("error", () => setError({ key: "The map could not load. Try again." })),
+          map.addListener("error", () => {
+            if (!quietRef.current) setError({ key: "The map could not load. Try again." });
+          }),
           map.addListener("dragstart", () => view.current?.markUserMoved()),
           map.addListener("zoom_changed", () => {
             userMoved();
@@ -239,7 +255,8 @@ export function TripMap({
       })
       .catch((cause: unknown) => {
         if (!disposed) {
-          setError(errorNotice(cause, { key: "The map could not load. Try again." }));
+          if (!quietRef.current)
+            setError(errorNotice(cause, { key: "The map could not load. Try again." }));
           setLoading(false);
         }
       });
@@ -258,6 +275,15 @@ export function TripMap({
   useEffect(() => {
     if (runtime?.provider === "osm") runtime.map.setOptions({ dark });
   }, [runtime, dark]);
+
+  const unfocused = !destinations.length && !mappedPlaces.length;
+  const centerLat = center?.lat;
+  const centerLng = center?.lng;
+  useEffect(() => {
+    if (!runtime || centerLat === undefined || centerLng === undefined || !unfocused) return;
+    runtime.map.setCenter({ lat: centerLat, lng: centerLng });
+    runtime.map.setZoom(HOME_ZOOM);
+  }, [runtime, centerLat, centerLng, unfocused]);
 
   const destinationKey = destinations.map((place) => place.id).join("|");
   const placesKey = mappedPlaces.map((place) => place.id).join("|");
@@ -504,7 +530,7 @@ export function TripMap({
       }}
     >
       <div ref={root} className="google-map" aria-label={t("Trip map")} tabIndex={-1} />
-      {loading && <p role="status">{t("Loading map…")}</p>}
+      {loading && !quiet && <p role="status">{t("Loading map…")}</p>}
       {popupOpen && selectedStop && (
         <div
           ref={popup}
