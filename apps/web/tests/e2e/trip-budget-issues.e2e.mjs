@@ -366,7 +366,10 @@ try {
   );
   check(
     (await page.getByRole("region", { name: /Trip issues|行程问题/ }).count()) === 0 &&
-      (await page.locator(".trip-issues").count()) === 0,
+      (await page
+        .locator(".trip-panel")
+        .getByText(/Trip issues/)
+        .count()) === 0,
     "the Trip issues block is gone from the Trip panel",
   );
   const badge = page.getByRole("button", { name: /^Open items/ });
@@ -508,7 +511,11 @@ try {
     localizedText,
   );
   check(
-    (await zhPage.locator(".trip-issues").count()) === 0,
+    (await zhPage.getByRole("region", { name: "行程问题" }).count()) === 0 &&
+      (await zhPage
+        .locator(".trip-panel")
+        .getByText(/行程问题/)
+        .count()) === 0,
     "Chinese Trip panel has no Trip issues block",
   );
   const zhBadge = zhPage.getByRole("button", { name: /^待处理事项/ });
@@ -559,7 +566,11 @@ try {
   await phonePage.getByRole("tab", { name: /^Trip/ }).click();
   await phonePage.locator(".trip-panel").waitFor();
   check(
-    (await phonePage.locator(".trip-issues").count()) === 0,
+    (await phonePage.getByRole("region", { name: /Trip issues/ }).count()) === 0 &&
+      (await phonePage
+        .locator(".trip-panel")
+        .getByText(/Trip issues/)
+        .count()) === 0,
     "phone Trip panel has no Trip issues block",
   );
   const firstPhoneStop = phonePage.locator(".timeline-stop__main").first();
