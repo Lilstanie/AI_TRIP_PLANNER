@@ -654,8 +654,12 @@
   height: 20px;
 }
 
+.team-trigger__avatars .assistant-icon {
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
 .team-trigger__avatars .assistant-icon + .assistant-icon {
-  margin-inline-start: 4px;
+  margin-inline-start: -8px;
 }
 
 .team-trigger__avatars .assistant-icon svg {

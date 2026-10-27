@@ -350,10 +350,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     after a reload). English specialist summaries, assumptions and progress lines count in the
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)". So
     does the stay price detail ("1 room × 3 nights × AUD 230.00 per room/night").
-  - **Agent Team** is a button in the desktop top-left beside Conversation | Trajectory (and left of Trip once a Plan exists). It shows the six assistants' icons
-    (a working one bobs) and, while planning, "N working". When the usable top bar is at most 1280 px,
-    it hides the label, reduces the avatar row to one icon, and keeps the working count in its accessible
-    name (and compact count when nonzero).
+  - **Agent Team** is a button in the desktop top-left beside Conversation | Trajectory (and left of Trip once a Plan exists). It is a compact capsule of
+    three stacked avatars, working specialists first (a working one bobs), and, while planning, "N working".
+    The six-row panel it opens is unchanged. When the usable top bar is at most 1280 px, it hides the label
+    and shows the working count compactly; at most 920 px it reduces the avatar stack to one icon. The
+    working count stays in its accessible name.
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
     on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
     outside. Escape returns focus to the button only when focus was inside the panel. The panel is a
@@ -363,7 +364,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a `TeamModel`
     as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
-    At 520 px and below the top bar keeps one row: an avatar-only button at least 44 px square sits right of the
+    At 520 px and below the top bar keeps one row: the same capsule (three stacked avatars, working first, and a compact count while planning), at least 44 px tall, sits right of the
     trip title, which truncates. It opens a full-screen Trajectory
     ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)). The ledger fills the
     viewport, and a Specialist team fold keeps the same team cards, filters and focus navigation

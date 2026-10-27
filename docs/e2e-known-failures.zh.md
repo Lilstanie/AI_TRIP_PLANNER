@@ -49,6 +49,9 @@
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
   以及对 `glass-calibration` 的同样命令。
 
+- `team-panel-desktop`、`team-thinking` 和 `trajectory-demo` 在 `main` 上就已失败（2026-10-27，#734），与玻璃和待处理项票据无关。渐进式空工作区把团队控件移到顶栏左侧分组，因此“按钮在 Trip 左侧”无从检查；弹出层名为“专家团队”而非 Agent Team；规划期间按钮的无障碍名称带有“, N working”，精确名称定位器因此超时；点击信息流左上角会落在已固定的面板上；轨迹 Tab 的选中状态和筛选标签在点击后晚一帧才出现；手机上名册位于模态框内折叠的区域，模态框关闭后仍留在 DOM 中。脚本现已改用当前的前提，并通过
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`。
+
 <a id="not-failures"></a>
 
 ## 不算失败

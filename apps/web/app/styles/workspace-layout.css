@@ -43,8 +43,7 @@
     justify-content: center;
     padding-inline: 8px !important;
   }
-  .topbar-leading .team-trigger__label,
-  .topbar-leading .team-trigger__avatars .assistant-icon ~ .assistant-icon {
+  .topbar-leading .team-trigger__label {
     display: none;
   }
   .topbar-leading .team-trigger__count {
@@ -86,6 +85,9 @@
   }
   .topbar-leading {
     min-width: 0;
+  }
+  .topbar-leading .team-trigger__avatars .assistant-icon ~ .assistant-icon {
+    display: none;
   }
   .topbar-views {
     grid-area: views;

@@ -17,3 +17,9 @@ Before changing production code, the retained browser journey must distinguish t
 - The page overflows horizontally.
 
 The E2E runs in mock data mode with no keys against a production build. The first run is expected to fail before implementation.
+
+TP-110 capsule scenarios, written before the change:
+
+- The idle phone capsule shows one avatar instead of three stacked avatars.
+- A working phone capsule shows more than three avatars, lists a working specialist after an idle one, or grows past 96px.
+- `trajectory-demo` taps the phone team button and waits for `.team-panel` while the roster `<details>` in the sheet is still closed.
