@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -143,10 +144,7 @@ try {
     check((await days.count()) > 1, `${width}: day switcher`);
     for (const language of ["en", "zh"]) {
       await page.locator(".phone-tabbar").getByRole("tab").last().click();
-      if (language === "zh")
-        await page
-          .getByRole("button", { name: "Switch language to 简体中文", exact: true })
-          .click();
+      if (language === "zh") await setPhoneLanguage(page, "zh");
       await page.locator(".phone-tabbar").getByRole("tab").nth(1).click();
       await handle.press("End");
       const heights = await days.evaluateAll((nodes) =>
@@ -207,13 +205,46 @@ try {
       for (const desktopWidth of [521, 1440]) {
         await page.setViewportSize({ width: desktopWidth, height: 1000 });
         await page.locator(".workspace-app:not([data-phone])").waitFor();
-        const dimensions = await page
-          .locator(".trip-panel__budget-summary > summary, .trip-tips > summary")
-          .filter({ visible: true })
-          .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().height));
+        const desktopTripSummary = await page.evaluate(() => {
+          const budget = document.querySelector(".trip-panel__budget-summary");
+          const budgetSummary = budget?.querySelector(":scope > summary");
+          const compact = budgetSummary?.querySelector(".trip-panel__budget-compact");
+          const tips = document.querySelector(".trip-tips");
+          const tipsSummary = tips?.querySelector(":scope > summary");
+          const selectedDay = document.querySelector(
+            '.day-strip [aria-selected="true"], .day-strip [aria-pressed="true"]',
+          );
+          const visible = (node) => {
+            if (!node) return false;
+            const style = getComputedStyle(node);
+            const box = node.getBoundingClientRect();
+            return (
+              style.display !== "none" &&
+              style.visibility !== "hidden" &&
+              box.width > 0 &&
+              box.height > 0
+            );
+          };
+          return {
+            budgetCollapsed: budget?.open === false,
+            budgetSummaryVisible: visible(budgetSummary),
+            compactBudgetVisible: visible(compact),
+            budgetSummaryHeight: budgetSummary?.getBoundingClientRect().height ?? 0,
+            tipsCollapsed: tips?.open === false,
+            tipsSummaryVisible: visible(tipsSummary),
+            selectedDayVisible: visible(selectedDay),
+          };
+        });
         check(
-          dimensions.length === 2 && dimensions.every((height) => height === 21),
-          `${width} ${language}: ${desktopWidth} desktop summary heights ${JSON.stringify(dimensions)} stay21`,
+          desktopTripSummary.budgetCollapsed &&
+            desktopTripSummary.budgetSummaryVisible &&
+            desktopTripSummary.compactBudgetVisible &&
+            desktopTripSummary.budgetSummaryHeight >= 44 &&
+            desktopTripSummary.budgetSummaryHeight <= 160 &&
+            desktopTripSummary.tipsCollapsed &&
+            desktopTripSummary.tipsSummaryVisible &&
+            desktopTripSummary.selectedDayVisible,
+          `${width} ${language}: ${desktopWidth} keeps compact budget, collapsed tips, and selected itinerary reachable ${JSON.stringify(desktopTripSummary)}`,
         );
         check(
           await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
@@ -231,7 +262,7 @@ try {
       );
     }
     await page.locator(".phone-tabbar").getByRole("tab").last().click();
-    await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+    await setPhoneLanguage(page, "en");
     await tab("Map").click();
     await handle.press("End");
 
@@ -349,16 +380,14 @@ try {
     await page.screenshot({ path: `${OUT}/${width}-stops-dark.png` });
     await page.emulateMedia({ colorScheme: "light", reducedMotion: "reduce" });
     await tab("Mine").click();
-    const chinese = page.getByRole("button", { name: /中文|Chinese/ });
-    if (await chinese.count()) {
-      await chinese.first().click();
-      await page.locator(".phone-tabbar").getByRole("tab", { name: /^地图/ }).click();
-      check(
-        await sheet.innerText().then((text) => text.includes("当日站点")),
-        `${width}: Chinese labels`,
-      );
-    }
+    await setPhoneLanguage(page, "zh");
+    await page.locator(".phone-tabbar").getByRole("tab", { name: /^地图/ }).click();
+    check(
+      await sheet.innerText().then((text) => text.includes("当日站点")),
+      `${width}: Chinese labels`,
+    );
     await page.setViewportSize({ width: 1280, height: 900 });
+    await page.locator(".workspace-app:not([data-phone])").waitFor();
     await revisitButton.press("Enter");
     await page.locator(".trip-map-popup:not(.phone-map-details)").waitFor();
     check(

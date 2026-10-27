@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                                                                     | Implementation                                                                                              |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                                                  | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                |
-| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                                             | `ChatsPanel`, `TripCover`                                                                                   |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                          | `TripsPage`, `TripCover`                                                                                    |
-| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings. | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                          |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                 | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts` |
-| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty            | `ChatPanel`                                                                                                 |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                 | `TripMapCanvas`, `TripMap`                                                                                  |
-| Your Trip drawer  | Budget, with its open conflicts; the day view (travel tips, day strip, the chosen day's stops with their place cards and ⋯ menus, flights and stays, then Ideas)                            | `Drawer`, `TripPanel`, `TripEditor`, `TripTips`, `timeline/TimelineStop`, `timeline/BookingRow`             |
+| Area              | Content                                                                                                                                                                                                                 | Implementation                                                                                                          |
+| ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, Chats and Trips with counts, save or sync status, Settings & account                                                                                                                                              | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Chats panel       | Slides out beside the sidebar: search, New chat, New trip, then trips and chats                                                                                                                                         | `ChatsPanel`, `TripCover`                                                                                               |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                      | `TripsPage`, `TripCover`                                                                                                |
+| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                             | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                             | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
+| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                        | `ChatPanel`                                                                                                             |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                             | `TripMapCanvas`, `TripMap`                                                                                              |
+| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary includes budget, open conflicts, tips, day strip, selected-day stops and bookings, then Ideas | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -178,12 +178,15 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - An editor is a labelled `role="dialog"`. Focus moves to its first field (Where with places
     already listed starts on Add destination), Tab loops inside it, and Escape, the close button or a
     saved edit return focus to the chip. A press outside the panel lands on the scrim and returns
-    focus to the chip. Opening one closes the Trip drawer and the navigation drawer.
-  - Edits stay in the editor until they are kept, so Escape and a press outside discard them. Each
-    editor checks its own fields with the brief schema and shows how to fix one next to it.
+    focus to the chip. Opening one closes the Trip workspace and the navigation drawer.
+  - Edits stay in the editor until they are kept. On a phone, switching between Chat, Map, Trip and
+    Mine keeps the unfinished values, while Escape, close, Cancel, outside dismissal and browser Back
+    ask whether to continue editing or discard when the form changed. Desktop Escape and outside
+    dismissal continue to discard. Each editor checks its own fields with the brief schema and shows
+    how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
     with the next chat message as `known`, and Plan trip in Trip preferences plans with the whole
-    brief (`mode: "plan"`). Once a plan exists the button is Update trip: it keeps the edit and
+    brief (`mode: "plan"`). Once a plan exists the button says Replan trip: it keeps the edit and
     replans with the whole brief, because a chat message carries the plan's brief, not the draft. A
     rejected brief opens the editor of the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
@@ -194,8 +197,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   Tablet and phone layouts are unchanged.
 - **Message actions.** Every message has a copy button under it (hover or focus on a pointer
   device, always visible on touch). A traveller's message without attachments also has an edit
-  button: it turns the bubble into a text box, and Resend removes that message and everything after
-  it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
+  button: it turns the bubble into a text box. Resend asks before replacing manual timeline changes;
+  cancelling keeps the editor text and chat history. After confirmation it removes that message and
+  everything after it, then sends the new text. The trip plan itself is not rolled back. Text in messages and replies
   is selectable.
 - **Chat and map split.** On desktop the chat is on the left at 56 % of the area by default, a
   little wider than the map. A separator between them (`role="separator"`, "Resize chat and map")
@@ -203,13 +207,16 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   double-click restores the default. Its `aria-valuetext` ("Chat 56% of the width") is in the
   interface language. Dragging writes `--chat-share` straight onto the shell, and the layout stores
   `chatShare` only once it has moved.
-- **Drawers.**
-  - Your Trip and the narrow-screen navigation are overlay drawers below the top bar.
-    They never cover the logo or top-bar buttons, and the chat and map keep their width.
-  - On desktop the Trip drawer is `(1 - --chat-share) × 100%` wide, so it covers exactly the map
-    wherever the divider sits. When that leaves the day view 240 px or narrower, as at the narrowest
-    split of a 1024 px window, each stop's time moves above its name and the budget total wraps, so
-    nothing scrolls sideways.
+- **Panels and Trip workspace.**
+  - The navigation panel remains an overlay below the top bar. Opening a planned Trip on desktop
+    (above 1000 px) switches the main area to a dedicated workspace: the itinerary timeline and its
+    linked map sit side by side, while the chat is hidden. Selecting a stop or day keeps the map and
+    timeline synchronized. The trip header stays available above both regions.
+  - At tablet widths (521–1000 px), Trip uses a single content area with an Itinerary/Map switch;
+    switching views retains the selected day and stop. At phone widths (≤520 px), the existing
+    Chat/Map/Trip/Mine shell remains in control and Trip stays in its Trip tab.
+  - When Trip is closed, the existing chat/map split and its resizer behave as described above.
+    Opening Trip does not change the saved split.
   - `Drawer` provides `role="dialog"`, `aria-modal`, `aria-hidden` and `inert` when closed, focus on
     the close button, a Tab loop, Escape (nested edit previews and native dialogs first) and focus
     return to the trigger.
@@ -237,27 +244,49 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     (`Drawer`'s `hideTitle`).
 - **Phones (≤520 px).** The [phone shell decision](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)
   applies only at this width; desktop and tablets keep their existing navigation.
-  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip, Trajectory and Mine as keyboard-operable tabs. Trajectory is the
-    phone trajectory described under Trajectory tab.
+  - A safe-area-aware bottom tab bar exposes Chat, Map, Trip and Mine as keyboard-operable tabs.
+    Trip appears when a Plan exists; the empty workspace exposes Chat, Map and Mine. The Agent Team
+    entry opens the phone Trajectory in a full-screen modal, preserving its ledger, search, filters
+    and inspector, as described under Trajectory tab. Close, Escape or Browser Back returns to the
+    originating view and focus.
     One panel is visible at a time; panels stay mounted to preserve their scroll position. The saved
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Editors are bottom sheets with 44 px targets, including each
-    sheet's close button and its primary action, in When every day cell, both month arrows and
-    Clear, and in Who each − and + stepper button.
+    closing returns focus to the title. Brief and single-field Stop edits are bottom sheets with
+    44 px targets; complex Stop details use a full page. The targets include each sheet's close
+    button and primary action, every When day cell, both month arrows, Clear, and every Who − and +
+    stepper button.
+  - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
+    dismissal or browser Back discards them. Failed time or place changes keep the entered values and
+    show the error in place. Time, place, note, details and Idea scheduling drafts are isolated by Trip,
+    Stop and field; the unfinished-edits entry reopens the matching editor after navigation. If the
+    Stop disappears, the entry opens the unfinished values for copying; discarding still asks for
+    confirmation. A plan revision
+    marks an older draft stale until it is rebased before retry. Brief edits on a Trip with a Plan use
+    the explicit Replan trip action.
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
     so switching between unchanged saved trips does not create a new notification.
-  - Mine contains search, New chat, New trip, Trips/Calendar, the chats list and Settings & account.
-    Search filters chats and trips; opening or starting either selects Chat. Each chat has a visible
-    Rename/Delete row menu on touch. Data mode and interface language live here; the data-mode button shows its text label in both languages.
+  - Map and Trip share one day and Stop for the active trip. Selecting a day or Stop in either view
+    carries the exact visit to the other, including later visits to the same place. A revision keeps
+    a valid day and Stop, clears a removed Stop, and moves a removed day to the nearest remaining day.
+    Each saved trip restores its own browsing position when reopened.
+  - A blank Chat shows at most two example prompts. Planning progress stays in Chat while the
+    request runs. When the Plan is ready, Chat stays open and the reply adds an explicit Open trip
+    action; opening it selects Trip. An initial failure restores the submitted text and shows an
+    explicit Retry update action, while a failed revision leaves the previous Plan readable.
+  - Mine places search first, then saved Trips as the primary collection and chats below. New trip
+    sits with Trips, New chat with chats, and one Settings & account entry follows both collections.
+    Search filters chats and trips; opening a saved trip selects Trip, while opening a recent chat or
+    starting either selects Chat. Each chat has a visible Rename/Delete row menu on touch. Data mode
+    and interface language live here; the data-mode button shows its text label in both languages.
     Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
     identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
-    continues in Mine, so the tab bar stays available, and narrowing with the Trip drawer open shows
-    the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the Trip drawer over
+    continues in Mine, so the tab bar stays available, and narrowing with the Trip workspace open shows
+    the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the dedicated Trip workspace over
     Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
   - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
@@ -278,10 +307,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - With the composer focused and the visual viewport shortened by the keyboard, the shell follows
     that viewport, keeps the latest message visible and hides the tab bar. A focused trip-fact editor
     or stop editor field also hides the tab bar; the fact sheet rests on the keyboard, and the field
-    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back closes the active sheet or editor before leaving the workspace.
+    and its Save button stay in view. Closing the keyboard or blurring restores it. Browser Back
+    closes the active sheet or editor before leaving the workspace and, when its form changed, asks
+    before discarding.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
-    Browser evidence is produced by `phone-shell.e2e.mjs` and its Mine, Map and state companion walks
-    under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
+    Browser evidence is produced by `phone-navigation.e2e.mjs`, `phone-browsing-context.e2e.mjs`,
+    `phone-planning-flow.e2e.mjs`, `phone-editing.e2e.mjs`, and the `phone-shell.e2e.mjs` companion
+    walks under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
     verified; the device checks in issue #182 were closed as not planned.
 
 ## Conversations, trips and storage
@@ -319,7 +351,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)". So
     does the stay price detail ("1 room × 3 nights × AUD 230.00 per room/night").
   - **Agent Team** is a button in the desktop top-left beside Conversation | Trajectory (and left of Trip once a Plan exists). It shows the six assistants' icons
-    (a working one bobs) and, while planning, "N working"; between 521 and 1000 px only the icons show.
+    (a working one bobs) and, while planning, "N working". When the usable top bar is at most 1280 px,
+    it hides the label, reduces the avatar row to one icon, and keeps the working count in its accessible
+    name (and compact count when nonzero).
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
     on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
     outside. Escape returns focus to the button only when focus was inside the panel. The panel is a
@@ -330,11 +364,13 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: an avatar-only button at least 44 px square sits right of the
-    trip title, which truncates. It opens the same panel as a bottom sheet
-    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)) that behaves like the Trip details
-    sheet: a modal dialog named Specialist team, focus moves in and stays in, Escape, the close button or a press
-    outside closes it and returns focus to the button, and it scrolls when long. It shares the layout `sheet` slot,
-    so it never opens together with Trip details, and it closes when the viewport grows past phone width.
+    trip title, which truncates. It opens a full-screen Trajectory
+    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)). The ledger fills the
+    viewport, and a Specialist team fold keeps the same team cards, filters and focus navigation
+    reachable above it. The modal owns focus while open; Close, Escape or Browser Back restores the
+    originating Chat, Map, Trip or Mine view and returns focus to the button. It shares the layout
+    `sheet` slot, so it never opens together with Trip details, and it closes when the viewport grows
+    past phone width.
     - The panel body is DSH's Agent Teams layout ([`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx),
       copied with its MIT header). **Members** (count 6) holds six cards, always, in the fixed order
       (Coordinator, Day plan, Getting around, Stay, Destination guide, Food & dining): icon, current name, a
@@ -353,7 +389,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       A misdirected mention is one hand-off card. Conflict checks name the specialist sent back with a
       Needs change tag; revision scores say kept or discarded; the stop reason ends the list. Checks are
       rules and carry no icon.
-    - The Think fold's Subagent rows use the same icons. The Trip drawer shows no assistant icons. The live
+    - The Think fold's Subagent rows use the same icons. The Trip itinerary shows no assistant icons. The live
       area above the message box shows only the Think fold.
     - **Opening the filtered trajectory.** Pressing a card of an involved assistant (Working, Done, Failed,
       Needs change or Stopped; the card is a button called "Show {name} trajectory") closes the panel,
@@ -361,8 +397,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
       tab showing only that assistant's records: its messages, assignments and tool calls, and the
       conflict checks and revision scores that name it. A bar above the ledger names the assistant and
       its Show all records button clears the filter; the filter survives switching tabs until cleared and a
-      second press replaces it. Idle and Not involved cards are disabled. The phone sheet shows the same
-      layout; a card there closes the sheet and selects the Trajectory tab from whichever tab is showing.
+      second press replaces it. Idle and Not involved cards are disabled. On a phone, the same card
+      closes the Specialist team fold and filters the already-open full-screen Trajectory without
+      changing the underlying Chat, Map, Trip or Mine tab.
       The request is [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx), applied by
       `ChatPanel` on desktop and by `PhoneTrajectory` on a phone; the filter itself is `only` in
       `buildTrajectory`.
@@ -500,11 +537,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
-On a phone, Trajectory is the fourth tab of the bottom bar (轨迹). It shows the same ledger, search and
-filter bar without the timeline overview, and the record inspector opens over the whole panel and closes
-back to the ledger. Widening the window while it is selected returns to the chat. With no turns yet, the
-tab shows an empty-state card in place of the toolbar and ledger, with a **Plan in Chat** button that
-opens the chat. The tab is
+On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,
+search and filter bar without the timeline overview, and the record inspector opens over the whole
+ledger and closes back to it. Close, Escape or Browser Back restores the originating view. With no
+turns yet, the modal shows an empty-state card in place of the toolbar and ledger, with a **Plan in
+Chat** button that closes the modal and selects Chat. The surface is
 [`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
 On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
 and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
@@ -544,7 +581,7 @@ records why.
   inspector or the ledger, or the close control closes it and returns focus to the record's row.
 - **Reply summary.** The one-line summary of a finished reply's Think row (for example "Coordinator + 3
   specialists · 2 rounds") is a button. Pressing it clears any specialist filter and opens the Trajectory
-  tab (on a phone, the Trajectory tab of the bottom bar) with that reply's turn centred and unfolded. The
+  tab (on a phone, the full-screen Trajectory modal opened from Agent Team) with that reply's turn centred and unfolded. The
   Think label and chevron still expand the row. The request is `openTurn` in
   [`trajectory-focus.tsx`](../apps/web/components/chat/trajectory-focus.tsx); `messageTurns` in the adapter
   numbers each message with its turn.
@@ -570,18 +607,19 @@ records why.
 
 ## Reviewing a plan
 
-The Trip drawer summary shows the destination, localized short date range and traveller count.
+The Trip header shows the destination, localized short date range and traveller count.
 
 When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
 zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
 and uses the caution colour; those missing costs remain listed beneath the estimate.
-When the estimate is below budget but itinerary stops remain unpriced, the status says “Known estimate
-within budget · unpriced stops not counted” and uses the caution colour. The missing costs remain
+When the estimate is below budget but costs remain unpriced, the status says “Known estimate
+within budget · unpriced costs not counted” and uses the caution colour. The missing costs remain
 listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
 The budget card also breaks the known estimate into accommodation, transport, meals and activities.
 Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Restaurant ideas are suggestions rather than costs, so they
-are not counted as unpriced meals; the row counts match the “Not included” notes. Transport without a quoted amount or any priced item,
+their category and are not added to the total. Restaurant suggestions are excluded from the dining breakdown; a
+scheduled restaurant is counted once as an itinerary Stop. Unpriced counts include all categories
+and an unquoted transport estimate, so the total can exceed the activity count. Transport without a quoted amount or any priced item,
 and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
 keeping its unpriced count. Published zero fares remain zero; older nonzero
 transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
@@ -589,6 +627,12 @@ and at-budget or below-budget statuses say “unpriced costs not counted”. Ove
 The known category amounts add up to the displayed
 known estimate. At narrow drawer widths each row wraps its amount under the
 category name instead of overflowing.
+The budget summary starts collapsed and keeps the known estimate, budget limit,
+currency and any unpriced count visible. Expanding it shows each priced item,
+including explicit zero prices and “Price unknown” rows. A Trip issues section
+groups scheduled overlaps, unlocated stops, unpriced items and failed place
+lookups. It starts collapsed. Selecting a row takes the traveller to its stop and day, or expands
+the budget and focuses the matching cost item when there is no scheduled Stop.
 
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
@@ -599,23 +643,23 @@ describes current behaviour except the absences.
   offer a capability that does not exist.
 - **What the plan does decide is reported, not asked.** The accommodation specialist compares every
   eligible candidate and names one; the transcript shows that choice with the alternatives it
-  compared, and the Trip drawer's day view shows that flight or stay with its cost. A traveller who
+  compared, and the Trip timeline shows that flight or stay with its cost. A traveller who
   wants a different one opens its row and picks it (see [Flights, stays and tips](#flights-stays-and-tips));
-  anything else is said in chat or edited in the day view.
+  anything else is said in chat or edited in the Trip timeline.
 - **Conflicts are information.** When the orchestrator detects a conflict it retries the affected
   sections within its round budget, and anything still unresolved stays visible on the plan rather
   than becoming a card that waits for an acknowledgement nothing can record. It is shown on the stop,
-  day or budget bar it concerns (see Conflicts in place under the Trip drawer above).
+  day or budget bar it concerns (see Conflicts in place under the Trip itinerary above).
 - The client is not a source of supplier facts: totals are recomputed from proposal items, and
   results are labelled as SerpApi live search, Google Places estimates or simulated fixtures. None
   of them creates a reservation.
 
 ## Flights, stays and tips
 
-The Trip drawer does not render the specialists' cards (Day plan, Getting around, Stay, Destination
+The Trip itinerary does not render the specialists' cards (Day plan, Getting around, Stay, Destination
 guide and Food & dining). Their content is in the day view. Plan sections stay in the data; no section
 summary, assumption or model-written working note is shown. Day plan and Getting around have no
-replacement, because their content is the stops and legs. The Trip drawer's cost and total still
+replacement, because their content is the stops and legs. The Trip workspace's cost and total still
 include every section. Why: [Agent Note](../.agents/notes/implemented/feature/2026-10-08-day-view-specialists.md).
 
 - **Stay rows.** A stay has one row at the end of each night's day, so a four-night stay gives four
@@ -647,8 +691,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   weather and packing, and places to explore) is a collapsible block at the top of the day view. It
-  opens the first time outside an ongoing trip. Whether this viewer folded it is remembered for that trip in this browser
-  (`localStorage`, key `trip-tips-folded:<tripId>`); without a saved choice it follows the on-trip default. The
+  starts collapsed unless this viewer has saved an expanded preference for that trip in this browser
+  (`localStorage`, key `trip-tips-folded:<tripId>`). The
   block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
 - **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. While the Trip view stays open, the date refreshes each minute and when the window regains focus or visibility. Budget and travel tips initially collapse; a valid manual day selection is saved per trip in this browser (`localStorage`, key `trip-day-selected:<tripId>`) and is restored during the same destination-local day. When that day changes, the selection yields to the new Today; expired or out-of-range selections also yield to Today (or Day 1 when today is outside the trip). Saved tips preferences still take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
 - **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
@@ -699,14 +743,14 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
   every day when nothing is selected) is drawn Apple Maps style in its day colour over a
   `--route-casing`, with a white chevron at the middle of each leg pointing to the next stop and
-  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. A leg whose verified route names a travel mode also carries a round badge at the midpoint between its two stops, with a walking, public transport, driving or cycling glyph and that mode as its accessible name; a leg drawn as an arc has no verified route and so no badge. The badge sits under the place markers, so a stop's label is never covered.
+  white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. A leg whose verified route names a travel mode also carries a round badge at the midpoint between its two stops, with a walking, public transport, driving or cycling glyph and that mode as its accessible name; a leg drawn as an arc has no verified route and so no badge. The badge sits under the place markers, so a stop's label is never covered. Switching the interface language immediately updates existing badge titles without changing the selected day.
   Dash animation pauses while the map panel or document is hidden, without discarding the map, camera
   or selection. It also respects reduced motion. OSM draws static routes without an icon animation loop. The dashes
   move in one `requestAnimationFrame` loop throttled to about 30 frames a second, which stops when
   the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the dashes are
   drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an edit
   preview, stay solid lines. The map follows the system light or dark scheme.
-- **Place popup.** Pressing a marker or its label, or a place in the Trip drawer, opens the place's
+- **Place popup.** Pressing a marker or its label, or a place in the Trip timeline, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
   Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my
   location once the traveller's position is known. Photos load only
@@ -719,10 +763,12 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip drawer.** One view, with no tabs: heading and summary, budget, then the day view: the travel
-  tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order
-  with the number their place carries on the map (a repeat visit keeps it), the day's flights and stay
-  rows, then Ideas, unnumbered. The phone Trip tab shows the same view. The drawer has no status label:
+- **Trip itinerary.** One itinerary view: heading and summary, compact budget and issues,
+  collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
+  their place carries on the map (a repeat visit keeps it), the day's flights and stay rows, then Ideas,
+  unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
+  switch shows one at a time. The phone Trip tab continues to show the existing Trip surface. The
+  itinerary has no status label:
   "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
   The specialists' cards are not rendered; see [Flights, stays and tips](#flights-stays-and-tips).
 - **Conflicts in place.** Each unresolved conflict of the plan is shown where it applies, derived from the
@@ -762,13 +808,18 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
   same day: each takes the other's start time and keeps its own duration, the second starting later if the
   first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
-  message. Move to another day puts the stop after that day's last stop. Undo offers the last change
-  until the next plan arrives from chat; an item action is undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
+  message. Move to another day puts the stop after that day's last stop. Undo survives background place saves and route checks without discarding their unrelated updates. Undo offers the last change
+  until the next plan arrives from chat. The step stays with its Trip through navigation and layout
+  changes, and another Trip never offers it. Reloading clears the in-memory step. An item action is
+  undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
   phone width (520px and below) the menu's trigger and items are at least 44 px. An open menu is capped to
   the height of its scrolling panel, scrolls inside itself, and keeps the focused item on screen above the
   tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
+- **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
+  so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
+  the traveller in Trip.
 - **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
   show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
   browser's permission prompt appears only after Allow location or Show my location is pressed.
@@ -811,13 +862,13 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   budget card lists their count and missing costs, avoiding the impression that the total covers
   every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
-  trip-wide stop number, the same as on the map and in the Trip drawer; an unlocated stop shows
+  trip-wide stop number, the same as on the map and in the Trip timeline; an unlocated stop shows
   none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
   the Itinerary turns it into the plan index `preview-edit` expects, which counts the day's other
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
   swap the traveller asked for; the endpoint then re-times the rest of the day after it.
-- **Time and place.** In a narrow Trip drawer, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. An expanded stop's place card also spans its full timeline row, and its editor fields and actions fit the card. Tapping a stop's time opens its Start and End form; "Change time" sends the change
+- **Time and place.** In the narrow Trip view, the time form uses the full timeline row so its controls remain visible without horizontal scrolling. An expanded stop's place card also spans its full timeline row, and its editor fields and actions fit the card. Tapping a stop's time opens its Start and End form; "Change time" sends the change
   to the server check. Selecting a stop, here or on the map, opens its place card: the place's first
   photo (live data with a Maps key), rating, address and an Open in Google Maps link. Replace place in the stop's menu opens a
   Google Places search in the card; a picked result is saved through the server check. Escape closes an
@@ -894,7 +945,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
 
 ## Drawer walkthrough
 
-`apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` walks the Trip drawer as a traveller uses it, in mock
+`apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` walks the Trip itinerary as a traveller uses it, in mock
 data mode, at 1440×1000 and 390×844, in English and in Chinese. It plans a simulated trip, moves two
 stops onto Day 1 and checks the rules in this section: no confirm or status label, each leg's mode
 and duration with no button, a leg change that re-times the stops after it and Undo that restores them,
@@ -1171,16 +1222,16 @@ must retain their provider and freshness labels.
 
 Use this checklist for each visual change. It supplements, and does not change, the layout and drawer behavior described above.
 
-| Dimension       | Required checks                                                                      |
-| --------------- | ------------------------------------------------------------------------------------ |
-| Viewports       | 1600×900, near the 1000 px responsive boundary, and 375×812                          |
-| Theme           | Light and dark at each relevant viewport                                             |
-| Motion          | Default and `prefers-reduced-motion: reduce`                                         |
-| Input           | Mouse and full keyboard navigation, including visible focus                          |
-| Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                 |
-| Overlays        | Navigation and Trip drawers, chip editors; close, Escape, and focus return           |
-| Content         | Empty chat/map, planning and failure states, long messages, and available map places |
-| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                 |
+| Dimension       | Required checks                                                                                 |
+| --------------- | ----------------------------------------------------------------------------------------------- |
+| Viewports       | 1600×900, near the 1000 px responsive boundary, and 375×812                                     |
+| Theme           | Light and dark at each relevant viewport                                                        |
+| Motion          | Default and `prefers-reduced-motion: reduce`                                                    |
+| Input           | Mouse and full keyboard navigation, including visible focus                                     |
+| Workspace       | Sidebar resize/collapse, Chat/Map switch, and no horizontal overflow                            |
+| Overlays        | Navigation and chip editors; close, Escape, and focus return; Trip desktop/tablet/phone layouts |
+| Content         | Empty chat/map, planning and failure states, long messages, and available map places            |
+| Native controls | Date, select, checkbox, and scrollbar follow the active color scheme                            |
 
 Keep light and dark screenshots for desktop (1600×900) and narrow (375×812) acceptance. Verify body and supporting text contrast with a contrast tool; status must retain a textual or graphical cue when color is unavailable.
 

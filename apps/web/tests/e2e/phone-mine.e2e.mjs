@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -163,6 +164,11 @@ try {
         .getByRole("tablist", { name: "Workspace sections" })
         .getByRole("tab", { name: "Chat", exact: true })
         .getAttribute("aria-selected")) === "true";
+    const tripSelected = async () =>
+      (await page
+        .getByRole("tablist", { name: "Workspace sections" })
+        .getByRole("tab", { name: "Trip", exact: true })
+        .getAttribute("aria-selected")) === "true";
     const search = mine.getByRole("searchbox", { name: "Search chats and trips" });
     check(
       await mine.getByText("Sydney ideas", { exact: true }).isVisible(),
@@ -265,7 +271,7 @@ try {
       .getByRole("button", { name: /^Trip to Sydney:/ })
       .first()
       .click();
-    check(await chatSelected(), `${width}: calendar trip opens Chat`);
+    check(await tripSelected(), `${width}: calendar trip opens Trip`);
     await selectMine();
     await mine.getByRole("tab", { name: "Calendar", exact: true }).click();
     const activeCalendar = mine.getByRole("grid");
@@ -280,7 +286,7 @@ try {
     await tripCard.focus();
     await page.keyboard.press("Enter");
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
-    check(await chatSelected(), `${width}: keyboard trip activation opens Chat`);
+    check(await tripSelected(), `${width}: keyboard trip activation opens Trip`);
     const focusAfterTrip = await page.evaluate(() => {
       const title = document.querySelector(".phone-topbar__title-button");
       return {
@@ -305,13 +311,13 @@ try {
     check(await chatSelected(), `${width}: selecting chat opens Chat`);
     await selectMine();
     await mine
-      .locator(".chats-panel__actions")
+      .locator(".chats-panel__section-head")
       .getByRole("button", { name: "New chat", exact: true })
       .click();
     check(await chatSelected(), `${width}: New chat opens Chat`);
     await selectMine();
     await mine
-      .locator(".chats-panel__actions")
+      .locator(".chats-panel__section-head")
       .getByRole("button", { name: "New trip", exact: true })
       .click();
     check(await chatSelected(), `${width}: New trip opens Chat`);
@@ -330,7 +336,7 @@ try {
         .count()),
       `${width}: data/language absent from top bar`,
     );
-    await mine.getByRole("button", { name: "Switch language to 简体中文" }).click();
+    await setPhoneLanguage(page, "zh");
     check(
       (await dataModeLabel.innerText()).trim() === "示例数据" &&
         (await dataModeLabel.evaluate((node) => {
@@ -350,7 +356,7 @@ try {
     );
     check(
       await mine
-        .locator(".chats-panel__actions")
+        .locator(".chats-panel__section-head")
         .getByRole("button", { name: "新聊天", exact: true })
         .isVisible(),
       `${width}: Chinese actions`,
@@ -445,17 +451,21 @@ try {
 
   await tabs.getByRole("tab", { name: /^Trip/ }).click({ timeout: 3000 });
   await tabletPage.setViewportSize({ width: 800, height: 900 });
+  const tripWorkspace = tabletPage.getByRole("region", { name: "Your trip", exact: true });
+  await tripWorkspace.waitFor();
   check(
-    await shown(tabletPage.getByRole("dialog", { name: "Your trip", exact: true })),
-    "390->800: the Trip tab continues as the open Trip drawer",
+    (await shown(tripWorkspace)) &&
+      !(await tabletPage.getByRole("dialog", { name: "Your trip", exact: true }).count()),
+    "390->800: the Trip tab continues into the dedicated Trip workspace",
   );
   await tabletPage.waitForTimeout(500);
-  await tabletPage.screenshot({ path: `${OUT}/390-to-800-trip-drawer.png` });
+  await tabletPage.screenshot({ path: `${OUT}/390-to-800-trip-workspace.png` });
   await tabletPage.setViewportSize({ width: 390, height: 844 });
   check(
     (await shown(tabletPage.locator('[role="tab"][aria-selected="true"]#phone-tab-trip'))) &&
-      (await shown(tabletPage.locator(".workspace-panel--trip"))),
-    "800->390: the open Trip drawer continues as the Trip tab",
+      (await shown(tabletPage.locator(".workspace-panel--trip"))) &&
+      !(await tabletPage.getByRole("dialog", { name: "Your trip", exact: true }).count()),
+    "800->390: the dedicated Trip surface continues as the Trip tab",
   );
   await tabletPage.waitForTimeout(500);
   await tabletPage.screenshot({ path: `${OUT}/800-to-390-trip-tab.png` });

@@ -91,7 +91,11 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         ref={button}
         type="button"
         className="topbar-button team-trigger"
-        aria-label={t("Agent Team")}
+        aria-label={
+          team.working > 0
+            ? t("Agent Team, {count} working", { count: team.working })
+            : t("Agent Team")
+        }
         title={t("Agent Team")}
         aria-expanded={open}
         aria-haspopup="dialog"
@@ -103,7 +107,12 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         <span className="team-trigger__label">{t("Agent Team")}</span>
         {team.working > 0 && (
           <span className="team-trigger__count">
-            {t("{count} working", { count: team.working })}
+            <span className="team-trigger__count-full">
+              {t("{count} working", { count: team.working })}
+            </span>
+            <span className="team-trigger__count-compact" aria-hidden="true">
+              {team.working}
+            </span>
           </span>
         )}
       </button>

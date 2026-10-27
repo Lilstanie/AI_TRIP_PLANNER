@@ -43,7 +43,11 @@ const louvre = {
   displayName: { text: "Louvre" },
   location: { latitude: 48.86, longitude: 2.34 },
 };
-const drawer = (name: "trip") => document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
+const drawer = (name: "trip") =>
+  name === "trip"
+    ? (document.querySelector<HTMLElement>(".trip-workspace__timeline") ??
+        document.querySelector<HTMLElement>(".workspace-panel--trip"))!
+    : document.querySelector<HTMLElement>(`.workspace-drawer--${name}`)!;
 const openPreferences = () =>
   fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
 
@@ -93,41 +97,25 @@ const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Re
 };
 
 describe("Workspace interactions", () => {
-  it("opens the trip drawer over the map and removes it completely when closed", async () => {
+  it("opens the dedicated trip workspace and returns to chat when closed", async () => {
     render(<Workspace initialPlan={plan} />);
     const trigger = screen.getByRole("button", { name: "Open your trip" });
     const map = document.querySelector(".workspace-panel--map")!;
-    const trip = drawer("trip");
-    expect(trip.getAttribute("aria-hidden")).toBe("true");
-    expect(trip.hasAttribute("inert")).toBe(true);
-    expect(map.contains(trip)).toBe(false);
+    expect(screen.queryByRole("region", { name: "Your trip" })).toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
     fireEvent.click(trigger);
-    expect(trip.getAttribute("aria-hidden")).toBe("false");
-    expect(trip.hasAttribute("inert")).toBe(false);
-    expect(trip.getAttribute("aria-modal")).toBe("true");
+    const trip = screen.getByRole("region", { name: "Your trip" });
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
-    expect(document.activeElement).toBe(screen.getByRole("button", { name: "Close your trip" }));
-
-    expect(document.querySelector(".workspace-panel--map")).toBe(map);
+    expect(trip.contains(map)).toBe(false);
+    expect(trip.querySelector(".trip-workspace__map")).toBeTruthy();
     expect(within(trip).queryByRole("button", { name: "Review plan" })).toBeNull();
-
     expect(within(trip).queryByRole("button", { name: "Save trip" })).toBeNull();
 
-    fireEvent.keyDown(window, { key: "Escape" });
-    expect(trip.getAttribute("aria-hidden")).toBe("true");
-    expect(document.activeElement).toBe(trigger);
-
     fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole("button", { name: "Close open panel" }));
-    expect(trip.getAttribute("aria-hidden")).toBe("true");
-    expect(document.activeElement).toBe(trigger);
-
-    fireEvent.click(trigger);
-    fireEvent.click(screen.getByRole("button", { name: "Close your trip" }));
-    expect(trip.getAttribute("aria-hidden")).toBe("true");
-    expect(document.activeElement).toBe(trigger);
+    expect(screen.queryByRole("region", { name: "Your trip" })).toBeNull();
+    expect(document.querySelector(".workspace-panel--map")).toBeTruthy();
+    expect(trigger.getAttribute("aria-expanded")).toBe("false");
     await waitFor(() => {
       const stored = JSON.parse(localStorage.getItem(CATALOG_KEY)!);
       expect(stored.layout.view).toBe("chat");
@@ -135,30 +123,29 @@ describe("Workspace interactions", () => {
       expect(stored.layout.trip).not.toHaveProperty("open");
     });
   });
-  it("keeps the Trip drawer and a chip editor apart and returns focus from Preferences", () => {
+  it("keeps the trip workspace and a chip editor apart and returns focus from Preferences", () => {
     render(<Workspace initialPlan={plan} />);
-    const trip = drawer("trip");
     const preferencesTrigger = screen.getByRole("button", { name: "Open trip preferences" });
     fireEvent.click(preferencesTrigger);
     expect(screen.getByRole("dialog", { name: "Trip preferences" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(screen.queryByRole("dialog", { name: "Trip preferences" })).toBeNull();
-    expect(trip.getAttribute("aria-hidden")).toBe("false");
+    expect(screen.getByRole("region", { name: "Your trip" })).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Open trip preferences" }));
-    expect(trip.getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("region", { name: "Your trip" })).toBeNull();
     fireEvent.keyDown(window, { key: "Escape" });
     expect(screen.queryByRole("dialog", { name: "Trip preferences" })).toBeNull();
     expect(document.activeElement).toBe(preferencesTrigger);
     expect(document.querySelector(".workspace-drawer-backdrop")).toBeNull();
   });
-  it("closes a drawer or chip editor when its own topbar button is clicked again", () => {
+  it("closes the trip workspace or chip editor when its own topbar button is clicked again", () => {
     render(<Workspace initialPlan={plan} />);
     const trigger = screen.getByRole("button", { name: "Open your trip" });
     fireEvent.click(trigger);
-    expect(drawer("trip").getAttribute("aria-hidden")).toBe("false");
+    expect(screen.getByRole("region", { name: "Your trip" })).toBeTruthy();
     expect(trigger.getAttribute("aria-expanded")).toBe("true");
     fireEvent.click(trigger);
-    expect(drawer("trip").getAttribute("aria-hidden")).toBe("true");
+    expect(screen.queryByRole("region", { name: "Your trip" })).toBeNull();
     expect(trigger.getAttribute("aria-expanded")).toBe("false");
 
     const preferences = screen.getByRole("button", { name: "Open trip preferences" });
@@ -663,7 +650,7 @@ describe("Workspace interactions", () => {
     openChip(/^Destination: Sydney$/);
     fireEvent.click(screen.getByRole("button", { name: "Remove Sydney" }));
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
-    fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replan trip" }));
     await screen.findByText("Offline");
     expect(chip(/^Destination: Paris$/)).toBeTruthy();
     expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
@@ -700,7 +687,7 @@ describe("Workspace interactions", () => {
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
     openPreferences();
-    fireEvent.click(screen.getByRole("button", { name: "Update trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Replan trip" }));
     fireEvent.click(screen.getByRole("button", { name: /^Trips\s*\d$/ }));
     fireEvent.click(historyButton(/^Melbourne/));
     expect(finish).toBeDefined();
@@ -710,7 +697,7 @@ describe("Workspace interactions", () => {
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
     expect(screen.queryByText(/Obsolete result/)).toBeNull();
     openPreferences();
-    expect(screen.getByRole("button", { name: "Update trip" }).hasAttribute("disabled")).toBe(
+    expect(screen.getByRole("button", { name: "Replan trip" }).hasAttribute("disabled")).toBe(
       false,
     );
     expect(localStorage.getItem("trip-saved-v1")).toBe("broken");
@@ -1069,7 +1056,7 @@ describe("Workspace map places", () => {
         within(places()).getByRole("button", { name: /^Stop \d+: To-ji Temple/ }),
       ).toBeTruthy(),
     );
-    const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
+    const map = document.querySelector<HTMLElement>(".trip-workspace__map")!;
     await waitFor(() =>
       expect(within(map).getByText(/1 could not be loaded from the map service/)).toBeTruthy(),
     );

@@ -1,3 +1,4 @@
+import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
@@ -115,13 +116,13 @@ async function run(browser, size) {
     `${prefix}: Trip accessible name announces update`,
   );
   await select(page, "Mine");
-  await page.getByRole("button", { name: "Switch language to 简体中文", exact: true }).click();
+  await setPhoneLanguage(page, "zh");
   await settle(page);
   check(
     (await tab(page, "行程").getAttribute("aria-label")) === "行程已更新",
     `${prefix}: Chinese Trip accessible name announces update`,
   );
-  await page.getByRole("button", { name: "切换至 English", exact: true }).click();
+  await setPhoneLanguage(page, "en");
   await settle(page);
   await select(page, "Chat");
   const input = page.locator(".composer__input");
@@ -133,20 +134,78 @@ async function run(browser, size) {
   );
   const shortened = size.height - 310;
   await viewport(page, shortened);
+  await page.waitForFunction(
+    ({ height }) => {
+      const app = document.querySelector(".workspace-app");
+      const composer = document.querySelector(".chat__form");
+      return (
+        app?.hasAttribute("data-phone-keyboard") &&
+        Math.abs(composer.getBoundingClientRect().bottom - height) <= 2
+      );
+    },
+    { height: shortened },
+    { timeout: 2000 },
+  );
   check(!(await page.locator(".phone-tabbar").isVisible()), `${prefix}: keyboard hides tabs`);
+  const forceReplyOverflow =
+    process.env.PHONE_STATE_FORCE_REPLY_OVERFLOW === "1" && size.width === 360;
+  if (forceReplyOverflow) {
+    await page
+      .locator(".msg-item--agent .msg-item__body")
+      .last()
+      .evaluate((node) => {
+        node.style.transform = "translateY(500px)";
+      });
+  }
   const geometry = await page.evaluate(() => ({
     bottom: document.querySelector(".chat__form").getBoundingClientRect().bottom,
     pageTop: scrollY,
-    stream: document.querySelector(".chat__stream").getBoundingClientRect().bottom,
-    latest: [...document.querySelectorAll(".msg-item")].at(-1).getBoundingClientRect().bottom,
+    stream: (() => {
+      const stream = document.querySelector(".chat__stream");
+      const rect = stream.getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        clientHeight: stream.clientHeight,
+        scrollHeight: stream.scrollHeight,
+        scrollTop: stream.scrollTop,
+      };
+    })(),
+    composer: (() => {
+      const rect = document.querySelector(".chat__form").getBoundingClientRect();
+      return { top: rect.top, bottom: rect.bottom };
+    })(),
+    latest: (() => {
+      const item = [...document.querySelectorAll(".msg-item")].at(-1);
+      const rect = item.getBoundingClientRect();
+      const bodyRect = item.querySelector(".msg-item__body").getBoundingClientRect();
+      return {
+        top: rect.top,
+        bottom: rect.bottom,
+        bodyTop: bodyRect.top,
+        bodyBottom: bodyRect.bottom,
+      };
+    })(),
   }));
+  if (forceReplyOverflow) {
+    await page
+      .locator(".msg-item--agent .msg-item__body")
+      .last()
+      .evaluate((node) => {
+        node.style.transform = "";
+      });
+  }
   check(
     Math.abs(geometry.bottom - shortened) <= 2,
     `${prefix}: composer bottom equals viewport bottom (${geometry.bottom})`,
   );
   check(
-    geometry.latest <= geometry.stream + 2,
-    `${prefix}: latest reply is visible above composer`,
+    geometry.latest.bodyBottom > geometry.stream.top &&
+      geometry.latest.bodyBottom <= geometry.stream.bottom + 2 &&
+      geometry.latest.bodyBottom <= geometry.composer.top + 2 &&
+      geometry.latest.bottom <= geometry.stream.bottom + 2 &&
+      geometry.latest.bottom <= geometry.composer.top + 2,
+    `${prefix}: latest reply is visible above composer (${JSON.stringify(geometry)})`,
   );
   check(geometry.pageTop === 0, `${prefix}: keyboard focus does not scroll document`);
   await page.screenshot({ path: `${OUT}/${prefix}-keyboard.png` });
@@ -262,7 +321,7 @@ async function run(browser, size) {
   );
   await select(page, "Mine");
   await page
-    .locator(".chats-panel__actions")
+    .locator(".chats-panel__section-head")
     .getByRole("button", { name: "New chat", exact: true })
     .click();
   await settle(page);
@@ -366,8 +425,14 @@ async function run(browser, size) {
   await page.unroute("**/api/chat");
   await page.reload();
   await page.locator(".phone-tabbar").waitFor();
+  await page.addStyleTag({ content: "nextjs-portal {display:none!important}" });
   await settle(page);
-  for (const name of ["Map", "Trip", "Mine", "Chat"]) {
+  check(
+    (await page.locator(".phone-tabbar [role=tab]").allTextContents()).join(",") ===
+      "Chat,Map,Mine",
+    `${prefix}: reload starts the blank workspace without a Trip`,
+  );
+  for (const name of ["Map", "Mine", "Chat"]) {
     await select(page, name);
     await page.waitForTimeout(900);
     await page.reload();
@@ -379,6 +444,13 @@ async function run(browser, size) {
       `${prefix}: reload restores ${name}`,
     );
   }
+  await select(page, "Mine");
+  await page.locator(".trip-card").filter({ hasText: "Trip to Melbourne" }).first().click();
+  await settle(page);
+  check(
+    (await tab(page, "Trip").getAttribute("aria-selected")) === "true",
+    `${prefix}: Mine reopens the saved Trip after refresh`,
+  );
 
   const title = page.locator(".phone-topbar__title-button");
   await title.click();

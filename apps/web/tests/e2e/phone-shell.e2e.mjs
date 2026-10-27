@@ -90,8 +90,8 @@ async function plan(page) {
 async function shell(page, tag) {
   const tabs = await tablist(page).getByRole("tab").allInnerTexts();
   check(
-    tabs.map((label) => label.trim()).join(",") === "Chat,Map,Trip,Trajectory,Mine",
-    `${tag}: tab bar has Chat, Map, Trip, Trajectory and Mine (${tabs.map((l) => l.trim()).join(", ")})`,
+    tabs.map((label) => label.trim()).join(",") === "Chat,Map,Mine",
+    `${tag}: tab bar starts with Chat, Map and Mine (${tabs.map((l) => l.trim()).join(", ")})`,
   );
   const selected = await tablist(page).locator('[role="tab"][aria-selected="true"]').count();
   check(selected === 1, `${tag}: exactly one tab is selected (${selected})`);
@@ -117,20 +117,7 @@ async function shell(page, tag) {
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);
   await page.screenshot({ path: `${OUT}/${tag}-01-chat-empty.png` });
 
-  await selectTab(page, "Trip");
-  check(
-    (await visiblePanels(page)).join() === "phone-panel-trip",
-    `${tag}: Trip shows only its own panel`,
-  );
-  const toChat = page.getByRole("button", { name: "Plan in Chat" });
-  check(await toChat.isVisible(), `${tag}: empty Trip tab offers Plan in Chat`);
-  await page.screenshot({ path: `${OUT}/${tag}-02-trip-empty.png` });
-  await toChat.click();
-  await settle(page, 450);
-  check(
-    (await tab(page, "Chat").getAttribute("aria-selected")) === "true",
-    `${tag}: Plan in Chat selects the Chat tab`,
-  );
+  check((await tab(page, "Trip").count()) === 0, `${tag}: Trip is unavailable before a plan`);
 
   await plan(page);
   await selectTab(page, "Trip");
@@ -189,7 +176,7 @@ async function editWhere(page, from, to) {
   await where.waitFor();
   await where.getByRole("button", { name: `Remove ${from}` }).click();
   await where.locator("#fact-destination").fill(to);
-  await where.getByRole("button", { name: "Update trip" }).click();
+  await where.getByRole("button", { name: "Replan trip" }).click();
   await where.waitFor({ state: "detached" });
   await settle(page, 300);
 }
@@ -278,7 +265,7 @@ async function facts(page, tag) {
   const updated = (await button.innerText()).trim();
   check(
     /^Melbourne · /.test(updated),
-    `${tag}: Update trip puts Melbourne in the title (${updated})`,
+    `${tag}: Replan trip puts Melbourne in the title (${updated})`,
   );
   check(await focusIsOnTitle(page), `${tag}: saving the editor returns focus to the title`);
   await waitForPlanning(page);
@@ -305,6 +292,9 @@ async function wide(browser) {
   ]) {
     const { context, page, errors } = await open(browser, { width, height }, { touch: false });
     check(!(await page.locator(".phone-tabbar").count()), `${tag}: no tab bar`);
+    await useMockData(page);
+    await page.locator(".chat-empty__suggestions button").first().click();
+    await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180_000 });
     check(
       await page.getByRole("button", { name: "Open your trip" }).isVisible(),
       `${tag}: Trip button still in the top bar`,

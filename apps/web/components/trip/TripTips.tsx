@@ -40,10 +40,10 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
 
   const preference = useRef(savedFolded(plan.tripId));
   const [open, setOpen] = useState(() =>
-    preference.current === undefined ? !onTrip : !preference.current,
+    preference.current === undefined ? false : !preference.current,
   );
   useEffect(() => {
-    if (preference.current === undefined) setOpen(!onTrip);
+    if (preference.current === undefined) setOpen(false);
   }, [onTrip]);
   if (!items.length) return null;
   return (

@@ -22,6 +22,9 @@ import {
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
+import { StopEditSurface } from "./StopEditSurface";
+import { useTripDraftField, useTripDraftRestore } from "./TripDrafts";
+import { TripChatShortcut } from "./TripChatShortcut";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -56,9 +59,11 @@ export function TimelineStop({
   showPhotos,
   suggestion = false,
   conflicts = [],
+  phone = false,
   onSelect,
   onOpen,
   onItem,
+  onAskAI,
 }: {
   activity: Activity;
 
@@ -86,11 +91,14 @@ export function TimelineStop({
 
   conflicts?: Notice[];
 
+  phone?: boolean;
+
   onSelect(): void;
 
   onOpen(): void;
 
   onItem(action: ItemAction, message: Notice): boolean | Promise<boolean>;
+  onAskAI?(message: string): void;
 }) {
   const { t, money, notice: localizeNotice } = useLocale();
   const id = activity.id!;
@@ -98,18 +106,34 @@ export function TimelineStop({
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
   const matched = !confirmed && status === "located" && !!place;
-  const [start, setStart] = useState(activity.startTime ?? "");
-  const [end, setEnd] = useState(activity.endTime ?? "");
+  const timeDraft = useTripDraftField({
+    stopId: id,
+    stopName: activity.location ?? activity.detail,
+    day: activity.day,
+    field: "time",
+    initial: { start: activity.startTime ?? "", end: activity.endTime ?? "" },
+  });
+  const { start, end } = timeDraft.value;
   const [timing, setTiming] = useState(false);
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
 
+  const { target: restoreTarget, consume: consumeRestore } = useTripDraftRestore(id);
   useEffect(() => {
-    setStart(activity.startTime ?? "");
-    setEnd(activity.endTime ?? "");
-  }, [activity.startTime, activity.endTime]);
+    if (!restoreTarget) return;
+    if (restoreTarget.field === "time") setTiming(true);
+    else if (
+      restoreTarget.field === "note" ||
+      restoreTarget.field === "details" ||
+      restoreTarget.field === "place" ||
+      restoreTarget.field === "schedule"
+    )
+      setPanel(restoreTarget.field === "place" ? "search" : restoreTarget.field);
+    onOpen();
+    consumeRestore(restoreTarget.field);
+  }, [consumeRestore, onOpen, restoreTarget]);
 
   useEffect(() => {
     if (!selected) {
@@ -118,7 +142,7 @@ export function TimelineStop({
     } else row.current?.scrollIntoView?.({ block: "nearest" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-  const timeChanged = start !== activity.startTime || end !== activity.endTime;
+  const timeChanged = timeDraft.dirty;
   const validTime = !!start && !!end && start < end;
   const range = `${activity.startTime ?? "—"}–${activity.endTime ?? "—"}`;
 
@@ -132,8 +156,9 @@ export function TimelineStop({
   };
 
   const act = (action: ItemAction, message: Notice) => {
-    void Promise.resolve(onItem(action, message)).then((done) => {
+    return Promise.resolve(onItem(action, message)).then((done) => {
       if (done) closePanel();
+      return done;
     });
   };
   const moveTo = (direction: -1 | 1) =>
@@ -388,6 +413,9 @@ export function TimelineStop({
             items={menu()}
           />
         </div>
+        {activity.day !== undefined && onAskAI && (
+          <TripChatShortcut day={activity.day} stop={name} onSend={onAskAI} />
+        )}
         {conflicts.length > 0 && (
           <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
             {conflicts.map((notice, index) => (
@@ -438,6 +466,7 @@ export function TimelineStop({
               mode="details"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) => act(action, { key: "Details saved." })}
             />
@@ -448,6 +477,7 @@ export function TimelineStop({
               mode="note"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) => act(action, { key: "Note saved." })}
             />
@@ -458,6 +488,7 @@ export function TimelineStop({
               mode="schedule"
               days={days}
               labels={dayLabels}
+              phone={phone}
               onCancel={closePanel}
               onSubmit={(action) =>
                 act(action, {
@@ -468,34 +499,36 @@ export function TimelineStop({
             />
           )}
           {panel === "day" && !idea && (
-            <div className="stop-editor__group stop-editor__order">
-              <label>
-                {t("Move to")}
-                <select
-                  autoFocus
-                  disabled={locked}
-                  value={activity.day}
-                  onChange={(event) => {
-                    const day = Number(event.target.value);
-                    act(
-                      { kind: "day", day },
-                      { key: "{name} moved to Day {day}.", params: { name, day } },
-                    );
-                  }}
-                  onKeyDown={(event) => {
-                    if (event.key !== "Escape") return;
-                    event.stopPropagation();
-                    closePanel();
-                  }}
-                >
-                  {Array.from({ length: days }, (_, d) => (
-                    <option key={d} value={d + 1}>
-                      {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
-                    </option>
-                  ))}
-                </select>
-              </label>
-            </div>
+            <StopEditSurface phone={phone} title={t("Move to another day")} onClose={closePanel}>
+              <div className="stop-editor__group stop-editor__order">
+                <label>
+                  {t("Move to")}
+                  <select
+                    autoFocus
+                    disabled={locked}
+                    value={activity.day}
+                    onChange={(event) => {
+                      const day = Number(event.target.value);
+                      act(
+                        { kind: "day", day },
+                        { key: "{name} moved to Day {day}.", params: { name, day } },
+                      );
+                    }}
+                    onKeyDown={(event) => {
+                      if (event.key !== "Escape") return;
+                      event.stopPropagation();
+                      closePanel();
+                    }}
+                  >
+                    {Array.from({ length: days }, (_, d) => (
+                      <option key={d} value={d + 1}>
+                        {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
+                      </option>
+                    ))}
+                  </select>
+                </label>
+              </div>
+            </StopEditSurface>
           )}
           {searching && (
             <PlaceSearch
@@ -503,10 +536,21 @@ export function TimelineStop({
               locked={locked}
               edits={edits}
               focusOnMount={panel === "search"}
+              phone={phone}
               onCancel={panel === "search" ? closePanel : undefined}
-              onUse={(placeId) => {
-                closePanel();
-                void edits.edit({ kind: "place", id, placeId });
+              stopId={id}
+              stopName={name}
+              day={activity.day}
+              baseline={JSON.stringify({
+                id,
+                placeId: activity.placeId,
+                detail: activity.detail,
+                location: activity.location,
+              })}
+              onUse={async (placeId) => {
+                const done = await edits.edit({ kind: "place", id, placeId });
+                if (done) closePanel();
+                return done;
               }}
             />
           )}
@@ -518,21 +562,27 @@ export function TimelineStop({
           start={start}
           end={end}
           locked={locked}
+          phone={phone}
           validTime={validTime}
           timeChanged={timeChanged}
-          onStart={setStart}
-          onEnd={setEnd}
-          onSubmit={() => {
+          errors={edits.errors}
+          onStart={(value) => timeDraft.setValue({ start: value, end })}
+          onEnd={(value) => timeDraft.setValue({ start, end: value })}
+          onSubmit={async () => {
+            const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
+            if (!done) return false;
+            timeDraft.clear();
             setTiming(false);
             timeButton.current?.focus({ preventScroll: true });
-            void edits.edit({ kind: "time", id, startTime: start, endTime: end });
+            return true;
           }}
           onCancel={() => {
             setTiming(false);
-            setStart(activity.startTime ?? "");
-            setEnd(activity.endTime ?? "");
             timeButton.current?.focus({ preventScroll: true });
           }}
+          onDiscard={timeDraft.clear}
+          stale={timeDraft.stale}
+          onRebase={timeDraft.rebase}
         />
       )}
     </li>

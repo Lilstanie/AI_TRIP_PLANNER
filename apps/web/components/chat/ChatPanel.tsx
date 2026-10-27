@@ -29,6 +29,7 @@ export function ChatPanel({
   activity,
   onSend,
   onResend,
+  onOpenTrip,
   onEdit,
   phone = false,
   showTabs = true,
@@ -59,7 +60,8 @@ export function ChatPanel({
 
   onSend: (message?: string) => void;
 
-  onResend?: (index: number, text: string) => void;
+  onResend?: (index: number, text: string) => boolean;
+  onOpenTrip?: () => void;
   onEdit: () => void;
 
   phone?: boolean;
@@ -198,6 +200,7 @@ export function ChatPanel({
               message={m}
               turn={turns[i] ?? undefined}
               animate={i === revealIndex}
+              {...(phone && m.outcome === "planned" && onOpenTrip ? { onOpenTrip } : {})}
               {...(onResend && !busy && !locked && !ask
                 ? { onResend: (text: string) => onResend(i, text) }
                 : {})}
@@ -253,7 +256,7 @@ export function ChatPanel({
               className="chat-suggestions chat-empty__suggestions"
               aria-label={t("Example trips")}
             >
-              {prompts.map(({ label, text, params }) => (
+              {prompts.slice(0, phone ? 2 : prompts.length).map(({ label, text, params }) => (
                 <button
                   key={t(label)}
                   type="button"

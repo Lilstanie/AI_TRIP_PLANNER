@@ -1,6 +1,7 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useRef, useState } from "react";
 import { useLocale } from "../account/LocaleProvider";
+import { dayCount } from "@/lib/trip/timeline";
 import type { WorkspaceModel } from "./useWorkspace";
 
 type Snap = "handle" | "half" | "full";
@@ -18,12 +19,10 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const ignoreClick = useRef(false);
 
   const { itinerary, session } = model;
-  const { mapDay: day, showMapDay } = model.layout;
-  const days = itinerary.days();
-  const selectedDay = days.includes(day ?? -1) ? day : days[0];
-  useEffect(() => {
-    if (selectedDay !== day) showMapDay(selectedDay);
-  }, [selectedDay, day, showMapDay]);
+  const { mapDay: selectedDay } = model.layout;
+  const days = session.plan
+    ? Array.from({ length: dayCount(session.plan) }, (_, index) => index + 1)
+    : [];
   const stops = selectedDay === undefined ? [] : itinerary.stopsOn(selectedDay);
   const changeSnap = (step: number) =>
     setSnap((value) => snaps[Math.max(0, Math.min(2, snaps.indexOf(value) + step))]!);

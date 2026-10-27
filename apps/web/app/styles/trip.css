@@ -55,6 +55,140 @@
 .trip__budget-delta--over {
   color: var(--warn);
 }
+
+.trip-panel__budget-summary > summary {
+  display: grid;
+  gap: var(--space-1);
+  list-style: none;
+  cursor: pointer;
+}
+
+.trip-panel__budget-summary > summary::-webkit-details-marker {
+  display: none;
+}
+
+.trip-panel__budget-title {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+
+.trip-panel__budget-compact {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+}
+
+.trip-panel__budget-compact > span:first-child,
+.trip-panel__budget-compact > span:nth-child(2) {
+  display: grid;
+  gap: 2px;
+}
+
+.trip-panel__budget-compact > span:first-child > span,
+.trip-panel__budget-compact > span:nth-child(2) > span {
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+}
+
+.trip-panel__budget-compact strong {
+  font-size: 14px;
+}
+
+.trip-panel__budget-unknown {
+  color: var(--warn);
+  font-size: var(--font-size-meta);
+}
+
+.trip-panel__budget-breakdown > li + li {
+  margin-top: var(--space-2);
+}
+
+.trip-panel__budget-category,
+.trip-panel__budget-breakdown ul > li {
+  display: flex;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+
+.trip-panel__budget-breakdown ul {
+  margin: var(--space-1) 0 0;
+  padding-inline-start: var(--space-3);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+
+.trip-issues {
+  padding-block: var(--space-2);
+  border-bottom: 1px solid var(--border);
+}
+
+.trip-issues > summary {
+  cursor: pointer;
+}
+
+.workspace-app[data-phone] .trip-panel > .currency-notice {
+  display: none;
+}
+
+.workspace-app[data-phone] .trip-issues {
+  padding-block: var(--space-1);
+}
+
+.trip-issues > summary h3 {
+  display: inline;
+}
+
+.trip-issues[open] > summary {
+  margin-bottom: var(--space-2);
+}
+
+.trip-issues h3 {
+  margin: 0;
+  font-size: 14px;
+}
+
+.trip-issues__group + .trip-issues__group {
+  margin-top: var(--space-2);
+}
+
+.trip-issues__group h4 {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+
+.trip-issues__group ul,
+.trip-issues__notices {
+  margin: 2px 0 0;
+  padding: 0;
+  list-style: none;
+}
+
+.trip-issues__group button {
+  display: flex;
+  width: 100%;
+  min-height: 44px;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: 4px 0;
+  border: 0;
+  background: transparent;
+  color: var(--text);
+  text-align: start;
+  cursor: pointer;
+}
+
+.trip-issues__group button:hover {
+  color: var(--accent);
+}
+
+.trip-issues__group button > span:last-child {
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+  white-space: nowrap;
+}
 .trip-panel__budget-breakdown {
   display: grid;
   gap: var(--space-1);

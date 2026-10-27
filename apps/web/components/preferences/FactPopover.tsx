@@ -27,6 +27,7 @@ export function FactPopover({
   className = "",
   modal = false,
   leaving = false,
+  hidden = false,
   children,
 }: {
   id: string;
@@ -39,12 +40,14 @@ export function FactPopover({
   modal?: boolean;
 
   leaving?: boolean;
+  hidden?: boolean;
   children: ReactNode;
 }) {
   const { t } = useLocale();
   const panel = useRef<HTMLElement>(null);
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const needsFocus = useRef(true);
   const [position, setPosition] = useState<{ top: number; left: number }>();
 
   useLayoutEffect(() => {
@@ -62,7 +65,12 @@ export function FactPopover({
   }, [anchor, modal]);
 
   useEffect(() => {
-    if (leaving) return;
+    if (leaving || hidden) {
+      if (hidden) needsFocus.current = true;
+      return;
+    }
+    if (!needsFocus.current) return;
+    needsFocus.current = false;
 
     const first =
       panel.current?.querySelector<HTMLElement>("[data-autofocus]:not([disabled])") ??
@@ -72,12 +80,10 @@ export function FactPopover({
     (first ?? panel.current?.querySelector<HTMLElement>(FOCUSABLE))?.focus({
       preventScroll: true,
     });
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
+  }, [hidden, leaving]);
 
   useEffect(() => {
-    if (leaving) return;
+    if (leaving || hidden) return;
     const onKeyDown = (event: KeyboardEvent) => {
       if (event.key !== "Escape" || event.defaultPrevented) return;
 
@@ -86,7 +92,9 @@ export function FactPopover({
       onCloseRef.current("dismiss");
     };
     const onPointerDown = (event: PointerEvent) => {
+      if (document.querySelector("dialog[open]")) return;
       const target = event.target as Node;
+      if (target instanceof Element && target.closest(".phone-tabbar")) return;
 
       if (panel.current?.contains(target) || anchor.current?.contains(target)) return;
 
@@ -98,7 +106,7 @@ export function FactPopover({
       window.removeEventListener("keydown", onKeyDown);
       document.removeEventListener("pointerdown", onPointerDown);
     };
-  }, [anchor, modal, leaving]);
+  }, [anchor, modal, leaving, hidden]);
 
   const titleId = `${id}-title`;
   const descriptionId = description ? `${id}-description` : undefined;
@@ -108,6 +116,8 @@ export function FactPopover({
         className={`fact-popover-scrim${modal ? " fact-popover-scrim--modal" : ""}`}
         data-leaving={leaving || undefined}
         aria-hidden="true"
+        hidden={hidden}
+        style={hidden ? { display: "none" } : undefined}
       />
       <section
         ref={panel}
@@ -120,16 +130,27 @@ export function FactPopover({
         data-placed={position ? "true" : undefined}
         data-leaving={leaving || undefined}
         aria-hidden={leaving || undefined}
-        inert={leaving}
+        inert={leaving || hidden}
+        hidden={hidden}
         style={
-          position && !modal
-            ? ({
-                "--fact-popover-top": `${position.top}px`,
-                "--fact-popover-left": `${position.left}px`,
-              } as CSSProperties)
-            : undefined
+          hidden
+            ? { display: "none" }
+            : position && !modal
+              ? ({
+                  "--fact-popover-top": `${position.top}px`,
+                  "--fact-popover-left": `${position.left}px`,
+                } as CSSProperties)
+              : undefined
         }
         onKeyDown={(event) => {
+          if (event.key === "Escape") {
+            if (event.defaultPrevented) return;
+            if (document.querySelector("dialog[open]")) return;
+            event.preventDefault();
+            event.stopPropagation();
+            onCloseRef.current("dismiss");
+            return;
+          }
           if (event.key !== "Tab" || !panel.current) return;
           const items = [...panel.current.querySelectorAll<HTMLElement>(FOCUSABLE)].filter(
             (item) =>

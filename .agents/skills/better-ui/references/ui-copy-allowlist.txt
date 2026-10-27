@@ -1,0 +1,1 @@
+apps/web/components/trip/timeline/StopForms.tsx stop-editor__hint

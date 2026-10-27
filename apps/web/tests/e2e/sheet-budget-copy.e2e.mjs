@@ -67,7 +67,7 @@ try {
     const amountLabel = language === "zh" ? "输入金额 (AUD)" : "Or enter an amount (AUD)";
     await budget.getByLabel(amountLabel).fill("1");
     const update = page.getByRole("button", {
-      name: language === "zh" ? "更新行程" : "Update trip",
+      name: language === "zh" ? "重新规划行程" : "Replan trip",
       exact: true,
     });
     const finished = page.waitForEvent("requestfinished", {

@@ -8,6 +8,7 @@ import type { EditInput } from "@/lib/trip/trip-edit";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { undoStepOf } from "@/lib/trip/undo-step";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
+import type { TripUndo } from "../useTripUndo";
 import type { TripPlaces } from "../../map/useTripPlaces";
 import { PLAN_CHANGED, type PlanRevisions } from "../plan-revision";
 
@@ -27,6 +28,7 @@ function touchedDays(operation: Operation, activities: TripPlaces["activities"])
     days.add(operation.day);
   } else if (operation.kind === "remove" || operation.kind === "idea" || operation.kind === "swap")
     add(dayOf(operation.id));
+  else if (operation.kind === "add") add(operation.day);
   else if (operation.kind === "undo") for (const stop of operation.activities) days.add(stop.day);
   function add(day: number | undefined) {
     if (day !== undefined) days.add(day);
@@ -39,6 +41,7 @@ export function useTimelineEdits({
   dataMode,
   activities,
   revisions,
+  undo,
   onPending,
   onRoutesChange,
   onLegApplied,
@@ -48,6 +51,7 @@ export function useTimelineEdits({
   dataMode?: DataMode;
   activities: TripPlaces["activities"];
   revisions: PlanRevisions;
+  undo: TripUndo;
   onPending(value: boolean): void;
 
   onRoutesChange?(routes: RouteResult[]): void;
@@ -60,7 +64,6 @@ export function useTimelineEdits({
   const [results, setResults] = useState<GooglePlace[]>([]);
   const [errors, setErrors] = useState<Notice[]>([]);
   const [working, setWorking] = useState<"" | "edit" | "search">("");
-  const [undo, setUndo] = useState<Operation>();
 
   const [changed, setChanged] = useState<ReadonlySet<string>>(new Set());
   useEffect(() => {
@@ -68,7 +71,6 @@ export function useTimelineEdits({
     const timer = window.setTimeout(() => setChanged(new Set()), 1600);
     return () => window.clearTimeout(timer);
   }, [changed]);
-  const applied = useRef<TripPlan | null>(null);
   const request = useRef<AbortController | null>(null);
   const requestKind = useRef<"" | "edit" | "search">("");
 
@@ -77,8 +79,6 @@ export function useTimelineEdits({
       request.current?.abort();
       setWorking("");
     }
-    if (applied.current !== plan) setUndo(undefined);
-    applied.current = null;
   }, [plan]);
   useEffect(() => {
     onPending(working !== "");
@@ -147,16 +147,20 @@ export function useTimelineEdits({
         item,
       ]),
     );
-    applied.current = next;
     onTimelineChange?.(operation.kind !== "undo");
-    setUndo(
-      operation.kind === "remove" ||
-        operation.kind === "idea" ||
-        operation.kind === "schedule" ||
-        operation.kind === "swap"
-        ? undefined
-        : undoStepOf(checked),
-    );
+    if (operation.kind === "undo") undo.clear();
+    else if (
+      operation.kind !== "remove" &&
+      operation.kind !== "idea" &&
+      operation.kind !== "schedule" &&
+      operation.kind !== "swap"
+    )
+      undo.record(next, {
+        operation: {
+          ...undoStepOf(checked),
+          ...(operation.kind === "add" ? { addedIds: [operation.id] } : {}),
+        },
+      });
     onRoutesChange?.(routes);
     setChanged(
       new Set(
@@ -177,6 +181,10 @@ export function useTimelineEdits({
 
   function leg(id: string, mode: LegMode) {
     return edit({ kind: "leg", id, mode });
+  }
+
+  function add(input: Omit<Extract<Operation, { kind: "add" }>, "kind">) {
+    return edit({ kind: "add", ...input });
   }
 
   async function search(text: string) {
@@ -203,10 +211,11 @@ export function useTimelineEdits({
     clearResults: () => setResults([]),
     errors,
     working,
-    undo,
+    undo: undo.step && "operation" in undo.step ? undo.step.operation : undefined,
     changed,
     busy: working !== "",
     edit,
+    add,
     leg,
     search,
   };

@@ -375,11 +375,11 @@ export function TripMap({
       layer();
       routeLayer.current = null;
     };
-  }, [runtime, lines, routes, focusDay, dark]);
+  }, [runtime, lines, routes, focusDay, dark, locale]);
 
   useEffect(() => {
     routeLayer.current?.setAnimationEnabled(visible && !reducedMotion);
-  }, [runtime, lines, routes, focusDay, dark, visible, reducedMotion]);
+  }, [runtime, lines, routes, focusDay, dark, visible, reducedMotion, locale]);
 
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);

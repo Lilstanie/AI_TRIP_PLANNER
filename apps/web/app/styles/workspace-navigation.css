@@ -58,9 +58,31 @@
   flex-direction: column;
   min-width: 0;
   min-height: 0;
+  container: workspace-main / inline-size;
 }
 .workspace-notices:empty {
   display: none;
+}
+.trip-draft-restore {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.trip-draft-restore button {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  max-width: 100%;
+  text-align: start;
+}
+.trip-draft-restore button span {
+  min-width: 0;
+}
+.trip-draft-restore button span + span {
+  color: var(--text-muted);
+  font-size: var(--font-size-meta);
 }
 .icon {
   flex: none;

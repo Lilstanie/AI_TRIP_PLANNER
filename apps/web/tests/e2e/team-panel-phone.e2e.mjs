@@ -13,6 +13,10 @@ const check = (ok, name, detail) => {
 };
 
 const NAME = { en: "Agent Team", zh: "智能体团队" };
+const WORKING_NAME = {
+  en: (count) => `Agent Team, ${count} working`,
+  zh: (count) => `智能体团队，${count} 个正在工作`,
+};
 const IDLE = { en: "Idle", zh: "空闲" };
 const IDS = [
   "coordinator",
@@ -61,16 +65,18 @@ try {
     }
     await page.getByRole("tab", { name: /^(Chat|聊天)/ }).click();
 
-    const button = page
-      .locator(".workspace-topbar")
-      .getByRole("button", { name: NAME[locale], exact: true });
-    const sheet = page.getByRole("dialog", { name: NAME[locale] });
+    const button = page.locator(".workspace-topbar .phone-topbar__team");
+    const sheet = page.locator("dialog.phone-trajectory[open]");
     const rows = sheet.locator(".team-panel__row");
     const topbar = () => page.locator(".workspace-topbar").boundingBox();
     const noSideScroll = () =>
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
     check((await button.count()) === 1, `${label}: the top bar has one Agent Team button`);
+    check(
+      (await button.getAttribute("aria-label")) === NAME[locale],
+      `${label}: the idle button has a localized Agent Team name`,
+    );
     check(
       await page.evaluate(() => {
         const title = document.querySelector(".phone-topbar__title");
@@ -108,6 +114,7 @@ try {
       (await button.getAttribute("aria-expanded")) === "true",
       `${label}: the button reports it is expanded`,
     );
+    await sheet.locator(".phone-trajectory__team > summary").tap();
     check((await rows.count()) === 6, `${label}: six assistant rows`, await rows.count());
     const idle = await rows.evaluateAll((nodes) =>
       nodes.map((n) => [n.getAttribute("data-assistant"), n.getAttribute("data-status")]),
@@ -144,7 +151,7 @@ try {
     await page.screenshot({ path: `${out}/${label}-idle.png` });
 
     await page.keyboard.press("Escape");
-    await sheet.waitFor({ state: "detached" });
+    await sheet.waitFor({ state: "hidden" });
     check(
       await page.evaluate(() => document.activeElement?.classList.contains("team-trigger")),
       `${label}: Esc closes the sheet and returns focus to the button`,
@@ -152,14 +159,14 @@ try {
     await button.tap();
     await sheet.waitFor();
     await page.waitForTimeout(300);
-    await page.mouse.click(width / 2, 20);
-    await sheet.waitFor({ state: "detached" });
-    check(true, `${label}: a tap outside closes the sheet`);
+    await page.goBack();
+    await sheet.waitFor({ state: "hidden" });
+    check(true, `${label}: Browser Back closes the trajectory`);
     await button.tap();
     await sheet.waitFor();
     await page.waitForTimeout(300);
-    await page.locator(".fact-popover__close").tap();
-    await sheet.waitFor({ state: "detached" });
+    await sheet.locator(".phone-trajectory__close").tap();
+    await sheet.waitFor({ state: "hidden" });
     check(true, `${label}: the close button closes the sheet`);
 
     await page.locator(".phone-topbar__title-button").tap();
@@ -187,6 +194,18 @@ try {
       caught && caught.working > 0 && caught.pulsing > 0,
       `${label}: the button avatars show who is working`,
       caught,
+    );
+    const workingButton = await button.evaluate((element) => ({
+      label: element.getAttribute("aria-label"),
+      iconCount: element.querySelectorAll(".team-trigger__avatars .assistant-icon").length,
+      count: element.querySelector(".team-trigger__count-compact")?.textContent?.trim(),
+    }));
+    check(
+      workingButton.label === WORKING_NAME[locale](caught?.working ?? 0) &&
+        workingButton.iconCount === 1 &&
+        workingButton.count === String(caught?.working ?? 0),
+      `${label}: the working button shows one icon and a localized numeric count`,
+      workingButton,
     );
     check(
       ((await topbar())?.height ?? 99) <= 64,
@@ -251,7 +270,7 @@ try {
     await page.screenshot({ path: `${out}/${label}-settled.png` });
 
     await page.keyboard.press("Escape");
-    await sheet.waitFor({ state: "detached" });
+    await sheet.waitFor({ state: "hidden" });
     await page.waitForTimeout(400);
     const tripTab = page.getByRole("tablist").getByRole("tab", { name: /^(Trip|行程)/ });
     await tripTab.tap({ timeout: 5000 });
@@ -274,11 +293,11 @@ try {
     .locator(".workspace-topbar")
     .getByRole("button", { name: "Agent Team", exact: true })
     .click();
-  await page.getByRole("dialog", { name: "Specialist team" }).waitFor();
+  await page.locator("dialog.phone-trajectory[open]").waitFor();
   await page.setViewportSize({ width: 1440, height: 900 });
   await page.waitForTimeout(500);
   check(
-    (await page.getByRole("dialog", { name: "Specialist team" }).count()) === 0,
+    (await page.locator("dialog.phone-trajectory[open]").count()) === 0,
     "resizing to desktop closes the phone sheet",
   );
   check(
