@@ -122,10 +122,9 @@ export function ChatPanel({
     messages: Message[];
     activity: AgentProgressEvent[];
   } | null>(null);
+  const lastTop = useRef<number | null>(null);
   const choose = (next: ChatView) => {
     if (next === view) return;
-    if (next === "trajectory")
-      savedScroll.current = { top: stream.current?.scrollTop ?? 0, messages, activity };
     setView(next);
   };
   const { focus } = useTrajectoryFocus();
@@ -142,6 +141,11 @@ export function ChatPanel({
     choose("trajectory");
   });
   useLayoutEffect(() => {
+    if (view === "trajectory") {
+      if (savedScroll.current === null && lastTop.current !== null)
+        savedScroll.current = { top: lastTop.current, messages, activity };
+      return;
+    }
     const saved = savedScroll.current;
     if (view !== "conversation" || saved === null) return;
     const node = stream.current;
@@ -194,6 +198,9 @@ export function ChatPanel({
         hidden={showTrajectory}
         {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
         aria-busy={busy}
+        onScroll={(event) => {
+          lastTop.current = event.currentTarget.scrollTop;
+        }}
       >
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (

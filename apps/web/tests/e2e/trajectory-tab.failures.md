@@ -22,6 +22,7 @@ Written before the code (TP-72, #668). Each line is a way the tab could fail; th
 - The ledger does not follow the newest record while a reply streams, still follows after the traveller scrolled up, or a running assignment is shown as finished.
 - A cancelled turn shows its unfinished assignments as running forever.
 - Returning to Conversation after a reply arrived on the Trajectory tab restores the scroll position from before the switch, so the new reply is below the fold.
+- The Trajectory tab is chosen from the workspace top bar instead of the chat panel, so the stream's scroll position is never recorded and the reply that arrived stays below the fold on return.
 - English labels appear under the Chinese interface (toolbar, kind tags, step and turn labels, inspector tabs), or Chinese under English.
 - A renamed specialist still shows its default name in the ledger.
 - The page overflows horizontally or logs a page error, or the ledger stays blank at 1440 px.

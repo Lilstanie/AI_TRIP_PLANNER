@@ -52,6 +52,9 @@
 - `team-panel-desktop`、`team-thinking` 和 `trajectory-demo` 在 `main` 上就已失败（2026-10-27，#734），与玻璃和待处理项票据无关。渐进式空工作区把团队控件移到顶栏左侧分组，因此“按钮在 Trip 左侧”无从检查；弹出层名为“专家团队”而非 Agent Team；规划期间按钮的无障碍名称带有“, N working”，精确名称定位器因此超时；点击信息流左上角会落在已固定的面板上；轨迹 Tab 的选中状态和筛选标签在点击后晚一帧才出现；手机上名册位于模态框内折叠的区域，模态框关闭后仍留在 DOM 中。脚本现已改用当前的前提，并通过
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`。
 
+- `trajectory-tab` 的“轨迹 Tab 上到达的回复在返回对话时可见”在 `main` `629cf2a` 上就已失败（2026-10-27，#740）：Tab 按钮移到了工作区顶栏，顶栏直接设置聊天视图，聊天面板因此从未记录信息流的滚动位置，新回复留在可视区域之下（1440 下差 365 px）。面板现在无论由谁切换视图，都会自行记录信息流的滚动位置和上次显示的消息。
+  `phone-map-empty-hint` 和 `sidebar-entries` 无需条目：前者符合 #737 的决定（1440 下空地图区域隐藏），`sidebar-entries` 属于侧栏相关票据；两者在集成分支上用上述命令均通过。
+
 <a id="not-failures"></a>
 
 ## 不算失败

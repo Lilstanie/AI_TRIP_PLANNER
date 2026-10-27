@@ -63,6 +63,15 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   scripts now use those current premises and pass with
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
 
+- `trajectory-tab` already failed "a reply that arrived on the Trajectory tab is in view when
+  Conversation returns" on `main` `629cf2a` (2026-10-27, #740): the tab buttons moved into the
+  workspace top bar, which sets the chat view directly, so the chat panel never recorded the stream's
+  scroll position and the new reply stayed below the fold (gap 365 px at 1440). The panel now tracks
+  the stream's scroll position and the messages it last showed itself, whoever changes the view.
+  `phone-map-empty-hint` and `sidebar-entries` need no entry: the first matches the #737 decision that
+  the empty 1440 map area is hidden, and `sidebar-entries` belongs to the sidebar tickets; both pass on
+  the integration branch with the command above.
+
 ## Not failures
 
 - `installable-app` waits forever under `next dev`, because the service worker registers only in a production
