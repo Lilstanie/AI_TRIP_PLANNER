@@ -364,78 +364,97 @@ try {
       (await budget.getByText("Alternative Air", { exact: true }).count()) === 0,
     "unselected booking alternatives are excluded from item rows",
   );
-  const issues = page.getByRole("region", { name: /Trip issues|行程问题/ });
-  check((await issues.count()) === 1, "issue summary is present in the Trip panel");
-  if (await issues.count()) {
-    check(!(await issues.evaluate((node) => node.open)), "issue details start collapsed");
+  check(
+    (await page.getByRole("region", { name: /Trip issues|行程问题/ }).count()) === 0 &&
+      (await page.locator(".trip-issues").count()) === 0,
+    "the Trip issues block is gone from the Trip panel",
+  );
+  const badge = page.getByRole("button", { name: /^Open items/ });
+  await badge.waitFor();
+  const popover = page.getByRole("dialog", { name: "Open items" });
+  const rowNames = async () =>
+    await popover.getByRole("button").evaluateAll((nodes) => nodes.map((n) => n.ariaLabel ?? ""));
+  await badge.click();
+  await popover.waitFor();
+  const rows = await rowNames();
+  const badgeCount = Number((await badge.innerText()).trim());
+  check(
+    rows.length === badgeCount && badgeCount > 0,
+    "badge count equals the number of popover rows",
+    { badgeCount, rows },
+  );
+  check(
+    rows.filter((r) => r.startsWith("Time conflict")).length === 3 &&
+      rows.filter((r) => r.startsWith("Unlocated place")).length === 3 &&
+      rows.some((r) => /^Unlocated place: Unpriced museum/.test(r)) &&
+      rows.some((r) => /^Place lookup failed: Lookup failure cafe/.test(r)) &&
+      rows.length === 7,
+    "count is time conflicts + unlocated places + failed lookups",
+    rows,
+  );
+  check(
+    !rows.some((r) => /^Unpriced/.test(r)) &&
+      (await popover.getByText(/Unpriced stay/).count()) === 0,
+    "unpriced items are not open items",
+    rows,
+  );
+  check(
+    (await page
+      .locator(".trip-panel__budget-summary")
+      .getByText(/Not included/)
+      .count()) > 0 || /4 unpriced/.test(await summary.innerText()),
+    "unpriced items stay in the budget's not-included note",
+  );
+  const classes = await popover.getAttribute("class");
+  check(
+    /\bglass-float\b/.test(classes ?? "") && /\bglass-float--raised\b/.test(classes ?? ""),
+    "popover uses the glass-float raised contract",
+    classes,
+  );
+  check(
+    (await popover.evaluate((node) => getComputedStyle(node).position)) !== "static" &&
+      (await page.locator(".timeline-stop__main").first().isVisible()),
+    "popover floats and the timeline stays visible",
+  );
+  const popoverBox = await popover.boundingBox();
+  const titleBox = await page.locator(".topbar-title").boundingBox();
+  const badgeBox = await badge.boundingBox();
+  check(
+    popoverBox !== null &&
+      popoverBox.x + popoverBox.width <= 1440 &&
+      titleBox !== null &&
+      badgeBox !== null &&
+      badgeBox.x - (titleBox.x + titleBox.width) < 24,
+    "desktop badge sits next to the trip title and its popover fits the viewport",
+    { popoverBox, titleBox, badgeBox },
+  );
+  const rowFill = await popover
+    .getByRole("button")
+    .first()
+    .evaluate((node) => getComputedStyle(node).backdropFilter);
+  check(rowFill === "none" || rowFill === "", "rows inside the popover are opaque", rowFill);
+  await page.screenshot({ path: `${OUT}/open-items-popover.png`, fullPage: true });
+  const stopOf = (text) => page.locator(".timeline-stop__main").filter({ hasText: text });
+  const pick = async (name, stop) => {
+    if (!(await popover.count())) await badge.click();
+    await popover.getByRole("button", { name }).click();
     check(
-      await page.locator(".timeline-stop__main").first().isVisible(),
-      "timeline remains visible in the initial viewport while issue details are collapsed",
+      (await stopOf(stop).getAttribute("aria-expanded")) === "true",
+      `${name} selects and opens its Stop`,
     );
-    await issues.locator("summary").click();
-    await issues.getByRole("heading", { name: /Unlocated place/ }).waitFor();
-    await issues.getByRole("heading", { name: /Place lookup failed/ }).waitFor();
-    const issueText = await issues.innerText();
-    check(
-      /time conflict/i.test(issueText) &&
-        /unlocated/i.test(issueText) &&
-        /unpriced/i.test(issueText) &&
-        /lookup failed/i.test(issueText),
-      "issue summary distinguishes all required issue types",
-      issueText,
-    );
-    check(
-      (await issues.getByRole("button", { name: /Priced gallery/ }).count()) > 0,
-      "time conflict links to an affected Stop",
-    );
-    await issues.getByRole("button", { name: /Unpriced item: Unpriced museum/ }).click();
-    const selectedUnpricedStop = page
-      .locator(".timeline-stop__main")
-      .filter({ hasText: "Unpriced museum" });
-    check(
-      (await selectedUnpricedStop.getAttribute("aria-expanded")) === "true",
-      "unpriced issue navigates to and opens its Stop",
-    );
-    await issues.getByRole("button", { name: /Unlocated place: Unpriced museum/ }).click();
-    const selectedUnlocatedStop = page
-      .locator(".timeline-stop__main")
-      .filter({ hasText: "Unpriced museum" });
-    check(
-      (await selectedUnlocatedStop.getAttribute("aria-expanded")) === "true",
-      "unlocated issue navigates to and opens its Stop",
-    );
-    await issues.getByRole("button", { name: /Time conflict: Priced gallery/ }).click();
-    const selectedOverlapStop = page
-      .locator(".timeline-stop__main")
-      .filter({ hasText: "Priced gallery" });
-    check(
-      (await selectedOverlapStop.getAttribute("aria-expanded")) === "true",
-      "time conflict navigates to and opens an overlapping Stop",
-    );
-    await issues.getByRole("button", { name: /Place lookup failed: Lookup failure cafe/ }).click();
-    const selectedLookupStop = page
-      .locator(".timeline-stop__main")
-      .filter({ hasText: "Lookup failure cafe" });
-    check(
-      (await selectedLookupStop.getAttribute("aria-expanded")) === "true",
-      "place lookup failure navigates to and opens its Stop",
-    );
-    await issues.getByRole("button", { name: /Unpriced stay without a day/ }).click();
-    check(await budget.evaluate((node) => node.open), "undated stay issue opens budget details");
-    check(
-      await budget.getByText("Unpriced stay without a day", { exact: true }).isVisible(),
-      "undated stay issue reveals its budget row without inventing a Stop id",
-    );
-    check(
-      (await issues.getByRole("button", { name: /Unpriced meal without a day/ }).count()) === 0 &&
-        (await budget.getByText("Unpriced meal without a day", { exact: true }).count()) === 0,
-      "an unplanned restaurant idea is excluded consistently from budget rows and issue actions",
-    );
-    check(
-      (await budget.getByText("Scheduled restaurant", { exact: true }).count()) === 1,
-      "scheduled restaurant has one unknown-price budget row across dining and activities",
-    );
-  }
+    check((await popover.count()) === 0, `${name} closes the popover`);
+  };
+  await pick(/Time conflict: Priced gallery/, "Priced gallery");
+  await pick(/Unlocated place: Unpriced museum/, "Unpriced museum");
+  await pick(/Place lookup failed: Lookup failure cafe/, "Lookup failure cafe");
+  await badge.click();
+  await popover.waitFor();
+  await page.keyboard.press("Escape");
+  check((await popover.count()) === 0, "Esc closes the popover");
+  await badge.click();
+  await popover.waitFor();
+  await page.mouse.click(700, 960);
+  check((await popover.count()) === 0, "outside click closes the popover");
   check(errors.length === 0, "fixture Trip renders without runtime errors", errors);
   await page.screenshot({ path: `${OUT}/budget-issues.png`, fullPage: true });
 
@@ -488,29 +507,24 @@ try {
     "Chinese compact unknown count covers accommodation and activities once",
     localizedText,
   );
-  const localizedIssues = zhPage.getByRole("region", { name: /行程问题/ });
   check(
-    (await localizedIssues.count()) === 1,
-    "Chinese issue summary is present in the Trip panel",
+    (await zhPage.locator(".trip-issues").count()) === 0,
+    "Chinese Trip panel has no Trip issues block",
   );
-  if (await localizedIssues.count()) {
-    check(
-      !(await localizedIssues.evaluate((node) => node.open)),
-      "Chinese issue details start collapsed",
-    );
-    await localizedIssues.locator("summary").click();
-    await localizedIssues.getByRole("heading", { name: /尚未定位/ }).waitFor();
-    await localizedIssues.getByRole("heading", { name: /地点查询失败/ }).waitFor();
-    const issueText = await localizedIssues.innerText();
-    check(
-      /时间冲突/.test(issueText) &&
-        /尚未定位/.test(issueText) &&
-        /未定价/.test(issueText) &&
-        /地点查询失败/.test(issueText),
-      "Chinese issue groups distinguish overlap, unlocated, unpriced and lookup failure",
-      issueText,
-    );
-  }
+  const zhBadge = zhPage.getByRole("button", { name: /^待处理事项/ });
+  await zhBadge.waitFor();
+  await zhBadge.click();
+  const zhPopover = zhPage.getByRole("dialog", { name: "待处理事项" });
+  await zhPopover.waitFor();
+  const zhText = await zhPopover.innerText();
+  check(
+    /时间冲突/.test(zhText) &&
+      /尚未定位/.test(zhText) &&
+      /地点查询失败/.test(zhText) &&
+      !/未定价项目/.test(zhText),
+    "Chinese popover distinguishes conflict, unlocated and lookup failure without unpriced items",
+    zhText,
+  );
   await zhPage.screenshot({ path: `${OUT}/budget-issues-zh.png`, fullPage: true });
   await zhContext.close();
 
@@ -544,22 +558,46 @@ try {
   await phonePage.locator('.history-item__open[title="Sydney budget issues fixture"]').click();
   await phonePage.getByRole("tab", { name: /^Trip/ }).click();
   await phonePage.locator(".trip-panel").waitFor();
-  const phoneIssues = phonePage.getByRole("region", { name: /Trip issues/ });
-  check(!(await phoneIssues.evaluate((node) => node.open)), "phone issue details start collapsed");
+  check(
+    (await phonePage.locator(".trip-issues").count()) === 0,
+    "phone Trip panel has no Trip issues block",
+  );
   const firstPhoneStop = phonePage.locator(".timeline-stop__main").first();
   const firstPhoneStopBox = await firstPhoneStop.boundingBox();
   check(
     (await firstPhoneStop.isVisible()) &&
       firstPhoneStopBox !== null &&
       firstPhoneStopBox.y + firstPhoneStopBox.height <= 844,
-    "390px phone first Stop remains within the initial viewport with collapsed issues",
+    "390px phone first Stop remains within the initial viewport",
     firstPhoneStopBox,
   );
-  await phoneIssues.locator("summary").click();
+  const phoneBadge = phonePage.getByRole("button", { name: /^Open items/ });
+  await phoneBadge.waitFor();
+  const phoneBadgeBox = await phoneBadge.boundingBox();
   check(
-    await phoneIssues.getByRole("button", { name: /Unpriced stay without a day/ }).isVisible(),
-    "phone issue summary can expand to reveal category issues",
+    phoneBadgeBox !== null &&
+      phoneBadgeBox.height >= 44 &&
+      phoneBadgeBox.x + phoneBadgeBox.width <= 390,
+    "phone badge has a 44px hit area inside the viewport",
+    phoneBadgeBox,
   );
+  await phoneBadge.click();
+  const phonePopover = phonePage.getByRole("dialog", { name: "Open items" });
+  await phonePopover.waitFor();
+  const phonePopoverBox = await phonePopover.boundingBox();
+  check(
+    phonePopoverBox !== null &&
+      phonePopoverBox.x >= 0 &&
+      phonePopoverBox.x + phonePopoverBox.width <= 390,
+    "phone popover fits the viewport",
+    phonePopoverBox,
+  );
+  check(
+    (await phonePage.evaluate(() => document.documentElement.scrollWidth)) <= 390,
+    "phone has no horizontal overflow with the popover open",
+  );
+  await phonePopover.getByRole("button", { name: /Place lookup failed/ }).click();
+  check((await phonePopover.count()) === 0, "phone row closes the popover");
   await phonePage.screenshot({ path: `${OUT}/budget-issues-phone.png`, fullPage: true });
   await phoneContext.close();
   await context.close();
