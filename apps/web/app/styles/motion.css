@@ -335,7 +335,7 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
 
 html[data-transition] .chats-panel,
 .chats-panel:not(.is-open) {
-  --glass-fill: var(--glass-bg-strong);
+  --glass-fill: var(--glass-tint);
   -webkit-backdrop-filter: none !important;
   backdrop-filter: none !important;
 }

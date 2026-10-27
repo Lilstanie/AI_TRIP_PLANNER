@@ -149,10 +149,6 @@ dialog.phone-trajectory[open] {
   flex: none;
   padding: var(--space-1) max(var(--space-2), env(safe-area-inset-right))
     max(var(--space-1), env(safe-area-inset-bottom)) max(var(--space-2), env(safe-area-inset-left));
-  border-top: 1px solid var(--glass-edge);
-  background: var(--glass-bg-strong);
-  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
 }
 .phone-tabbar[data-hidden] {
   display: none;
@@ -203,10 +199,6 @@ dialog.phone-trajectory[open] {
   background: var(--accent-fill);
 }
 @media (forced-colors: active) {
-  .phone-tabbar {
-    background: Canvas;
-    border-color: CanvasText;
-  }
   .phone-tabbar__tab[aria-selected="true"] {
     color: Highlight;
   }

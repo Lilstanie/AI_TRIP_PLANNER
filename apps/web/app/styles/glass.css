@@ -1,24 +1,24 @@
+.glass-float,
 .workspace-sidebar,
 .chats-panel,
 .fact-chips__scroller,
 .topbar-actions .topbar-button,
+.team-trigger,
 .workspace-topbar .topbar-icon-button,
 .topbar-views,
+[data-phone] .workspace-topbar::before,
+.phone-tabbar,
 .composer,
-.chat-empty,
-.map-placeholder,
 .trip-map-canvas .trip-map-controls,
 .trip-map-canvas .trip-map-location-status:not(:empty),
 .trip-map-status,
 .map-controls .map-control,
 .map-control-group,
 .trips-page__new,
-.trip-card__text,
-.trip-calendar__grid,
 .location-prompt,
 .workspace-notices .error-banner,
 .agent-lab__toolbar {
-  --glass-fill: var(--glass-bg);
+  --glass-fill: var(--glass-tint);
   border: 1px solid var(--glass-border) !important;
   background: var(--glass-fill) !important;
   -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
@@ -29,22 +29,55 @@
     var(--glass-shadow);
 }
 
+.glass-float--raised,
 .drawer,
 .fact-popover,
 .trip-map-canvas .trip-map-popup .place-preview,
 .auth-form,
 .question__card,
 .dialog,
+.team-popover .team-panel,
+.phone-map-sheet,
 .agent-lab__panel {
-  --glass-fill: var(--glass-bg-strong);
+  --glass-fill: var(--glass-tint);
   border: 1px solid var(--glass-border) !important;
   background: var(--glass-fill) !important;
-  -webkit-backdrop-filter: blur(calc(var(--glass-blur) * 1.5)) saturate(var(--glass-saturate));
-  backdrop-filter: blur(calc(var(--glass-blur) * 1.5)) saturate(var(--glass-saturate));
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
   box-shadow:
     var(--glass-highlight),
     0 0 0 0.5px var(--glass-edge),
-    var(--shadow-lg);
+    var(--glass-shadow-raised);
+}
+
+[data-phone] .workspace-topbar {
+  position: relative;
+  border-bottom: 0;
+}
+[data-phone] .workspace-topbar > :not(.fact-chips) {
+  position: relative;
+}
+[data-phone] .workspace-topbar::before {
+  content: "";
+  position: absolute;
+  inset: 0;
+  border-width: 0 0 1px !important;
+  pointer-events: none;
+}
+.phone-tabbar {
+  border-radius: 0;
+}
+.phone-tabbar {
+  border-width: 1px 0 0 !important;
+}
+
+.chat-empty,
+.map-placeholder,
+.trip-card__text,
+.trip-calendar__grid {
+  border: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
 }
 
 .workspace-sidebar::before,
@@ -339,7 +372,7 @@
 }
 @media (hover: hover) {
   .map-controls > .map-control:hover:not(:disabled) {
-    --glass-fill: var(--glass-bg-strong);
+    --glass-fill: var(--glass-tint);
   }
   .map-controls .map-control-group > .map-control:hover:not(:disabled) {
     background: var(--fill-hover) !important;
@@ -347,7 +380,7 @@
 }
 .place-preview__close {
   border: 0 !important;
-  background: var(--glass-bg) !important;
+  background: var(--glass-tint) !important;
   -webkit-backdrop-filter: blur(12px);
   backdrop-filter: blur(12px);
 }
@@ -488,15 +521,18 @@
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .glass-float,
   .workspace-sidebar,
   .chats-panel,
   .fact-chips__scroller,
   .topbar-actions .topbar-button,
+  .team-trigger,
+  .team-trigger,
   .workspace-topbar .topbar-icon-button,
   .topbar-views,
+  [data-phone] .workspace-topbar::before,
+  .phone-tabbar,
   .composer,
-  .chat-empty,
-  .map-placeholder,
   .trip-map-canvas .trip-map-controls,
   .trip-map-canvas .trip-map-location-status:not(:empty),
   .trip-map-status,
@@ -505,15 +541,16 @@
   .trips-page__new,
   .location-prompt,
   .workspace-notices .error-banner,
-  .trip-card__text,
-  .trip-calendar__grid,
+  .agent-lab__toolbar,
+  .glass-float--raised,
   .drawer,
   .fact-popover,
   .trip-map-canvas .trip-map-popup .place-preview,
   .auth-form,
   .question__card,
   .dialog,
-  .agent-lab__toolbar,
+  .team-popover .team-panel,
+  .phone-map-sheet,
   .agent-lab__panel {
     --glass-fill: var(--surface);
     border-color: var(--border) !important;
@@ -534,15 +571,18 @@
   .agent-lab {
     background: var(--page);
   }
+  .glass-float,
   .workspace-sidebar,
   .chats-panel,
   .fact-chips__scroller,
   .topbar-actions .topbar-button,
+  .team-trigger,
+  .team-trigger,
   .workspace-topbar .topbar-icon-button,
   .topbar-views,
+  [data-phone] .workspace-topbar::before,
+  .phone-tabbar,
   .composer,
-  .chat-empty,
-  .map-placeholder,
   .trip-map-canvas .trip-map-controls,
   .trip-map-canvas .trip-map-location-status:not(:empty),
   .trip-map-status,
@@ -551,15 +591,16 @@
   .trips-page__new,
   .location-prompt,
   .workspace-notices .error-banner,
-  .trip-card__text,
-  .trip-calendar__grid,
+  .agent-lab__toolbar,
+  .glass-float--raised,
   .drawer,
   .fact-popover,
   .trip-map-canvas .trip-map-popup .place-preview,
   .auth-form,
   .question__card,
   .dialog,
-  .agent-lab__toolbar,
+  .team-popover .team-panel,
+  .phone-map-sheet,
   .agent-lab__panel {
     --glass-fill: var(--surface);
     border-color: var(--border) !important;
@@ -576,15 +617,18 @@
   }
 }
 @media (forced-colors: active) {
+  .glass-float,
   .workspace-sidebar,
   .chats-panel,
   .fact-chips__scroller,
   .topbar-actions .topbar-button,
+  .team-trigger,
+  .team-trigger,
   .workspace-topbar .topbar-icon-button,
   .topbar-views,
+  [data-phone] .workspace-topbar::before,
+  .phone-tabbar,
   .composer,
-  .chat-empty,
-  .map-placeholder,
   .trip-map-canvas .trip-map-controls,
   .trip-map-canvas .trip-map-location-status:not(:empty),
   .trip-map-status,
@@ -593,15 +637,16 @@
   .trips-page__new,
   .location-prompt,
   .workspace-notices .error-banner,
-  .trip-card__text,
-  .trip-calendar__grid,
+  .agent-lab__toolbar,
+  .glass-float--raised,
   .drawer,
   .fact-popover,
   .trip-map-canvas .trip-map-popup .place-preview,
   .auth-form,
   .question__card,
   .dialog,
-  .agent-lab__toolbar,
+  .team-popover .team-panel,
+  .phone-map-sheet,
   .agent-lab__panel {
     background: Canvas !important;
     border-color: CanvasText !important;

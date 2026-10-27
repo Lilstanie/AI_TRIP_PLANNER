@@ -7,10 +7,9 @@ registered fixture journeys. A raw script can fail on `main` before anyone notic
 before deciding whether a failing script is your regression; update it when you find a script that fails on
 `main` or fix one. Each entry says when it was last checked and what fails.
 
-| Script         | Checked on `main` | What fails                                                                                                                                                                                | Issue    |
-| -------------- | ----------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `liquid-glass` | 2026-10-09        | At phone width, clicking the Chat tab times out: the Next.js dev overlay (`nextjs-portal`) covers it after a dev-server error. Run with `--prod` to tell a real failure from the overlay. | none yet |
-| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out.                                                   | none yet |
+| Script         | Checked on `main` | What fails                                                                                                                              | Issue    |
+| -------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------- |
+| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out. | none yet |
 
 The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
 server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
@@ -47,6 +46,12 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   throttling, restoring normal speed afterwards. Reproduce with
   `pnpm --filter @trip/web e2e run agent-lab-replay --dev`; the original global keyboard call fails
   this check even with the 30-second chooser timeout. This is a test-driver race, not a replay API failure.
+
+- `liquid-glass` and `glass-calibration` waited on a language button and a When chip that the
+  progressive-empty workspace no longer shows (2026-10-27, #731). Both scripts now plan a trip
+  first, run at 1440x1000 and 390x844 in light and dark, and pass with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
+  and the same command for `glass-calibration`.
 
 ## Not failures
 

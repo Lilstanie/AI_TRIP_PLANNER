@@ -62,8 +62,7 @@
   --scrim: rgb(0 0 0 / 22%);
   --scrim-blur: 2px;
 
-  --glass-bg: rgb(255 255 255 / 64%);
-  --glass-bg-strong: rgb(255 255 255 / 86%);
+  --glass-tint: rgb(255 255 255 / 88%);
   --glass-border: rgb(255 255 255 / 45%);
   --glass-edge: rgb(0 0 0 / 7%);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 80%), inset 0 -1px 0 rgb(255 255 255 / 20%);
@@ -75,6 +74,7 @@
     rgb(255 255 255 / 6%)
   );
   --glass-shadow: 0 10px 36px -10px rgb(0 0 0 / 16%), 0 1px 3px rgb(0 0 0 / 6%);
+  --glass-shadow-raised: var(--shadow-lg);
   --glass-blur: 24px;
   --glass-saturate: 150%;
   --radius-xl: 26px;
@@ -142,8 +142,7 @@
     --ring: 0 0 0 3.5px rgb(41 151 255 / 45%);
     --scrim: rgb(0 0 0 / 50%);
 
-    --glass-bg: rgb(44 44 48 / 60%);
-    --glass-bg-strong: rgb(30 30 32 / 88%);
+    --glass-tint: rgb(30 30 32 / 88%);
     --glass-border: rgb(255 255 255 / 16%);
     --glass-edge: rgb(0 0 0 / 40%);
     --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 28%), inset 0 -1px 0 rgb(255 255 255 / 5%);
@@ -189,8 +188,7 @@
   --ring: 0 0 0 3.5px rgb(41 151 255 / 45%);
   --scrim: rgb(0 0 0 / 50%);
 
-  --glass-bg: rgb(44 44 48 / 60%);
-  --glass-bg-strong: rgb(30 30 32 / 88%);
+  --glass-tint: rgb(30 30 32 / 88%);
   --glass-border: rgb(255 255 255 / 16%);
   --glass-edge: rgb(0 0 0 / 40%);
   --glass-highlight: inset 0 1px 0 rgb(255 255 255 / 28%), inset 0 -1px 0 rgb(255 255 255 / 5%);
