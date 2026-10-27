@@ -26,7 +26,17 @@ traveller's location when the workspace opens.
 - Wide desktop keeps its existing rule of hiding the map area until a trip exists; tablet width shows the
   same basemap and hint without a button because the top bar switch already reaches Chat.
 
+## Alternatives considered
+
+- Keep the permission card but dismiss it by default on the phone: the card and its stored choice
+  remain, and the question still arrives before the traveller has a reason to answer.
+- Keep the placeholder card and only add a basemap behind it: three messages would still compete.
+
 ## Consequences
 
 E2Es that waited for the location card no longer do. `phone-map-empty-hint` covers the states at 390x844
 and 360x800 and saves screenshots and `summary.json`.
+
+## Sources
+
+- Spec #730, ticket #737 (TP-117); the [location prompt note](2026-09-24-location-prompt-and-itinerary-map.md).

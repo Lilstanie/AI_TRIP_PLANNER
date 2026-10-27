@@ -357,7 +357,7 @@
   background: var(--day-color, var(--accent-fill));
 }
 
-.trip-map-hint {
+.trip-map-start {
   position: absolute;
   z-index: 4;
   bottom: var(--space-4);
@@ -373,9 +373,9 @@
   text-align: center;
   transform: translateX(-50%);
 }
-.trip-map-hint p {
+.trip-map-start p {
   margin: 0;
 }
-.trip-map-hint button {
+.trip-map-start button {
   min-height: 44px;
 }

@@ -126,7 +126,7 @@ try {
         (await canvas.locator(".map-placeholder").count()) === 0,
         `${label}: the grey placeholder card is gone`,
       );
-      const hints = canvas.locator(".trip-map-hint");
+      const hints = canvas.locator(".trip-map-start");
       check((await hints.count()) === 1, `${label}: exactly one hint`, await hints.count());
       check(
         (await hints.first().innerText()).includes(copy.hint),
@@ -205,7 +205,7 @@ try {
       visibility,
     );
     check(
-      (await page.locator(".trip-map-hint:visible, .map-placeholder:visible").count()) === 0,
+      (await page.locator(".trip-map-start:visible, .map-placeholder:visible").count()) === 0,
       `${label}: no hint or placeholder is shown in the hidden map area`,
     );
     await page.screenshot({ path: `${OUT}/${label}.png` });
@@ -249,7 +249,7 @@ try {
     await canvas.waitFor();
     await page.waitForTimeout(2500);
     check(
-      (await canvas.locator(".trip-map-hint").count()) === 1,
+      (await canvas.locator(".trip-map-start").count()) === 1,
       `${label}: the hint stays when tiles fail`,
     );
     check(

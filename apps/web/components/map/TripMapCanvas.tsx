@@ -94,7 +94,7 @@ export function TripMapCanvas({
           viewKey={viewKey}
           userLocation={userLocation}
         />
-        <div className="trip-map-hint glass-float" role="status">
+        <div className="trip-map-start glass-float" role="status">
           <p>{t("Where are you going?")}</p>
           {onOpenChat && (
             <button type="button" className="primary" onClick={onOpenChat}>
