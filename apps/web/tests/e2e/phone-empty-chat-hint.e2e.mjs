@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
+import { seedTrip } from "./phone-map-seed.mjs";
+
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/phone-empty-chat-hint", process.env.LABEL ?? "run");
@@ -15,9 +17,45 @@ const check = (ok, name, observed) => {
 };
 
 const COPY = {
-  en: { notNow: "Not now", chat: /^Chat/, examples: "Example trips" },
-  zh: { notNow: "暂不", chat: /^聊天/, examples: "示例行程" },
+  en: {
+    notNow: "Not now",
+    chat: /^Chat/,
+    mine: /^Mine/,
+    examples: "Example trips",
+    footer: /Estimates require verification/,
+    noTrips: "No trips yet.",
+    newTrip: "New trip",
+    newChat: "New chat",
+    search: "Search chats and trips",
+    switchTabs: "Your trips",
+    chats: "Chats",
+    team: /^Agent Team|Team/,
+    traj: "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.",
+    trajNew: "Each step the assistant takes will be listed here after you send a message.",
+    planInChat: "Plan in Chat",
+    emptyDay: "Nothing planned for this day yet.",
+  },
+  zh: {
+    notNow: "暂不",
+    chat: /^聊天/,
+    mine: /^我的/,
+    examples: "示例行程",
+    footer: /估算都需要核实/,
+    noTrips: "尚无行程。",
+    newTrip: "新行程",
+    newChat: "新聊天",
+    search: "搜索聊天与行程",
+    switchTabs: "你的行程",
+    chats: "聊天",
+    team: /专家团队|团队/,
+    traj: "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
+    trajNew: "发送消息后，助手的每一步都会列在这里。",
+    planInChat: "去聊天规划",
+    emptyDay: "这一天还没有安排。",
+  },
 };
+
+const sentences = (text) => (text.match(/[.。!?！？]/g) ?? []).length;
 
 const browser = await chromium.launch({
   headless: true,
@@ -81,6 +119,145 @@ try {
       await page.locator(".chat__form").screenshot({ path: `${OUT}/${label}.png` });
       check(errors.length === 0, `${label}: browser has no page errors`, errors);
       await context.close();
+    }
+  }
+  for (const [width, height] of [
+    [390, 844],
+    [360, 800],
+  ]) {
+    for (const language of ["en", "zh"]) {
+      const copy = COPY[language];
+      const label = `${language}-${width}x${height}`;
+      for (const withTrip of [false, true]) {
+        const seed = seedTrip();
+        const context = await browser.newContext({
+          viewport: { width, height },
+          isMobile: true,
+          hasTouch: true,
+          reducedMotion: "reduce",
+          locale: language === "zh" ? "zh-CN" : "en-AU",
+        });
+        await context.addInitScript(
+          ({ language, withTrip, seed }) => {
+            localStorage.setItem(
+              "trip.settings.v1",
+              JSON.stringify({
+                version: 1,
+                travel: { homeCity: "", preferences: [] },
+                language,
+                dataMode: "mock",
+                appearance: "system",
+                updatedAt: "2026-10-27T00:00:00Z",
+              }),
+            );
+            if (withTrip) {
+              localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
+              localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
+              localStorage.setItem("trip.dataMode", "mock");
+            }
+          },
+          { language, withTrip, seed },
+        );
+        const page = await context.newPage();
+        const errors = [];
+        page.on("pageerror", (error) => errors.push(String(error)));
+        await page.goto(BASE, { waitUntil: "domcontentloaded" });
+        await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+        const tabs = page.locator(".phone-tabbar");
+        await tabs.waitFor();
+        const stage = `${label}-${withTrip ? "trip" : "blank"}`;
+        const noOverflow = async (name) =>
+          check(
+            await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth),
+            `${stage}: ${name} has no horizontal overflow`,
+          );
+        if (!withTrip) {
+          await page.getByLabel(copy.examples).waitFor();
+          check(
+            (await page.locator(".chat .disclaimer:visible").count()) === 0,
+            `${stage}: empty Chat shows no second sentence under the composer`,
+          );
+          check(
+            !copy.footer.test(await page.locator(".chat").innerText()),
+            `${stage}: empty Chat does not say estimates need verification`,
+          );
+          await page.screenshot({ path: `${OUT}/${stage}-chat.png` });
+          await noOverflow("empty Chat");
+
+          await tabs.getByRole("tab", { name: copy.mine }).click();
+          const mine = page.locator(".phone-mine");
+          await mine.waitFor();
+          const empty = mine.locator(".trips-page__empty");
+          check(
+            (await empty.count()) === 1 && (await empty.innerText()).trim() === copy.noTrips,
+            `${stage}: Mine with no trips says one short sentence`,
+            await empty.allInnerTexts(),
+          );
+          check(
+            sentences(
+              await mine
+                .innerText()
+                .then(
+                  (text) => text.split("\n").find((line) => line.trim() === copy.noTrips) ?? "",
+                ),
+            ) === 1,
+            `${stage}: the empty line is one sentence`,
+          );
+          check(
+            (await mine.getByRole("button", { name: copy.newTrip, exact: true }).count()) === 1 &&
+              (await mine.getByText(copy.newTrip, { exact: true }).count()) === 1,
+            `${stage}: Mine names New trip once, as its one action`,
+          );
+          check(
+            (await mine.getByText(copy.newChat, { exact: true }).count()) === 0 &&
+              (await mine.getByRole("heading", { name: copy.chats }).count()) === 0,
+            `${stage}: Mine with no data has no blank chat row or Chats section`,
+          );
+          check(
+            (await mine.getByRole("searchbox", { name: copy.search }).count()) === 0 &&
+              (await mine.locator(".trips-page__tabs").count()) === 0,
+            `${stage}: Mine with no data has no search field or Trips and Calendar switch`,
+          );
+          await page.screenshot({ path: `${OUT}/${stage}-mine.png` });
+          await noOverflow("empty Mine");
+
+          await page.locator(".phone-topbar__team").click();
+          const trajectory = page.locator(".trajectory-empty");
+          await trajectory.waitFor();
+          const lines = await trajectory.locator("p").allInnerTexts();
+          check(
+            lines.length === 1 && sentences(lines[0]) === 1 && lines[0].trim() === copy.trajNew,
+            `${stage}: empty Trajectory says one sentence`,
+            lines,
+          );
+          check(
+            (await trajectory.getByRole("button").count()) === 1 &&
+              (await trajectory.getByRole("button", { name: copy.planInChat }).count()) === 1,
+            `${stage}: empty Trajectory offers Plan in Chat only`,
+          );
+          await page.screenshot({ path: `${OUT}/${stage}-trajectory.png` });
+        } else {
+          await tabs.getByRole("tab", { name: copy.mine }).click();
+          await page.locator(".phone-mine .trip-card").first().click();
+          await tabs.getByRole("tab", { name: /^(Trip|行程)/ }).click();
+          await page
+            .getByRole("tab", { name: /^(Day 2|第 2 天)/ })
+            .first()
+            .click();
+          const emptyDay = page.locator(".timeline-empty");
+          await emptyDay.waitFor();
+          check(
+            (await emptyDay.innerText()).trim() === copy.emptyDay &&
+              sentences(await emptyDay.innerText()) === 1,
+            `${stage}: an empty day says one sentence`,
+            await emptyDay.innerText(),
+          );
+          await page.screenshot({ path: `${OUT}/${stage}-empty-day.png` });
+          await noOverflow("empty day");
+        }
+        check(errors.length === 0, `${stage}: browser has no page errors`, errors);
+        await context.close();
+      }
     }
   }
 } catch (error) {

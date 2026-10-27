@@ -72,31 +72,33 @@ export function TripsPage({
           </header>
         )}
         {!embedded && deletedTrip && <TripUndo deleted={deletedTrip} />}
-        <div
-          ref={tabList}
-          className="trips-page__tabs segmented"
-          role="tablist"
-          aria-label={t("Your trips")}
-        >
-          {TABS.map((item) => (
-            <button
-              key={item.id}
-              ref={(node) => {
-                tabRefs.current[item.id] = node;
-              }}
-              type="button"
-              role="tab"
-              id={`trips-tab-${item.id}`}
-              aria-selected={tab === item.id}
-              aria-controls={`trips-panel-${item.id}`}
-              tabIndex={tab === item.id ? 0 : -1}
-              onClick={() => setTab(item.id)}
-              onKeyDown={onTabKey}
-            >
-              {t(item.label)}
-            </button>
-          ))}
-        </div>
+        {(!embedded || allTrips.length > 0) && (
+          <div
+            ref={tabList}
+            className="trips-page__tabs segmented"
+            role="tablist"
+            aria-label={t("Your trips")}
+          >
+            {TABS.map((item) => (
+              <button
+                key={item.id}
+                ref={(node) => {
+                  tabRefs.current[item.id] = node;
+                }}
+                type="button"
+                role="tab"
+                id={`trips-tab-${item.id}`}
+                aria-selected={tab === item.id}
+                aria-controls={`trips-panel-${item.id}`}
+                tabIndex={tab === item.id ? 0 : -1}
+                onClick={() => setTab(item.id)}
+                onKeyDown={onTabKey}
+              >
+                {t(item.label)}
+              </button>
+            ))}
+          </div>
+        )}
         <div
           key={tab}
           role="tabpanel"
@@ -162,12 +164,7 @@ function TripCards({
   }, [trips]);
   const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
 
-  if (!trips.length)
-    return (
-      <p className="trips-page__empty">
-        {t("No trips yet. Start one with New trip, or describe where you want to go in a chat.")}
-      </p>
-    );
+  if (!trips.length) return <p className="trips-page__empty">{t("No trips yet.")}</p>;
 
   return groups.map((group) => (
     <section key={group.title} className="trips-page__group" aria-label={t(group.title)}>

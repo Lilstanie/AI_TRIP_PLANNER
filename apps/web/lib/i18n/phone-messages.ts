@@ -5,8 +5,8 @@ export const PHONE_ZH = {
   "No trip yet. Plan one in Chat and your itinerary and budget will appear here.":
     "还没有行程。在聊天里规划后，日程和预算会显示在这里。",
   "Plan in Chat": "去聊天规划",
-  "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.":
-    "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
+  "Each step the assistant takes will be listed here after you send a message.":
+    "发送消息后，助手的每一步都会列在这里。",
 
   "Settings & account": "设置与账户",
 

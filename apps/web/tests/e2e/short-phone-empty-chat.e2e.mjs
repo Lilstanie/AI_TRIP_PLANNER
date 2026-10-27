@@ -21,6 +21,7 @@ const browser = await chromium.launch({
 try {
   for (const [width, height] of [
     [360, 640],
+    [360, 800],
     [390, 844],
     [1440, 900],
   ]) {

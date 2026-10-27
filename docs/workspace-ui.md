@@ -748,6 +748,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   it opens collapsed to its handle plus one line, "Nothing planned for this day yet.", and the day
   chips remain reachable by expanding it. See the
   [empty map Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-map-empty-hint.md).
+- **Empty phone screens.** Every empty phone screen says one sentence and offers one primary action, and
+  no screen says the same thing twice. Chat keeps the composer prompt and example chips and drops the
+  estimates footer until a message exists. Mine with no trips and no saved chat shows the Trips heading,
+  New trip and "No trips yet."; the search field, the Trips and Calendar switch and the Chats section
+  (with its blank row and New chat) appear once there is something to search, switch or open. A day with
+  no stops says "Nothing planned for this day yet." and leaves Ask AI about this day and Add place as the
+  day's own controls. The empty Trajectory says "Each step the assistant takes will be listed here after
+  you send a message." beside Plan in Chat; a phone Trip drawer without a plan offers Plan in Chat only.
+  See the [empty phone screens Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-empty-states.md).
 - **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a
   numbered badge in its day's colour (`--day-1` … `--day-7`) on the place with a label pill beside it: a category icon from Google's
   `primaryType` and the place name, cut to 22 characters (26 when selected). Stop numbers come from

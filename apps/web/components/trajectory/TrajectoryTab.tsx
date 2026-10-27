@@ -83,11 +83,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
     return (
       <div className="trajectory-tab">
         <div className="trajectory-empty">
-          <p>
-            {t(
-              "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.",
-            )}
-          </p>
+          <p>{t("Each step the assistant takes will be listed here after you send a message.")}</p>
           {onPlanInChat && (
             <button type="button" onClick={onPlanInChat}>
               {t("Plan in Chat")}

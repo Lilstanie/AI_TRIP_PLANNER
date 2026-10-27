@@ -358,9 +358,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               {t("Plan in Chat")}
             </button>
           )}
-          <button type="button" onClick={edit}>
-            {t("Add trip details")}
-          </button>
+          {!phone && (
+            <button type="button" onClick={edit}>
+              {t("Add trip details")}
+            </button>
+          )}
         </div>
       )}
     </>
