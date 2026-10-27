@@ -151,7 +151,7 @@ try {
     await page.keyboard.press("Escape");
     await showChats();
     await chats
-      .locator(".chats-panel__actions")
+      .locator(".sidebar-nav, .chats-panel__section-head")
       .getByRole("button", { name: "New trip", exact: true })
       .click();
     await page.getByRole("dialog", { name: "Where", exact: true }).waitFor();

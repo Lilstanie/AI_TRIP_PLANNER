@@ -207,7 +207,10 @@ try {
       await page.getByRole("button", { name: "Close when", exact: true }).click();
 
       await page.getByRole("button", { name: /^Trips/ }).click();
-      await page.getByRole("button", { name: "New trip", exact: true }).click();
+      await page
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: "New trip", exact: true })
+        .click();
       await page.waitForFunction(
         () => document.querySelectorAll(".fact-chip")[1]?.getAttribute("data-empty") === "true",
       );

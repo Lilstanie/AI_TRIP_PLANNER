@@ -77,7 +77,7 @@ const chatsPanel = () => document.getElementById("chats-panel")!;
 const chatMenu = () => screen.getByRole("button", { name: /^Actions for (?!Trip to )/ });
 const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
 
-const newChatButton = () => within(chatsPanel()).getAllByRole("button", { name: "New chat" })[0]!;
+const newChatButton = () => within(sidebar()).getByRole("button", { name: "New chat" });
 const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Response))[]) => {
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -208,8 +208,8 @@ describe("Workspace interactions", () => {
     );
 
     fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
-    expect(within(chatsPanel()).getByRole("button", { name: "New chat" })).toBeTruthy();
-    fireEvent.click(within(chatsPanel()).getByRole("button", { name: "New trip" }));
+    expect(within(sidebar()).getByRole("button", { name: "New chat" })).toBeTruthy();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "New trip" }));
     expect(chatsPanel().classList.contains("is-open")).toBe(false);
     const where = await screen.findByRole("dialog", { name: "Where" });
     await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
