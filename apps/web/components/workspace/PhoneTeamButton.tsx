@@ -111,6 +111,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
           />
         </details>
         <PhoneTrajectory
+          key={model.history.catalog.activeConversationId}
           messages={messages}
           activity={activity}
           busy={busy}

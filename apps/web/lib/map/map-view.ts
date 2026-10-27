@@ -56,6 +56,10 @@ export class MapViewController {
     this.userMoved = true;
   }
 
+  get movedByUser() {
+    return this.userMoved;
+  }
+
   get hasView() {
     return this.stage !== "none";
   }

@@ -565,7 +565,7 @@ records why.
   the Coordinator) and the result (Working, Done, Failed or Needs change). Pressing a row opens it, one at
   a time, to list its steps and each step's assignments and checks in order. The Simple and Full view
   buttons switch in place to the ledger below; the open row is the selected turn, so the ledger scrolls to
-  it and switching back keeps the row open. Reopening the tab starts on the simple list again. Both views
+  it and switching back keeps the row open. Reopening the tab, or opening another chat, starts on the simple list again with no row open. Both views
   read the same `buildTrajectory` turns ([`TrajectorySimple`](../apps/web/components/trajectory/TrajectorySimple.tsx)
   adds only `summary` and `result` on each turn). A reply summary opens its turn and a team-panel row
   filters whichever view is showing. With no turns the existing empty state shows and there is no switch.
@@ -620,6 +620,9 @@ records why.
   after the first message, with `result.json`, under `output/playwright/trajectory-empty/`.
   `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
   opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
+  `trajectory-conversation-switch` (1440, English) opens a turn, opens another chat from the Chats panel
+  and checks that no turn carries over, saving screenshots and `summary.json` under
+  `output/playwright/trajectory-conversation-switch/`.
   `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).
 
 ## Reviewing a plan
@@ -648,7 +651,9 @@ The budget summary starts collapsed and keeps the known estimate, budget limit,
 currency and any unpriced count visible. Expanding it shows each priced item,
 including explicit zero prices and “Price unknown” rows. A count badge next to the trip title
 (top bar on desktop and tablet, phone top bar on phone) lists open items: scheduled overlaps,
-unlocated stops and failed place lookups. It is absent when there are none. Tapping it opens a glass
+unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
+(listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
+there are none. Tapping it opens a glass
 popover; selecting a row takes the traveller to its stop and day and closes the popover, as do Esc
 and an outside click. Unpriced items are not open items and stay in the budget’s “Not included” note.
 Names of removed surfaces below appear only to explain their removal; nothing in this section
@@ -745,7 +750,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
     centre.
 - **Empty map** (`TripMapCanvas`, `useHomeBase`, `PhoneMapSheet`). With no trip the map area renders
   the real basemap, centred on the travel profile home city (resolved through the places search
-  route) when it resolves, otherwise a world view (`data-basemap-centre` is `home` or `world`). One
+  route) when it resolves, otherwise a world view (`data-basemap-centre` is `home` or `world`). A home base that resolves
+  after the traveller panned or zoomed the map leaves the view where they put it
+  (`map-home-pan` E2E). One
   glass hint (`glass-float`) asks "Where are you going?"; on the phone it carries one button,
   Plan in Chat, that opens Chat. At tablet width the top bar's Chat and Map switch already reaches
   Chat, and on wide desktop the map area stays hidden until a trip exists, so neither shows a

@@ -280,9 +280,20 @@ export function TripMap({
   const centerLat = center?.lat;
   const centerLng = center?.lng;
   useEffect(() => {
-    if (!runtime || centerLat === undefined || centerLng === undefined || !unfocused) return;
+    if (
+      !runtime ||
+      centerLat === undefined ||
+      centerLng === undefined ||
+      !unfocused ||
+      view.current?.movedByUser
+    )
+      return;
+    moving.current = true;
     runtime.map.setCenter({ lat: centerLat, lng: centerLng });
     runtime.map.setZoom(HOME_ZOOM);
+    runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
+      moving.current = false;
+    });
   }, [runtime, centerLat, centerLng, unfocused]);
 
   const destinationKey = destinations.map((place) => place.id).join("|");

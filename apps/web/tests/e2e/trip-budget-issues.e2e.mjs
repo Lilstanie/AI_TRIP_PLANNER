@@ -211,6 +211,23 @@ const plan = {
     ),
   ],
   conflicts: [],
+  editIssues: [
+    {
+      code: "route_unavailable",
+      message: "Route to the harbour could not be verified",
+      activityIds: [],
+    },
+    {
+      code: "route_unavailable",
+      message: "Gallery transfer could not be verified",
+      activityIds: ["priced"],
+    },
+    {
+      code: "price_unverified",
+      message: "Changed activity price requires verification",
+      activityIds: ["priced"],
+    },
+  ],
 };
 const savedAt = new Date(0).toISOString();
 const snapshot = {
@@ -381,10 +398,19 @@ try {
   await popover.waitFor();
   const rows = await rowNames();
   const badgeCount = Number((await badge.innerText()).trim());
+  const listed = await popover.getByRole("listitem").allInnerTexts();
   check(
-    rows.length === badgeCount && badgeCount > 0,
+    listed.length === badgeCount && badgeCount > 0,
     "badge count equals the number of popover rows",
-    { badgeCount, rows },
+    { badgeCount, listed },
+  );
+  check(
+    listed.filter((text) => text.includes("Route to the harbour could not be verified")).length ===
+      1 &&
+      (await popover.getByRole("button", { name: /harbour/ }).count()) === 0 &&
+      !listed.some((text) => /Gallery transfer|requires verification/.test(text)),
+    "an unattached edit issue is listed once as plain text; attached and price issues are not",
+    listed,
   );
   check(
     rows.filter((r) => r.startsWith("Time conflict")).length === 3 &&
@@ -525,7 +551,8 @@ try {
   await zhPopover.waitFor();
   const zhText = await zhPopover.innerText();
   check(
-    /时间冲突/.test(zhText) &&
+    /行程问题/.test(zhText) &&
+      /时间冲突/.test(zhText) &&
       /尚未定位/.test(zhText) &&
       /地点查询失败/.test(zhText) &&
       !/未定价项目/.test(zhText),
