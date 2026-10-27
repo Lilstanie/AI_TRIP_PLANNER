@@ -340,7 +340,7 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`add`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。`add` 接收稳定的 `id`、`detail`、可选的 `location` 及可选的匹配地点 `placeId`/`savedPlace`，并且必须提供完整的 `day`、`startTime`、`endTime`（已排期停靠点）或完全不提供它们（Idea）。不完整、时间倒置、超出行程日期或与其他安排重叠的时间会被拒绝。添加时会保留现有停靠点的时间；未确认地点与价格继续保持未确认，不会伪造坐标或价格。`undo` 可用 `addedIds` 移除该编辑创建的停靠点或 Idea。
 响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
 `{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
 列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；
@@ -399,9 +399,9 @@ JSON 附件包含账号设置、行程、聊天记录和长期偏好记忆。
 
 ### `GET` and `DELETE /api/account/memory`
 
-`GET` 返回当前登录账号的 `{ memories: [{ key, value, source }] }`。`DELETE` 接收 `{ key }`，只删除当前账号对应类别的记忆，并返回 `{ deleted }`。两种请求的账号均由服务端从 Clerk 解析，客户端不能指定账号；未知类别返回 `{ deleted: false }`，未登录请求返回 401。
+`GET` 返回当前登录账号的 `{ memories: [{ key, value, source }] }`。`DELETE` 接收 `{ key }`，只删除当前账号对应类别的记忆，并返回 `{ deleted }`。两种请求的账号均由服务端从 Clerk 解析，客户端不能指定账号；未知类别返回 `{ deleted: false }`，未登录请求返回 401。读取记忆列表失败时返回 503，设置页显示重试状态，不会将其误报为空列表。规划时读取记忆失败仍可继续规划。
 
-聊天接口只识别明确表达的饮食需求、节奏、兴趣、无障碍需求、住宿偏好和常用出发城市；不会推断或保存预算、区域等行程专属事实。行程或档案偏好优先于对应的账号记忆。只有规划成功后才保存识别到的偏好，并在完成响应中返回通知和撤销令牌；需要补充信息、失败或已取消的回合不保存。
+聊天接口只识别明确表达的饮食需求、节奏、兴趣、无障碍需求、住宿偏好和常用出发城市；不会推断或保存预算、区域等行程专属事实。行程或档案偏好优先于对应的账号记忆。只有规划成功后才保存识别到的偏好，并在完成响应中返回通知和撤销令牌；需要补充信息或失败的回合不保存。写入前和事务内最后一次更新完成后都会检查取消信号，检查发现取消时会回滚。最后一次检查之后的取消可能来不及阻止提交。如果没有收到完成响应，仍可在设置中查看或删除。
 住宿类别以 JSON 字符串保存可选的 `stayType`、`minRating` 和 `freeCancellation` 字段；更新一个字段会保留其他字段，撤销会恢复之前的完整值。
 
 ### `POST /api/account/memory/undo`

@@ -104,6 +104,10 @@ _Avoid_: user (in prose), profile, login
 The defaults an account fills in by hand in Settings, such as home base, travellers, budget and dietary needs, that prefill every new trip.
 _Avoid_: settings (for these fields), preferences, long-term memory
 
+**Agent Team**:
+The Coordinator and the five Specialists shown together in the workspace chrome.
+_Avoid_: treating it as a sixth Specialist, agent (for one of the five)
+
 **Long-term memory**:
 The lasting preferences the planner learns from what an account says in chat and uses in its later plans; the account can see, delete or switch it off.
 _Avoid_: travel profile, history, preferences (alone)

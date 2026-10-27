@@ -46,8 +46,11 @@ semantic-token, or workspace-layout contracts.
     [preference chips Agent Note](../../.agents/notes/implemented/feature/2026-09-24-preference-chips.md)
     and the [trip preference list Agent Note](../../.agents/notes/implemented/feature/2026-09-24-trip-preference-list.md).
 
-  Fit these into this workspace's fixed regions. For example, place detail opens in a drawer or map
-  overlay instead of replacing the map column. Borrow the interactions, not the brand: Mindtrip's
+  Fit these into the workspace regions. For example, place detail opens in a drawer or map
+  overlay instead of replacing the map column. The accepted Trip redesign is an explicit layout
+  exception: a planned desktop Trip dedicates the main workspace to its timeline and linked map;
+  tablet uses a switch between those views, and phone keeps its existing navigation. Borrow the
+  interactions, not the brand: Mindtrip's
   assets, copy and brand styling may not be reused.
 
 External source code may only be copied under the source's current license. Use public/free BeUI
@@ -73,7 +76,7 @@ Everything uses the Apple system face: `--font-text` (SF Pro Text) for body, con
 
 ## Layout
 
-The existing workspace grid is fixed: sidebar, chat, and map; overlay drawers preserve that working area. Keep its current responsive breakpoints, sidebar resizing, drawer directions, and narrow-screen Chat/Map switch. Trip preferences are edited from the top bar's fact chips rather than a drawer, at the owner's request.
+When Trip is closed, the workspace uses the sidebar, chat, and map grid; overlay panels preserve that working area. Opening a planned Trip uses the accepted dedicated Trip layout on desktop, a single-view switch on tablet, and the existing phone shell at ≤520 px. Preserve the established breakpoints, sidebar resizing, navigation drawer, and phone navigation. Trip preferences are edited from the top bar's fact chips rather than a drawer, at the owner's request.
 
 Spacing uses `--space-1` through `--space-5`. Do not introduce parallel spacing values where these tokens fit.
 
@@ -132,7 +135,7 @@ Do use semantic tokens, clear type hierarchy, visible focus, and text or shape i
 
 Do not:
 
-1. Change the three-column workspace, drawer behavior, or responsive model for visual work.
+1. Change the workspace grid, navigation drawer behavior, or responsive model for visual work. The approved dedicated Trip layout is an explicit exception; further layout changes still need approval.
 2. Replace the workspace with a full UI-library redesign. Tailwind v4 and source-owned shadcn
    primitives are allowed as implementation tools, but they must use the semantic tokens above and
    must not replace the workspace layout, focus behavior, or accessibility contract.

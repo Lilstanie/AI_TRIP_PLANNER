@@ -22,12 +22,19 @@ const server = await createServer({
         find: /^(?:@\/components\/account\/AccountProvider|\.\/AccountProvider)$/,
         replacement: resolve(fixture, "account.ts"),
       },
+      {
+        find: /^(?:@\/lib\/db\/(?:client|memory-transaction)|\.\.\/db\/(?:client|memory-transaction)|@\/lib\/auth\/config|\.\.\/auth\/config|@clerk\/nextjs\/server)$/,
+        replacement: resolve(web, "tests/e2e/fixtures/memory-server/runtime.mjs"),
+      },
       { find: "@", replacement: web },
     ],
   },
   oxc: { jsx: { runtime: "automatic" } },
 });
 await server.listen();
+const memoryFixture = await server.ssrLoadModule("/tests/e2e/fixtures/memory-server/runtime.mjs");
+const memoryStore = await server.ssrLoadModule("/lib/account/memory.ts");
+const memoryRoute = await server.ssrLoadModule("/app/api/account/memory/route.ts");
 const browser = await chromium.launch({
   headless: true,
   ...(process.env.PLAYWRIGHT_CHROMIUM_EXECUTABLE_PATH
@@ -49,10 +56,18 @@ try {
       const errors = [];
       page.on("pageerror", (error) => errors.push(String(error)));
       page.on("console", (message) => {
-        if (message.type() === "error") errors.push(message.text());
+        if (
+          message.type() === "error" &&
+          !message.text().includes("server responded with a status of 503")
+        )
+          errors.push(message.text());
       });
       page.on("response", (response) => {
-        if (response.status() >= 400) errors.push(`${response.status()} ${response.url()}`);
+        if (
+          response.status() >= 400 &&
+          !(response.url().endsWith("/api/account/memory") && response.status() === 503)
+        )
+          errors.push(`${response.status()} ${response.url()}`);
       });
       const settings = {
         version: 1,
@@ -72,6 +87,28 @@ try {
         ["dietary", "Vegetarian"],
         ["pace", "Relaxed"],
       ]);
+      let failMemoryRead = true;
+      const memoryDb = {
+        select() {
+          return {
+            from() {
+              return {
+                where: async () => {
+                  if (failMemoryRead) throw new Error("simulated account memory read failure");
+                  return [...memories].map(([key, value]) => ({ key, value }));
+                },
+              };
+            },
+          };
+        },
+      };
+      memoryFixture.configureMemoryFixture(memoryDb, "memory-settings-user");
+      let expectedReadFailures = 0;
+      assert.deepEqual(
+        await memoryStore.accountMemoryStore("memory-settings-user", true).getLongTerm(),
+        [],
+        "planner memory reads should fail open when the account-memory database read fails",
+      );
       await page.route("**/api/account/settings", async (route) => {
         if (route.request().method() === "GET")
           return route.fulfill({ json: { settings, revision: 0 } });
@@ -80,10 +117,17 @@ try {
         return route.fulfill({ json: { settings, revision: 1 } });
       });
       await page.route("**/api/account/memory", async (route) => {
-        if (route.request().method() === "GET")
-          return route.fulfill({
-            json: { memories: [...memories].map(([key, value]) => ({ key, value })) },
-          });
+        if (route.request().method() === "GET") {
+          memoryFixture.configureMemoryFixture(memoryDb, "memory-settings-user");
+          const response = await memoryRoute.GET();
+          const body = await response.json();
+          if (failMemoryRead) {
+            expectedReadFailures += 1;
+            assert.equal(response.status, 503);
+            assert.equal(body.notice?.key, "Could not load remembered preferences.");
+          }
+          return route.fulfill({ status: response.status, json: body });
+        }
         if (route.request().method() === "DELETE") {
           const { key } = route.request().postDataJSON();
           const deleted = memories.delete(key);
@@ -95,6 +139,12 @@ try {
         `${server.resolvedUrls.local[0]}tests/e2e/fixtures/memory-settings/index.html`,
       );
       const dialog = page.getByRole("dialog", { name: "Settings" });
+      const loadFailure =
+        locale === "zh" ? "无法加载已记住的偏好。" : "Could not load remembered preferences.";
+      await dialog.getByRole("alert").getByText(loadFailure, { exact: true }).waitFor();
+      assert.ok(expectedReadFailures >= 1, "the initial Settings memory read should fail");
+      failMemoryRead = false;
+      await dialog.getByRole("button", { name: /Retry|重试/ }).click();
       const expectedLabel = locale === "zh" ? "饮食需求" : "Dietary needs";
       await dialog.getByText(expectedLabel, { exact: true }).waitFor();
       const memorySwitch = dialog.getByRole("switch", { name: /long-term memory|长期记忆/i });
@@ -153,7 +203,7 @@ try {
       {
         passed: true,
         coverage:
-          "SettingsDialog with fixture signed-in account, mocked account APIs, list/delete/toggle/sign-out",
+          "SettingsDialog, production memory GET with failing/recovering database fixture; mocked settings/delete APIs; planner read fallback, retry/list/delete/toggle/sign-out",
         browser: browser.version(),
         results,
       },

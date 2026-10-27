@@ -68,7 +68,7 @@ export function usePlanRevision({
 
   held: boolean;
   dataMode: DataMode | undefined;
-  onApply(plan: TripPlan): void;
+  onApply(plan: TripPlan, backgroundBase?: TripPlan): void;
 }): PlanRevisions {
   const { settings } = useSettings();
   const currency = settings.displayCurrency;
@@ -122,7 +122,7 @@ export function usePlanRevision({
         job.settled(outcome);
         if (outcome.answer.plan) {
           publishTabPlan(outcome.answer.plan);
-          applyRef.current(outcome.answer.plan);
+          applyRef.current(outcome.answer.plan, job.plan);
         }
       } else job.settled(outcome);
       bump();

@@ -29,19 +29,17 @@ try {
   await page.locator(".workspace-app").waitFor();
   await page.locator(".composer__input").waitFor();
   if (issue === "429") {
-    const gap = await page
-      .locator(".chat-empty__input-hint")
-      .evaluate(
-        (el) =>
-          el.nextElementSibling.getBoundingClientRect().top - el.getBoundingClientRect().bottom,
-      );
-    check(gap >= 4, "429 hint and details have token spacing", { gap });
+    const gap = await page.locator(".chat-suggestions").evaluate((el) => {
+      const form = el.closest(".chat__form");
+      const composer = form?.querySelector(".composer");
+      if (!composer) return 0;
+      return composer.getBoundingClientRect().top - el.getBoundingClientRect().bottom;
+    });
+    check(gap >= 4, "429 suggestions and composer have token spacing", { gap });
   }
   if (issue === "432") {
     const sizes = await page
-      .locator(
-        ".composer__add, .composer__primary, .chat-empty__suggestions button, .chat-empty > button",
-      )
+      .locator(".composer__add, .composer__primary, .chat-empty__suggestions button")
       .evaluateAll((els) =>
         els.map((el) => ({
           text: el.getAttribute("aria-label") ?? el.textContent,
@@ -50,7 +48,7 @@ try {
         })),
       );
     check(
-      sizes.length >= 7 && sizes.every((s) => touchSized(s.width) && touchSized(s.height)),
+      sizes.length >= 6 && sizes.every((s) => touchSized(s.width) && touchSized(s.height)),
       "432 phone controls have 44px targets",
       sizes,
     );

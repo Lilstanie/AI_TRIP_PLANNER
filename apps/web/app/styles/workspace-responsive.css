@@ -17,18 +17,26 @@
 
   .workspace-topbar {
     display: grid;
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: 40px minmax(0, 1fr) auto;
     grid-template-areas:
-      "menu chips actions"
-      "views views views";
+      "menu leading actions"
+      "views views views"
+      "chips chips chips";
     gap: 8px;
     padding: 8px 12px;
   }
   .topbar-icon-button {
     grid-area: menu;
   }
+  .topbar-leading {
+    grid-area: leading;
+    min-width: 0;
+  }
   .fact-chips {
     grid-area: chips;
+    grid-column: 1 / -1;
+    min-width: 0;
+    max-width: none;
   }
   .topbar-actions {
     grid-area: actions;

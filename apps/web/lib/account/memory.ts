@@ -18,16 +18,11 @@ const REMEMBERABLE_KEYS = new Set([
 
 export async function getAccountMemories(userId?: string): Promise<UserPreference[]> {
   if (!userId || !dbEnabled()) return [];
-  try {
-    const rows = await getDb()
-      .select()
-      .from(accountMemories)
-      .where(eq(accountMemories.userId, userId));
-    return rows.map(({ key, value }) => ({ key, value, source: "chat_confirmed" as const }));
-  } catch (error) {
-    console.warn("[account-memory] read failed", error);
-    return [];
-  }
+  const rows = await getDb()
+    .select()
+    .from(accountMemories)
+    .where(eq(accountMemories.userId, userId));
+  return rows.map(({ key, value }) => ({ key, value, source: "chat_confirmed" as const }));
 }
 
 export async function deleteAccountMemory(userId: string, key: string) {
@@ -43,9 +38,12 @@ export async function rememberAccountPreference(
   userId: string | undefined,
   key: string,
   value: string,
+  signal?: AbortSignal,
 ) {
   if (!userId || !dbEnabled() || !REMEMBERABLE_KEYS.has(key)) return undefined;
+  signal?.throwIfAborted();
   return withMemoryTransaction(async (tx) => {
+    signal?.throwIfAborted();
     const inserted = await tx
       .insert(accountMemories)
       .values({
@@ -75,6 +73,7 @@ export async function rememberAccountPreference(
         updatedAt: new Date(),
       })
       .where(and(eq(accountMemories.userId, userId), eq(accountMemories.key, key)));
+    signal?.throwIfAborted();
     return {
       token,
       action: inserted.length > 0 ? ("remembered" as const) : ("updated" as const),
@@ -125,7 +124,15 @@ export function accountMemoryStore(userId?: string, enabled = true) {
   return {
     getShortTerm: ephemeralMemory.getShortTerm.bind(ephemeralMemory),
     appendShortTerm: ephemeralMemory.appendShortTerm.bind(ephemeralMemory),
-    getLongTerm: () => (enabled ? getAccountMemories(userId) : Promise.resolve([])),
+    getLongTerm: async () => {
+      if (!enabled) return [];
+      try {
+        return await getAccountMemories(userId);
+      } catch (error) {
+        console.warn("[account-memory] planning read failed; continuing without memory", error);
+        return [];
+      }
+    },
     setLongTerm: async (_requestedUserId: string, pref: UserPreference) => {
       if (enabled && REMEMBERABLE_KEYS.has(pref.key))
         await rememberAccountPreference(userId, pref.key, pref.value);

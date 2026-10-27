@@ -106,11 +106,13 @@ export function MessageItem({
   animate,
   turn,
   onResend,
+  onOpenTrip,
 }: {
   message: Message;
   animate?: boolean;
   turn?: number | undefined;
-  onResend?: (text: string) => void;
+  onResend?: (text: string) => boolean;
+  onOpenTrip?: () => void;
 }) {
   const { t, locale } = useLocale();
   const [undone, setUndone] = useState(false);
@@ -146,8 +148,7 @@ export function MessageItem({
             text={message.text}
             onCancel={() => setEditing(false)}
             onResend={(text) => {
-              setEditing(false);
-              onResend(text);
+              if (onResend(text)) setEditing(false);
             }}
           />
         ) : (
@@ -230,6 +231,11 @@ export function MessageItem({
         </div>
       )}
       {message.flights && <FlightResults answer={message.flights} />}
+      {message.outcome === "planned" && onOpenTrip && (
+        <button type="button" className="msg-open-trip" onClick={onOpenTrip}>
+          {t("Open trip")}
+        </button>
+      )}
       {clock}
       {message.text && (
         <div className="msg-actions">

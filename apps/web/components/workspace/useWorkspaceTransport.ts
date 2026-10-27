@@ -17,6 +17,8 @@ import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
 import { briefErrors, datesLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
+import { useRef } from "react";
+import { translate } from "@/lib/i18n/locale";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -62,8 +64,40 @@ export function useWorkspaceTransport({
   displayCurrency,
   planDestinationLocation,
 }: WorkspaceTransportOptions) {
-  async function run(task: Task) {
+  const originalPlan = useRef<string | undefined>(undefined);
+  const editSnapshot = (value: TripPlan) =>
+    JSON.stringify({
+      tripId: value.tripId,
+      brief: value.brief,
+      sections: value.sections.map((section) => ({
+        id: section.id,
+        proposal: section.proposal
+          ? {
+              items: section.proposal.items,
+              stays: section.proposal.stays,
+              flights: section.proposal.flights,
+            }
+          : undefined,
+      })),
+    });
+  if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
+
+  function confirmReplacingEditedPlan() {
+    if (!plan) return true;
+    const hasDirectEdits =
+      (plan.editVersion ?? 0) > 0 &&
+      (originalPlan.current === undefined || editSnapshot(plan) !== originalPlan.current);
+    if (!hasDirectEdits) return true;
+    const message = translate(
+      interfaceLanguage,
+      "Replace your edited plan? Your direct timeline edits will be replaced if the new plan succeeds.",
+    );
+    return window.confirm(message);
+  }
+
+  async function run(task: Task, replacementConfirmed = false) {
     if (active.current) return;
+    if (!replacementConfirmed && !confirmReplacingEditedPlan()) return;
     const controller = new AbortController();
     active.current = controller;
     dispatch({ kind: "started" });
@@ -103,6 +137,7 @@ export function useWorkspaceTransport({
       onReject(fields);
       return false;
     }
+    if (!confirmReplacingEditedPlan()) return false;
     const brief = parsed.data;
     const previous = plan?.brief;
     const unchangedTripFields: (keyof typeof brief)[] = [
@@ -137,30 +172,35 @@ export function useWorkspaceTransport({
       message: { role: "user", text: message, at: Date.now() },
       brief: true,
     });
-    void run({
-      kind: "chat",
-      request: {
-        tripId: brief.tripId,
-        mode: "plan",
-        brief,
-        message,
-        ...(destinationLocationFor(next.destination, next.destinationLocation)
-          ? {
-              destinationLocation: destinationLocationFor(
-                next.destination,
-                next.destinationLocation,
-              ),
-            }
-          : {}),
+    void run(
+      {
+        kind: "chat",
+        request: {
+          tripId: brief.tripId,
+          mode: "plan",
+          brief,
+          message,
+          ...(destinationLocationFor(next.destination, next.destinationLocation)
+            ? {
+                destinationLocation: destinationLocationFor(
+                  next.destination,
+                  next.destinationLocation,
+                ),
+              }
+            : {}),
+        },
       },
-    });
+      true,
+    );
     return true;
   }
 
-  function send(override?: string) {
+  function send(override?: string, rewindIndex?: number) {
     const message = (override ?? input).trim();
 
-    if ((!message && attachments.length === 0) || active.current) return;
+    if ((!message && attachments.length === 0) || active.current) return false;
+    if (!confirmReplacingEditedPlan()) return false;
+    if (rewindIndex !== undefined) dispatch({ kind: "rewound", index: rewindIndex });
 
     const files = attachments;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
@@ -181,33 +221,38 @@ export function useWorkspaceTransport({
     });
 
     const mentions = resolveMentions(message, assistant?.names);
-    void run({
-      kind: "chat",
-      request: {
-        ...(plan
-          ? { tripId: plan.tripId, message, brief: plan.brief, plan }
-          : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
-        ...(mentions.length ? { mentions } : {}),
-        ...(destinationLocationFor(
-          plan?.brief.destination ?? draft.destination,
-          planDestinationLocation,
-          draft.destinationLocation,
-        )
-          ? {
-              destinationLocation: destinationLocationFor(
-                plan?.brief.destination ?? draft.destination,
-                planDestinationLocation,
-                draft.destinationLocation,
-              ),
-            }
-          : {}),
-        ...(sent.length ? { attachments: sent } : {}),
+    void run(
+      {
+        kind: "chat",
+        request: {
+          ...(plan
+            ? { tripId: plan.tripId, message, brief: plan.brief, plan }
+            : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
+          ...(mentions.length ? { mentions } : {}),
+          ...(destinationLocationFor(
+            plan?.brief.destination ?? draft.destination,
+            planDestinationLocation,
+            draft.destinationLocation,
+          )
+            ? {
+                destinationLocation: destinationLocationFor(
+                  plan?.brief.destination ?? draft.destination,
+                  planDestinationLocation,
+                  draft.destinationLocation,
+                ),
+              }
+            : {}),
+          ...(sent.length ? { attachments: sent } : {}),
+        },
       },
-    });
+      true,
+    );
+    return true;
   }
 
   function answer(answers: QuestionAnswer[]) {
     if (!ask || active.current) return;
+    if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
     dispatch({ kind: "sent", message: { role: "user", text: message, at: Date.now() } });
     const current = ask.plan ?? plan;
@@ -218,25 +263,28 @@ export function useWorkspaceTransport({
       planDestinationLocation,
       draft.destinationLocation,
     );
-    void run({
-      kind: "chat",
-      request: {
-        ...(current
-          ? {
-              tripId: current.tripId,
-              message,
-              brief: current.brief,
-              plan: current,
-              known: ask.known,
-            }
-          : {
-              tripId: freshTripId.current,
-              message,
-              known,
-            }),
-        ...(location ? { destinationLocation: location } : {}),
+    void run(
+      {
+        kind: "chat",
+        request: {
+          ...(current
+            ? {
+                tripId: current.tripId,
+                message,
+                brief: current.brief,
+                plan: current,
+                known: ask.known,
+              }
+            : {
+                tripId: freshTripId.current,
+                message,
+                known,
+              }),
+          ...(location ? { destinationLocation: location } : {}),
+        },
       },
-    });
+      true,
+    );
   }
   return { run, submit, send, answer };
 }

@@ -121,3 +121,19 @@
   padding: 0;
   list-style: none;
 }
+
+.trip-map-leg-mode {
+  display: grid;
+  width: 1.5rem;
+  height: 1.5rem;
+  place-items: center;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  box-shadow: var(--shadow-sm);
+}
+.trip-map-leg-mode .icon {
+  width: 0.9rem;
+  height: 0.9rem;
+}

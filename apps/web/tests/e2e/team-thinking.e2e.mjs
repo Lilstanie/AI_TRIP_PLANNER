@@ -13,7 +13,7 @@ const check = (ok, name, detail) => {
 };
 
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
-const BUTTON = "Specialist team";
+const BUTTON = "Agent Team";
 const CLEAR = "Show all records";
 
 const browser = await chromium.launch({
@@ -121,8 +121,12 @@ try {
       ? page.locator(".phone-topbar__team")
       : page.getByRole("button", { name: BUTTON, exact: true });
     const openLatest = async () => {
-      if (phone) await trigger.click();
-      else {
+      if (phone) {
+        await trigger.click();
+        if (!(await page.locator(".phone-trajectory__team").evaluate((node) => node.open))) {
+          await page.locator(".phone-trajectory__team > summary").click();
+        }
+      } else {
         await page.mouse.move(0, 0);
         await trigger.hover();
       }
@@ -165,7 +169,7 @@ try {
       check(live > 0, `${label}: the phone sheet cards have an action`, live);
       await page.screenshot({ path: `${out}/${label}-sheet.png` });
       await page.keyboard.press("Escape");
-      await panel.waitFor({ state: "detached" });
+      await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
     } else {
       check(
         (await press("accommodation").count()) === 1 &&
@@ -283,7 +287,8 @@ try {
       .first()
       .waitFor();
     await page.keyboard.press("Escape");
-    await panel.waitFor({ state: "detached" });
+    if (phone) await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+    else await panel.waitFor({ state: "detached" });
     await page.getByRole("button", { name: "Stop planning" }).click();
     await page.getByRole("button", { name: "Send" }).waitFor();
     await openLatest();

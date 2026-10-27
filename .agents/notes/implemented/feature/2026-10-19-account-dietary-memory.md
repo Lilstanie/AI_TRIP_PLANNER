@@ -19,8 +19,10 @@ as account facts, trusting an account id supplied by the browser, or changing Ag
   other trip facts are not recognized or persisted. This trip's brief takes precedence over the
   travel profile, which takes precedence over account memories. Account memories fill only categories
   left blank in both higher-priority sources. Agent Lab retains its own benchmark preferences.
-- Recognized preferences are saved after successful planning, so incomplete, failed or cancelled turns
-  do not silently save a preference without a notice.
+- Recognized preferences are saved after successful planning. Incomplete or failed turns do not save
+  a preference. Cancellation is checked before writing and after the final transactional update;
+  detection rolls the write back. Cancellation after that check may be too late to prevent commit,
+  so Settings remains the recovery path when delivery is interrupted.
 - A chat response may carry one `memoryChange` token. The UI shows a localized notice and undo action;
   the token is scoped to the account and latest row version. Undo removes a first write or restores
   the prior value after replacement. Account export and deletion include these rows.
@@ -52,6 +54,8 @@ packages/shared` in the foundation session log.
   planning. The signed-in Settings switch controls this preference; signed-out users see a sign-in
   hint and cannot change it. This supersedes the temporary hidden-control status in the
   [Mindtrip settings note](2026-09-27-mindtrip-settings.md#consequences).
+- Memory-list read failures return 503 and preserve the Settings retry state. Planning catches read
+  failures at its memory adapter and continues without saved preferences.
 - Settings lists and deletes the account's remembered categories through account-scoped routes; the
   category labels follow the selected interface language. Additional memory categories are tracked
   by the parent specification and its follow-up issues.

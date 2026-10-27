@@ -92,15 +92,22 @@ try {
     }
     const bar = page.locator(".phone-tabbar");
     const toChat = async () => {
-      if (phone) await bar.getByRole("tab", { name: copy.chat }).click();
-      else await page.locator("#chat-tab-conversation").click();
+      if (phone) {
+        if (await page.locator("dialog.phone-trajectory[open]").count()) {
+          await page.locator(".phone-trajectory__close").click();
+          await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+        }
+        await bar.getByRole("tab", { name: copy.chat }).click();
+      } else await page.locator("#chat-tab-conversation").click();
       await page.locator(".chat__stream").waitFor({ state: "visible" });
     };
-    const trajectoryShown = async () =>
-      phone
-        ? (await bar.getByRole("tab", { name: copy.trajectory }).getAttribute("aria-selected")) ===
-          "true"
-        : (await page.locator("#chat-tab-trajectory").getAttribute("aria-selected")) === "true";
+    const trajectoryShown = async () => {
+      if (phone) {
+        await page.locator("dialog.phone-trajectory[open]").waitFor();
+        return true;
+      }
+      return (await page.locator("#chat-tab-trajectory").getAttribute("aria-selected")) === "true";
+    };
     if (phone) await toChat();
 
     for (const text of TURNS) await send(page, text);
@@ -181,8 +188,10 @@ try {
 
     await toChat();
     const trigger = page.locator(".team-trigger:visible").first();
-    if (phone) await trigger.click();
-    else {
+    if (phone) {
+      await trigger.click();
+      await page.locator(".phone-trajectory__team > summary").click();
+    } else {
       await page.mouse.move(5, 500);
       await trigger.hover();
     }

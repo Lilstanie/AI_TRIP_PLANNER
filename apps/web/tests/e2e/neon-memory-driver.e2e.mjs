@@ -38,6 +38,7 @@ let closed = 0;
 let ended = 0;
 let connectFailure = false;
 let endFailure = false;
+let abortOnMemoryUpdate;
 let failure;
 let phase = "remember through the production driver";
 class FixtureSocket extends EventTarget {
@@ -66,8 +67,14 @@ class FixtureSocket extends EventTarget {
           return;
         }
         if (buffer[0] === 88) return this.close();
-        if (buffer[0] === 81) statements.push(buffer.toString("utf8", 5, buffer.length - 1));
+        const payload = buffer.toString("utf8");
+        const sql = buffer[0] === 81 ? payload.slice(5, -1) : payload;
+        if (sql) statements.push(sql);
         const result = await db.execProtocolRaw(buffer);
+        if (/\bupdate\b/i.test(sql) && /account_memories/i.test(sql) && abortOnMemoryUpdate) {
+          abortOnMemoryUpdate.abort();
+          abortOnMemoryUpdate = undefined;
+        }
         if (result.length) this.emit(result);
       })
       .catch((error) => {
@@ -247,6 +254,29 @@ try {
     ),
   );
   check("all per-operation sockets are closed", opened === closed);
+  phase = "abort before commit through installed driver";
+  const cancellation = new AbortController();
+  const openedBeforeCancellation = opened;
+  const closedBeforeCancellation = closed;
+  abortOnMemoryUpdate = cancellation;
+  await assert.rejects(
+    memory.rememberAccountPreference(
+      "cancelled-owner",
+      "dietary",
+      "vegetarian",
+      cancellation.signal,
+    ),
+    (error) => error?.name === "AbortError",
+  );
+  assert.equal(
+    (await db.query("SELECT key FROM account_memories WHERE user_id='cancelled-owner'")).rows
+      .length,
+    0,
+  );
+  check(
+    "abort observed before commit rolls back and closes the installed Neon client",
+    opened === openedBeforeCancellation + 1 && closed === closedBeforeCancellation + 1,
+  );
 } catch (error) {
   failure ??= `${phase}: ${error.message}; cause: ${error.cause?.message ?? "none"}; nested: ${error.cause?.cause?.message ?? "none"}`;
 } finally {

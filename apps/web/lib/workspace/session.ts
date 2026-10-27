@@ -7,6 +7,7 @@ import type {
   PartialTripBrief,
   TripPlan,
 } from "@trip/shared";
+import { validSelectedStop } from "./browsing";
 import { errorNotice, type Notice } from "@/lib/i18n/notice";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { PendingAsk, QuestionProgress } from "./ask-user";
@@ -121,7 +122,7 @@ export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details
 const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
 
 export type SavedSession = Pick<SessionState, "draft" | "messages" | "input"> &
-  Partial<Pick<SessionState, "plan" | "previousTotal" | "ask">>;
+  Partial<Pick<SessionState, "plan" | "previousTotal" | "ask" | "selectedActivity">>;
 
 export function idleSession(saved: SavedSession): SessionState {
   return {
@@ -136,7 +137,7 @@ export function idleSession(saved: SavedSession): SessionState {
     errors: {},
     retry: undefined,
     ask: saved.ask,
-    selectedActivity: undefined,
+    selectedActivity: saved.selectedActivity,
     mapRoutes: [],
     estimateChange: undefined,
   };
@@ -224,6 +225,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         ...state,
         previousTotal: state.plan?.estTotal,
         plan: event.plan,
+        selectedActivity: validSelectedStop(event.plan, state.selectedActivity),
         estimateChange: undefined,
       };
     case "estimateDismissed":
@@ -252,7 +254,10 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         timelineChanges: undefined,
         plan: identifyActivities(event.plan),
         draft: draftFor(event.plan.brief),
-        selectedActivity: undefined,
+        selectedActivity:
+          state.plan?.tripId === event.plan.tripId
+            ? validSelectedStop(event.plan, state.selectedActivity)
+            : undefined,
         mapRoutes: [],
         errors: {},
       };

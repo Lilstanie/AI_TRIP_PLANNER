@@ -24,6 +24,35 @@
   margin: 0;
 }
 
+.chat-suggestions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  margin: 0 0 10px;
+}
+.chat-suggestions__chip {
+  max-width: 100%;
+  min-height: 44px;
+  padding: 4px 12px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  cursor: pointer;
+}
+.chat-suggestions__chip:hover:not(:disabled) {
+  border-color: var(--text-mut);
+}
+.chat-suggestions__chip:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
 .date-picker__actions {
   display: flex;
   justify-content: flex-end;

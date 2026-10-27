@@ -9,10 +9,112 @@
   background: var(--surface);
 }
 
+@container workspace-main (max-width: 1280px) {
+  .workspace-app:not([data-phone]) .workspace-topbar {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    grid-template-areas:
+      "leading actions"
+      "views views"
+      "facts facts";
+    align-items: center;
+    gap: 8px 12px;
+    padding: 8px 12px;
+  }
+  .topbar-leading {
+    grid-area: leading;
+    min-width: 0;
+  }
+  .topbar-title {
+    flex: 1 1 auto;
+    min-width: 0;
+  }
+  .topbar-actions {
+    grid-area: actions;
+  }
+  .fact-chips {
+    grid-area: facts;
+    min-width: 0;
+    max-width: none;
+  }
+  .topbar-leading .team-trigger {
+    gap: 5px;
+    min-width: 38px;
+    justify-content: center;
+    padding-inline: 8px !important;
+  }
+  .topbar-leading .team-trigger__label,
+  .topbar-leading .team-trigger__avatars .assistant-icon ~ .assistant-icon {
+    display: none;
+  }
+  .topbar-leading .team-trigger__count {
+    display: inline-flex;
+    font-variant-numeric: tabular-nums;
+  }
+  .topbar-leading .team-trigger__count-full {
+    display: none;
+  }
+  .topbar-leading .team-trigger__count-compact {
+    display: inline;
+  }
+  .topbar-views {
+    grid-area: views;
+    justify-self: start;
+  }
+}
+
+@container workspace-main (min-width: 921px) and (max-width: 1040px) {
+  .workspace-app:not([data-phone]) .workspace-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "nav leading actions";
+  }
+  .workspace-app:not([data-phone]) .workspace-topbar > .topbar-icon-button {
+    grid-area: nav;
+  }
+}
+
+@container workspace-main (max-width: 920px) {
+  .workspace-app:not([data-phone]) .workspace-topbar {
+    grid-template-columns: 40px minmax(0, 1fr) auto;
+    grid-template-areas:
+      "nav leading actions"
+      "views views views"
+      "facts facts facts";
+  }
+  .workspace-app:not([data-phone]) .workspace-topbar > .topbar-icon-button {
+    grid-area: nav;
+  }
+  .topbar-leading {
+    min-width: 0;
+  }
+  .topbar-views {
+    grid-area: views;
+    justify-self: start;
+  }
+  .fact-chips {
+    grid-column: 1 / -1;
+  }
+}
+
 .topbar-summary {
   flex: 0 1 auto;
   min-width: 0;
   max-width: 30%;
+}
+.topbar-leading {
+  display: flex;
+  flex: 0 1 auto;
+  align-items: center;
+  gap: 12px;
+  min-width: 0;
+}
+.topbar-chat-tabs {
+  flex: none;
+  padding: 0;
+}
+.topbar-leading .team-popover {
+  right: auto;
+  left: 0;
 }
 .topbar-title {
   margin: 0;

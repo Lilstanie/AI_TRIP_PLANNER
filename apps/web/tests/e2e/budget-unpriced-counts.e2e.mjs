@@ -48,7 +48,8 @@ try {
     await tab(zh ? "行程" : "Trip").click();
     const card = page.locator(".trip-panel__budget-summary");
     await card.waitFor();
-    const rows = (await card.locator(".trip-panel__budget-breakdown li").allInnerTexts()).map(
+    await card.locator("summary").click();
+    const rows = (await card.locator(".trip-panel__budget-breakdown > li").allInnerTexts()).map(
       plain,
     );
     const notes = (await card.locator(".trip__budget-note").allInnerTexts()).map(plain);
@@ -59,6 +60,10 @@ try {
     const [meals, activities] = [zh ? "餐饮" : "Meals", zh ? "活动" : "Activities"].map(
       (label) => rows.find((row) => row.startsWith(label)) ?? "",
     );
+    const transport = rows.find((row) => row.startsWith(zh ? "交通" : "Transport")) ?? "";
+    const transportUnpriced = count(transport, rowCount);
+    const transportWithoutEstimate =
+      transportUnpriced === 0 && /Not costed|未计价/.test(transport) ? 1 : 0;
     const noteStops = notes.map((note) => count(note, /[(（](\d+)/)).find(Boolean) ?? 0;
     check(meals, `${locale}: the Meals row is shown`);
     check(
@@ -66,10 +71,11 @@ try {
       `${locale}: restaurant ideas are not counted as unpriced meals (${meals})`,
     );
     check(
-      count(activities, rowCount) === noteStops,
-      `${locale}: Activities row and the Not included note give the same unpriced count (${count(activities, rowCount)} vs ${noteStops})`,
+      count(activities, rowCount) + transportUnpriced + transportWithoutEstimate === noteStops,
+      `${locale}: activity and transport category counts match the Not included note (${count(activities, rowCount)} + ${transportUnpriced + transportWithoutEstimate} vs ${noteStops})`,
     );
-    const rowTotal = rows.reduce((sum, row) => sum + count(row, rowCount), 0);
+    const rowTotal =
+      rows.reduce((sum, row) => sum + count(row, rowCount), 0) + transportWithoutEstimate;
     check(
       rowTotal === noteStops,
       `${locale}: every unpriced count in the rows is explained by the notes (${rowTotal} vs ${noteStops})`,

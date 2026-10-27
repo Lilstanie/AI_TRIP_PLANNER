@@ -60,9 +60,14 @@ export async function POST(req: Request) {
     ...(parsed.data.known ? { known: { ...parsed.data.known, userId: serverUserId } } : {}),
   };
   let cancelled = false;
+  const requestAbort = new AbortController();
+  const abortRequest = () => requestAbort.abort(req.signal.reason);
+  if (req.signal.aborted) abortRequest();
+  else req.signal.addEventListener("abort", abortRequest, { once: true });
   const stream = new ReadableStream({
-    cancel() {
+    cancel(reason) {
       cancelled = true;
+      requestAbort.abort(reason);
     },
     async start(controller) {
       const send = (
@@ -74,11 +79,12 @@ export async function POST(req: Request) {
           | { type: "complete"; response: ChatResponse }
           | ({ type: "error" } & ReturnType<typeof noticeBody>),
       ) => {
-        if (cancelled) return;
+        if (cancelled || requestAbort.signal.aborted) return;
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       };
 
       try {
+        if (requestAbort.signal.aborted) return;
         const flightQuery = parseFlightQuery(parsed.data.message);
         if (flightQuery) {
           const answer = await runWithDataMode(dataMode, () =>
@@ -96,15 +102,17 @@ export async function POST(req: Request) {
           ),
         );
         const recognized = recognizeAccountMemory(parsed.data.message);
-        if (!cancelled && accountId && recognized && memoryEnabled) {
+        if (!requestAbort.signal.aborted && accountId && recognized && memoryEnabled) {
           try {
             response.memoryChange = await rememberAccountPreference(
               accountId,
               recognized.key,
               recognized.value,
+              requestAbort.signal,
             );
           } catch (error) {
-            console.warn("[chat] account memory write failed", error);
+            if (!requestAbort.signal.aborted)
+              console.warn("[chat] account memory write failed", error);
           }
         }
         send({ type: "complete", response });
@@ -141,6 +149,7 @@ export async function POST(req: Request) {
           send({ type: "error", ...noticeBody(notice) });
         }
       } finally {
+        req.signal.removeEventListener("abort", abortRequest);
         if (!cancelled) controller.close();
       }
     },

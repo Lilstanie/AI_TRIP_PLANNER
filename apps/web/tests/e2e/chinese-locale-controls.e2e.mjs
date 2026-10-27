@@ -39,15 +39,22 @@ try {
     "Chinese mock data tooltip is localized",
     chineseMockTitle,
   );
-  await page.getByRole("button", { name: "切换至 English" }).click();
+  await page.getByRole("button", { name: "设置与账户" }).click();
+  await page.getByRole("button", { name: "语言与地区" }).click();
+  await page.getByRole("radio", { name: "English" }).click();
+  await page.waitForFunction(() => document.documentElement.lang === "en");
+  await page.getByRole("button", { name: "Close" }).click();
   const englishTitle = await page.locator(".data-mode:visible").getAttribute("title");
   check(
     englishTitle === "Mock data: bundled fixtures. No provider requests and no allowance spent.",
     "English mock data tooltip is unchanged",
     englishTitle,
   );
-  await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+  await page.getByRole("button", { name: "Settings & account" }).click();
+  await page.getByRole("button", { name: "Language & region" }).click();
+  await page.getByRole("radio", { name: "Simplified Chinese" }).click();
   await page.waitForFunction(() => document.documentElement.lang === "zh-CN");
+  await page.getByRole("button", { name: "关闭" }).click();
   await page.getByRole("tab", { name: /^聊天/ }).click();
   await page.getByRole("button", { name: "悉尼 · 4 天", exact: true }).click();
   await page.locator(".error-banner").waitFor();
@@ -159,8 +166,11 @@ try {
     .click();
   await englishPage.keyboard.press("Escape");
   await englishPage.getByRole("tab", { name: "Mine", exact: true }).click();
-  await englishPage.getByRole("button", { name: "Switch language to 简体中文" }).click();
+  await englishPage.getByRole("button", { name: "Settings & account" }).click();
+  await englishPage.getByRole("button", { name: "Language & region" }).click();
+  await englishPage.getByRole("radio", { name: "Simplified Chinese" }).click();
   await englishPage.waitForFunction(() => document.documentElement.lang === "zh-CN");
+  await englishPage.getByRole("button", { name: "关闭" }).click();
   const newTripChat = englishPage.locator(".history-item").filter({ hasText: "新行程" }).first();
   await newTripChat.waitFor();
   const newTripAction = await newTripChat.locator(".history-item__more").getAttribute("aria-label");

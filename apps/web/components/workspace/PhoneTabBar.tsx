@@ -1,15 +1,17 @@
 "use client";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { ChatIcon, LedgerIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
+import { ChatIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/locale";
 import { PHONE_VIEWS, type MobileView } from "./workspace-helpers";
 
-const TABS: Record<MobileView, { label: MessageKey; icon: (selected: boolean) => ReactNode }> = {
+const TABS: Record<
+  Exclude<MobileView, "trajectory">,
+  { label: MessageKey; icon: (selected: boolean) => ReactNode }
+> = {
   chat: { label: "Chat", icon: (selected) => <ChatIcon filled={selected} /> },
   map: { label: "Map", icon: () => <MapIcon /> },
   trip: { label: "Trip", icon: () => <RouteIcon /> },
-  trajectory: { label: "Trajectory", icon: () => <LedgerIcon /> },
   mine: { label: "Mine", icon: () => <UserIcon /> },
 };
 
@@ -22,14 +24,20 @@ type Props = {
   badges?: Partial<Record<MobileView, ReactNode>>;
 
   hidden?: boolean;
+
+  showTrip?: boolean;
 };
 
-export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
+export function PhoneTabBar({ view, onSelect, badges, hidden, showTrip = true }: Props) {
   const { t } = useLocale();
+  const views = PHONE_VIEWS.filter(
+    (tab): tab is Exclude<MobileView, "trajectory"> =>
+      tab !== "trajectory" && (showTrip || tab !== "trip"),
+  );
   const tabs = useRef<Partial<Record<MobileView, HTMLButtonElement | null>>>({});
   const onKeyDown = (event: KeyboardEvent) => {
-    const index = PHONE_VIEWS.indexOf(view);
-    const last = PHONE_VIEWS.length - 1;
+    const index = views.findIndex((tab) => tab === view);
+    const last = views.length - 1;
     const next =
       event.key === "ArrowRight"
         ? index === last
@@ -46,7 +54,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
               : undefined;
     if (next === undefined) return;
     event.preventDefault();
-    const target = PHONE_VIEWS[next];
+    const target = views[next];
     onSelect(target);
     tabs.current[target]?.focus();
   };
@@ -58,7 +66,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden }: Props) {
         className="phone-tabbar__list"
         onKeyDown={onKeyDown}
       >
-        {PHONE_VIEWS.map((tab) => {
+        {views.map((tab) => {
           const selected = tab === view;
           return (
             <button
