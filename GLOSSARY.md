@@ -41,7 +41,7 @@ A problem found between sections of a plan, such as an overrun budget or overlap
 _Avoid_: issue, error
 
 **Open item**:
-Something in a trip the traveller should look at, such as a conflict on a stop, a stop without a located place, or a place whose lookup failed.
+Something in a trip the traveller should look at, such as a conflict on a stop, a stop without a located place, a place whose lookup failed, or an edit issue that names no stop.
 _Avoid_: issue, problem
 
 **Targeted revision**:

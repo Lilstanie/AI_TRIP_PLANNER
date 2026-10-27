@@ -43,6 +43,7 @@ export const WORKSPACE_ZH = {
   "Open items": "待处理事项",
   "Open items, {count}": "待处理事项，{count}",
   "Time conflict": "时间冲突",
+  "Itinerary issue": "行程问题",
   "Unlocated place": "尚未定位的地点",
   "Place lookup failed": "地点查询失败",
   Meals: "餐饮",

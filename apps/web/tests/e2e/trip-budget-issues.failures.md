@@ -19,3 +19,6 @@ Public seam: saved fixture Trip opened in the real workspace, desktop and phone,
 - Selecting a popover row must select its Stop and close the popover; Esc and an outside click must also close it.
 - The popover must use the `glass-float glass-float--raised` contract with opaque rows, and must not push the timeline down.
 - The badge and popover must work at 390px phone width beside the phone trip title, without horizontal overflow, in English and Chinese.
+- A plan-level edit issue that is not attached to any Stop (empty `activityIds`, or ids that match no Stop) must still surface as an Itinerary issue row in the open-items popover and be counted by the badge; it must never be dropped.
+- An edit issue attached to a Stop must stay on that Stop and must not add a second popover row; `price_unverified` issues must not become open items.
+- An Itinerary issue row is plain text, not a button, because it has no Stop to select; it must read in Chinese when the language is Chinese.

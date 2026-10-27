@@ -34,6 +34,7 @@ export function ChatPanel({
   phone = false,
   showTabs = true,
   blankUntouched = false,
+  conversationId,
   onCancel,
   error,
   onAttachFiles,
@@ -69,6 +70,7 @@ export function ChatPanel({
   showTabs?: boolean;
 
   blankUntouched?: boolean;
+  conversationId?: string | undefined;
 
   onCancel?: () => void;
 
@@ -224,6 +226,7 @@ export function ChatPanel({
           aria-labelledby="chat-tab-trajectory"
         >
           <TrajectoryTab
+            key={conversationId}
             messages={messages}
             live={activity}
             busy={busy}

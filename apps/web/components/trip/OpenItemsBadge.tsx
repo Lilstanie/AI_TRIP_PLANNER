@@ -16,7 +16,7 @@ export function OpenItemsBadge({
   onSelectStop(id: string): void;
   onSelectDay(day: number): void;
 }) {
-  const { t } = useLocale();
+  const { t, notice } = useLocale();
   const popoverId = useId();
   const [open, setOpen] = useState(false);
   const root = useRef<HTMLDivElement>(null);
@@ -88,13 +88,17 @@ export function OpenItemsBadge({
                 <ul>
                   {entries.map((item) => (
                     <li key={item.key}>
-                      <button
-                        type="button"
-                        aria-label={`${t(kind)}: ${item.label}`}
-                        onClick={() => select(item.stopId)}
-                      >
-                        {item.label}
-                      </button>
+                      {item.kind === "Itinerary issue" ? (
+                        notice(item.notice)
+                      ) : (
+                        <button
+                          type="button"
+                          aria-label={`${t(kind)}: ${item.label}`}
+                          onClick={() => select(item.stopId)}
+                        >
+                          {item.label}
+                        </button>
+                      )}
                     </li>
                   ))}
                 </ul>

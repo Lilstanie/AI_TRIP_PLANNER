@@ -684,6 +684,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       phone={phone}
                       showTabs={false}
                       blankUntouched={untouched}
+                      conversationId={history.catalog.activeConversationId}
                       view={chatView}
                       onViewChange={setChatView}
                       onAttachFiles={composerAttachments.addFiles}
