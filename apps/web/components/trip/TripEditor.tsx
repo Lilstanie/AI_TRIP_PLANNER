@@ -24,6 +24,8 @@ import { TripChatShortcut } from "./timeline/TripChatShortcut";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
 import { useShowDistances } from "./useShowDistances";
+import { useItineraryDrag } from "./useItineraryDrag";
+import { zoneKey, type DragSource, type DropTarget } from "@/lib/trip/drag-target";
 import { Switch } from "../account/SettingsControls";
 import { directionsUrl } from "@/lib/trip/leg-distance";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
@@ -45,6 +47,10 @@ function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
     default:
       return undefined;
   }
+}
+
+function DropLine() {
+  return <li className="timeline-drop-line" aria-hidden="true" />;
 }
 
 export function TripEditor({
@@ -213,6 +219,43 @@ export function TripEditor({
     }
   };
 
+  const [announcement, setAnnouncement] = useState<Notice | undefined>();
+  const commitMove = async (activity: Activity, index: number) => {
+    if (!activity.id || activity.day === undefined) return;
+    const id = activity.id;
+    const done = await edits.edit(
+      { kind: "move", id, day: activity.day, index: itinerary.planIndex(id, activity.day, index) },
+      () => {
+        setProblem("");
+        setAnnouncement({
+          key: "{name} moved to position {position} of {total} on Day {day}.",
+          params: {
+            name: activity.location ?? activity.detail,
+            position: index + 1,
+            total: daily.length,
+            day: activity.day!,
+          },
+        });
+      },
+    );
+    return done;
+  };
+  const drag = useItineraryDrag({
+    locked,
+    accepts: (source, zone) =>
+      zone.kind === "day" && source.zone.kind === "day" && zone.day === source.zone.day,
+    onDrop: (source: DragSource, target: DropTarget) => {
+      const moved = daily.find((activity) => activity.id === source.id);
+      if (!moved || target.zone.kind !== "day" || target.zone.day !== moved.day) return;
+      if (target.index === daily.indexOf(moved)) return;
+      void commitMove(moved, target.index);
+    },
+  });
+  const reorder = (activity: Activity, direction: -1 | 1) => {
+    const to = daily.indexOf(activity) + direction;
+    if (!locked && to >= 0 && to < daily.length) void commitMove(activity, to);
+  };
+
   const stopProps = (activity: Activity) => {
     const placeId = placeIdFor(activity);
     return {
@@ -236,6 +279,12 @@ export function TripEditor({
       onOpen: () => onSelect(activity.id!),
       conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+      ...(activity.day === undefined || !activity.id
+        ? {}
+        : {
+            drag: drag.rowProps({ id: activity.id, zone: { kind: "day", day: activity.day } }),
+            onReorder: (direction: -1 | 1) => reorder(activity, direction),
+          }),
       ...(activity.day === undefined || !onSend ? {} : { onAskAI: onSend }),
       phone,
     };
@@ -263,8 +312,14 @@ export function TripEditor({
   );
 
   let previous: (typeof daily)[number] | undefined;
+  let shownCount = 0;
+  const lineAt =
+    drag.target?.zone.kind === "day" && drag.target.zone.day === day ? drag.target.index : -1;
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
+      <p className="sr-only" role="status">
+        {announcement ? localizeNotice(announcement) : ""}
+      </p>
       <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
       {today !== undefined && day !== today && (
         <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
@@ -365,6 +420,7 @@ export function TripEditor({
           <ol
             key={day}
             className="timeline tab-panel-enter"
+            data-drop-zone={zoneKey({ kind: "day", day })}
             aria-label={t("Day {v0} timeline", { v0: day })}
           >
             {rows.map((row, position) => {
@@ -396,6 +452,7 @@ export function TripEditor({
                 : undefined;
               return (
                 <Fragment key={activity.id ?? position}>
+                  {activity.id !== drag.dragging && lineAt === shownCount++ && <DropLine />}
                   {connection && (
                     <LegRow
                       key={connection.status}
@@ -416,17 +473,11 @@ export function TripEditor({
                     {...stopProps(activity)}
                     index={daily.indexOf(activity)}
                     count={daily.length}
-                    dropIndex={(moved) =>
-                      itinerary.planIndex(
-                        moved,
-                        day,
-                        daily.filter((other) => other.id !== moved).indexOf(activity),
-                      )
-                    }
                   />
                 </Fragment>
               );
             })}
+            {lineAt === shownCount && <DropLine />}
           </ol>
         ) : (
           <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>

@@ -958,6 +958,18 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   and the plan stays as it was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
   A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
   reload. Confirming a stop's place still needs a Maps key or a stub.
+- **Drag within a day** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-drag-in-day.md)).
+  The whole Stop row is the drag target, with no handle: a mouse drag starts after 5 px, a touch drag
+  after a 400 ms long press, and a quick swipe still scrolls. An insertion line marks where the Stop
+  will land; dropping applies one `move` edit with an Undo, and the Stop numbers, times and Legs
+  refresh. Dropping on its own position, outside the day list or after Escape changes nothing.
+  Presses on form fields, links and open menus never start a drag, and a trip locked by a running
+  assistant (or by an edit still being checked) disables drag, including a drag already under way.
+  The list scrolls when the pointer nears its edge. The keyboard route is Alt+ArrowUp and
+  Alt+ArrowDown on the focused Stop; a polite live region announces "{name} moved to position {n} of
+  {total} on Day {d}". The drag state lives in `components/trip/useItineraryDrag.ts` and addresses
+  rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
+  `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens

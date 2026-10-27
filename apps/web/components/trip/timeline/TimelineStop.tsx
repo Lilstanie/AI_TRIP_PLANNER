@@ -24,6 +24,7 @@ import {
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopEditSurface } from "./StopEditSurface";
 import { TripChatShortcut } from "./TripChatShortcut";
+import type { RowDrag } from "../useItineraryDrag";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -48,7 +49,7 @@ export function TimelineStop({
   count,
   days,
   dayLabels,
-  dropIndex,
+  drag,
   selected,
   locked,
   place,
@@ -62,6 +63,7 @@ export function TimelineStop({
   onSelect,
   onOpen,
   onItem,
+  onReorder,
   onAskAI,
 }: {
   activity: Activity;
@@ -72,7 +74,7 @@ export function TimelineStop({
 
   count: number;
 
-  dropIndex?(moved: string): number;
+  drag?: RowDrag;
   days: number;
   dayLabels: string[];
   selected: boolean;
@@ -97,6 +99,8 @@ export function TimelineStop({
   onOpen(): void;
 
   onItem(action: ItemAction, message: Notice): boolean | Promise<boolean>;
+
+  onReorder?(direction: -1 | 1): void;
   onAskAI?(message: string): void;
 }) {
   const { t, money, notice: localizeNotice } = useLocale();
@@ -290,26 +294,12 @@ export function TimelineStop({
       className={`timeline-row timeline-stop${idea ? " timeline-stop--idea" : ""}${
         selected ? " is-selected" : ""
       }${edits.changed.has(id) ? " is-changed" : ""}`}
-      draggable={!locked && !idea}
+      {...(locked ? {} : drag)}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || event.defaultPrevented || !selected) return;
         event.stopPropagation();
         if (panel) closePanel();
         else closeCard();
-      }}
-      onDragStart={(event) => event.dataTransfer.setData("text/plain", id)}
-      onDragOver={(event) => event.preventDefault()}
-      onDrop={(event) => {
-        event.preventDefault();
-        const moved = event.dataTransfer.getData("text/plain");
-
-        if (!locked && moved && moved !== id && dropIndex)
-          void edits.edit({
-            kind: "move",
-            id: moved,
-            day: activity.day!,
-            index: dropIndex(moved),
-          });
       }}
     >
       {idea ? (
@@ -347,7 +337,14 @@ export function TimelineStop({
             className="timeline-stop__main"
             aria-expanded={selected}
             aria-controls={selected ? `stop-place-card-${id}` : undefined}
+            aria-keyshortcuts={onReorder ? "Alt+ArrowUp Alt+ArrowDown" : undefined}
             onClick={onSelect}
+            onKeyDown={(event) => {
+              if (!onReorder || locked || !event.altKey) return;
+              if (event.key !== "ArrowUp" && event.key !== "ArrowDown") return;
+              event.preventDefault();
+              onReorder(event.key === "ArrowUp" ? -1 : 1);
+            }}
           >
             <span className="timeline-stop__name">
               {number !== undefined && (
