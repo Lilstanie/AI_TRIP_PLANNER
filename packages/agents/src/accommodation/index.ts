@@ -13,6 +13,7 @@ import {
   type StayOption,
   type BudgetAllocation,
   type PlanningBoard,
+  type UserPreference,
   type InterfaceLanguage,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
@@ -25,6 +26,7 @@ import {
   readPreferences,
   splitStay,
   stayCost,
+  type StayPreferences,
 } from "./planning";
 import { scheduledHops } from "../transport/legs";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
@@ -45,6 +47,8 @@ interface StayEvidence {
   groupSize: number;
   budgetRevision: boolean;
   searched: { segment: ReturnType<typeof splitStay>[number]; options: StayOption[] }[];
+  preferences: UserPreference[];
+  rememberedStayType?: string;
 }
 
 async function gatherStayEvidence(
@@ -63,7 +67,9 @@ async function gatherStayEvidence(
       board?.proposals.find((proposal) => proposal.agent === "transport"),
     ),
   );
-  const prefs = brief.accommodation ?? readPreferences(await ctx.mem.getLongTerm(brief.userId));
+  const preferences = await ctx.mem.getLongTerm(brief.userId);
+  const rememberedPreferences = readPreferences(preferences);
+  const prefs: StayPreferences = brief.accommodation ?? rememberedPreferences;
   ctx.signal?.throwIfAborted();
   const rooms =
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
@@ -77,6 +83,7 @@ async function gatherStayEvidence(
           checkIn: segment.checkIn,
           checkOut: segment.checkOut,
           guests: brief.groupSize,
+          ...(prefs.stayType ? { stayType: prefs.stayType } : {}),
         }),
         prefs,
       );
@@ -98,6 +105,8 @@ async function gatherStayEvidence(
     groupSize: brief.groupSize,
     budgetRevision,
     searched,
+    preferences,
+    ...(prefs.stayType ? { rememberedStayType: prefs.stayType } : {}),
     ...(allocation ? { allocation } : {}),
   };
 }
@@ -119,6 +128,7 @@ function assembleStayProposal(
     groupSize,
     budgetRevision,
     searched,
+    rememberedStayType,
     allocation,
     currency,
   } = evidence;
@@ -160,6 +170,11 @@ function assembleStayProposal(
   const source = staySource(selections, sourceKind, grounded, currency);
   const fixtureRates = selections.every(({ chosen }) => chosen.provenance?.kind === "mock");
   const assumptions = [
+    ...(rememberedStayType
+      ? [
+          `Remembered stay type: ${rememberedStayType}. This preference was included in the search query; candidate property types are not independently verified.`,
+        ]
+      : []),
     source.kind === "live"
       ? `${currency} per room per night; rates came from a live search and can change before booking.`
       : source.kind === "estimated"
@@ -169,7 +184,7 @@ function assembleStayProposal(
     fixtureRates
       ? "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates."
       : "Only selected stays contribute to estCost. Taxes and fees are not verified; confirm the total before booking.",
-    "Initial selection prefers a rating of at least 4/5 and free cancellation; confirmed preferences remain mandatory during revisions.",
+    "Initial selection prefers a rating of at least 4/5 and free cancellation; confirmed rating and cancellation filters remain mandatory during revisions.",
     allocation
       ? `Stay allocation: ${allocation.basis}.${overAllocation ? " The first choice was over it, so the best stay within it (or the cheapest) was taken." : ""}`
       : "Trip budget covers every agent; no accommodation budget allocation is assumed. Orchestrator checks the combined cost.",
@@ -379,6 +394,7 @@ async function planStays(
             totalCost: stayCost(option, segment.nights, evidence!.rooms),
           })),
         })),
+        confirmedPreferences: evidence.preferences,
       };
     },
     {
@@ -393,7 +409,7 @@ async function planStays(
     model,
     tools: [search],
     systemPrompt:
-      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation and total cost against the traveller's brief and any revision. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
+      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation, remembered stay type and total cost against the traveller's brief and any revision. Treat confirmed rating and cancellation preferences as constraints; treat stay type as a preference only when candidate evidence supports it. Use only candidate fields actually provided as evidence. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
       REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE +
       replyLanguageRule(ctx.replyLanguage),

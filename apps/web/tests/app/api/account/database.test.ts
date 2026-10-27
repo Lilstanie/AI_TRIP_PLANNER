@@ -5,13 +5,22 @@ import { drizzle } from "drizzle-orm/pglite";
 import { afterAll, beforeAll, expect, it, vi } from "vitest";
 import { defaultSettings } from "@/lib/account/settings";
 
-const identity = vi.hoisted(() => ({ userId: "alice" as string | null, enabled: true }));
+const identity = vi.hoisted(() => ({
+  userId: "alice" as string | null,
+  enabled: true,
+  deleteUser: vi.fn(),
+}));
 let db: ReturnType<typeof drizzle>;
-vi.mock("@clerk/nextjs/server", () => ({ auth: async () => ({ userId: identity.userId }) }));
+vi.mock("@clerk/nextjs/server", () => ({
+  auth: async () => ({ userId: identity.userId }),
+  clerkClient: async () => ({ users: { deleteUser: identity.deleteUser } }),
+}));
 vi.mock("@/lib/auth/config", () => ({ authEnabled: true }));
 vi.mock("@/lib/db/client", () => ({ getDb: () => db, dbEnabled: () => identity.enabled }));
 import { GET, POST } from "@/app/api/account/sync/route";
 import { GET as settingsGet, PUT } from "@/app/api/account/settings/route";
+import { GET as exportGet } from "@/app/api/account/export/route";
+import { DELETE as deleteAccount } from "@/app/api/account/route";
 
 const engine = new PGlite();
 beforeAll(async () => {
@@ -20,6 +29,7 @@ beforeAll(async () => {
     `INSERT INTO trips(user_id,id,record,updated_at) VALUES ('alice','legacy','{"title":"legacy"}','2099-01-01');`,
   );
   await engine.exec(await readFile(resolve("drizzle/0001_ambitious_micromacro.sql"), "utf8"));
+  await engine.exec(await readFile(resolve("drizzle/0002_adorable_namor.sql"), "utf8"));
   db = drizzle(engine);
 });
 afterAll(() => engine.close());
@@ -102,4 +112,65 @@ it("enforces revisions through authenticated routes, migrated SQL, skew, concurr
   expect((await GET()).status).toBe(401);
   identity.enabled = false;
   expect((await GET()).status).toBe(503);
+});
+
+it.sequential("exports only the signed-in account's long-term memory", async () => {
+  identity.userId = "alice";
+  identity.enabled = true;
+  await engine.exec("DELETE FROM account_memories");
+  await engine.exec(`
+    INSERT INTO account_memories(user_id, key, value, undo_token, updated_at)
+    VALUES
+      ('alice', 'dietary', 'vegetarian', 'alice-token', now()),
+      ('bob', 'dietary', 'gluten-free', 'bob-token', now());
+  `);
+
+  const response = await exportGet();
+
+  expect(response.status).toBe(200);
+  expect(await response.json()).toMatchObject({
+    memories: [{ key: "dietary", value: "vegetarian" }],
+  });
+});
+
+it.sequential("deletes the signed-in account's memory before deleting its identity", async () => {
+  identity.userId = "alice";
+  identity.enabled = true;
+  await engine.exec("DELETE FROM account_memories");
+  await engine.exec(`
+    INSERT INTO account_memories(user_id, key, value, undo_token, updated_at)
+    VALUES
+      ('alice', 'dietary', 'vegetarian', 'alice-token', now()),
+      ('bob', 'dietary', 'gluten-free', 'bob-token', now());
+  `);
+  identity.deleteUser.mockImplementation(async () => {
+    const rows = await engine.query("SELECT user_id FROM account_memories ORDER BY user_id");
+    expect(rows.rows).toEqual([{ user_id: "bob" }]);
+  });
+
+  const response = await deleteAccount();
+
+  expect(response.status).toBe(200);
+  expect(identity.deleteUser).toHaveBeenCalledWith("alice");
+  expect(
+    (await engine.query("SELECT user_id FROM account_memories ORDER BY user_id")).rows,
+  ).toEqual([{ user_id: "bob" }]);
+});
+
+it.sequential("keeps account rows deleted when identity deletion fails", async () => {
+  identity.userId = "alice";
+  identity.enabled = true;
+  await engine.exec("DELETE FROM account_memories");
+  await engine.exec(`
+    INSERT INTO account_memories(user_id, key, value, undo_token, updated_at)
+    VALUES ('alice', 'dietary', 'vegetarian', 'alice-token', now());
+  `);
+  identity.deleteUser.mockRejectedValueOnce(new Error("Clerk unavailable"));
+
+  const response = await deleteAccount();
+
+  expect(response.status).toBe(502);
+  expect(
+    (await engine.query("SELECT user_id FROM account_memories WHERE user_id = 'alice'")).rows,
+  ).toEqual([]);
 });

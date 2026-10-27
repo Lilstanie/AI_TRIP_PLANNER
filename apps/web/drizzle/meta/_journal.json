@@ -15,6 +15,13 @@
       "when": 1791951020409,
       "tag": "0001_ambitious_micromacro",
       "breakpoints": true
+    },
+    {
+      "idx": 2,
+      "version": "7",
+      "when": 1792361572590,
+      "tag": "0002_adorable_namor",
+      "breakpoints": true
     }
   ]
 }

@@ -8,6 +8,7 @@ import {
 } from "@trip/orchestrator";
 import { createToolGateway, runWithDataMode } from "@trip/tools";
 import { tripStore } from "@trip/services";
+import { auth } from "@clerk/nextjs/server";
 import {
   ChatRequest,
   ChatResponse,
@@ -18,6 +19,11 @@ import {
 } from "@trip/shared";
 import { noticeBody, type Notice } from "@/lib/i18n/notice";
 import { requestDataMode } from "@/lib/auth/live-data";
+import { authEnabled } from "@/lib/auth/config";
+import { dbEnabled } from "@/lib/db/client";
+import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/memory";
+import { accountMemoryEnabled } from "@/lib/account/memory-enabled";
+import { recognizeAccountMemory } from "@/lib/account/recognize-memory.mjs";
 
 const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
 
@@ -44,10 +50,24 @@ export async function POST(req: Request) {
   }
 
   const encoder = new TextEncoder();
+  const accountId = authEnabled && dbEnabled() ? ((await auth()).userId ?? undefined) : undefined;
+  const memoryEnabled =
+    parsed.data.assistant?.memory !== false && (await accountMemoryEnabled(accountId));
+  const serverUserId = accountId ?? "anonymous";
+  const requestData = {
+    ...parsed.data,
+    ...(parsed.data.brief ? { brief: { ...parsed.data.brief, userId: serverUserId } } : {}),
+    ...(parsed.data.known ? { known: { ...parsed.data.known, userId: serverUserId } } : {}),
+  };
   let cancelled = false;
+  const requestAbort = new AbortController();
+  const abortRequest = () => requestAbort.abort(req.signal.reason);
+  if (req.signal.aborted) abortRequest();
+  else req.signal.addEventListener("abort", abortRequest, { once: true });
   const stream = new ReadableStream({
-    cancel() {
+    cancel(reason) {
       cancelled = true;
+      requestAbort.abort(reason);
     },
     async start(controller) {
       const send = (
@@ -59,11 +79,12 @@ export async function POST(req: Request) {
           | { type: "complete"; response: ChatResponse }
           | ({ type: "error" } & ReturnType<typeof noticeBody>),
       ) => {
-        if (cancelled) return;
+        if (cancelled || requestAbort.signal.aborted) return;
         controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
       };
 
       try {
+        if (requestAbort.signal.aborted) return;
         const flightQuery = parseFlightQuery(parsed.data.message);
         if (flightQuery) {
           const answer = await runWithDataMode(dataMode, () =>
@@ -73,8 +94,27 @@ export async function POST(req: Request) {
           return;
         }
         const response = ChatResponse.parse(
-          await runWithDataMode(dataMode, () => runTripChat(parsed.data, { onProgress: send })),
+          await runWithDataMode(dataMode, () =>
+            runTripChat(requestData, {
+              onProgress: send,
+              mem: accountMemoryStore(accountId, memoryEnabled),
+            }),
+          ),
         );
+        const recognized = recognizeAccountMemory(parsed.data.message);
+        if (!requestAbort.signal.aborted && accountId && recognized && memoryEnabled) {
+          try {
+            response.memoryChange = await rememberAccountPreference(
+              accountId,
+              recognized.key,
+              recognized.value,
+              requestAbort.signal,
+            );
+          } catch (error) {
+            if (!requestAbort.signal.aborted)
+              console.warn("[chat] account memory write failed", error);
+          }
+        }
         send({ type: "complete", response });
         const persistence = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;
@@ -109,6 +149,7 @@ export async function POST(req: Request) {
           send({ type: "error", ...noticeBody(notice) });
         }
       } finally {
+        req.signal.removeEventListener("abort", abortRequest);
         if (!cancelled) controller.close();
       }
     },

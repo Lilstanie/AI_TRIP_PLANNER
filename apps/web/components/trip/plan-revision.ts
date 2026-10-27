@@ -106,8 +106,6 @@ export function usePlanRevision({
   useEffect(() => {
     bump();
   }, [currency, dataMode, bump]);
-  useEffect(() => () => flight.current?.controller.abort(), []);
-
   const finish = useCallback(
     (job: BackgroundJob, run: { controller: AbortController }, outcome: JobOutcome) => {
       if (flight.current === run) flight.current = undefined;

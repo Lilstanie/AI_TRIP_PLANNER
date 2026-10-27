@@ -7,7 +7,10 @@ vi.mock("@trip/orchestrator", () => ({
   parseFlightQuery: () => undefined,
   runTripChat: state.run,
 }));
-vi.mock("@trip/services", () => ({ tripStore: { set: state.save } }));
+vi.mock("@trip/services", () => ({
+  tripStore: { set: state.save },
+  memory: { getShortTerm: vi.fn(), appendShortTerm: vi.fn() },
+}));
 vi.mock("@trip/tools", () => ({
   createToolGateway: vi.fn(),
   parseDataMode: () => "mock",

@@ -67,6 +67,7 @@ export interface MapsPort {
 }
 
 export interface StayQuery {
+  stayType?: string;
   city: string;
   checkIn: string;
   checkOut: string;

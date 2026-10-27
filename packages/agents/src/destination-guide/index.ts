@@ -14,6 +14,7 @@ import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { mockEnabled } from "@trip/tools";
 import { clip } from "../clip";
 import { normalize, canonicalPlaceName, dedupeEntries } from "../place-names";
+import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
@@ -123,14 +124,18 @@ function validateDraft(draft: DestinationGuideDraft, places: Place[]): Destinati
 function fallbackDraft(
   brief: TripBrief,
   places: Place[],
+  preferences: UserPreference[],
   language: InterfaceLanguage | undefined,
   weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
+  const { pace, interests, accessibility } = rememberedPlanningPreferences(preferences);
+  const attractionLimit = pace.includes("relaxed") ? 3 : pace.includes("packed") ? 5 : 4;
+  const rankedPlaces = rankPlacesByInterests(places, interests);
   const copy = summaryCopy(language);
   const packing = weatherPacking(weatherEvidence, language);
   return {
     summary: copy.guide(brief.destination, brief.dates[0]),
-    attractions: places.slice(0, 5).map((place) => ({
+    attractions: rankedPlaces.slice(0, attractionLimit).map((place) => ({
       name: place.name,
       detail: copy.attraction(place.category, place.rating),
     })),
@@ -139,7 +144,24 @@ function fallbackDraft(
     entryHealth: [copy.entryHealth(brief.nationality)],
     weather: copy.monthlyWeather(brief.dates[0]),
     packing: [...(packing.length ? packing : [copy.packingLayers]), ...copy.packingBasics],
-    assumptions: ["Destination-specific claims are limited to the validated evidence available."],
+    assumptions: [
+      "Destination-specific claims are limited to the validated evidence available.",
+      ...(pace
+        ? [
+            `The number of suggested attractions follows the remembered ${pace} preference where candidates are available.`,
+          ]
+        : []),
+      ...(interests.length
+        ? [
+            `Grounded candidates matching remembered interests (${interests.join(", ")}) are preferred when available.`,
+          ]
+        : []),
+      ...(accessibility
+        ? [
+            `Remembered accessibility need: ${accessibility}. Place accessibility and route suitability are not verified by the available evidence.`,
+          ]
+        : []),
+    ],
   };
 }
 
@@ -160,7 +182,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         model,
         tools: [evidence],
         systemPrompt:
-          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
+          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
           TRAVELLER_PREFERENCES_RULE +
           replyLanguageRule(input.language),
         responseFormat: ModelGuideDraft,
@@ -230,10 +252,10 @@ async function planDestinationGuide(
       console.warn(`[destination-guide] Model draft failed; using a safe local plan: ${reason}`);
       usedFallback = true;
       ctx.signal?.throwIfAborted();
-      draft = fallbackDraft(brief, places, ctx.replyLanguage, weatherEvidence);
+      draft = fallbackDraft(brief, places, preferences, ctx.replyLanguage, weatherEvidence);
     }
   } else {
-    draft = fallbackDraft(brief, places, ctx.replyLanguage, weatherEvidence);
+    draft = fallbackDraft(brief, places, preferences, ctx.replyLanguage, weatherEvidence);
   }
 
   ctx.signal?.throwIfAborted();

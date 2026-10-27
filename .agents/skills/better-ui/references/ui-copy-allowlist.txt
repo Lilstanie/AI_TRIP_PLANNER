@@ -1,1 +1,2 @@
 apps/web/components/trip/timeline/StopForms.tsx stop-editor__hint
+apps/web/components/account/SettingsDialog.tsx settings-hint

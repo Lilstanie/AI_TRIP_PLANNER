@@ -80,10 +80,20 @@ function tripDays([start, end]: [string, string]): number {
 
 function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   return preferences.filter((preference) =>
-    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian|peanut|\bnuts?\b|素食|吃素|全素|过敏|過敏|花生|坚果|堅果|清真|麸质|麩質|乳糖/i.test(
+    /diet|food|meal|allerg|halal|kosher|vegetarian|vegan|plant[- ]based|gluten|lactose|celiac|shellfish|pescatarian|peanut|\bnuts?\b|素食|吃素|全素|过敏|過敏|花生|坚果|堅果|清真|麸质|麩質|乳糖|不吃|忌口|纯素|犹太洁食/i.test(
       `${preference.key} ${preference.value}`,
     ),
   );
+}
+
+function dietaryPreferencesForBrief(brief: TripBrief, saved: UserPreference[]): UserPreference[] {
+  for (const values of [brief.learnedPreferences, brief.preferences]) {
+    const explicit = dietaryPreferences(
+      (values ?? []).map((value) => ({ key: "preference", value, source: "filter" as const })),
+    );
+    if (explicit.length) return explicit.map((item) => ({ ...item, key: "dietary" }));
+  }
+  return dietaryPreferences(saved);
 }
 
 function mealRate(
@@ -220,29 +230,7 @@ async function planDining(
   const days = tripDays(brief.dates);
   const allPreferences = await ctx.mem.getLongTerm(brief.userId);
   ctx.signal?.throwIfAborted();
-  const currentPreferences: UserPreference[] = [
-    ...(brief.preferences ?? []).map((value) => ({
-      key: "trip.dietary",
-      value,
-      source: "filter" as const,
-    })),
-    ...(brief.learnedPreferences ?? []).map((value) => ({
-      key: "chat.dietary",
-      value,
-      source: "chat_confirmed" as const,
-    })),
-  ].filter(
-    ({ value }) => dietaryPreferences([{ key: "preference", value, source: "filter" }]).length,
-  );
-  const seen = new Set<string>();
-  const preferences = [...currentPreferences, ...dietaryPreferences(allPreferences)].filter(
-    ({ value }) => {
-      const key = value.trim().toLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
-      return true;
-    },
-  );
+  const preferences = dietaryPreferencesForBrief(brief, allPreferences);
   const candidatePlaces = await ctx.tools.maps.places({
     near: brief.destination,
     category: "restaurant",

@@ -518,8 +518,20 @@ credentials fail only when the corresponding Booking capability is called. The W
 the same captured configuration and clock to return fixture weather, Google Weather forecasts for
 days 0–9, Open-Meteo forecasts for days 10–14, or Open-Meteo historical climate context after
 day 14. Offsets use the destination’s calendar date and time zone; the Open-Meteo request includes today plus 14 days. A missing near-date credential fails only when that forecast is requested. `MemoryStore`
-(`packages/services/src/memory`) uses the Redis REST store when configured and process memory
-otherwise. Short-term chat memory retains the latest 20 turns. Toll quotes in foreign currencies are labelled and excluded from the AUD estimate; unavailable quotes are not described as free. Each package's exports and configuration are in its own `README.md`.
+(`packages/services/src/memory`) stores short-term chat turns in Redis REST when configured and in
+process memory otherwise, retaining the latest 20 turns. Account-scoped preferences are
+stored separately in Postgres by the web server, which derives identity from Clerk and includes the
+rows in account export and deletion. Account reads use Neon HTTP; preference writes use a dedicated
+Neon WebSocket client for their interactive transaction, closing it after commit, rollback or a
+connection failure. The row lock serializes partial accommodation patches and their undo baseline.
+The [memory transaction adapter decision](../.agents/notes/implemented/bug-fix/2026-10-26-memory-neon-transaction.md)
+records this boundary. The deterministic chat allowlist excludes trip facts such as
+budgets and areas; trip/profile preferences take precedence over matching account memories, and
+disabling long-term memory suppresses account-memory reads and writes while
+preserving planning. Agent Lab keeps its fixed benchmark preferences. See the
+[account dietary memory decision](../.agents/notes/implemented/feature/2026-10-19-account-dietary-memory.md).
+Toll quotes in foreign currencies are labelled and excluded from the AUD estimate; unavailable quotes
+are not described as free. Each package's exports and configuration are in its own `README.md`.
 
 The `@trip/tools` package entry point exposes the zero-argument gateway factory and request-mode
 helpers, but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for

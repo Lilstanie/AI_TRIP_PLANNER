@@ -72,7 +72,7 @@ ln -s ../../.env.local apps/web/.env.local
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`、`NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID` | 浏览器中的 Google Maps JavaScript 地图。未配置时，工作区显示地图回退界面，行程仍可使用。                                                                                                                                                                                       |
 | `SERPAPI_KEY`                                                       | Google Hotels、Google Flights 和城际 Google Maps 公共交通搜索共享的 SerpApi 密钥。仅在 `USE_MOCK_TOOLS=false` 时使用；不替代 Google Maps、Places、Routes 或 Weather API。                                                                                                      |
 | `WEATHER_API_KEY`                                                   | Google Weather 提供第 0–9 天的天气预报；未配置时回退到 `MAPS_API_KEY`。第 10–14 天由 Open-Meteo 提供，无需密钥。                                                                                                                                                               |
-| `KV_REST_API_URL`、`KV_REST_API_TOKEN`                              | 用于聊天轮次、偏好、方案和 SerpApi 用量／缓存的持久化 Redis REST 存储。未配置时，状态保存在进程内存中。                                                                                                                                                                        |
+| `KV_REST_API_URL`、`KV_REST_API_TOKEN`                              | 用于短期聊天轮次、方案和 SerpApi 用量／缓存的持久化 Redis REST 存储。未配置时，这些数据保存在进程内存中；账号的饮食、节奏、兴趣、无障碍、住宿和出发城市记忆通过 `DATABASE_URL` 存入 Postgres。                                                                                 |
 
 账号是可选功能，只在 `.env.local` 中配置（这些名称不在 `.env.example` 中）：
 
@@ -105,19 +105,19 @@ Google 密钥限制和地图行为见[工作区 UI](workspace-ui.zh.md#google-ma
 
 SerpApi 是项目当前酒店和航班搜索层的提供方。一个 `SERPAPI_KEY` 可用于两个 SerpApi 引擎，但这不意味着 SerpApi 是通用旅行后端：
 
-| 能力                                      | 提供方                                                                                                                                    | 状态和边界                                                                                                    |
-| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- |
-| 酒店搜索和参考价格                        | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api)                                                                            | 配置后返回实时搜索结果；结果是规划数据，不代表预订或保证有效的报价。                                          |
-| 航班搜索和参考票价                        | [SerpApi Google Flights](https://serpapi.com/google-flights-api)                                                                          | 提供搜索结果和票价；不预订机票，也不提供完整的运行状态数据流。                                                |
-| 交互地图                                  | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)                                        | 使用 `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` 在浏览器端渲染地图。                                                   |
-| 地点搜索和详情                            | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview)                                      | 使用 `MAPS_API_KEY` 在服务端核实地点；地点照片通过 `/api/places/photo` 获取，按图片计费且仅在实时模式下使用。 |
-| 路线和出行时间                            | [Google Routes API](https://developers.google.com/maps/documentation/routes)                                                              | 对行程编辑进行路线和距离检查。                                                                                |
-| 步行和驾车回退                            | [OSRM](https://project-osrm.org/)，FOSSGIS（`routing.openstreetmap.de`）与演示服务器（`router.project-osrm.org`）                         | Google Routes 无法应答时使用；见 [Web 地图提供方](architecture.zh.md#web-map-providers)。                     |
-| Routes 无公共交通数据时的城际铁路（日本） | [SerpApi Google Maps Directions](https://serpapi.com/google-maps-directions-api)                                                          | 仅用于交通部分的城际路段；提供时长、班次和每人票价，换算成整组旅客的 AUD 费用；回退到驾车。                   |
-| 时区                                      | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)，失败时离线查询（`@photostructure/tz-lookup`） | 计算目的地本地时间。                                                                                          |
-| 天气预报                                  | Google Weather API（第 0–9 天）、Open-Meteo（第 10–14 天）、第 14 天之后使用 Open-Meteo 历史归档                                          | 已在工具网关实现，明确标记预报／气候数据来源；不把通用 SerpApi 网页结果视为天气数据。                         |
-| 航班延误、登机口和运行状态                | Aviationstack 或其他航空状态提供方                                                                                                        | 可选的未来能力；酒店／航班价格搜索不需要它。                                                                  |
-| 聊天、偏好、行程方案和 SerpApi 用量／缓存 | 兼容 Upstash 的 Redis REST 存储                                                                                                           | 部署时配置 `KV_REST_API_URL` + `KV_REST_API_TOKEN`；本地／离线运行采用进程内回退。                            |
+| 能力                                      | 提供方                                                                                                                                    | 状态和边界                                                                                                                             |
+| ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- |
+| 酒店搜索和参考价格                        | [SerpApi Google Hotels](https://serpapi.com/google-hotels-api)                                                                            | 配置后返回实时搜索结果；记住的住宿类型会影响搜索词和缓存键，但返回的房源类型未经独立核验。结果是规划数据，不代表预订或保证有效的报价。 |
+| 航班搜索和参考票价                        | [SerpApi Google Flights](https://serpapi.com/google-flights-api)                                                                          | 提供搜索结果和票价；不预订机票，也不提供完整的运行状态数据流。                                                                         |
+| 交互地图                                  | [Google Maps JavaScript API](https://developers.google.com/maps/documentation/javascript/overview)                                        | 使用 `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY` 在浏览器端渲染地图。                                                                            |
+| 地点搜索和详情                            | [Google Places API](https://developers.google.com/maps/documentation/places/web-service/op-overview)                                      | 使用 `MAPS_API_KEY` 在服务端核实地点；地点照片通过 `/api/places/photo` 获取，按图片计费且仅在实时模式下使用。                          |
+| 路线和出行时间                            | [Google Routes API](https://developers.google.com/maps/documentation/routes)                                                              | 对行程编辑进行路线和距离检查。                                                                                                         |
+| 步行和驾车回退                            | [OSRM](https://project-osrm.org/)，FOSSGIS（`routing.openstreetmap.de`）与演示服务器（`router.project-osrm.org`）                         | Google Routes 无法应答时使用；见 [Web 地图提供方](architecture.zh.md#web-map-providers)。                                              |
+| Routes 无公共交通数据时的城际铁路（日本） | [SerpApi Google Maps Directions](https://serpapi.com/google-maps-directions-api)                                                          | 仅用于交通部分的城际路段；提供时长、班次和每人票价，换算成整组旅客的 AUD 费用；回退到驾车。                                            |
+| 时区                                      | [Google Time Zone API](https://developers.google.com/maps/documentation/timezone/overview)，失败时离线查询（`@photostructure/tz-lookup`） | 计算目的地本地时间。                                                                                                                   |
+| 天气预报                                  | Google Weather API（第 0–9 天）、Open-Meteo（第 10–14 天）、第 14 天之后使用 Open-Meteo 历史归档                                          | 已在工具网关实现，明确标记预报／气候数据来源；不把通用 SerpApi 网页结果视为天气数据。                                                  |
+| 航班延误、登机口和运行状态                | Aviationstack 或其他航空状态提供方                                                                                                        | 可选的未来能力；酒店／航班价格搜索不需要它。                                                                                           |
+| 聊天、偏好、行程方案和 SerpApi 用量／缓存 | 兼容 Upstash 的 Redis REST 存储                                                                                                           | 部署时配置 `KV_REST_API_URL` + `KV_REST_API_TOKEN`；本地／离线运行采用进程内回退。                                                     |
 
 因此，当前 MVP 不需要 Travelpayouts 和 Aviationstack。只有产品需要联盟库存／预订流程或航班运行状态数据时才添加它们。SerpApi 也不替代持久化应用存储。
 
@@ -325,6 +325,14 @@ node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 `apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
 此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
 
+`LABEL=<unique-attempt> node apps/web/tests/e2e/neon-memory-driver.e2e.mjs` 通过已安装的 Neon
+WebSocket 客户端和 Drizzle session 测试账号记忆写入；现有读取和撤销使用已安装的 HTTP
+适配器。测试仅把传输层替换为进程内 PGlite 提供的 PostgreSQL 协议和 HTTP 响应，不需要
+密钥或外部数据库。结果写入 `output/e2e/neon-memory-driver/<unique-attempt>/summary.json`。
+检查覆盖提交、回滚、旧版住宿偏好值、账号级撤销和客户端清理，包括连接失败。
+这套串行传输不代表独立 Neon 会话之间的并发验证；已有 `accommodation-memory` 固定数据
+测试另行覆盖并发更新及撤销竞争。这两类测试都不能代替远程 Neon 或真实 Clerk 验收。
+
 <a id="cli-acceptance-in-ci"></a>
 
 #### CI 中的 CLI 验收
@@ -364,3 +372,8 @@ node apps/web/tests/e2e/run-performance.mjs
 工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。地图 journey 用 Google 兼容 SDK stub 控制可见性与动画 frame，并使用真实 MapLibre 的空白样式。它覆盖隐藏面板、后台页面、减少动态效果、视角与选择保留及卸载，不调用 Google，也不验证实时地图服务。
 
 每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。
+
+账户记忆与规划准备检查、预算修订类型的集成，通过
+`pnpm --filter @trip/web e2e long-term-memory accommodation-memory memory-settings planning-readiness` 验证。
+这些流程使用一次性 PGlite 和确定性的提供方夹具，不代表 Clerk、外部数据库或真实提供方验收。
+向外部数据库部署迁移 `0002` 仍需单独授权。
