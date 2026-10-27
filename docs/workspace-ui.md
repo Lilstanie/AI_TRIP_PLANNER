@@ -723,8 +723,20 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   - Once markers exist it fits them once, capped at zoom 15 (zoom 14 for a single place).
   - It reframes only on a trip or destination change. Drag, zoom and Show my location count as
     user moves and are never taken back.
-  - No Google map is created before there is somewhere to show; a neutral placeholder is shown
-    instead. Container resizes keep the centre.
+  - With a destination that cannot be placed, a neutral placeholder is shown instead of the map.
+    With no trip at all the basemap itself is shown (see Empty map). Container resizes keep the
+    centre.
+- **Empty map** (`TripMapCanvas`, `useHomeBase`, `PhoneMapSheet`). With no trip the map area renders
+  the real basemap, centred on the travel profile home city (resolved through the places search
+  route) when it resolves, otherwise a world view (`data-basemap-centre` is `home` or `world`). One
+  glass hint (`glass-float`) asks "Where are you going?"; on the phone it carries one button,
+  Plan in Chat, that opens Chat. At tablet width the top bar's Chat and Map switch already reaches
+  Chat, and on wide desktop the map area stays hidden until a trip exists, so neither shows a
+  button. If the style or tiles fail, the hint stays on a plain background with no error alert. The
+  phone Day stops sheet is not rendered without a trip; with a trip whose selected day has no stops
+  it opens collapsed to its handle plus one line, "Nothing planned for this day yet.", and the day
+  chips remain reachable by expanding it. See the
+  [empty map Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-map-empty-hint.md).
 - **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a
   numbered badge in its day's colour (`--day-1` … `--day-7`) on the place with a label pill beside it: a category icon from Google's
   `primaryType` and the place name, cut to 22 characters (26 when selected). Stop numbers come from
@@ -820,16 +832,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
   so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
   the traveller in Trip.
-- **Location.** When the workspace opens it asks in its own words, in the notices strip, whether to
-  show the traveller's location (`components/map/useUserLocation.ts`, `LocationPrompt`). The
-  browser's permission prompt appears only after Allow location or Show my location is pressed.
-  Not now is remembered in this browser (`trip.locationPrompt`) and the question does not return;
-  after an Allow that the browser still grants, later visits show the position without asking. The
-  question is skipped when the browser already blocks location. Denied, unavailable, timeout and
-  unsupported cases are explained on the map. Only the answer is stored: the position stays in
-  memory and is never saved or written into the plan. Route from my location requests a verified
-  duration and distance for the selected place. See the
-  [location prompt Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md).
+- **Location.** Location is asked only when the traveller presses Show my location
+  (`components/map/useUserLocation.ts`); no card or notice asks on open, so the browser's
+  permission prompt appears only after that press. After a press that the browser granted and
+  while it still grants, later visits show the position without asking. Denied, unavailable,
+  timeout and unsupported cases are explained on the map. Only that earlier press is stored
+  (`trip.locationPrompt`): the position stays in memory and is never saved or written into the
+  plan. Route from my location requests a verified duration and distance for the selected place.
+  See the [location prompt Agent Note](../.agents/notes/implemented/feature/2026-09-24-location-prompt-and-itinerary-map.md),
+  superseded for the opening question by the empty map note above.
 - **Controls.** A stack of round glass buttons at the bottom right, as on Mindtrip and Apple Maps:
   Show my location (a location arrow; it asks for the position, or centres on it at zoom 14 or
   closer once known, fills in while the position is shown, and reads Retry my location after a
