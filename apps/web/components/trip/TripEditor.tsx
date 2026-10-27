@@ -461,11 +461,7 @@ export function TripEditor({
             })}
           </ol>
         ) : (
-          <p className="timeline-empty">
-            {t(
-              "Nothing planned for this day yet. Ask in the chat to add something, or move a stop here from another day.",
-            )}
-          </p>
+          <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>
         )}
         {daily.length > 1 && (
           <p className="timeline-day__tip">

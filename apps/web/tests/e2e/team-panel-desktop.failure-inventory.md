@@ -25,3 +25,10 @@ Before changing production code, the retained browser journey must distinguish t
 - The page overflows horizontally or the panel leaves the viewport.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.
+
+TP-110 capsule scenarios, written before the change:
+
+- The trigger shows more than three avatars, or shows fewer than three while idle at 1440px.
+- A working specialist is not among the first avatars of the capsule.
+- The capsule is as wide as the six-avatar trigger (over 150px above 1000px, over 80px below).
+- The script still expects the button left of Trip, or the dialog named like the button; the progressive-empty workspace puts the control in the leading group and the popover is named "Specialist team".

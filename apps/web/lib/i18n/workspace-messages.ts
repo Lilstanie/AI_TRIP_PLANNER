@@ -208,8 +208,6 @@ export const WORKSPACE_ZH = {
   "Route check failed. Try again.": "路线检查失败，请重试。",
   "This stop has no journey before it.": "这一站之前没有行程。",
   "Staying at": "入住",
-  "Nothing planned for this day yet. Ask in the chat to add something, or move a stop here from another day.":
-    "当天尚无安排。可在聊天中添加活动，或将其他日期的停靠点移到这里。",
   "Drag a stop to reorder the day, or select it to edit.": "拖动停靠点调整顺序，或选中后修改。",
   "Change applied.": "修改已应用。",
   "Undo last change": "撤销上次修改",
@@ -277,8 +275,7 @@ export const WORKSPACE_ZH = {
   Rename: "重命名",
   Delete: "删除",
   "Your trips": "你的行程",
-  "No trips yet. Start one with New trip, or describe where you want to go in a chat.":
-    "尚无行程。选择新行程，或在聊天中描述旅行目的地。",
+  "No trips yet.": "尚无行程。",
   "Previous month": "上个月",
   Today: "今天",
   "Next month": "下个月",

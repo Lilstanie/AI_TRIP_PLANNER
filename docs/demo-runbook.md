@@ -71,7 +71,7 @@ The Stage 2 assistants demo runs in mock mode with no keys, in English or Chines
 Type `@` in the message box and pick an assistant from the menu (arrows, then Tab or Enter), or type its name.
 The Specialist team button in the top bar, or the avatar button beside the trip title on a phone, opens the team panel.
 
-1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the avatars on the Specialist team button show who is working; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that turn in the trajectory.
+1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, the three stacked avatars on the Agent Team capsule show who is working, with an "N working" count; the panel stays closed until you open it. Open it to see the Coordinator and the five specialists with their status. When the reply is done, press its summary line to open that turn in the trajectory.
 2. Type `@` and pick Stay from the menu, then `find a cheaper stay`. Only the accommodation specialist works and only its section changes.
 3. Lower the budget until the plan overruns, then repeat step 2. The panel shows the conflict, the specialist sent back for a revision, the revision score and the stop line.
 4. Type `@Stay`, then press Backspace once to select the whole mention and again to delete it.

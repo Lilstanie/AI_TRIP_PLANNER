@@ -288,9 +288,11 @@ export function ChatPanel({
           />
         </form>
       )}
-      <p className="disclaimer">
-        {t("Estimates require verification. Nothing here makes a booking.")}
-      </p>
+      {!(phone && blankUntouched) && (
+        <p className="disclaimer">
+          {t("Estimates require verification. Nothing here makes a booking.")}
+        </p>
+      )}
     </section>
   );
 }

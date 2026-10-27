@@ -13,7 +13,6 @@ const check = (ok, name, detail) => {
 };
 
 const PLAN = "Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000";
-const BUTTON = "Agent Team";
 const CLEAR = "Show all records";
 
 const browser = await chromium.launch({
@@ -119,7 +118,7 @@ try {
     const panel = page.locator(".team-panel");
     const trigger = phone
       ? page.locator(".phone-topbar__team")
-      : page.getByRole("button", { name: BUTTON, exact: true });
+      : page.getByRole("button", { name: /^Agent Team(, \d+ working)?$/ });
     const openLatest = async () => {
       if (phone) {
         await trigger.click();
@@ -185,6 +184,10 @@ try {
       await page.screenshot({ path: `${out}/${label}-latest-panel.png` });
       await press("accommodation").click();
       await panel.waitFor({ state: "detached" });
+      await page
+        .locator('[role="tab"][aria-selected="true"]', { hasText: "Trajectory" })
+        .waitFor({ timeout: 3000 })
+        .catch(() => undefined);
       check(
         (await trajectoryTab.getAttribute("aria-selected")) === "true",
         `${label}: pressing a specialist selects the Trajectory tab`,

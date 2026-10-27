@@ -17,15 +17,14 @@ const COPY = {
     locale: "en-AU",
     tab: /^Trajectory/,
     chat: /^Chat/,
-    empty:
-      "Nothing here yet. Send a message in Chat and each step the assistant takes will be listed here.",
+    empty: "Each step the assistant takes will be listed here after you send a message.",
     plan: "Plan in Chat",
   },
   zh: {
     locale: "zh-CN",
     tab: /^轨迹/,
     chat: /^聊天/,
-    empty: "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
+    empty: "发送消息后，助手的每一步都会列在这里。",
     plan: "去聊天规划",
   },
 };

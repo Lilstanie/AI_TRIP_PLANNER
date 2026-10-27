@@ -271,6 +271,22 @@ try {
     "phone blank: no horizontal overflow",
   );
   await phonePage.screenshot({ path: `${OUT}/phone-blank.png` });
+  for (const [width, height] of [
+    [390, 844],
+    [360, 800],
+  ]) {
+    await phonePage.setViewportSize({ width, height });
+    check(
+      (await phonePage.locator(".chat .disclaimer:visible").count()) === 0,
+      `phone blank ${width}x${height}: no estimate footer beside the one composer prompt`,
+    );
+    check(
+      await phonePage.evaluate(() => document.documentElement.scrollWidth === innerWidth),
+      `phone blank ${width}x${height}: no horizontal overflow`,
+    );
+    await phonePage.screenshot({ path: `${OUT}/phone-blank-${width}x${height}.png` });
+  }
+  await phonePage.setViewportSize({ width: 390, height: 844 });
   await composer(phonePage).fill("Tokyo");
   await phonePage.locator(".fact-chips").waitFor({ state: "attached" });
   check(

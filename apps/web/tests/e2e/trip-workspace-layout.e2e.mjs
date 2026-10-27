@@ -427,9 +427,10 @@ try {
   );
   check(
     !mediumHeader.labelVisible &&
-      mediumHeader.avatarCount === 1 &&
+      mediumHeader.avatarCount >= 1 &&
+      mediumHeader.avatarCount <= 3 &&
       mediumHeader.titleIdentityPreserved,
-    "960px header preserves full Trip identity in a usable title slot beside one Team icon",
+    "960px header preserves full Trip identity in a usable title slot beside the Team capsule",
     mediumHeader,
   );
   check(
