@@ -656,7 +656,6 @@ unlocated stops and failed place lookups, plus any itinerary issue from an edit 
 there are none. Tapping it opens a glass
 popover; selecting a row takes the traveller to its stop and day and closes the popover, as do Esc
 and an outside click. Unpriced items are not open items and stay in the budget’s “Not included” note.
-The [Agent Note](../.agents/notes/implemented/feature/2026-10-27-open-items-itinerary-issues.md) records why.
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
 
