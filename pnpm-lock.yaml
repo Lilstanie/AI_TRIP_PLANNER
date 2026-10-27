@@ -50,6 +50,9 @@ importers:
       '@tanstack/react-virtual':
         specifier: 3.14.22
         version: 3.14.22(react-dom@19.2.8(react@19.2.8))(react@19.2.8)
+      '@trip/agents':
+        specifier: workspace:^
+        version: link:../../packages/agents
       '@trip/orchestrator':
         specifier: workspace:*
         version: link:../../packages/orchestrator

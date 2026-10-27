@@ -217,6 +217,8 @@ not a decision: `requestDataMode` in `apps/web/lib/auth/live-data.ts` downgrades
 for a caller who may not spend the allowance, so a signed-out visitor still gets a working plan from
 fixtures.
 
+Anonymous chat on a deployment runs without model calls, using the local fallback. A signed-in traveller may use the real model even when provider data is set to mock. Local development without authentication retains model access.
+
 ## `GET /api/agent-lab/benchmark`
 
 Returns the versioned Agent Lab benchmark registry: benchmark and artifact schema versions, fixture
@@ -286,10 +288,10 @@ message or a provider payload.
 that request, so it makes no external call and spends no quota whatever keys or data-mode default the
 deployment holds. It needs no credential, and neither it nor a live run persists chats, trips or lab results.
 
-A live run uses the deployment's own models and providers, and exists only where the deployment sets
+On a deployment, a live run requires a signed-in traveller; without configured authentication it is refused. Local development without authentication may still run live. A live run uses the deployment's own models and providers, and exists only where the deployment sets
 `AGENT_LAB_LIVE_ENABLED=true` (see [development](development.md)). Only the two specialist strategies have a live
 implementation; the single-agent baseline replays a recording, so asking for it live is refused. A request that
-cannot start is answered with one typed `rejected` frame and no run, never an artifact: 503 `live_disabled`, 400
+cannot start is answered with one typed `rejected` frame and no run, never an artifact: 401 `live_disabled` when authentication is required or unavailable, 503 `live_disabled`, 400
 `live_unsupported`, or 429 `concurrency_limit` or `rate_limit` with a `Retry-After` header and
 `retryAfterSeconds`. These are not failures of the experiment, and the messages name no setting or limit. A live
 artifact's `dataMode`, and every event's, say `live`. Its `metrics.usage` is `{ "status": "measured", ... }` with

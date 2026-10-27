@@ -7,6 +7,7 @@ import {
   runTripChat,
 } from "@trip/orchestrator";
 import { createToolGateway, runWithDataMode } from "@trip/tools";
+import { runWithModelsDisabled } from "@trip/agents";
 import { tripStore } from "@trip/services";
 import { auth } from "@clerk/nextjs/server";
 import {
@@ -18,7 +19,7 @@ import {
   type FlightAnswer,
 } from "@trip/shared";
 import { noticeBody, type Notice } from "@/lib/i18n/notice";
-import { requestDataMode } from "@/lib/auth/live-data";
+import { liveDataAllowed, requestDataMode } from "@/lib/auth/live-data";
 import { authEnabled } from "@/lib/auth/config";
 import { dbEnabled } from "@/lib/db/client";
 import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/memory";
@@ -29,6 +30,7 @@ const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." 
 
 export async function POST(req: Request) {
   const dataMode = await requestDataMode(req);
+  const modelsAllowed = await liveDataAllowed();
   const body = await req.json().catch(() => ({}));
   const parsed = ChatRequest.safeParse(body);
   if (!parsed.success) {
@@ -93,12 +95,14 @@ export async function POST(req: Request) {
           send(answer);
           return;
         }
+        const run = () =>
+          runTripChat(requestData, {
+            onProgress: send,
+            mem: accountMemoryStore(accountId, memoryEnabled),
+          });
         const response = ChatResponse.parse(
           await runWithDataMode(dataMode, () =>
-            runTripChat(requestData, {
-              onProgress: send,
-              mem: accountMemoryStore(accountId, memoryEnabled),
-            }),
+            modelsAllowed ? run() : runWithModelsDisabled(run),
           ),
         );
         const recognized = recognizeAccountMemory(parsed.data.message);

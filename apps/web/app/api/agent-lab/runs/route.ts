@@ -4,6 +4,7 @@ import {
   runAgentLabToArtifact,
 } from "@trip/orchestrator";
 import { liveLimiter, readLiveConfig } from "@/lib/agent-lab/live-gate";
+import { liveDataBlock } from "@/lib/auth/live-data";
 import {
   AgentLabRunRequest,
   type AgentLabRejectionReason,
@@ -44,6 +45,16 @@ export async function POST(request: Request) {
 
   let release: (() => void) | undefined;
   if (parsed.data.dataMode === "live") {
+    const block = await liveDataBlock();
+    if (block) {
+      return rejected(
+        401,
+        "live_disabled",
+        block === "sign-in-required"
+          ? "Sign in to run live experiments."
+          : "Live runs require authentication on this deployment.",
+      );
+    }
     const config = readLiveConfig();
     if (!config.enabled) {
       return rejected(
