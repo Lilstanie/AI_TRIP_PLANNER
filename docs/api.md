@@ -312,7 +312,7 @@ reported, and the trace never carries a model's own reasoning.
 `configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
 whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
 deployment when Clerk is not configured. `liveBlock` names why it is off: `sign-in-required` for a
-signed-out caller on a configured deployment, `auth-not-configured` on a Vercel deployment without
+signed-out caller on a configured deployment, `auth-not-configured` on a production server or Vercel deployment without
 Clerk, and `null` when live is available. When it is false the workspace's data-mode chip stays on mock data with `aria-disabled="true"`, remains keyboard-focusable, and its hidden text says to sign in for live hotel and flight prices.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.

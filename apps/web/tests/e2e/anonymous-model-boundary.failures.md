@@ -2,6 +2,7 @@
 
 - A deployed anonymous chat may invoke the model in mock or live provider mode.
 - A deployment without configured authentication may invoke a model.
+- A production server outside Vercel may be mistaken for local development and invoke a model anonymously.
 - An anonymous Agent Lab live request may start a model-backed run.
 - A rejected live run may still call the provider.
 - Signed-in and local no-auth model access may be broken by the gate; these need separate real-session and local tests.

@@ -5,6 +5,7 @@ import assert from "node:assert/strict";
 const base = process.env.BASE_URL ?? "http://127.0.0.1:3218";
 const provider = process.env.MODEL_URL ?? "http://127.0.0.1:3219";
 const local = process.env.LOCAL_BASE_URL ?? "http://127.0.0.1:3220";
+const production = process.env.PRODUCTION_BASE_URL;
 const out = resolve("output/e2e/anonymous-model-boundary");
 await mkdir(out, { recursive: true });
 const results = [];
@@ -59,6 +60,25 @@ try {
     (await (await fetch(`${provider}/count`)).json()).count > before.count,
     "local no-auth chat reaches the model stub",
   );
+  if (production) {
+    const prodBefore = await (await fetch(`${provider}/count`)).json();
+    const prodStatus = await (await fetch(`${production}/api/data-mode`)).json();
+    check(prodStatus.liveAvailable === false, "non-Vercel production blocks anonymous live data");
+    await fetch(`${production}/api/chat`, {
+      method: "POST",
+      headers: { "content-type": "application/json" },
+      body: JSON.stringify({
+        tripId: "auth-prod-e2e",
+        message: "I want to visit Sydney",
+        mode: "chat",
+      }),
+      signal: AbortSignal.timeout(20000),
+    }).then((response) => response.text());
+    check(
+      (await (await fetch(`${provider}/count`)).json()).count === prodBefore.count,
+      "non-Vercel production makes no anonymous model request",
+    );
+  }
 } catch (error) {
   results.push({ name: "execution", passed: false, error: String(error) });
 }
