@@ -330,11 +330,14 @@ export function TripEditor({
       : undefined;
   const overIdeas = aim?.zone.kind === "ideas";
   const hoverDay = dropDay !== undefined && dropDay !== day ? dropDay : undefined;
+  const openDay = useRef(selectDay);
+  useEffect(() => {
+    openDay.current = selectDay;
+  });
   useEffect(() => {
     if (hoverDay === undefined) return;
-    const timer = window.setTimeout(() => selectDay(hoverDay), HOVER_OPEN_MS);
+    const timer = window.setTimeout(() => openDay.current(hoverDay), HOVER_OPEN_MS);
     return () => window.clearTimeout(timer);
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [hoverDay]);
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
