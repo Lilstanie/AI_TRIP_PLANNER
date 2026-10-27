@@ -24,7 +24,9 @@ Saved has no account-level store, so it reads other trips' saved places; no shar
 
 ## Validation
 
-Run `add-to-trip-panel` E2E with `--prod`: 138 checks passed before the touch-target check was added.
+- `add-to-trip-panel` and `instant-edits` E2E with `--prod`: all checks pass (139 and 80).
+- `leg-distances` passes. `trip-add-stop`, `auto-save-places`, `timeline` and `drawer-walkthrough` fail the same way on the unmodified integration branch.
+- typecheck, lint, check-ui-copy, verify:docs, verify:protected, verify:pairs and prettier pass.
 
 ## Notes for the next person
 
