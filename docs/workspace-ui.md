@@ -860,14 +860,22 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
-- **Add place** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md)).
-  The button under the day opens a search box and a Place name field. Choosing a result or pressing Add
-  puts the stop on the viewed day at once, and Save as Idea parks a typed name with no day; no preview,
-  Day or time fields or confirm step follow. A day-only `add` is timed by the server after the day's
-  last stop and no earlier than that stop's travel plus 15 minutes; a day with no room refuses with a
-  notice. Every edit applies as a plan revision and offers Undo; a running assistant disables the
-  button, times, menus and drags. Closing any form, with Cancel, Escape or outside dismissal, never asks
-  to discard and keeps no draft.
+- **Add to trip panel** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-add-to-trip-panel.md)).
+  An Add button ends every day and heads Ideas; both open one panel under the button with the tabs
+  Search, Ideas (day only), Saved and Custom, a Keep open checkbox and Close. Search takes a place name,
+  starts near the trip destination and has the filters Places, Stays, Restaurants, Experiences and
+  Events; a filter sends its kind to `/api/places/search`, which adds a query word, and narrows the
+  results by their place type. Ideas lists unscheduled places and schedules the chosen one on the day.
+  Saved lists the places saved on the account's other trips (`lib/trip/saved-places.ts`), once each.
+  Custom takes a name, an optional start time (day only; the end is an hour later) and a note. Choosing a
+  place adds it to the day, or to Ideas when the panel was opened from Ideas, at once; a result with
+  coordinates keeps its saved map match, and one without is matched by the automatic place save or
+  shows its search box when that fails. There is no preview, Day or time form or confirm step. A place
+  already on the day is added again as its own stop. A day-only `add` is timed by the server after the
+  day's last stop and no earlier than that stop's travel plus 15 minutes; a day with no room refuses
+  with a notice. Every edit applies as a plan revision and offers Undo; the panel closes after an add
+  unless Keep open is on. A running assistant disables both Add buttons and the panel. Escape and Close
+  never ask to discard and keep no draft. Controls are at least 44 px at phone width.
 - **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
   so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
   the traveller in Trip.
