@@ -11,6 +11,7 @@ const stop = (placeId: string, at: number, day: number): RouteStop => ({
 
 function fakeRuntime() {
   const lines: { options: Record<string, unknown>; setMap: ReturnType<typeof vi.fn> }[] = [];
+  const markers: { options: Record<string, unknown>; map: unknown; zIndex?: number }[] = [];
   const runtime = {
     map: {},
     maps: {
@@ -19,10 +20,17 @@ function fakeRuntime() {
         lines.push(line);
         return line;
       }),
+      marker: {
+        AdvancedMarkerElement: vi.fn(function (this: unknown, options: Record<string, unknown>) {
+          const marker = { options, map: options.map };
+          markers.push(marker);
+          return marker;
+        }),
+      },
       geometry: { encoding: { decodePath: vi.fn(() => [{ lat: 9, lng: 9 }]) } },
     },
   } as unknown as MapRuntime;
-  return { runtime, lines };
+  return { runtime, lines, markers };
 }
 
 const colors = {
@@ -100,7 +108,7 @@ describe("drawItineraryRoutes", () => {
 
   it("follows a verified polyline for its leg and still draws unrelated verified routes", () => {
     vi.spyOn(window, "requestAnimationFrame").mockReturnValue(1);
-    const { runtime, lines } = fakeRuntime();
+    const { runtime, lines, markers } = fakeRuntime();
     const routes = [
       { from: "a", to: "b", mode: "WALK" as const, status: "ok" as const, polyline: "ab" },
       { from: "x", to: "y", mode: "WALK" as const, status: "ok" as const, polyline: "xy" },
@@ -115,10 +123,16 @@ describe("drawItineraryRoutes", () => {
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("ab");
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("xy");
     expect(lines).toHaveLength(4);
+    expect(markers).toHaveLength(1);
+    expect(markers[0]!.options.title).toBe("Walk");
+    expect((markers[0]!.options.position as { lat: number }).lat).toBe(1.5);
+    expect(
+      (markers[0]!.options.content as HTMLElement).classList.contains("trip-map-leg-mode"),
+    ).toBe(true);
   });
 
   it("bends a leg without a verified route into an arc between its stops", () => {
-    const { runtime, lines } = fakeRuntime();
+    const { runtime, lines, markers } = fakeRuntime();
     drawItineraryRoutes({
       runtime,
       lines: dayRoutes([stop("a", 1, 1), stop("b", 2, 1)]),
@@ -133,5 +147,6 @@ describe("drawItineraryRoutes", () => {
 
     const middle = path[Math.floor(path.length / 2)]!;
     expect(Math.abs(middle.lat - middle.lng)).toBeGreaterThan(0.05);
+    expect(markers).toHaveLength(0);
   });
 });

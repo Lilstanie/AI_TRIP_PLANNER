@@ -368,17 +368,18 @@ export function TripMap({
       colors: routeColors(root.current),
       reducedMotion: false,
       animationEnabled: false,
+      locale,
     });
     routeLayer.current = layer;
     return () => {
       layer();
       routeLayer.current = null;
     };
-  }, [runtime, lines, routes, focusDay, dark]);
+  }, [runtime, lines, routes, focusDay, dark, locale]);
 
   useEffect(() => {
     routeLayer.current?.setAnimationEnabled(visible && !reducedMotion);
-  }, [runtime, lines, routes, focusDay, dark, visible, reducedMotion]);
+  }, [runtime, lines, routes, focusDay, dark, visible, reducedMotion, locale]);
 
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);
