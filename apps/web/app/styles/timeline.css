@@ -292,8 +292,42 @@ button.timeline-stop__main:hover {
   background: var(--warn-bg);
   color: var(--warn);
 }
-.timeline-stop[draggable="true"] {
+.timeline-stop[data-drop-row] {
   cursor: grab;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.timeline-stop[data-drop-row] .stop-editor {
+  cursor: auto;
+  user-select: text;
+}
+.timeline-stop[data-dragging] {
+  position: relative;
+  z-index: 2;
+  border-radius: var(--radius);
+  background: var(--surface, Canvas);
+  box-shadow: 0 8px 24px color-mix(in srgb, CanvasText 18%, transparent);
+  opacity: 0.92;
+}
+html.is-reordering,
+html.is-reordering * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+.timeline-drop-line {
+  position: relative;
+  height: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.timeline-drop-line::before {
+  content: "";
+  position: absolute;
+  inset-inline: var(--time-col) 0;
+  top: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .timeline-connection {
@@ -795,4 +829,69 @@ button.timeline-stop__time:disabled {
   .stop-popover {
     animation: none;
   }
+}
+.timeline-ideas__head ~ .timeline-ideas {
+  margin-top: 0;
+}
+.timeline-ideas__head {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2, var(--surface));
+}
+.add-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel__tabs,
+.add-panel__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+[data-phone] .add-panel button,
+[data-phone] .add-panel input:not([type="checkbox"]) {
+  min-height: 44px !important;
+}
+.add-panel [role="tab"][aria-selected="true"],
+.add-panel__filters [aria-pressed="true"] {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.add-panel__body {
+  display: grid;
+  gap: var(--space-2);
+}
+.add-panel__custom label {
+  display: grid;
+  gap: var(--space-1);
+}
+.add-panel__empty {
+  margin: 0;
+  color: var(--text-dim);
+}
+.add-panel__keep {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+.add-panel .stop-editor__search {
+  display: flex;
+  gap: var(--space-2);
+}
+.add-panel .stop-editor__search input {
+  flex: 1 1 0;
+  min-width: 0;
 }

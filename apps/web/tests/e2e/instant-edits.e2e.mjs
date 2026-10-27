@@ -286,11 +286,12 @@ try {
 
     let before = await savedCore();
     const requestsBefore = editRequests.length;
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
-    const search = page.getByRole("searchbox", { name: "Search places" });
+    await page.getByRole("button", { name: "Add to Day 1", exact: true }).click();
+    const panel = page.getByRole("region", { name: "Add to trip" });
+    const search = panel.getByRole("searchbox", { name: "Search places" });
     await search.fill("Instant Cafe");
     await search.press("Enter");
-    await page.getByRole("button", { name: "Use Instant Cafe" }).click();
+    await panel.getByRole("button", { name: "Add Instant Cafe" }).click();
     await waitSaved((items) => items.some((item) => item.location === "Instant Cafe"));
     const cafe = await stored("Instant Cafe");
     check(
@@ -308,10 +309,10 @@ try {
     check((await undoButton.count()) > 0, `adding a place offers Undo at ${tag}`);
     await undone("adding a searched place", before);
 
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
+    await page.getByRole("button", { name: "Add to Day 1", exact: true }).click();
     await search.fill("Instant Museum");
     await search.press("Enter");
-    await page.getByRole("button", { name: "Use Instant Museum" }).click();
+    await panel.getByRole("button", { name: "Add Instant Museum" }).click();
     await waitSaved(
       (items) => items.filter((item) => item.location === "Instant Museum").length === 2,
     );
@@ -321,9 +322,10 @@ try {
     );
     await undone("adding a place twice", before);
 
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
-    await page.getByRole("textbox", { name: "Place name", exact: true }).fill("Meeting point");
-    await page.getByRole("button", { name: "Add", exact: true }).click();
+    await page.getByRole("button", { name: "Add to Day 1", exact: true }).click();
+    await panel.getByRole("tab", { name: "Custom", exact: true }).click();
+    await panel.getByRole("textbox", { name: "Name", exact: true }).fill("Meeting point");
+    await panel.getByRole("button", { name: "Add", exact: true }).click();
     await waitSaved((items) => items.some((item) => item.location === "Meeting point"));
     const meeting = await stored("Meeting point");
     check(
@@ -332,9 +334,10 @@ try {
       meeting,
     );
     await undone("adding a custom place", before);
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
-    await page.getByRole("textbox", { name: "Place name", exact: true }).fill("Parked place");
-    await page.getByRole("button", { name: "Save as Idea", exact: true }).click();
+    await page.getByRole("button", { name: "Add to Ideas", exact: true }).click();
+    await panel.getByRole("tab", { name: "Custom", exact: true }).click();
+    await panel.getByRole("textbox", { name: "Name", exact: true }).fill("Parked place");
+    await panel.getByRole("button", { name: "Add", exact: true }).click();
     await waitSaved((items) => items.some((item) => item.location === "Parked place"));
     check(
       (await stored("Parked place"))?.day === undefined,
@@ -342,11 +345,11 @@ try {
     );
     await undone("saving an Idea", before);
 
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
+    await page.getByRole("button", { name: "Add to Day 1", exact: true }).click();
     await search.fill("nothing here");
     await search.press("Enter");
     await page
-      .getByRole("region", { name: "Add place" })
+      .getByRole("region", { name: "Add to trip" })
       .getByText("No places found. Try different words.")
       .waitFor();
     check(
@@ -354,22 +357,25 @@ try {
       `a search with no results changes nothing at ${tag}`,
     );
     await search.press("Escape");
-    check(await noDiscard(), `closing Add place with text in it never asks to discard at ${tag}`);
+    check(
+      await noDiscard(),
+      `closing the Add to trip panel with text in it never asks to discard at ${tag}`,
+    );
 
     await showDay(3);
     const lateBefore = await savedCore();
-    await page.getByRole("button", { name: "Add place", exact: true }).click();
+    await page.getByRole("button", { name: "Add to Day 3", exact: true }).click();
     await search.fill("Instant Night");
     await search.press("Enter");
-    await page.getByRole("button", { name: "Use Instant Night" }).click();
+    await panel.getByRole("button", { name: "Add Instant Night" }).click();
     await timeline.getByRole("alert").first().waitFor({ timeout: 8000 });
     check(
       JSON.stringify(await savedCore()) === JSON.stringify(lateBefore),
       `a day with no room refuses the add with a notice at ${tag}`,
     );
     await showDay(1);
-    if (await page.getByRole("region", { name: "Add place" }).count())
-      await page.getByRole("button", { name: "Cancel", exact: true }).first().click();
+    if (await panel.count())
+      await panel.getByRole("button", { name: "Close", exact: true }).click();
 
     before = await savedCore();
     await row("Instant Museum").locator(".timeline-stop__time").click();
@@ -509,9 +515,9 @@ try {
     const stop = row("Instant Museum").first();
     check(
       (await stop.locator(".timeline-stop__time").isDisabled()) &&
-        (await page.getByRole("button", { name: "Add place", exact: true }).isDisabled()) &&
+        (await page.getByRole("button", { name: "Add to Day 1", exact: true }).isDisabled()) &&
         (await stop.getAttribute("draggable")) !== "true",
-      `a running assistant disables time, Add place and drag at ${tag}`,
+      `a running assistant disables time, Add and drag at ${tag}`,
     );
     await stop.locator(".action-menu__trigger").click();
     const removeItem = page.getByRole("menuitem", { name: "Remove", exact: true });

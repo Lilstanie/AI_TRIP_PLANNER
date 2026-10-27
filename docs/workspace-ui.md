@@ -865,14 +865,22 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
-- **Add place** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md)).
-  The button under the day opens a search box and a Place name field. Choosing a result or pressing Add
-  puts the stop on the viewed day at once, and Save as Idea parks a typed name with no day; no preview,
-  Day or time fields or confirm step follow. A day-only `add` is timed by the server after the day's
-  last stop and no earlier than that stop's travel plus 15 minutes; a day with no room refuses with a
-  notice. Every edit applies as a plan revision and offers Undo; a running assistant disables the
-  button, times, menus and drags. Closing any form, with Cancel, Escape or outside dismissal, never asks
-  to discard and keeps no draft.
+- **Add to trip panel** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-add-to-trip-panel.md)).
+  An Add button ends every day and heads Ideas; both open one panel under the button with the tabs
+  Search, Ideas (day only), Saved and Custom, a Keep open checkbox and Close. Search takes a place name,
+  starts near the trip destination and has the filters Places, Stays, Restaurants, Experiences and
+  Events; a filter sends its kind to `/api/places/search`, which adds a query word, and narrows the
+  results by their place type. Ideas lists unscheduled places and schedules the chosen one on the day.
+  Saved lists the places saved on the account's other trips (`lib/trip/saved-places.ts`), once each.
+  Custom takes a name, an optional start time (day only; the end is an hour later) and a note. Choosing a
+  place adds it to the day, or to Ideas when the panel was opened from Ideas, at once; a result with
+  coordinates keeps its saved map match, and one without is matched by the automatic place save or
+  shows its search box when that fails. There is no preview, Day or time form or confirm step. A place
+  already on the day is added again as its own stop. A day-only `add` is timed by the server after the
+  day's last stop and no earlier than that stop's travel plus 15 minutes; a day with no room refuses
+  with a notice. Every edit applies as a plan revision and offers Undo; the panel closes after an add
+  unless Keep open is on. A running assistant disables both Add buttons and the panel. Escape and Close
+  never ask to discard and keep no draft. Controls are at least 44 px at phone width.
 - **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
   so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
   the traveller in Trip.
@@ -953,6 +961,18 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   and the plan stays as it was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
   A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
   reload. Confirming a stop's place still needs a Maps key or a stub.
+- **Drag within a day** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-drag-in-day.md)).
+  The whole Stop row is the drag target, with no handle: a mouse drag starts after 5 px, a touch drag
+  after a 400 ms long press, and a quick swipe still scrolls. An insertion line marks where the Stop
+  will land; dropping applies one `move` edit with an Undo, and the Stop numbers, times and Legs
+  refresh. Dropping on its own position, outside the day list or after Escape changes nothing.
+  Presses on form fields, links and open menus never start a drag, and a trip locked by a running
+  assistant (or by an edit still being checked) disables drag, including a drag already under way.
+  The list scrolls when the pointer nears its edge. The keyboard route is Alt+ArrowUp and
+  Alt+ArrowDown on the focused Stop; a polite live region announces "{name} moved to position {n} of
+  {total} on Day {d}". The drag state lives in `components/trip/useItineraryDrag.ts` and addresses
+  rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
+  `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens

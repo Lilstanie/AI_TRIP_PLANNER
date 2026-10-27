@@ -19,9 +19,8 @@ decision of 2026-10-08 had already ruled out.
   outside dismissal and Back close a form and drop what was typed.
 - `TripDrafts.tsx`, its provider, the restore entry and the Stop forms' use of `useDiscardChanges` are
   deleted. `useDiscardChanges` stays for the Brief sheets, which are not itinerary edits.
-- Add place (`apps/web/components/trip/timeline/AddStop.tsx`) has a search box, a Place name field and the
-  buttons Add and Save as Idea. Choosing a result or pressing Add puts the stop on the viewed day at once;
-  there is no preview, Day or time field.
+- Adding a place puts the stop on the viewed day, or in Ideas, at once; there is no preview, Day or time
+  field. The Add place form of this note became the [Add to trip panel](2026-10-27-add-to-trip-panel.md).
 - A day-only `add` operation of `/api/trip/preview-edit` is timed by the server: a one-hour stop after
   the day's last stop, no earlier than that stop's travel plus 15 minutes, 09:00 on an empty day, refused
   with the beyond-the-day notice when the day has no room. The client cannot know the travel time, so a
