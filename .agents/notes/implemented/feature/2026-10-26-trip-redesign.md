@@ -46,7 +46,9 @@ Accepted in interview round three (the traveller answered "all as recommended"):
   or budget change, and retain the previous Plan if replanning fails. Automatic route optimisation
   and complete version management are outside this redesign.
 - Show a compact issue summary that navigates to affected items and their actions. Distinguish
-  time conflicts, unlocated places, unpriced items and lookup failures. Incomplete information must
+  time conflicts, unlocated places, unpriced items and lookup failures. (The [open-items badge
+  note](2026-10-27-open-items-badge.md) replaces the summary block with a badge and drops unpriced
+  items.) Incomplete information must
   not prevent viewing or editing the Trip; individual invalid edits may still require correction.
 - Extend draft protection to all device sizes. Preserve unsubmitted input across day/view/width
   changes; confirm a dismissal or Back action that would discard changed fields. Failed saves keep

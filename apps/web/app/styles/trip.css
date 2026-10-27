@@ -118,77 +118,101 @@
   font-size: var(--font-size-meta);
 }
 
-.trip-issues {
-  padding-block: var(--space-2);
-  border-bottom: 1px solid var(--border);
-}
-
-.trip-issues > summary {
-  cursor: pointer;
-}
-
 .workspace-app[data-phone] .trip-panel > .currency-notice {
   display: none;
 }
 
-.workspace-app[data-phone] .trip-issues {
-  padding-block: var(--space-1);
+.open-items {
+  position: relative;
+  flex: none;
 }
 
-.trip-issues > summary h3 {
-  display: inline;
+.topbar-leading .topbar-title {
+  flex-grow: 0;
 }
 
-.trip-issues[open] > summary {
-  margin-bottom: var(--space-2);
+.open-items__badge {
+  display: inline-flex;
+  min-width: 32px;
+  min-height: 44px !important;
+  align-items: center;
+  justify-content: center;
+  padding: 0 !important;
+  border: 0 !important;
+  background: transparent !important;
+  color: var(--warn);
+  font: inherit;
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  cursor: pointer;
 }
 
-.trip-issues h3 {
-  margin: 0;
-  font-size: 14px;
+.open-items__count {
+  min-width: 22px;
+  height: 22px;
+  padding: 0 7px;
+  border-radius: 11px;
+  background: var(--warn-bg);
+  line-height: 22px;
+  text-align: center;
 }
 
-.trip-issues__group + .trip-issues__group {
+.open-items__popover {
+  position: absolute;
+  z-index: 30;
+  inset-block-start: calc(100% + var(--space-1));
+  inset-inline-start: 0;
+  width: min(320px, calc(100vw - 2 * var(--space-3)));
+  max-height: min(60vh, 420px);
+  overflow-y: auto;
+  padding: var(--space-2);
+  border-radius: 16px;
+}
+
+.workspace-app[data-phone] .open-items__popover {
+  position: fixed;
+  inset-block-start: calc(env(safe-area-inset-top) + 56px);
+  inset-inline: var(--space-3);
+  width: auto;
+}
+
+.open-items__group + .open-items__group {
   margin-top: var(--space-2);
 }
 
-.trip-issues__group h4 {
-  margin: 0;
+.open-items__group h3 {
+  margin: 0 0 2px;
+  padding-inline: var(--space-2);
   color: var(--text-dim);
   font-size: var(--font-size-meta);
+  font-weight: 600;
 }
 
-.trip-issues__group ul,
-.trip-issues__notices {
-  margin: 2px 0 0;
+.open-items__group ul {
+  display: grid;
+  gap: 2px;
+  margin: 0;
   padding: 0;
   list-style: none;
 }
 
-.trip-issues__group button {
-  display: flex;
+.open-items__group button {
   width: 100%;
   min-height: 44px;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: 4px 0;
+  padding: 4px var(--space-2);
   border: 0;
-  background: transparent;
+  border-radius: 10px;
+  background: var(--surface);
   color: var(--text);
+  font: inherit;
   text-align: start;
   cursor: pointer;
 }
 
-.trip-issues__group button:hover {
-  color: var(--accent);
+.open-items__group button:hover {
+  background: var(--fill-hover);
 }
 
-.trip-issues__group button > span:last-child {
-  color: var(--text-mut);
-  font-size: var(--font-size-meta);
-  white-space: nowrap;
-}
 .trip-panel__budget-breakdown {
   display: grid;
   gap: var(--space-1);

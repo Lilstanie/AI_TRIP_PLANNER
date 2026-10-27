@@ -629,11 +629,11 @@ known estimate. At narrow drawer widths each row wraps its amount under the
 category name instead of overflowing.
 The budget summary starts collapsed and keeps the known estimate, budget limit,
 currency and any unpriced count visible. Expanding it shows each priced item,
-including explicit zero prices and “Price unknown” rows. A Trip issues section
-groups scheduled overlaps, unlocated stops, unpriced items and failed place
-lookups. It starts collapsed. Selecting a row takes the traveller to its stop and day, or expands
-the budget and focuses the matching cost item when there is no scheduled Stop.
-
+including explicit zero prices and “Price unknown” rows. A count badge next to the trip title
+(top bar on desktop and tablet, phone top bar on phone) lists open items: scheduled overlaps,
+unlocated stops and failed place lookups. It is absent when there are none. Tapping it opens a glass
+popover; selecting a row takes the traveller to its stop and day and closes the popover, as do Esc
+and an outside click. Unpriced items are not open items and stay in the budget’s “Not included” note.
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
 
@@ -763,7 +763,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
   color is not the sole cue. Stops on other days step back to grey badges without labels.
-- **Trip itinerary.** One itinerary view: heading and summary, compact budget and issues,
+- **Trip itinerary.** One itinerary view: heading and summary, compact budget,
   collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
   their place carries on the map (a repeat visit keeps it), the day's flights and stay rows, then Ideas,
   unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map

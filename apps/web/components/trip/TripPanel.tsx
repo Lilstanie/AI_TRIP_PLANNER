@@ -9,31 +9,17 @@ import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
-import type { TripPlaces } from "../map/useTripPlaces";
-import { TripIssues } from "./TripIssues";
 
 export type TripPanelProps = {
   plan: TripPlan;
   timeline: ReactNode;
-  tripPlaces: TripPlaces;
-  onSelectStop(id: string): void;
-  onSelectDay(day: number): void;
   problem?: Notice;
 };
 
-export function TripPanel({
-  plan,
-  timeline,
-  tripPlaces,
-  onSelectStop,
-  onSelectDay,
-  problem,
-}: TripPanelProps) {
+export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
   const { t, locale, money, budgetGap, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
   const [budgetOpen, setBudgetOpen] = useState(false);
-  const [pendingBudgetItem, setPendingBudgetItem] = useState<string>();
-  const budgetItemRefs = useRef(new Map<string, HTMLLIElement>());
   const budgetManuallyChanged = useRef(false);
   const budgetTrip = useRef(plan.tripId);
   useEffect(() => {
@@ -63,19 +49,6 @@ export function TripPanel({
   const budgetConflicts = placeConflicts(plan).budget;
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
-  useEffect(() => {
-    if (!budgetOpen || !pendingBudgetItem) return;
-    const item = budgetItemRefs.current.get(pendingBudgetItem);
-    if (!item) return;
-    item.scrollIntoView({ block: "nearest" });
-    item.focus({ preventScroll: true });
-    setPendingBudgetItem(undefined);
-  }, [budgetOpen, pendingBudgetItem]);
-
-  const selectBudgetItem = (categoryId: string, itemId: string) => {
-    setPendingBudgetItem(`${categoryId}\u0000${itemId}`);
-    setBudgetOpen(true);
-  };
 
   return (
     <OnTripContext.Provider value={setOnTrip}>
@@ -197,15 +170,7 @@ export function TripPanel({
                 {category.items.length > 0 && (
                   <ul aria-label={t("{category} items", { category: t(category.label) })}>
                     {category.items.map((item) => (
-                      <li
-                        key={item.id}
-                        tabIndex={-1}
-                        ref={(node) => {
-                          const key = `${category.id}\u0000${item.id}`;
-                          if (node) budgetItemRefs.current.set(key, node);
-                          else budgetItemRefs.current.delete(key);
-                        }}
-                      >
+                      <li key={item.id}>
                         <span>{item.label}</span>
                         <span>
                           {item.amount === undefined ? t("Price unknown") : money(item.amount)}
@@ -236,13 +201,6 @@ export function TripPanel({
           )}
         </details>
         <CurrencyNotice />
-        <TripIssues
-          plan={plan}
-          tripPlaces={tripPlaces}
-          onSelectStop={onSelectStop}
-          onSelectDay={onSelectDay}
-          onSelectBudgetItem={selectBudgetItem}
-        />
         {timeline}
         {problem && (
           <p className="item-problem" role="alert">
