@@ -136,6 +136,10 @@ try {
       });
       const bar = page.locator(".phone-tabbar");
       const toChat = async () => {
+        if (phone && (await page.locator("dialog.phone-trajectory[open]").count())) {
+          await page.keyboard.press("Escape");
+          await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+        }
         if (phone) await bar.getByRole("tab", { name: copy.chat }).click();
         else await page.locator("#chat-tab-conversation").click();
         await page.locator(".chat__stream").waitFor({ state: "visible" });
@@ -165,12 +169,22 @@ try {
         });
       };
       const openPanel = async () => {
-        if (phone) await trigger.click();
-        else {
+        if (phone) {
+          await trigger.click();
+          const roster = page.locator("dialog.phone-trajectory[open] .phone-trajectory__team");
+          if (!(await roster.evaluate((node) => node.open)))
+            await roster.locator("> summary").click();
+        } else {
           await page.mouse.move(5, 500);
           await trigger.hover();
         }
         await panel.waitFor();
+      };
+
+      const closePanel = async () => {
+        await page.keyboard.press("Escape");
+        if (phone) await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
+        else await panel.waitFor({ state: "detached" });
       };
 
       await step(1, "team-working", async () => {
@@ -196,8 +210,7 @@ try {
           statuses,
         );
         await snap("panel-live");
-        await page.keyboard.press("Escape");
-        await panel.waitFor({ state: "detached" });
+        await closePanel();
         await answered(page, before);
         await page.evaluate(() => {
           window.__slow = false;
@@ -229,8 +242,7 @@ try {
           kinds,
         );
         await snap("panel-revision");
-        await page.keyboard.press("Escape");
-        await panel.waitFor({ state: "detached" });
+        await closePanel();
       });
 
       await step(3, "trajectory", async () => {

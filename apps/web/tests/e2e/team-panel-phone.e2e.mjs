@@ -97,7 +97,11 @@ try {
     );
     check(
       (await button.locator(".team-trigger__label, .team-trigger__count").count()) === 0,
-      `${label}: the button shows avatars only`,
+      `${label}: the idle capsule shows avatars only`,
+    );
+    check(
+      (await button.locator(".team-trigger__avatars .assistant-icon").count()) === 3,
+      `${label}: the idle capsule shows three stacked avatars`,
     );
     const bar = await topbar();
     check(bar && bar.height <= 64, `${label}: the top bar is one row`, bar?.height);
@@ -182,7 +186,22 @@ try {
           const trigger = document.querySelector(".workspace-topbar .team-trigger");
           const working = Number(trigger?.getAttribute("data-working"));
           return working > 0
-            ? { working, pulsing: trigger.querySelectorAll(".assistant-icon--working").length }
+            ? {
+                working,
+                pulsing: trigger.querySelectorAll(".assistant-icon--working").length,
+                capsule: {
+                  label: trigger.getAttribute("aria-label"),
+                  iconCount: trigger.querySelectorAll(".team-trigger__avatars .assistant-icon")
+                    .length,
+                  workingFirst: [
+                    ...trigger.querySelectorAll(".team-trigger__avatars .assistant-icon"),
+                  ]
+                    .map((icon) => icon.classList.contains("assistant-icon--working"))
+                    .every((on, index, all) => !on || all.slice(0, index).every(Boolean)),
+                  width: trigger.getBoundingClientRect().width,
+                  count: trigger.querySelector(".team-trigger__count-compact")?.textContent?.trim(),
+                },
+              }
             : false;
         },
         undefined,
@@ -195,16 +214,15 @@ try {
       `${label}: the button avatars show who is working`,
       caught,
     );
-    const workingButton = await button.evaluate((element) => ({
-      label: element.getAttribute("aria-label"),
-      iconCount: element.querySelectorAll(".team-trigger__avatars .assistant-icon").length,
-      count: element.querySelector(".team-trigger__count-compact")?.textContent?.trim(),
-    }));
+    const workingButton = caught?.capsule ?? {};
     check(
       workingButton.label === WORKING_NAME[locale](caught?.working ?? 0) &&
-        workingButton.iconCount === 1 &&
+        workingButton.iconCount >= 1 &&
+        workingButton.iconCount <= 3 &&
+        workingButton.workingFirst &&
+        workingButton.width <= 96 &&
         workingButton.count === String(caught?.working ?? 0),
-      `${label}: the working button shows one icon and a localized numeric count`,
+      `${label}: the working capsule shows up to three avatars, working first, and a localized numeric count`,
       workingButton,
     );
     check(

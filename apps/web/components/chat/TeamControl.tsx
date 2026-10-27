@@ -8,10 +8,16 @@ import { useTeamSurface } from "./use-team-surface";
 
 const HOVER_CLOSE_MS = 150;
 
+const CAPSULE_AVATARS = 3;
+
 export function TeamAvatars({ rows }: { rows: TeamModel["rows"] }) {
+  const shown = [
+    ...rows.filter((row) => row.status === "working"),
+    ...rows.filter((row) => row.status !== "working"),
+  ].slice(0, CAPSULE_AVATARS);
   return (
     <span className="team-trigger__avatars" aria-hidden="true">
-      {rows.map((row) => (
+      {shown.map((row) => (
         <AssistantIcon
           key={row.assistant}
           id={row.assistant}

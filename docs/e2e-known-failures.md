@@ -53,6 +53,16 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
   and the same command for `glass-calibration`.
 
+- `team-panel-desktop`, `team-thinking` and `trajectory-demo` already failed on `main` (2026-10-27, #734),
+  independent of the glass and open-items tickets. The progressive-empty workspace moved the team
+  control into the leading top bar group, so "the button sits left of Trip" had no Trip to find; the
+  popover is named Specialist team, not Agent Team; the button's accessible name carries ", N working"
+  while planning, so an exact-name locator timed out; clicks at the stream's top-left landed on the
+  pinned panel; the trajectory tab selection and filter chip render a tick after the press; and on the
+  phone the roster sits in a closed fold inside the sheet that stays in the DOM after it closes. The
+  scripts now use those current premises and pass with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
+
 ## Not failures
 
 - `installable-app` waits forever under `next dev`, because the service worker registers only in a production
