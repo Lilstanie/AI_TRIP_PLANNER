@@ -31,11 +31,6 @@ function overlaps(a: ProposalItem, b: ProposalItem): boolean {
   return a.startTime < b.endTime && b.startTime < a.endTime;
 }
 
-/**
- * Lists what in a trip needs a look: overlapping scheduled stops, stops without a located place and
- * stops whose place lookup failed. Stops without an id or a day are skipped because nothing can
- * select them. Unpriced items are not open items; the budget's "Not included" note reports them.
- */
 export function deriveOpenItems(plan: TripPlan, tripPlaces: TripPlaces): OpenItem[] {
   const found: OpenItem[] = [];
   const activities =
