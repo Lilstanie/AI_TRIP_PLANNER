@@ -1,6 +1,6 @@
 # Drag a stop within its day: failure inventory
 
-Written before the code (#748, spec #743). Each line is a way the feature could fail. The agreed seam is the real Trip workspace in a browser at 1440x900 with a mouse and at 390x844 with touch, a saved fixture Trip and the real edit route. It covers what the traveller sees and the saved plan.
+Written before the code (#748, spec #743). Each line is a way the feature could fail. The agreed seam is the real Trip workspace in a browser at 1440x1500 with a mouse and at 390x844 with touch, a saved fixture Trip and the real edit route. It covers what the traveller sees and the saved plan.
 
 ## Starting a drag
 

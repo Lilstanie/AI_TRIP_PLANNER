@@ -33,7 +33,7 @@ const core = (items) =>
 
 try {
   for (const viewport of [
-    { width: 1440, height: 900 },
+    { width: 1440, height: 1500 },
     { width: 390, height: 844 },
   ]) {
     const phone = viewport.width <= 520;
@@ -48,6 +48,7 @@ try {
     const pageErrors = [];
     const editRequests = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
+    page.on("dialog", (dialog) => void dialog.accept());
     page.on("request", (request) => {
       if (request.url().endsWith("/api/trip/preview-edit"))
         editRequests.push(request.postDataJSON());
@@ -239,6 +240,32 @@ try {
       await row(name).scrollIntoViewIfNeeded();
       return row(name).boundingBox();
     };
+    const scrollTopOf = () =>
+      row("Alder").evaluate((el) => {
+        for (let n = el.parentElement; n; n = n.parentElement) {
+          const o = getComputedStyle(n).overflowY;
+          if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight)
+            return n.scrollTop;
+        }
+        return document.scrollingElement.scrollTop;
+      });
+    const frameRows = async (from, to) => {
+      await row(from).scrollIntoViewIfNeeded();
+      await row(to).scrollIntoViewIfNeeded();
+      const a = await row(from).boundingBox();
+      const b = await row(to).boundingBox();
+      const dy = (a.y + a.height / 2 + b.y + b.height / 2) / 2 - viewport.height / 2;
+      await row(from).evaluate((el, delta) => {
+        for (let n = el.parentElement; n; n = n.parentElement) {
+          const o = getComputedStyle(n).overflowY;
+          if ((o === "auto" || o === "scroll") && n.scrollHeight > n.clientHeight) {
+            n.scrollTop += delta;
+            return;
+          }
+        }
+        document.scrollingElement.scrollTop += delta;
+      }, dy);
+    };
     const point = (b, fraction) => ({ x: b.x + b.width * 0.5, y: b.y + b.height * fraction });
 
     const mouseDrag = async (from, target, release = true, via = ".timeline-stop__name") => {
@@ -295,6 +322,7 @@ try {
     const reorder = async (label, from, to, fraction, expected, how) => {
       const requestsBefore = edits().length;
       const lineSeen = { count: 0, y: 0 };
+      await frameRows(from, to);
       if (phone) {
         const goal = await target(to, fraction);
         await touchDrag(from, goal, { hold: 700, release: false });
@@ -368,12 +396,13 @@ try {
     );
     await undoTo("a drop between two stops");
 
-    await reorder("a drop on the last position", "Alder", "Dogwood", 0.75, [
-      "Birch",
-      "Cedar",
+    await reorder(
+      "a drop on the last position",
+      phone ? "Cedar" : "Alder",
       "Dogwood",
-      "Alder",
-    ]);
+      0.75,
+      phone ? ["Alder", "Birch", "Dogwood", "Cedar"] : ["Birch", "Cedar", "Dogwood", "Alder"],
+    );
     await undoTo("a drop on the last position");
 
     await reorder("a drop on the first position", "Cedar", "Alder", 0.25, [
@@ -436,6 +465,27 @@ try {
     };
 
     if (phone) {
+      await row("Alder").scrollIntoViewIfNeeded();
+      const topBefore = await scrollTopOf();
+      const start = await row("Alder").locator(".timeline-stop__name").boundingBox();
+      await touchSend("touchStart", start.x + 20, start.y + start.height / 2);
+      await sleep(700);
+      for (let step = 1; step <= 6; step += 1)
+        await touchSend(
+          "touchMove",
+          start.x + 20,
+          start.y + ((viewport.height - 110 - start.y) * step) / 6,
+        );
+      await sleep(900);
+      const topAfter = await scrollTopOf();
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+      await sleep(300);
+      check(topAfter > topBefore + 40, `dragging near the bottom edge scrolls the list at ${tag}`, {
+        topBefore,
+        topAfter,
+      });
+      await noChange("a cancelled touch drag");
+      await row("Birch").scrollIntoViewIfNeeded();
       const handle = await row("Birch").locator(".timeline-stop__name").boundingBox();
       await touchSend("touchStart", handle.x + 20, handle.y + handle.height / 2);
       await touchSend("touchMove", handle.x + 20, handle.y + handle.height / 2 - 60);
@@ -445,6 +495,7 @@ try {
       await touchSend("touchEnd", 0, 0);
       check(swiping === 0, `a quick swipe scrolls instead of dragging at ${tag}`);
       await noChange("a swipe");
+      await row("Cedar").scrollIntoViewIfNeeded();
       const cedar = await row("Cedar").locator(".timeline-stop__name").boundingBox();
       await touchSend("touchStart", cedar.x + 20, cedar.y + cedar.height / 2);
       await sleep(700);
@@ -542,48 +593,61 @@ try {
     await page.screenshot({ path: resolve(out, `keyboard-${viewport.width}.png`), fullPage: true });
 
     if (!phone) {
+      const midBefore = edits().length;
+      await mouseDrag("Birch", await target("Dogwood", 0.75), false);
+      const midLine = await line.count();
+      await row("Cedar").locator(".timeline-stop__main").focus();
+      await page.keyboard.press("Alt+ArrowUp");
+      check(
+        await waitUntil(() => edits().length === midBefore + 1, 5000),
+        "an edit starting during a drag is sent",
+      );
+      const cancelled = await waitUntil(async () => (await line.count()) === 0, 5000);
+      await page.mouse.up();
+      await sleep(600);
+      check(midLine === 1, "a line showed while the drag was under way");
+      check(
+        cancelled &&
+          edits().length === midBefore + 1 &&
+          (await savedOrder()).join() === ["Alder", "Cedar", "Birch", "Dogwood"].join(),
+        "a drop released while another edit ran sends no second edit and leaves no line",
+        { requests: edits().length - midBefore, saved: await savedOrder() },
+      );
+      await undoTo("an edit during a drag");
+
+      const toggle = page.getByRole("button", { name: "Open your trip", exact: true });
+      await toggle.click();
       let held;
       await page.route("**/api/chat", (route) => {
         held = route;
       });
-      const handle = await row("Birch").locator(".timeline-stop__name").boundingBox();
-      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2);
-      await page.mouse.down();
-      await page.mouse.move(handle.x + handle.width / 2, handle.y + handle.height / 2 + 12);
-      await page.mouse.move((await target("Dogwood", 0.75)).x, (await target("Dogwood", 0.75)).y, {
-        steps: 6,
-      });
-      const midDrag = await line.count();
-      await page
-        .getByRole("button", { name: "Ask AI about this day", exact: true })
-        .focus()
-        .catch(() => undefined);
-      await page.keyboard.press("Enter");
-      await waitUntil(() => !!held, 6000);
-      const before = edits().length;
+      const input = page.getByRole("textbox", { name: "Message AI Trip Planner", exact: true });
+      await input.fill("Make day one lighter");
+      await input.press("Enter");
+      await waitUntil(() => !!held, 8000);
+      await toggle.click();
+      await timeline.waitFor();
+      const lockedBefore = edits().length;
+      await mouseDrag("Birch", await target("Dogwood", 0.75), false);
+      const lockedLine = await line.count();
       await page.mouse.up();
       await sleep(500);
-      check(midDrag === 1, "a line showed before the assistant started");
       check(
-        edits().length === before &&
-          (await savedOrder()).join() === NAMES.join() &&
-          (await line.count()) === 0,
-        "a drop released after the assistant started sends no edit and leaves no line",
-        { requests: edits().length - before, held: !!held },
+        !!held &&
+          lockedLine === 0 &&
+          edits().length === lockedBefore &&
+          (await savedOrder()).join() === NAMES.join(),
+        "a running assistant disables the drag: no line and no edit",
+        { held: !!held, line: lockedLine },
       );
-      const lockedBefore = edits().length;
-      if (await row("Birch").count()) {
-        await mouseDrag("Birch", await target("Dogwood", 0.75), false);
-        const lockedLine = await line.count();
-        await page.mouse.up();
-        await sleep(500);
-        check(
-          lockedLine === 0 && edits().length === lockedBefore,
-          "a locked trip shows no insertion line and sends no edit",
-        );
-      }
+      await page.screenshot({ path: resolve(out, `locked-${viewport.width}.png`), fullPage: true });
       await held?.abort();
       await page.unroute("**/api/chat");
+      const unlocked = await waitUntil(
+        async () => !(await row("Birch").locator(".timeline-stop__time").isDisabled()),
+        10_000,
+      );
+      check(unlocked, "edits work again once the assistant stops");
     }
 
     check(pageErrors.length === 0, `no page errors at ${tag}`, pageErrors);
