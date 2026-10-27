@@ -15,7 +15,6 @@
 .map-controls .map-control,
 .map-control-group,
 .trips-page__new,
-.location-prompt,
 .workspace-notices .error-banner,
 .agent-lab__toolbar {
   --glass-fill: var(--glass-tint);
@@ -115,7 +114,6 @@
   gap: var(--space-2);
   padding: 0 var(--float-gap) var(--float-gap) 0;
 }
-.location-prompt,
 .workspace-notices .error-banner {
   border-radius: var(--radius-lg);
   padding: var(--space-2) var(--space-3) var(--space-2) var(--space-4);
@@ -539,7 +537,6 @@
   .map-controls .map-control,
   .map-control-group,
   .trips-page__new,
-  .location-prompt,
   .workspace-notices .error-banner,
   .agent-lab__toolbar,
   .glass-float--raised,
@@ -589,7 +586,6 @@
   .map-controls .map-control,
   .map-control-group,
   .trips-page__new,
-  .location-prompt,
   .workspace-notices .error-banner,
   .agent-lab__toolbar,
   .glass-float--raised,
@@ -635,7 +631,6 @@
   .map-controls .map-control,
   .map-control-group,
   .trips-page__new,
-  .location-prompt,
   .workspace-notices .error-banner,
   .agent-lab__toolbar,
   .glass-float--raised,

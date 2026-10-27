@@ -57,7 +57,7 @@ The piece of work the Coordinator gives one specialist in a round: its first dis
 _Avoid_: task, job, subtask
 
 **Trajectory**:
-The ordered record of one chat: for each traveller message, what the Coordinator, each specialist and their tools did, round by round, up to the reply.
+The ordered record of one chat: for each traveller message, what the Coordinator, each specialist and their tools did, round by round, up to the reply. It opens as a simple list with one row per turn, and the full view (ledger, timeline, inspector) shows the same turns in detail.
 _Avoid_: trace (that is the Agent Lab's), log, timeline (that is the itinerary's)
 
 **Plan score**:

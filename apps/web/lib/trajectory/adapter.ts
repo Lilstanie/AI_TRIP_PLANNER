@@ -1,6 +1,6 @@
 import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { checkText } from "@/components/chat/team-check";
-import type { TrajectoryTurnModel } from "@/components/trajectory/layout";
+import type { TrajectoryTurnModel, TrajectoryTurnResult } from "@/components/trajectory/layout";
 import type { TrajectoryTranslate } from "@/components/trajectory/locales";
 import type { TrajectoryStep } from "@/components/trajectory/TrajectoryTable";
 import type { TrajectoryCellProps } from "@/components/trajectory/trajectory-record";
@@ -213,6 +213,29 @@ function blocks(
   return out;
 }
 
+function openChecks(events: readonly AgentProgressEvent[]): boolean {
+  let open = false;
+  for (const event of events) {
+    if (event.type !== "decision") continue;
+    const { decision } = event;
+    if (decision.type === "conflicts_detected") open = decision.conflicts.length > 0;
+    else if (decision.type === "loop_stopped")
+      open = decision.reason === "round_limit" || decision.reason === "infeasible_budget";
+  }
+  return open;
+}
+
+function turnResult(
+  section: Section,
+  drafts: readonly Draft[],
+  working: boolean,
+): TrajectoryTurnResult {
+  if (working) return "working";
+  if (section.reply === undefined || drafts.some((draft) => draft.isError)) return "failed";
+  if (drafts.some((draft) => draft.running)) return "working";
+  return openChecks(section.events) ? "needs_change" : "done";
+}
+
 function stepStatus(cells: readonly Draft[]): TrajectoryStep["status"] {
   if (cells.some((cell) => cell.isError)) return "error";
   return cells.some((cell) => cell.running) ? "running" : "complete";
@@ -248,13 +271,16 @@ export function buildTrajectory(input: TrajectoryInput): TrajectoryLedger {
   let turnNumber = 0;
   let index = 0;
   const finish = (draft: Draft): TrajectoryCellProps => ({ ...draft, index: index++ });
-  for (const [sectionIndex, section] of sections(input).entries()) {
+  const all = sections(input);
+  for (const [sectionIndex, section] of all.entries()) {
     const turn = section.user === undefined ? null : ++turnNumber;
     const prefix = turn === null ? `m${sectionIndex}` : `t${turn}`;
     const rounds = new Map<number, Draft[]>();
     const owned = (draft: Draft) =>
       input.only === undefined || draft.assistants?.includes(input.only) === true;
-    for (const block of blocks(section.events, prefix, section.settled, input)) {
+    const built = blocks(section.events, prefix, section.settled, input);
+    const working = section.reply === undefined && input.busy && sectionIndex === all.length - 1;
+    for (const block of built) {
       const kept = [block.head, ...block.children].filter(owned);
       if (kept.length === 0) continue;
       const cells = rounds.get(block.round) ?? [];
@@ -292,11 +318,22 @@ export function buildTrajectory(input: TrajectoryInput): TrajectoryLedger {
     for (const round of [...rounds.keys()].sort((left, right) => left - right)) {
       const drafts = rounds.get(round) ?? [];
       const title = input.tt("step.label", { step: round });
-      groups.push({ title, cells: drafts.map(finish) });
+      groups.push({ title, round, cells: drafts.map(finish) });
       if (turn !== null)
         steps.push({ turn, step: round, group: title, status: stepStatus(drafts) });
     }
-    if (groups.length > 0 || input.only === undefined) turns.push({ turn, groups });
+    if (groups.length > 0 || input.only === undefined) {
+      turns.push({
+        turn,
+        ...(section.user === undefined ? {} : { summary: oneLine(section.user.text) }),
+        result: turnResult(
+          section,
+          built.flatMap((block) => [block.head, ...block.children]),
+          working,
+        ),
+        groups,
+      });
+    }
   }
   return { turns, steps };
 }

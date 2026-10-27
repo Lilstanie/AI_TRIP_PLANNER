@@ -127,10 +127,7 @@ function Controls() {
         phone={window.innerWidth <= 520}
         userLocation={{
           location: { status: "idle" },
-          asking: false,
           request: () => {},
-          allow: () => {},
-          dismiss: () => {},
         }}
       />
     </>

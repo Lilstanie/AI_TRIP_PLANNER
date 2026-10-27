@@ -376,6 +376,9 @@ try {
       `${label}: the trajectory names the filtered specialist`,
       await chip.allInnerTexts(),
     );
+    await page.locator("[data-trajectory-simple]").waitFor();
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+    await page.locator("[data-trajectory-scroll]").waitFor();
     const filtered = await page.evaluate(() =>
       [...document.querySelectorAll("[data-trajectory-scroll] tr[data-record-index]")].map(
         (row) => ({

@@ -236,6 +236,14 @@ try {
       await step(3, "trajectory", async () => {
         await replies.last().scrollIntoViewIfNeeded();
         await page.locator(SUMMARY).nth(1).click();
+        await page.locator("[data-trajectory-simple]").waitFor();
+        check(
+          (await page
+            .locator('[data-simple-turn="2"] [data-simple-toggle]')
+            .getAttribute("aria-expanded")) === "true",
+          `${label} step 3: the summary opens the simple list at the revision turn`,
+        );
+        await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
         await page.locator("[data-trajectory-scroll]").waitFor();
         await page.waitForTimeout(600);
         const inView = await page.evaluate(() => {
@@ -282,6 +290,23 @@ try {
         await page.locator('.team-panel__row[data-assistant="dining"] button').click();
         const filter = page.locator("[data-trajectory-filter]");
         await filter.waitFor();
+        await page.locator("[data-trajectory-simple]").waitFor();
+        const simpleOwners = await page
+          .locator("[data-trajectory-simple] [data-simple-turn]")
+          .evaluateAll((nodes) =>
+            nodes.map((node) =>
+              [...node.querySelectorAll("[data-simple-avatar]")].map((a) =>
+                a.getAttribute("data-simple-avatar"),
+              ),
+            ),
+          );
+        check(
+          simpleOwners.length >= 1 && simpleOwners.every((ids) => ids.includes("dining")),
+          `${label} step 5: the simple list lists only turns that specialist took part in`,
+          simpleOwners,
+        );
+        await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+        await page.locator("[data-trajectory-scroll]").waitFor();
         const owners = await page
           .locator("[data-trajectory-scroll] tr[data-record-index]")
           .evaluateAll((nodes) => [...new Set(nodes.map((n) => n.getAttribute("data-assistant")))]);

@@ -5,12 +5,17 @@
 
 import type { TrajectoryCellProps } from "./trajectory-record";
 
+export type TrajectoryTurnResult = "working" | "done" | "failed" | "needs_change";
+
 export interface TrajectoryGroupModel {
   title: string;
+  round?: number;
   cells: readonly TrajectoryCellProps[];
 }
 
 export interface TrajectoryTurnModel {
   turn: number | null;
+  summary?: string;
+  result?: TrajectoryTurnResult;
   groups: readonly TrajectoryGroupModel[];
 }

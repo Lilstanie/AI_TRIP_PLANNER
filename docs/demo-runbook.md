@@ -89,9 +89,9 @@ The trajectory part of the Stage 2 demo also runs in mock mode with no keys, in 
 
 1. Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000. While it runs, open the Specialist team panel: one specialist is working.
 2. Lower the budget until the plan overruns, then send `@Stay find a cheaper stay again`. The panel shows the conflict check and the revision assignment.
-3. Press the summary line above the finished reply. The Trajectory tab opens with that reply's turn centred in the ledger (on a phone, the Trajectory tab of the bottom bar).
+3. Press the summary line above the finished reply. The Trajectory tab opens on its simple list with that reply's turn open (on a phone, the Trajectory tab of the bottom bar). Press Full view: the ledger centres that turn.
 4. Press the conflict check that names Food & dining. The inspector shows the decision and the specialist it sends back, with no token or duration field.
-5. Close the inspector, open the Specialist team panel and press Food & dining. The ledger keeps only that specialist's records; Show all records restores it.
+5. Close the inspector, open the Specialist team panel and press Food & dining. The simple list keeps only that specialist's turns; press Full view and the ledger keeps only that specialist's records; Show all records restores it.
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` repeats the five steps at 1440 px and 390 px in both languages and saves numbered screenshots (`<language>-<width>-NN-<step>.png`) and `output/playwright/trajectory-demo/result.json`, listing each step with its screenshots and checks, as the demo record. `summary-jump` checks the summary line on a three-turn chat and saves `output/playwright/summary-jump/`.
 

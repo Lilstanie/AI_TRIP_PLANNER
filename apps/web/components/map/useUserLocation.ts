@@ -10,32 +10,24 @@ export type LocationState =
   | { status: "error"; message: Notice };
 
 export const LOCATION_CHOICE_KEY = "trip.locationPrompt";
-type Choice = "allowed" | "dismissed";
 
 export type UserLocation = {
   location: LocationState;
 
-  asking: boolean;
-
   request(): void;
-
-  allow(): void;
-
-  dismiss(): void;
 };
 
-function readChoice(): Choice | undefined {
+function wasAllowed(): boolean {
   try {
-    const value = localStorage.getItem(LOCATION_CHOICE_KEY);
-    return value === "allowed" || value === "dismissed" ? value : undefined;
+    return localStorage.getItem(LOCATION_CHOICE_KEY) === "allowed";
   } catch {
-    return undefined;
+    return false;
   }
 }
 
-function writeChoice(choice: Choice) {
+function rememberAllowed() {
   try {
-    localStorage.setItem(LOCATION_CHOICE_KEY, choice);
+    localStorage.setItem(LOCATION_CHOICE_KEY, "allowed");
   } catch {}
 }
 
@@ -61,7 +53,6 @@ export function geolocationError(error: GeolocationPositionError): Notice {
 
 export function useUserLocation(): UserLocation {
   const [location, setLocation] = useState<LocationState>({ status: "idle" });
-  const [asking, setAsking] = useState(false);
 
   const request = useCallback(() => {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
@@ -73,46 +64,29 @@ export function useUserLocation(): UserLocation {
     }
     setLocation({ status: "loading" });
     navigator.geolocation.getCurrentPosition(
-      ({ coords }) =>
+      ({ coords }) => {
+        rememberAllowed();
         setLocation({
           status: "success",
           position: { lat: coords.latitude, lng: coords.longitude },
           message: { key: "Your current location is shown on the map." },
-        }),
+        });
+      },
       (cause) => setLocation({ status: "error", message: geolocationError(cause) }),
       { enableHighAccuracy: false, timeout: 10_000, maximumAge: 60_000 },
     );
   }, []);
 
   useEffect(() => {
+    if (!wasAllowed()) return;
     let cancelled = false;
-    const choice = readChoice();
-    if (choice === "dismissed") return;
     void permissionState().then((state) => {
-      if (cancelled || state === "denied") return;
-
-      if (choice === "allowed" && state === "granted") request();
-      else setAsking(true);
+      if (!cancelled && state === "granted") request();
     });
     return () => {
       cancelled = true;
     };
   }, [request]);
 
-  useEffect(() => {
-    if (location.status !== "idle") setAsking(false);
-  }, [location.status]);
-
-  const allow = useCallback(() => {
-    writeChoice("allowed");
-    setAsking(false);
-    request();
-  }, [request]);
-
-  const dismiss = useCallback(() => {
-    writeChoice("dismissed");
-    setAsking(false);
-  }, []);
-
-  return { location, asking, request, allow, dismiss };
+  return { location, request };
 }

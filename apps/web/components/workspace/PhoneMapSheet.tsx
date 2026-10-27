@@ -14,7 +14,7 @@ const names = {
 
 export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
   const { t } = useLocale();
-  const [snap, setSnap] = useState<Snap>("half");
+  const [chosen, setSnap] = useState<Snap>();
   const drag = useRef<{ y: number; snap: Snap; moved: boolean } | null>(null);
   const ignoreClick = useRef(false);
 
@@ -24,12 +24,16 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
     ? Array.from({ length: dayCount(session.plan) }, (_, index) => index + 1)
     : [];
   const stops = selectedDay === undefined ? [] : itinerary.stopsOn(selectedDay);
+  const empty = stops.length === 0;
+  const snap = chosen ?? (empty ? "handle" : "half");
   const changeSnap = (step: number) =>
-    setSnap((value) => snaps[Math.max(0, Math.min(2, snaps.indexOf(value) + step))]!);
+    setSnap(snaps[Math.max(0, Math.min(2, snaps.indexOf(snap) + step))]!);
+  if (!session.plan) return null;
   return (
     <section
       className="phone-map-sheet"
       data-snap={snap}
+      data-empty={empty || undefined}
       aria-label={t("Day stops")}
       onKeyDown={(event) => {
         if (event.key === "Escape" && snap !== "handle") {
@@ -85,6 +89,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
         <span aria-hidden="true" className="phone-map-sheet__grip" />
         <span>{t("Day stops")}</span>
       </button>
+      {empty && <p className="phone-map-sheet__empty">{t("Nothing planned for this day yet.")}</p>}
       <div id="phone-map-stops" className="phone-map-sheet__body" hidden={snap === "handle"}>
         {days.length > 0 && (
           <div className="phone-map-sheet__days" role="group" aria-label={t("Choose map day")}>
@@ -100,7 +105,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
             ))}
           </div>
         )}
-        {stops.length > 0 ? (
+        {stops.length > 0 && (
           <ol className="phone-map-sheet__stops">
             {stops.map(({ activity: stop, number }, index) => {
               return (
@@ -132,10 +137,6 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
               );
             })}
           </ol>
-        ) : (
-          <p className="phone-map-sheet__empty">
-            {t("Plan a trip in Chat to see your day stops here.")}
-          </p>
         )}
       </div>
     </section>

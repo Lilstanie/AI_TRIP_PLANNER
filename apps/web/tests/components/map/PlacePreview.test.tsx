@@ -21,10 +21,7 @@ const place: GooglePlace = {
 
 const noLocation: UserLocation = {
   location: { status: "idle" },
-  asking: false,
   request() {},
-  allow() {},
-  dismiss() {},
 };
 const stops = (...places: GooglePlace[]) =>
   places.map((item, index) => ({ place: item, number: index + 1 }));

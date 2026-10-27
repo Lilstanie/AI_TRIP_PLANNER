@@ -58,6 +58,17 @@ const zh = {
   "details.toolCall": "工具调用",
   "timeline.aria": "轨迹时间线",
   "timeline.overviewAria": "时间线概览；水平拖动可聚焦事件",
+  "view.aria": "轨迹视图",
+  "view.simple": "简洁",
+  "view.full": "完整视图",
+  "simple.list": "轮次",
+  "simple.result.working": "工作中",
+  "simple.result.done": "完成",
+  "simple.result.failed": "失败",
+  "simple.result.needs_change": "需修改",
+  "simple.noMessage": "无用户消息",
+  "simple.rounds": "各步骤",
+  "simple.running": "进行中",
 } as const;
 
 export type TrajectoryKey = keyof typeof zh;
@@ -115,6 +126,17 @@ const en: Record<TrajectoryKey, string> = {
   "details.toolCall": "Tool call",
   "timeline.aria": "Trajectory timeline",
   "timeline.overviewAria": "Timeline overview; drag horizontally to focus events",
+  "view.aria": "Trajectory view",
+  "view.simple": "Simple",
+  "view.full": "Full view",
+  "simple.list": "Turns",
+  "simple.result.working": "Working",
+  "simple.result.done": "Done",
+  "simple.result.failed": "Failed",
+  "simple.result.needs_change": "Needs change",
+  "simple.noMessage": "No traveller message",
+  "simple.rounds": "Steps",
+  "simple.running": "Running",
 };
 
 export type TrajectoryTranslate = (

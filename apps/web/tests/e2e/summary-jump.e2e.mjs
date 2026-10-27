@@ -50,7 +50,15 @@ const rowState = (page, text) =>
     return box.top >= rect.top - 1 && box.bottom <= rect.bottom + 1 ? "in view" : "out of view";
   }, text);
 
+async function ensureFull(page) {
+  const simple = page.locator("[data-trajectory-simple]");
+  await simple.waitFor({ timeout: 3000 }).catch(() => undefined);
+  if (await simple.count())
+    await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+}
+
 async function settle(page, text) {
+  await ensureFull(page);
   let state = "";
   for (let attempt = 0; attempt < 40; attempt += 1) {
     state = await rowState(page, text);
@@ -142,6 +150,13 @@ try {
     await line.click();
 
     await summaries.nth(1).click();
+    await page.locator("[data-trajectory-simple]").waitFor();
+    check(
+      (await page
+        .locator('[data-simple-turn="2"] [data-simple-toggle]')
+        .getAttribute("aria-expanded")) === "true",
+      `${label}: the second reply's summary opens the simple list at the second turn`,
+    );
     check(
       (await settle(page, TURNS[1])) === "in view",
       `${label}: the second reply's summary shows the second turn`,
@@ -199,6 +214,7 @@ try {
     await page.locator("[data-trajectory-filter]").waitFor();
     await toChat();
     await summaries.nth(1).click();
+    await ensureFull(page);
     await page.locator("[data-trajectory-scroll]").waitFor();
     check(
       (await page.locator("[data-trajectory-filter]").count()) === 0,
