@@ -8,6 +8,14 @@ import type { TripPlaces } from "../map/useTripPlaces";
 import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import {
+  applyDayAction,
+  scheduledCount,
+  scheduledOn,
+  type DayAction,
+} from "@/lib/trip/day-actions";
+import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
+import { CloseIcon, MapIcon, MinusIcon, PlusIcon, SuitcaseIcon } from "../ui/icons";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { FlowStayIcon } from "../ui/flow-icons";
@@ -74,6 +82,7 @@ export function TripEditor({
   saves = IDLE_AUTO_SAVE,
   onChoose,
   onTimelineChange,
+  onShowMap,
   phone = false,
 }: {
   plan: TripPlan;
@@ -105,6 +114,8 @@ export function TripEditor({
   onChoose?: ChooseCandidate;
 
   onTimelineChange?(changed: boolean): void;
+
+  onShowMap?(day: number): void;
 
   phone?: boolean;
 }) {
@@ -219,6 +230,76 @@ export function TripEditor({
     }
   };
 
+  const runDay = (action: DayAction, message: Notice, then?: (next: TripPlan) => void) => {
+    try {
+      const next = applyDayAction(plan, action, settings.displayCurrency);
+      undo.record(next, { previous: plan, message });
+      setProblem("");
+      onTimelineChange?.(true);
+      onApply(next);
+      then?.(next);
+    } catch (error) {
+      setProblem(
+        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
+      );
+    }
+  };
+  const dayMenu = (): ActionMenuItem[] => [
+    {
+      label: t("Add day before"),
+      icon: <PlusIcon />,
+      disabled: locked,
+      onSelect: () =>
+        runDay({ kind: "insert", at: day }, { key: "Day {day} added.", params: { day } }, () =>
+          selectDay(day),
+        ),
+    },
+    {
+      label: t("Add day after"),
+      icon: <PlusIcon />,
+      disabled: locked,
+      onSelect: () =>
+        runDay(
+          { kind: "insert", at: day + 1 },
+          { key: "Day {day} added.", params: { day: day + 1 } },
+          () => selectDay(day + 1),
+        ),
+    },
+    {
+      label: t("Clear day"),
+      icon: <CloseIcon />,
+      separated: true,
+      disabled: locked || !scheduledOn(plan, day),
+      onSelect: () =>
+        runDay({ kind: "clear", day }, { key: "Day {day} cleared.", params: { day } }),
+    },
+    {
+      label: t("Remove day"),
+      icon: <MinusIcon />,
+      tone: "danger",
+      disabled: locked || days < 2,
+      onSelect: () =>
+        runDay({ kind: "remove", day }, { key: "Day {day} removed.", params: { day } }, () =>
+          selectDay(Math.min(day, days - 1)),
+        ),
+    },
+  ];
+  const itineraryMenu = (): ActionMenuItem[] => [
+    {
+      label: t("Move all events to ideas"),
+      icon: <SuitcaseIcon />,
+      disabled: locked || !scheduledCount(plan),
+      onSelect: () => runDay({ kind: "ideas" }, { key: "All events moved to Ideas." }),
+    },
+    {
+      label: t("Remove all scheduled events"),
+      icon: <CloseIcon />,
+      tone: "danger",
+      disabled: locked || !scheduledCount(plan),
+      onSelect: () => runDay({ kind: "removeAll" }, { key: "All scheduled events removed." }),
+    },
+  ];
+
   const [announcement, setAnnouncement] = useState<Notice | undefined>();
   const commitMove = async (activity: Activity, index: number) => {
     if (!activity.id || activity.day === undefined) return;
@@ -327,8 +408,11 @@ export function TripEditor({
         </button>
       )}
       <div className="trip-editor__distances">
-        <span>{t("Show distances")}</span>
-        <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
+        <div className="trip-editor__distances-switch">
+          <span>{t("Show distances")}</span>
+          <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
+        </div>
+        <ActionMenu label={t("Itinerary actions")} items={itineraryMenu()} />
       </div>
       <DayStrip
         days={strip}
@@ -400,9 +484,23 @@ export function TripEditor({
         aria-labelledby={`${dayPanelId}-day-tab-${day}`}
         tabIndex={0}
       >
-        <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
-          {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
-        </h3>
+        <div className="timeline-day__head">
+          <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
+            {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
+          </h3>
+          {onShowMap && (
+            <button
+              type="button"
+              className="timeline-day__map"
+              aria-label={t("Day map, Day {v0}", { v0: day })}
+              onClick={() => onShowMap(day)}
+            >
+              <MapIcon />
+              {t("Day map")}
+            </button>
+          )}
+          <ActionMenu label={t("Day {v0} actions", { v0: day })} items={dayMenu()} />
+        </div>
         <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">

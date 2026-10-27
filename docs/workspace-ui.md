@@ -970,6 +970,19 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   {total} on Day {d}". The drag state lives in `components/trip/useItineraryDrag.ts` and addresses
   rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
   `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
+- **Day menu and itinerary menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-day-menus.md)).
+  Each day has a menu named "Day {n} actions" next to its title: Add day before, Add day after, Clear day and
+  Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
+  brings the map forward). The itinerary has a menu named "Itinerary actions" beside the Show distances
+  switch: Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
+  revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
+  moves a day earlier and every booked date stays put, anywhere else the end date moves a day later and
+  later stops, stays and flights move with it; a stay that spans the new day gains a night and its cost
+  and text follow. Remove day trims the same way, and is refused with a notice when the day holds a
+  flight or would take a stay's last night; it is disabled on the only day. Clear day is disabled on an
+  empty day. Edit title and Add note are not built: the plan has no field for a day title or note, so
+  they wait for a `packages/shared` change. Logic is in `lib/trip/day-actions.ts`; verify with
+  `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens

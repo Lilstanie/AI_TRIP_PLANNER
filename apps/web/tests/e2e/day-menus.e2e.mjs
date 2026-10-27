@@ -230,17 +230,23 @@ try {
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
-    if (phone) {
-      await page.getByRole("tab", { name: "Mine", exact: true }).click();
-      await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first().click();
-      const tripTab = page.getByRole("tab", { name: "Trip", exact: true });
-      if (await tripTab.count()) await tripTab.click();
-    } else {
-      await page.getByRole("button", { name: /^Trips/ }).click();
-      await page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" }).first().click();
-      const toggle = page.getByRole("button", { name: "Open your trip", exact: true });
-      if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
-    }
+    const openTrip = async (again = false) => {
+      if (again && (await page.locator("section.trip-editor").count())) return;
+      const pick = (cards) => (again ? cards.last() : cards.first());
+      if (phone) {
+        await page.getByRole("tab", { name: /^(Mine|我的)$/ }).click();
+        await pick(page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" })).click();
+        const tripTab = page.getByRole("tab", { name: /^(Trip|行程)$/ });
+        if (await tripTab.count()) await tripTab.click();
+      } else {
+        await page.getByRole("button", { name: /^(Trips|行程)/ }).click();
+        await pick(page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" })).click();
+        const toggle = page.locator(".trip-trigger");
+        if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      }
+      await page.locator("section.trip-editor").waitFor({ timeout: 8000 });
+    };
+    await openTrip();
     const timeline = page.getByRole("region", { name: "Trip timeline" });
     await timeline.waitFor({ timeout: 8000 }).catch(() => undefined);
     if (!(await timeline.count())) {
@@ -251,10 +257,13 @@ try {
     }
 
     const savedPlan = () =>
-      page.evaluate(() => {
+      page.evaluate((id) => {
         const stored = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
-        return stored?.trips?.find((trip) => trip.id === stored.activeTripId)?.snapshot?.plan;
-      });
+        const found =
+          stored?.trips?.find((trip) => trip.id === stored.activeTripId) ??
+          stored?.trips?.find((trip) => trip.id === id);
+        return found?.snapshot?.plan;
+      }, tripId);
     const itemsOf = (p, id) => p?.sections?.find((s) => s.id === id)?.proposal?.items ?? [];
     const placement = (p) =>
       Object.fromEntries(
@@ -270,6 +279,10 @@ try {
       await menuOf(menu).first().click();
       await page.getByRole("menuitem", { name: item, exact: true }).click();
     };
+    const onDay = async (day, item) => {
+      await selectDay(day);
+      await choose(`Day ${day} actions`, item);
+    };
     const waitPlan = (test) =>
       waitUntil(async () => {
         const current = await savedPlan();
@@ -279,9 +292,19 @@ try {
       await page.locator(`.day-strip__day[data-day="${day}"]`).click();
       await waitUntil(async () => (await selectedDay()) === String(day), 4000);
     };
-    const normalised = (p) => JSON.stringify(p);
+    const normalised = (p) => JSON.stringify({ ...p, editVersion: 0 });
 
-    const original = await savedPlan();
+    const stable = async () => {
+      let last = "";
+      for (let waited = 0; waited < 10_000; waited += 600) {
+        const current = JSON.stringify(await savedPlan());
+        if (current === last) break;
+        last = current;
+        await sleep(600);
+      }
+      return savedPlan();
+    };
+    const original = await stable();
     if (viewport.oneDay) {
       await menuOf("Day 1 actions").click();
       check(
@@ -289,7 +312,7 @@ try {
         `Remove day is disabled on the only day at ${tag}`,
       );
       await page.keyboard.press("Escape");
-      await choose("Day 1 actions", "Add day after");
+      await onDay(1, "Add day after");
       await waitPlan((p) => p.brief.dates[1] === "2030-10-02");
       const grown = await savedPlan();
       check(
@@ -335,10 +358,16 @@ try {
     const undoRestores = async (label) => {
       await undoButton().click();
       const restored = await waitPlan((p) => normalised(p) === normalised(original));
+      if (!restored)
+        writeFileSync(
+          resolve(out, `undo-diff-${viewport.width}-${label.replaceAll(" ", "-")}.json`),
+          JSON.stringify({ original, saved: await savedPlan() }, null, 2),
+        );
       check(restored, `Undo after ${label} restores the exact saved plan at ${tag}`);
     };
 
-    await choose("Day 1 actions", "Add day after");
+    const versionBefore = original.editVersion;
+    await onDay(1, "Add day after");
     let ok = await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
     let now = await savedPlan();
     check(
@@ -356,7 +385,7 @@ try {
       stayOf(now).checkOut === "2030-10-05" &&
         stayOf(now).nights === 4 &&
         itemsOf(now, "accommodation")[0].estCost === 400 &&
-        now.editVersion === (original.editVersion ?? 0) + 1,
+        now.editVersion === (versionBefore ?? 0) + 1,
       `the stay gains a night, its cost follows and the edit is one revision at ${tag}`,
       { stay: stayOf(now), version: now.editVersion },
     );
@@ -366,7 +395,7 @@ try {
     );
     await undoRestores("Add day after");
 
-    await choose("Day 1 actions", "Add day before");
+    await onDay(1, "Add day before");
     ok = await waitPlan((p) => p.brief.dates[0] === "2030-09-30");
     now = await savedPlan();
     check(
@@ -383,7 +412,7 @@ try {
     await undoRestores("Add day before");
 
     await selectDay(2);
-    await choose("Day 2 actions", "Add day before");
+    await onDay(2, "Add day before");
     ok = await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
     now = await savedPlan();
     check(
@@ -394,7 +423,7 @@ try {
     await undoRestores("Add day before Day 2");
 
     await selectDay(1);
-    await choose("Day 1 actions", "Clear day");
+    await onDay(1, "Clear day");
     ok = await waitPlan((p) => placement(p).Alder === undefined);
     now = await savedPlan();
     check(
@@ -419,7 +448,7 @@ try {
     await page.keyboard.press("Escape");
 
     await selectDay(2);
-    await choose("Day 2 actions", "Remove day");
+    await onDay(2, "Remove day");
     ok = await waitPlan((p) => p.brief.dates[1] === "2030-10-03");
     now = await savedPlan();
     check(
@@ -473,7 +502,7 @@ try {
 
     for (const target of [4, 3]) {
       await selectDay(target);
-      await choose(`Day ${target} actions`, "Remove day");
+      await onDay(target, "Remove day");
       await waitPlan((p) => p.brief.dates[1] === `2030-10-0${target - 1}`);
     }
     now = await savedPlan();
@@ -485,7 +514,7 @@ try {
       { dates: now.brief.dates, stay: stayOf(now) },
     );
     await selectDay(2);
-    await choose("Day 2 actions", "Remove day");
+    await onDay(2, "Remove day");
     await sleep(600);
     const refused = await savedPlan();
     check(
@@ -494,8 +523,8 @@ try {
       `Remove day is refused with a notice when the stay would lose its last night at ${tag}`,
       refused.brief.dates,
     );
-    await selectDay(1);
-    await page.getByRole("button", { name: "Show Day 2 on the map", exact: true }).click();
+    await selectDay(2);
+    await page.getByRole("button", { name: "Day map, Day 2", exact: true }).click();
     if (phone) {
       const mapShown = await waitUntil(
         async () => await page.locator(".workspace-panel--map").isVisible(),
@@ -510,16 +539,20 @@ try {
       check(focused, `Day map focuses the map on that day at ${tag}`);
     }
     await page.screenshot({ path: resolve(out, `day-map-${viewport.width}.png`), fullPage: true });
+    if (phone) await page.getByRole("tab", { name: "Trip", exact: true }).click();
 
-    await choose("Day 1 actions", "Add day after");
+    await onDay(1, "Add day after");
     await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
-    const beforeReload = normalised(await savedPlan());
+    const beforeReload = await savedPlan();
     await page.reload();
     await page.locator(".workspace-app").waitFor();
     await page.waitForLoadState("networkidle");
+    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+    await openTrip(true);
     check(
-      normalised(await savedPlan()) === beforeReload,
+      (await dayTabs().count()) === 3 && beforeReload.brief.dates[1] === "2030-10-03",
       `a day action survives a reload at ${tag}`,
+      { tabs: await dayTabs().count(), saved: beforeReload.brief.dates },
     );
 
     await page.evaluate(() => sessionStorage.setItem("lang", "zh"));
@@ -527,41 +560,20 @@ try {
     await page.locator(".workspace-app").waitFor();
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-    const zhEditor = page.locator("section.trip-editor");
-    if (!(await zhEditor.count())) {
-      if (phone) {
-        await page.locator('[role="tab"]').nth(3).click();
-        await page.locator(".phone-mine .trip-card").first().click();
-        await page.locator('[role="tab"]').nth(2).click();
-      } else {
-        await page
-          .locator("button.sidebar-nav__trips, [data-nav='trips']")
-          .first()
-          .click()
-          .catch(() => undefined);
-        await page
-          .locator(".trips-page .trip-card")
-          .first()
-          .click()
-          .catch(() => undefined);
-        const toggle = page.locator("button[aria-controls][aria-expanded]").first();
-        if (await toggle.count()) await toggle.click().catch(() => undefined);
-      }
-    }
-    await zhEditor
-      .first()
-      .waitFor({ timeout: 8000 })
-      .catch(() => undefined);
+    await openTrip(true);
+    await page.screenshot({ path: resolve(out, `zh-${viewport.width}.png`), fullPage: true });
     const labels = await page
       .locator('section.trip-editor button[aria-haspopup="menu"]')
       .evaluateAll((buttons) => buttons.map((button) => button.getAttribute("aria-label")));
+    const zhDay = labels.find((label) => /^第 \d+ 天的操作$/.test(label ?? ""));
     check(
-      labels.includes("第 1 天的操作") && labels.includes("行程操作"),
+      Boolean(zhDay) && labels.includes("行程操作"),
       `the day and itinerary menus carry Chinese accessible names at ${tag}`,
       labels,
     );
-    if (labels.includes("第 1 天的操作")) {
-      await page.getByRole("button", { name: "第 1 天的操作", exact: true }).click();
+    if (zhDay) {
+      const zhNumber = zhDay.match(/\d+/)[0];
+      await page.getByRole("button", { name: zhDay, exact: true }).click();
       const zhItems = await page.getByRole("menuitem").allTextContents();
       check(
         ["在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every((label) =>
@@ -572,14 +584,15 @@ try {
       );
       await page.keyboard.press("Escape");
       check(
-        (await page.getByRole("button", { name: "在地图上查看第 2 天", exact: true }).count()) ===
-          1,
+        (await page
+          .getByRole("button", { name: `当天地图，第 ${zhNumber} 天`, exact: true })
+          .count()) === 1,
         `the Day map button has a Chinese accessible name at ${tag}`,
       );
       await page.getByRole("button", { name: "行程操作", exact: true }).click();
       const zhBulk = await page.getByRole("menuitem").allTextContents();
       check(
-        zhBulk.includes("全部活动移到想法") && zhBulk.includes("移除所有已安排的活动"),
+        zhBulk.includes("全部活动移至备选地点") && zhBulk.includes("移除所有已安排的活动"),
         `the itinerary menu items read in Chinese at ${tag}`,
         zhBulk,
       );

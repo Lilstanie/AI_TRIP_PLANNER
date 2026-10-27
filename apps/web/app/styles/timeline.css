@@ -67,6 +67,25 @@ button.day-strip__day[aria-selected="true"] {
   display: grid;
   gap: var(--space-2);
 }
+.timeline-day__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.timeline-day__head .timeline-day__title {
+  flex: 1;
+  min-width: 0;
+}
+.timeline-day__map {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
 .timeline-day__title {
   margin: 0;
   font-size: var(--font-size-body);
@@ -778,6 +797,11 @@ button.timeline-stop__time:disabled {
   margin-block: var(--space-2);
   color: var(--text-dim);
   font-size: var(--font-size-meta);
+}
+.trip-editor__distances-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
 }
 .trip-editor__distances button.settings-switch::after {
   content: "";

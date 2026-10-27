@@ -330,6 +330,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               legs={legs}
               onLegApplied={legs.noteLeg}
               onTimelineChange={session.setTimelineChanged}
+              onShowMap={(value) => {
+                layout.pickMapDay(value);
+                if (phone) selectView("map");
+                else if (narrow) setTripView("map");
+              }}
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
               phone={phone}
