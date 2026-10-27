@@ -2,6 +2,8 @@ export type DropZone = { kind: "day"; day: number } | { kind: "ideas" };
 
 export type DragSource = { id: string; zone: DropZone };
 
+export const END_OF_DAY = Number.MAX_SAFE_INTEGER;
+
 export type DropTarget = { zone: DropZone; index: number };
 
 export function zoneKey(zone: DropZone): string {

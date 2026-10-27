@@ -91,6 +91,8 @@ export function applyItemAction(
       delete item.startTime;
       delete item.endTime;
       delete item.arriveBy;
+      items.splice(index, 1);
+      items.push(item);
       break;
     case "day": {
       if (!Number.isInteger(action.day) || action.day < 1 || action.day > dayCount(plan))

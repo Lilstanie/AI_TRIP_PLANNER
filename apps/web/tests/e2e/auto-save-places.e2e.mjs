@@ -432,10 +432,7 @@ async function main() {
 
     let releaseVerify = () => {};
     seeded.holdVerify = new Promise((done) => (releaseVerify = done));
-    await stopRow(3)
-      .getByRole("button", { name: /^Actions for / })
-      .click();
-    await seededPage.getByRole("menuitem", { name: "Move earlier", exact: true }).click();
+    await stopRow(3).dragTo(stopRow(2));
     check(
       await waitUntil(async () => seeded.holdSeen),
       "a move is in flight when the time edit starts",

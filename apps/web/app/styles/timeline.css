@@ -679,8 +679,20 @@ button.timeline-stop__time:disabled {
 .timeline-ideas {
   display: grid;
   gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+}
+.timeline-ideas > .timeline {
+  min-height: 44px;
+}
+.timeline-ideas[data-drop-target],
+button.day-strip__day[data-drop-target] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+html.is-reordering .timeline[data-empty] {
+  min-height: 44px;
 }
 .timeline-ideas__title {
   margin: 0;
@@ -770,9 +782,6 @@ button.timeline-stop__time:disabled {
 .stop-place-card .item-editor {
   margin: 0;
 }
-.stop-place-card .stop-editor__order {
-  padding: 0;
-}
 .trip-panel__sections {
   display: grid;
   gap: var(--space-3);
@@ -822,6 +831,41 @@ button.timeline-stop__time:disabled {
   margin-inline-start: var(--space-2);
 }
 
+.timeline-stop {
+  position: relative;
+}
+.stop-popover {
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-start: calc(100% - var(--space-2));
+  z-index: 20;
+  inline-size: min(22rem, calc(100% - 2 * var(--space-2)));
+  margin-inline-start: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.18));
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.stop-popover .item-editor,
+.stop-popover .stop-editor__time {
+  grid-column: auto;
+  margin: 0;
+  background: transparent;
+}
+.stop-popover .stop-editor__time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.stop-popover button {
+  min-block-size: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stop-popover {
+    animation: none;
+  }
+}
 .timeline-ideas__head ~ .timeline-ideas {
   margin-top: 0;
 }

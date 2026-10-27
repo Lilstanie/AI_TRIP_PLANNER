@@ -17,7 +17,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                   | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
 | Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                              | `ChatPanel`                                                                                                             |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                   | `TripMapCanvas`, `TripMap`                                                                                              |
-| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, day strip, selected-day stops and bookings, then Ideas; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
+| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, Ideas, day strip, then selected-day stops and bookings; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -808,8 +808,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   color is not the sole cue. Stops on other days step back to grey badges without labels.
 - **Trip itinerary.** One itinerary view: heading and summary, compact budget,
   collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
-  their place carries on the map (a repeat visit keeps it), the day's flights and stay rows, then Ideas,
-  unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
+  their place carries on the map (a repeat visit keeps it), and the day's flights and stay rows.
+  Ideas sit above the day strip, unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
   switch shows one at a time. The phone Trip tab continues to show the existing Trip surface. The
   itinerary has no status label:
   "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
@@ -837,21 +837,26 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Skipped. Its menu changes the state, and Undo restores the previous plan. The label is saved with the
   stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
   booking and cost, including the plan total; it does not select the next stop.
-- **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-one-day-trip-view.md)).
+- **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-stop-menu-popovers.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
-  focus to its trigger without closing the drawer) offers Move earlier and Move later (not on the first
-  or last stop of a day), Move to another day (opens a day picker in the place card), Move to ideas,
-  Replace place (opens the place search in the card), Open in Maps (only when the stop's place has
-  coordinates; it opens Google Maps directions to them in a new tab, which hands off to the phone's maps
-  app and needs no API call), Edit details, Add or Edit note, Mark as booked and Remove. An idea offers Schedule on a day instead of the moves, and a restaurant suggestion offers only
-  Schedule on a day and Remove. Details, notes, booked and visit progress apply in the browser at once. Move earlier, Move later, Move to
-  another day, Move to ideas and Remove are checked by the server like any timeline edit, and an accepted one
-  applies at once. Each settles the plan the way a server edit does: the budget
+  focus to its trigger without closing the drawer) offers Adjust schedule, Edit details, Add a comment,
+  Move to ideas, Move to previous day, Move to next day (the first is disabled on Day 1 and the second on
+  the last day), Add again and Remove, then Replace place (opens the place search in the card), Open in
+  Maps (only when the stop's place has coordinates; it opens Google Maps directions to them in a new tab,
+  which hands off to the phone's maps app and needs no API call), the visit-progress items and Mark as
+  booked. An idea offers Schedule on a day, Edit details, Add a comment and Remove, and a restaurant
+  suggestion offers only Schedule on a day and Remove. Adjust schedule, Edit details, Add a comment and
+  Schedule on a day open a small popover attached to the row (`StopPopover`, a `role="dialog"` named for
+  the action) at every width; it takes focus, closes on Escape or a tap outside without saving what was
+  typed, and returns focus to the row. Tapping the time opens the same Adjust schedule popover; tapping
+  the row opens place details. Add again puts the same place on the day a second time as a new stop timed
+  after the day's last stop. Move to previous day and Move to next day put the stop after the target
+  day's last stop. Details, comments, booked and visit progress apply in the browser at once. Move to
+  ideas, Move to previous day, Move to next day, Add again and Remove are checked by the server like any
+  timeline edit, and an accepted one applies at once. Each settles the plan the way a server edit does: the budget
   total and the conflicts are recomputed at once, with the same roll-up the server uses
-  (`lib/trip/settle.ts`). Move earlier and Move later swap the stop with its neighbour on the
-  same day: each takes the other's start time and keeps its own duration, the second starting later if the
-  first would overlap it, and a swap that would end past 23:59 or overlap the next stop is refused with a
-  message. Move to another day puts the stop after that day's last stop. Undo survives background place saves and route checks without discarding their unrelated updates. Undo offers the last change
+  (`lib/trip/settle.ts`). A day with no room left refuses the move or the add with a notice and changes
+  nothing. Undo survives background place saves and route checks without discarding their unrelated updates. Undo offers the last change
   until the next plan arrives from chat. The step stays with its Trip through navigation and layout
   changes, and another Trip never offers it. Reloading clears the in-memory step. An item action is
   undone the same way, restoring the plan as it was before it. A move changes the day's times, so the day's legs are routed again (see Legs under Timeline editing). At
@@ -902,13 +907,12 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 The day view (`TripEditor` composing `components/trip/timeline/`) shows one day at a
 time and edits activities through `POST /api/trip/preview-edit`. The server checks each edit and
 the client applies an accepted one at once. Every change to a stop's day, time, place, order or leg is
-checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to another day and the arrow
-moves. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
+checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to previous day, Move to next day and Add again. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
-  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas remain
-  outside the day panel. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas sit above
+  the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
@@ -921,7 +925,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
   trip-wide stop number, the same as on the map and in the Trip timeline; an unlocated stop shows
-  none. Move earlier, Move later, Move to another day and drag and drop name a position as shown;
+  none. Drag and drop names a position as shown;
   the Itinerary turns it into the plan index `preview-edit` expects, which counts the day's other
   stops in plan order. When start times disagree with plan order, a stop moved later lands just
   after the stop it moved past and any other move lands just before it, so the preview keeps the
@@ -932,8 +936,7 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   Google Places search in the card; a picked result is saved through the server check. Escape closes an
   open form or the card and returns focus to the stop. For a place still being looked up or not found, the name and close control share the first row and the lookup status spans the row below. Drag and drop still reorders the day.
 - **Editing.** A stop is compact until selected, here or on the map; selecting it opens its editor:
-  start and end time ("Change time"), Move earlier / Move later, Move to another day, and a
-  Google Maps search to replace the place. Drag and drop still reorders the day.
+  a Google Maps search to replace the place. Drag and drop still reorders the day.
 - **Places from the map.** When the map finds a stop's place by name and the stop has no saved
   place, the workspace saves that place on the stop itself, once, through the immediate place edit
   below; no traveller action is needed. While it is being saved the stop reads "Saving place…"; a
@@ -983,6 +986,20 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   empty day. Edit title and Add note are not built: the plan has no field for a day title or note, so
   they wait for a `packages/shared` change. Logic is in `lib/trip/day-actions.ts`; verify with
   `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
+
+- **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
+  Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every
+  tab in the day strip is a drop target that marks itself with an outline: dropping a Stop there
+  appends it to that day (an empty day included), and holding a dragged Stop over a tab for 600 ms
+  opens that day so the insertion line can choose any position in it. A Stop dropped on a day is one
+  `move` edit, a Stop dropped on Ideas is one `idea` edit that parks it last, and an Idea (pressed
+  anywhere on its row, long-press on touch) dropped on a tab or the open day is one `schedule` edit
+  that places it at the end of the day, with the line shown there. Each is a single Undo, and the
+  Stop numbers, times and Legs of both days refresh. A day without room, another accommodation
+  segment, the Stop's own day tab, Ideas dropped on Ideas, Escape and a locked trip change nothing or
+  show the usual refusal. While the day changes under a drag, the dragged row is not drawn; the line
+  and the outlined tab show the target. Verify with
+  `pnpm --filter @trip/web e2e cross-day-drag --prod` (1440 px with a mouse, 390 px with touch).
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens

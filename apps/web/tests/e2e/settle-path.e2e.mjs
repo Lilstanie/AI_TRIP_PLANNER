@@ -263,8 +263,9 @@ async function main() {
     );
 
     await openDay(page, 2);
-    await pick(stopNamed(page, "Manly Beach"), page, "Move earlier");
-    let total = await expectTotal(page, stub, "A. Move earlier (arrow)", start, 0);
+    await stopNamed(page, "Manly Beach").dragTo(dayRows(page).first());
+    await settle(page, 300);
+    let total = await expectTotal(page, stub, "A. Reorder by dropping a stop", start, 0);
 
     await openDay(page, 1);
     await pick(stopNamed(page, "Sydney Opera House"), page, "Remove");
@@ -303,8 +304,8 @@ async function main() {
       .getByRole("button", { name: /^Actions for / })
       .click();
     await page.getByRole("menuitem", { name: "Schedule on a day", exact: true }).click();
-    await trip(page).locator(".stop-place-card select").selectOption("2");
-    await trip(page).locator(".stop-place-card button[type=submit]").click();
+    await trip(page).locator(".stop-popover select").selectOption("2");
+    await trip(page).locator(".stop-popover button[type=submit]").click();
     await settle(page, 700);
     total = await expectTotal(page, stub, "E. Schedule the Idea on Day 2", total, 40);
 
