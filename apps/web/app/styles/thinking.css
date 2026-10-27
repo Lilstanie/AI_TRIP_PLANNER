@@ -668,6 +668,9 @@
   font-size: 12px;
   white-space: nowrap;
 }
+.team-trigger__count-compact {
+  display: none;
+}
 
 .assistant-icon--working {
   animation: team-avatar-pulse 1.2s ease-in-out infinite;
@@ -691,13 +694,6 @@
   right: 0;
   width: min(420px, calc(100vw - 32px));
   padding-top: 8px;
-}
-
-@media (max-width: 1000px) {
-  .team-trigger__label,
-  .team-trigger__count {
-    display: none;
-  }
 }
 
 @media (prefers-reduced-motion: reduce) {

@@ -17,7 +17,16 @@ import { DayStrip } from "./timeline/DayStrip";
 import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
+import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
+import { AddStop, type AddStopDraft } from "./timeline/AddStop";
+import { TripChatShortcut } from "./timeline/TripChatShortcut";
+import {
+  useTripDraftField,
+  useTripDraftRestore,
+  type AddStopDraftValue,
+} from "./timeline/TripDrafts";
+import { useDiscardChanges } from "../ui/useDiscardChanges";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
@@ -51,11 +60,13 @@ export function TripEditor({
   day: controlledDay,
   onDayChange,
   onSelect,
+  onSend,
   onRoutesChange,
   routes = [],
   legs,
   onLegApplied,
   revisions,
+  undo,
   showPhotos = false,
   saves = IDLE_AUTO_SAVE,
   onChoose,
@@ -71,6 +82,7 @@ export function TripEditor({
   day?: number;
   onDayChange?(day: number): void;
   onSelect(activityId: string): void;
+  onSend?(message: string): void;
 
   onRoutesChange?(routes: RouteResult[]): void;
 
@@ -81,6 +93,7 @@ export function TripEditor({
   onLegApplied?(plan: TripPlan, day: number): void;
 
   revisions: PlanRevisions;
+  undo: TripUndo;
 
   showPhotos?: boolean;
 
@@ -100,6 +113,7 @@ export function TripEditor({
     dataMode: tripPlaces.dataMode,
     activities,
     revisions,
+    undo,
     onPending,
     onRoutesChange,
     onLegApplied,
@@ -129,6 +143,74 @@ export function TripEditor({
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
+  const addStopId = `add-stop:${plan.tripId}`;
+  const suggestedTimesForDay = (targetDay: number) => {
+    const scheduled = itinerary
+      .stopsOn(targetDay)
+      .map(({ activity }) => activity)
+      .filter((activity) => activity.endTime)
+      .sort((left, right) => (left.endTime ?? "").localeCompare(right.endTime ?? ""));
+    const latestEnd = scheduled.at(-1)?.endTime;
+    const start = latestEnd ? addMinutes(latestEnd, 30) : "09:00";
+    return { startTime: start, endTime: addMinutes(start, 60) };
+  };
+  const suggestedAddTime = suggestedTimesForDay(day);
+  const addFingerprint = JSON.stringify(
+    activities.map((activity) => [activity.id, activity.day, activity.startTime, activity.endTime]),
+  );
+  const addBaseline: AddStopDraftValue = {
+    open: false,
+    searchText: "",
+    name: "",
+    detail: "",
+    day: 0,
+    startTime: "",
+    endTime: "",
+    fingerprint: addFingerprint,
+  };
+  const addInitial: AddStopDraftValue = {
+    open: false,
+    searchText: "",
+    name: "",
+    detail: "",
+    day,
+    startTime: suggestedAddTime.startTime,
+    endTime: suggestedAddTime.endTime,
+    fingerprint: addFingerprint,
+  };
+  const addDraft = useTripDraftField({
+    stopId: addStopId,
+    stopName: t("Add place"),
+    day,
+    field: "add",
+    initial: addInitial,
+    baseline: addBaseline,
+  });
+  const addRestore = useTripDraftRestore(addStopId);
+  const restoreAdd = addRestore.target?.field === "add";
+  const addValue = addDraft.value;
+  const addStopValue: AddStopDraft = {
+    open: addValue.open || restoreAdd,
+    searchText: addValue.searchText,
+    name: addValue.name,
+    detail: addValue.detail,
+    day: addValue.day,
+    startTime: addValue.startTime,
+    endTime: addValue.endTime,
+    ...(addValue.placeId
+      ? {
+          place: {
+            id: addValue.placeId,
+            ...(addValue.placeName ? { displayName: { text: addValue.placeName } } : {}),
+            ...(addValue.placeAddress ? { formattedAddress: addValue.placeAddress } : {}),
+            ...(addValue.latitude !== undefined && addValue.longitude !== undefined
+              ? { location: { latitude: addValue.latitude, longitude: addValue.longitude } }
+              : {}),
+          },
+        }
+      : {}),
+  };
+  const addDiscard = useDiscardChanges(addDraft.dirty);
 
   const suggestions = useMemo(() => restaurantSuggestions(plan), [plan]);
   const suggested = useMemo(() => new Set(suggestions.map((item) => item.id)), [suggestions]);
@@ -155,17 +237,12 @@ export function TripEditor({
     [labels, itinerary, locationStatus],
   );
 
-  const [itemUndo, setItemUndo] = useState<{ previous: TripPlan; message: Notice }>();
+  const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
   const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
-  const applied = useRef<TripPlan | null>(null);
 
   const leaving = useRef<string | undefined>(undefined);
   const dayTitle = useRef<HTMLHeadingElement>(null);
-  useEffect(() => {
-    if (applied.current !== plan) setItemUndo(undefined);
-    applied.current = null;
-  }, [plan]);
   useEffect(() => {
     const id = leaving.current;
     leaving.current = undefined;
@@ -185,16 +262,14 @@ export function TripEditor({
     const operation = checkedAs(id, action);
     if (operation)
       return edits.edit(operation, (previous, next) => {
-        applied.current = next;
-        setItemUndo({ previous, message });
+        undo.record(next, { previous, message });
         setProblem("");
         if (action.kind === "day" || action.kind === "idea" || action.kind === "remove")
           leaving.current = id;
       });
     try {
       const next = applyItemAction(plan, id, action, settings.displayCurrency);
-      applied.current = next;
-      setItemUndo({ previous: plan, message });
+      undo.record(next, { previous: plan, message });
       setProblem("");
       onTimelineChange?.(true);
       onApply(next);
@@ -230,6 +305,7 @@ export function TripEditor({
       onOpen: () => onSelect(activity.id!),
       conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+      ...(activity.day === undefined || !onSend ? {} : { onAskAI: onSend }),
       phone,
     };
   };
@@ -238,6 +314,11 @@ export function TripEditor({
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
       <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
+      {today !== undefined && day !== today && (
+        <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
+          {t("Return to today")}
+        </button>
+      )}
       <DayStrip
         days={strip}
         selected={day}
@@ -282,9 +363,8 @@ export function TripEditor({
             type="button"
             disabled={locked}
             onClick={() => {
-              applied.current = itemUndo.previous;
               onApply(itemUndo.previous);
-              setItemUndo(undefined);
+              undo.clear();
               onTimelineChange?.(false);
             }}
           >
@@ -312,6 +392,7 @@ export function TripEditor({
         <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
           {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
         </h3>
+        <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
@@ -393,6 +474,58 @@ export function TripEditor({
         )}
       </div>
 
+      <AddStop
+        days={days}
+        dayLabels={labels}
+        locked={locked}
+        edits={edits}
+        draft={addStopValue}
+        stale={addDraft.stale}
+        onRebase={addDraft.rebase}
+        suggestedTimesForDay={suggestedTimesForDay}
+        onDraftChange={(next) => {
+          if (!next.open && !next.searchText && !next.place && !next.name && !next.detail) {
+            addDraft.clear();
+            return;
+          }
+          addDraft.setValue({
+            open: next.open,
+            searchText: next.searchText,
+            name: next.name,
+            detail: next.detail,
+            day: next.day,
+            startTime: next.startTime,
+            endTime: next.endTime,
+            fingerprint: addFingerprint,
+            ...(next.place
+              ? {
+                  placeId: next.place.id,
+                  ...(next.place.displayName?.text
+                    ? { placeName: next.place.displayName.text }
+                    : {}),
+                  ...(next.place.formattedAddress
+                    ? { placeAddress: next.place.formattedAddress }
+                    : {}),
+                  ...(next.place.location
+                    ? {
+                        latitude: next.place.location.latitude,
+                        longitude: next.place.location.longitude,
+                      }
+                    : {}),
+                }
+              : {}),
+          });
+        }}
+        onRequestCancel={() =>
+          addDiscard.requestClose(() => {
+            addDraft.clear();
+            addRestore.consume("add");
+            edits.clearResults();
+          })
+        }
+      />
+      {addDiscard.confirmation}
+
       {ideas.length > 0 && (
         <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
           <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
@@ -415,4 +548,10 @@ export function TripEditor({
       )}
     </section>
   );
+}
+
+function addMinutes(value: string, amount: number) {
+  const [hour = "09", minute = "00"] = value.split(":");
+  const total = (Number(hour) * 60 + Number(minute) + amount) % (24 * 60);
+  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }

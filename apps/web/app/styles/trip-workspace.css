@@ -1,0 +1,76 @@
+.trip-workspace {
+  display: grid;
+  flex: 1;
+  grid-column: 1 / -1;
+  grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1.08fr);
+  min-width: 0;
+  min-height: 0;
+  overflow: hidden;
+  background: var(--surface);
+}
+
+.trip-workspace__timeline,
+.trip-workspace__map {
+  min-width: 0;
+  min-height: 0;
+  overflow: auto;
+}
+
+.trip-workspace__timeline {
+  border-inline-end: 1px solid var(--border);
+}
+
+.trip-workspace__timeline > .trip-panel {
+  min-height: 100%;
+}
+
+.trip-workspace__map {
+  display: flex;
+  overflow: hidden;
+}
+
+.trip-workspace__map .trip-map-canvas,
+.trip-workspace__map .trip-map {
+  flex: 1;
+  min-width: 0;
+  min-height: 0;
+}
+
+.trip-workspace [hidden] {
+  display: none !important;
+}
+
+.trip-editor__today {
+  align-self: flex-start;
+  margin-block: var(--space-2);
+  padding: 5px 10px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface-2);
+  color: var(--accent);
+  font-weight: 600;
+}
+
+@media (max-width: 1000px) {
+  .workspace-app:not([data-phone]) .trip-workspace {
+    display: block;
+    height: 100%;
+    overflow: auto;
+  }
+
+  .workspace-app:not([data-phone]) .trip-workspace__timeline,
+  .workspace-app:not([data-phone]) .trip-workspace__map {
+    height: 100%;
+    overflow: auto;
+  }
+
+  .workspace-app:not([data-phone]) .trip-workspace__map {
+    overflow: hidden;
+  }
+}
+
+@media (max-width: 520px) {
+  .trip-editor__today {
+    min-height: 44px;
+  }
+}

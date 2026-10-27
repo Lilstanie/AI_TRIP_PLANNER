@@ -110,7 +110,7 @@ export function MessageItem({
   message: Message;
   animate?: boolean;
   turn?: number | undefined;
-  onResend?: (text: string) => void;
+  onResend?: (text: string) => boolean;
   onOpenTrip?: () => void;
 }) {
   const { t, locale } = useLocale();
@@ -145,8 +145,7 @@ export function MessageItem({
             text={message.text}
             onCancel={() => setEditing(false)}
             onResend={(text) => {
-              setEditing(false);
-              onResend(text);
+              if (onResend(text)) setEditing(false);
             }}
           />
         ) : (

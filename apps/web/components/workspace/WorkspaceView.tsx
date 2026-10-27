@@ -3,6 +3,7 @@ import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs, type ChatView } from "../chat/ChatViewTabs";
+import { useTripUndo } from "../trip/useTripUndo";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
@@ -40,12 +41,18 @@ import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import {
+  TripDraftRestoreEntry,
+  TripDraftsProvider,
+  type TripDraft,
+} from "../trip/timeline/TripDrafts";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
   const [chatView, setChatView] = useState<ChatView>("conversation");
+  const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const {
     plan,
     draft,
@@ -116,11 +123,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     document.title = [plan.brief.destination, dates, "AI Trip Planner"].filter(Boolean).join(" · ");
   }, [blank, locale, page, plan]);
 
+  const undo = useTripUndo(plan);
   const revisions = usePlanRevision({
     plan,
     held: busy || editPending,
     dataMode: dataMode.mode,
-    onApply: session.applyEdit,
+    onApply: (next, backgroundBase) => {
+      if (backgroundBase) undo.preserveBackground(backgroundBase, next);
+      session.applyEdit(next);
+    },
   });
   const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
 
@@ -131,7 +142,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
   const viewSwitch = useRef<HTMLDivElement>(null);
-  useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}`);
+  useSegmentIndicator(viewSwitch, `${narrow}|${page}|${mobileView}|${tripOpen}|${tripView}`);
 
   const backdrop = usePresence(drawerOpen || undefined, 360);
 
@@ -190,6 +201,33 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
+
+  const sendFromTrip = (message: string) => {
+    if (!session.send(message)) return;
+    closeTrip();
+    layout.selectView("chat");
+    setChatView("conversation");
+  };
+
+  const selectMapStop = (id: string) => {
+    const stop = itinerary.stop(id);
+    if (stop) layout.pickMapDay(stop.day);
+    session.showStop(id);
+  };
+
+  const restoreTripDraft = (draft: TripDraft) => {
+    if (draft.day !== undefined) layout.pickMapDay(draft.day);
+    if (draft.field === "add") {
+      if (phone) layout.selectView("trip");
+      else openTrip();
+      return;
+    }
+    if (draft.stopId) {
+      session.selectStop(draft.stopId);
+      if (phone) layout.selectView("trip");
+      else openTrip();
+    }
+  };
 
   useEffect(() => {
     if (!phone || plan || mobileView !== "trip") return;
@@ -270,6 +308,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         <TripPanel
           key={plan.tripId}
           plan={plan}
+          tripPlaces={tripPlaces}
+          onSelectStop={session.selectStop}
+          onSelectDay={layout.pickMapDay}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
             <TripEditor
@@ -281,9 +322,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               day={layout.mapDay}
               onDayChange={layout.pickMapDay}
               onSelect={session.selectStop}
+              onSend={sendFromTrip}
               onRoutesChange={session.showRoutes}
               onApply={session.applyEdit}
               revisions={revisions}
+              undo={undo}
               routes={mapRoutes}
               legs={legs}
               onLegApplied={legs.noteLeg}
@@ -318,341 +361,391 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   );
 
   return (
-    <div
-      className="workspace-app"
-      data-sidebar-collapsed={!narrow && sidebarCollapsed}
-      data-narrow={narrow}
-      data-phone={phone || undefined}
-      style={
-        !narrow && sidebarWidth !== undefined
-          ? ({ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties)
-          : undefined
-      }
-    >
-      {!narrow && (
-        <WorkspaceSidebar
-          onToggleCollapsed={layout.toggleSidebar}
-          collapsed={sidebarCollapsed}
-          page={page}
-          chatsOpen={chatsOpen}
-          chatCount={catalog.conversations.length}
-          tripCount={catalog.trips.length}
-          chatsButton={chatsButton}
-          onChats={toggleChats}
-          onTrips={showTrips}
-          onSettings={openSettings}
-          saveState={saveState}
-          syncStatus={syncStatus}
-        />
-      )}
-      {!narrow && (
-        <div
-          ref={chatsPanel}
-          id="chats-panel"
-          className={`chats-panel${chatsOpen ? " is-open" : ""}`}
-          role="region"
-          aria-label={t("Chats")}
-          inert={!chatsOpen}
-        >
-          {chatsContent(chatsSearch)}
-        </div>
-      )}
-      {!narrow && !sidebarCollapsed && (
-        <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
-      )}
-      {page === "trips" ? (
-        <div className="workspace-main">
-          {narrow && (
-            <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
-          )}
-          <main className="workspace-shell workspace-shell--trips">
-            <TripsPage
-              trips={catalog.trips}
-              activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={swap(session.selectTrip)}
-              onNewTrip={swap(session.newTrip)}
-              onRenameTrip={history.renameTrip}
-              onDeleteTrip={history.deleteTrip}
-              deletedTrip={history.deletedTrip}
-            />
-            {navOpen && (
-              <button
-                type="button"
-                tabIndex={-1}
-                className="workspace-drawer-backdrop"
-                aria-label={t("Close open panel")}
-                onClick={() => {
-                  closeDrawer();
-                  navToggle.current?.focus({ preventScroll: true });
-                }}
-              />
-            )}
-            {navDrawer}
-          </main>
-        </div>
-      ) : (
-        <div className="workspace-main">
-          <header className="workspace-topbar">
-            {menuButton}
-            {phone ? (
-              <>
-                <PhoneTripTitle model={model} />
-                <PhoneTeamButton model={model} turn={teamTurn} />
-              </>
-            ) : (
-              <div className="topbar-leading">
-                <ChatViewTabs
-                  view={chatView}
-                  onChoose={setChatView}
-                  className="topbar-chat-tabs chat__tabs"
-                />
-                <TeamControl
-                  turn={teamTurn}
-                  {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
-                />
-                {plan && (
-                  <h1 className="topbar-title">
-                    {history.activeTripName ?? plan.brief.destination}
-                  </h1>
-                )}
-              </div>
-            )}
-            {(briefChrome || openFact) && (
-              <TripFactChips
-                phone={phone}
-                view={mobileView}
-                draft={draft}
-                plan={plan}
-                busy={busy || editPending}
-                errors={errors}
-                open={openFact}
-                onOpen={openPreferences}
-                onClose={closePreferences}
-                onSave={session.saveFacts}
-                onPlan={session.planWith}
-                preferencesChip={preferencesToggle}
-                suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
-              />
-            )}
-            {narrow && !phone && (
-              <div
-                ref={viewSwitch}
-                className="topbar-views segmented"
-                role="group"
-                aria-label={t("Workspace view")}
-              >
-                {(["chat", "map"] as const).map((view) => (
-                  <button
-                    key={view}
-                    type="button"
-                    aria-pressed={mobileView === view}
-                    onClick={() => selectView(view)}
-                  >
-                    {t(view === "chat" ? "Chat" : "Map")}
-                  </button>
-                ))}
-              </div>
-            )}
-            {!phone && (
-              <div className="topbar-actions">
-                <div className="topbar-control-cluster" role="group" aria-label={t("Data mode")}>
-                  <DataModeToggle
-                    mode={dataMode.mode}
-                    providers={dataMode.providers}
-                    onChange={dataMode.choose}
-                    disabled={busy}
-                    liveAvailable={dataMode.liveAvailable}
-                    liveBlock={dataMode.liveBlock}
-                  />
-                </div>
-                {plan && (
-                  <button
-                    ref={tripToggle}
-                    type="button"
-                    className="topbar-button trip-trigger"
-                    aria-label={t("Open your trip")}
-                    aria-describedby={tripStops ? "trip-trigger-count" : undefined}
-                    aria-expanded={tripOpen}
-                    aria-haspopup="dialog"
-                    onClick={() => (tripOpen ? closeTrip() : openTrip())}
-                  >
-                    <RouteIcon />
-                    <span className="topbar-button__label">{t("Trip")}</span>
-                    {tripStops > 0 && (
-                      <span className="trip-trigger__count" id="trip-trigger-count">
-                        {tripStops}
-                        <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
-                      </span>
-                    )}
-                  </button>
-                )}
-              </div>
-            )}
-          </header>
-          <div className="workspace-notices">
-            <CurrencyNotice />
-            {estimateChange !== undefined && (
-              <div className="estimate-notice" role="status">
-                <span>
-                  {Math.abs(estimateChange) < 0.005
-                    ? t("Estimate unchanged from the previous plan.")
-                    : t("Estimate changed by {change} from the previous plan.", {
-                        change: delta(estimateChange),
-                      })}
-                </span>
-                <button type="button" onClick={session.dismissEstimate}>
-                  {t("Dismiss")}
-                </button>
-              </div>
-            )}
-            {replacedChange && (
-              <div className="replaced-notice" role="status">
-                <span>{t("The new plan replaced your last change to the timeline.")}</span>
-                <button type="button" onClick={session.dismissReplaced}>
-                  {t("Dismiss")}
-                </button>
-              </div>
-            )}
-            {error && (
-              <div className="error-banner" role="alert">
-                {localizeNotice(error)}{" "}
-                {canRetry && (
-                  <button disabled={busy} onClick={session.retry}>
-                    {t("Retry update")}
-                  </button>
-                )}
-              </div>
-            )}
-            {storageError && (
-              <div className="error-banner" role="alert">
-                {localizeNotice(storageError)}{" "}
-                <button onClick={history.retryStorage}>
-                  {t("Retry / replace workspace storage")}
-                </button>
-              </div>
-            )}
-            {userLocation.asking && (
-              <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
-            )}
-          </div>
-          <main
-            className="workspace-shell"
-            style={
-              !narrow && chatShare !== undefined
-                ? ({ "--chat-share": String(chatShare) } as CSSProperties)
-                : undefined
-            }
-            aria-busy={busy}
-            data-preferences-open={preferencesOpen}
-            data-trip-open={tripOpen}
-            data-mobile-view={mobileView}
-            data-map={plan ? "shown" : "hidden"}
+    <TripDraftsProvider tripId={plan?.tripId ?? ""}>
+      <div
+        className="workspace-app"
+        data-sidebar-collapsed={!narrow && sidebarCollapsed}
+        data-narrow={narrow}
+        data-phone={phone || undefined}
+        style={
+          !narrow && sidebarWidth !== undefined
+            ? ({ "--sidebar-width": `${sidebarWidth}px` } as CSSProperties)
+            : undefined
+        }
+      >
+        {!narrow && (
+          <WorkspaceSidebar
+            onToggleCollapsed={layout.toggleSidebar}
+            collapsed={sidebarCollapsed}
+            page={page}
+            chatsOpen={chatsOpen}
+            chatCount={catalog.conversations.length}
+            tripCount={catalog.trips.length}
+            chatsButton={chatsButton}
+            onChats={toggleChats}
+            onTrips={showTrips}
+            onSettings={openSettings}
+            saveState={saveState}
+            syncStatus={syncStatus}
+          />
+        )}
+        {!narrow && (
+          <div
+            ref={chatsPanel}
+            id="chats-panel"
+            className={`chats-panel${chatsOpen ? " is-open" : ""}`}
+            role="region"
+            aria-label={t("Chats")}
+            inert={!chatsOpen}
           >
-            <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
-              <ChatPanel
-                plan={plan}
-                draft={draft}
-                messages={messages}
-                input={input}
-                onInput={session.type}
-                busy={busy}
-                locked={editPending}
-                activity={activity}
-                error={error}
-                onCancel={session.cancel}
-                onSend={session.send}
-                onResend={session.resend}
-                {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
-                ask={ask}
-                onAnswer={session.answer}
-                onAskProgress={session.updateAskProgress}
-                onDismissAsk={session.dismissAsk}
-                onEdit={edit}
-                phone={phone}
-                showTabs={false}
-                blankUntouched={untouched}
-                view={chatView}
-                onViewChange={setChatView}
-                onAttachFiles={composerAttachments.addFiles}
-                attachments={composerAttachments.attachments}
-                onRemoveAttachment={composerAttachments.removeAttachment}
-                canAttach={composerAttachments.canAttach}
-                attachNotices={composerAttachments.notices}
+            {chatsContent(chatsSearch)}
+          </div>
+        )}
+        {!narrow && !sidebarCollapsed && (
+          <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
+        )}
+        {page === "trips" ? (
+          <div className="workspace-main">
+            {narrow && (
+              <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
+            )}
+            <main className="workspace-shell workspace-shell--trips">
+              <TripsPage
+                trips={catalog.trips}
+                activeTripId={blank ? undefined : catalog.activeTripId}
+                onOpenTrip={swap(session.selectTrip)}
+                onNewTrip={swap(session.newTrip)}
+                onRenameTrip={history.renameTrip}
+                onDeleteTrip={history.deleteTrip}
+                deletedTrip={history.deletedTrip}
               />
-            </div>
-            {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
-            <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
-              <TripMapCanvas
-                destination={plan?.brief.destination}
-                viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
-                tripPlaces={tripPlaces}
-                selectedActivity={selectedActivity}
-                onSelectActivity={session.showStop}
-                routes={mapRoutes}
-                focusedDay={phone ? layout.mapDay : undefined}
-                focusRequest={phone ? layout.mapFocus : undefined}
-                phone={phone}
-                visible={!narrow || mobileView === "map"}
-                showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
-                userLocation={userLocation}
-              />
-              {phone && <PhoneMapSheet model={model} />}
-            </div>
-            <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
-              {phone && plan && (
-                <div className="phone-trip__head">
-                  <h2 className="phone-trip__title">{t("Your trip")}</h2>
+              {navOpen && (
+                <button
+                  type="button"
+                  tabIndex={-1}
+                  className="workspace-drawer-backdrop"
+                  aria-label={t("Close open panel")}
+                  onClick={() => {
+                    closeDrawer();
+                    navToggle.current?.focus({ preventScroll: true });
+                  }}
+                />
+              )}
+              {navDrawer}
+            </main>
+          </div>
+        ) : (
+          <div className="workspace-main">
+            <header className="workspace-topbar">
+              {menuButton}
+              {phone ? (
+                <>
+                  <PhoneTripTitle model={model} />
+                  <PhoneTeamButton model={model} turn={teamTurn} />
+                </>
+              ) : (
+                <div className="topbar-leading">
+                  <ChatViewTabs
+                    view={chatView}
+                    onChoose={setChatView}
+                    className="topbar-chat-tabs chat__tabs"
+                  />
+                  <TeamControl
+                    turn={teamTurn}
+                    {...(narrow ? { onReveal: () => layout.selectView("chat") } : {})}
+                  />
+                  {plan && (
+                    <h1 className="topbar-title">
+                      {history.activeTripName ?? plan.brief.destination}
+                    </h1>
+                  )}
                 </div>
               )}
-              <Drawer
-                side="right"
-                open={phone || tripOpen}
-                embedded={phone}
-                title={t("Your trip")}
-                closeLabel={t("Close your trip")}
-                onClose={closeTrip}
-                returnFocus={tripToggle}
-                className={phone ? "phone-trip-surface" : "workspace-drawer workspace-drawer--trip"}
-              >
-                {tripContent}
-              </Drawer>
+              {(briefChrome || openFact) && (
+                <TripFactChips
+                  phone={phone}
+                  view={mobileView}
+                  draft={draft}
+                  plan={plan}
+                  busy={busy || editPending}
+                  errors={errors}
+                  open={openFact}
+                  onOpen={openPreferences}
+                  onClose={closePreferences}
+                  onSave={session.saveFacts}
+                  onPlan={session.planWith}
+                  preferencesChip={preferencesToggle}
+                  suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
+                />
+              )}
+              {narrow && !phone && (
+                <div
+                  ref={viewSwitch}
+                  className="topbar-views segmented"
+                  role="group"
+                  aria-label={t(tripOpen ? "Trip views" : "Workspace view")}
+                >
+                  {tripOpen
+                    ? (["itinerary", "map"] as const).map((view) => (
+                        <button
+                          key={view}
+                          type="button"
+                          aria-pressed={tripView === view}
+                          onClick={() => setTripView(view)}
+                        >
+                          {t(view === "itinerary" ? "Itinerary" : "Map")}
+                        </button>
+                      ))
+                    : (["chat", "map"] as const).map((view) => (
+                        <button
+                          key={view}
+                          type="button"
+                          aria-pressed={mobileView === view}
+                          onClick={() => selectView(view)}
+                        >
+                          {t(view === "chat" ? "Chat" : "Map")}
+                        </button>
+                      ))}
+                </div>
+              )}
+              {!phone && (
+                <div className="topbar-actions">
+                  <div className="topbar-control-cluster" role="group" aria-label={t("Data mode")}>
+                    <DataModeToggle
+                      mode={dataMode.mode}
+                      providers={dataMode.providers}
+                      onChange={dataMode.choose}
+                      disabled={busy}
+                      liveAvailable={dataMode.liveAvailable}
+                      liveBlock={dataMode.liveBlock}
+                    />
+                  </div>
+                  {plan && (
+                    <button
+                      ref={tripToggle}
+                      type="button"
+                      className="topbar-button trip-trigger"
+                      aria-label={t("Open your trip")}
+                      aria-describedby={tripStops ? "trip-trigger-count" : undefined}
+                      aria-expanded={tripOpen}
+                      onClick={() => (tripOpen ? closeTrip() : openTrip())}
+                    >
+                      <RouteIcon />
+                      <span className="topbar-button__label">{t("Trip")}</span>
+                      {tripStops > 0 && (
+                        <span className="trip-trigger__count" id="trip-trigger-count">
+                          {tripStops}
+                          <span className="sr-only"> {t(tripStops === 1 ? "stop" : "stops")}</span>
+                        </span>
+                      )}
+                    </button>
+                  )}
+                </div>
+              )}
+            </header>
+            <div className="workspace-notices">
+              <CurrencyNotice />
+              {page === "workspace" && plan && (
+                <TripDraftRestoreEntry plan={plan} onRestore={restoreTripDraft} />
+              )}
+              {estimateChange !== undefined && (
+                <div className="estimate-notice" role="status">
+                  <span>
+                    {Math.abs(estimateChange) < 0.005
+                      ? t("Estimate unchanged from the previous plan.")
+                      : t("Estimate changed by {change} from the previous plan.", {
+                          change: delta(estimateChange),
+                        })}
+                  </span>
+                  <button type="button" onClick={session.dismissEstimate}>
+                    {t("Dismiss")}
+                  </button>
+                </div>
+              )}
+              {replacedChange && (
+                <div className="replaced-notice" role="status">
+                  <span>{t("The new plan replaced your last change to the timeline.")}</span>
+                  <button type="button" onClick={session.dismissReplaced}>
+                    {t("Dismiss")}
+                  </button>
+                </div>
+              )}
+              {error && (
+                <div className="error-banner" role="alert">
+                  {localizeNotice(error)}{" "}
+                  {canRetry && (
+                    <button disabled={busy} onClick={session.retry}>
+                      {t("Retry update")}
+                    </button>
+                  )}
+                </div>
+              )}
+              {storageError && (
+                <div className="error-banner" role="alert">
+                  {localizeNotice(storageError)}{" "}
+                  <button onClick={history.retryStorage}>
+                    {t("Retry / replace workspace storage")}
+                  </button>
+                </div>
+              )}
+              {userLocation.asking && (
+                <LocationPrompt onAllow={userLocation.allow} onDismiss={userLocation.dismiss} />
+              )}
             </div>
+            <main
+              className="workspace-shell"
+              style={
+                !narrow && chatShare !== undefined
+                  ? ({ "--chat-share": String(chatShare) } as CSSProperties)
+                  : undefined
+              }
+              aria-busy={busy}
+              data-preferences-open={preferencesOpen}
+              data-trip-open={tripOpen}
+              data-mobile-view={mobileView}
+              data-map={plan ? "shown" : "hidden"}
+            >
+              {tripOpen && !phone ? (
+                <section
+                  className="trip-workspace"
+                  aria-label={t("Your trip")}
+                  data-day={layout.mapDay}
+                  data-view={tripView}
+                >
+                  <div
+                    className="trip-workspace__timeline"
+                    hidden={narrow && tripView !== "itinerary"}
+                  >
+                    {tripContent}
+                  </div>
+                  <div className="trip-workspace__map" hidden={narrow && tripView !== "map"}>
+                    <TripMapCanvas
+                      destination={plan?.brief.destination}
+                      viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
+                      tripPlaces={tripPlaces}
+                      selectedActivity={selectedActivity}
+                      onSelectActivity={selectMapStop}
+                      routes={mapRoutes}
+                      focusedDay={layout.mapDay}
+                      focusRequest={layout.mapFocus}
+                      visible={!narrow || tripView === "map"}
+                      showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+                      userLocation={userLocation}
+                    />
+                  </div>
+                </section>
+              ) : (
+                <>
+                  <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
+                    <ChatPanel
+                      plan={plan}
+                      draft={draft}
+                      messages={messages}
+                      input={input}
+                      onInput={session.type}
+                      busy={busy}
+                      locked={editPending}
+                      activity={activity}
+                      error={error}
+                      onCancel={session.cancel}
+                      onSend={session.send}
+                      onResend={session.resend}
+                      {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
+                      ask={ask}
+                      onAnswer={session.answer}
+                      onAskProgress={session.updateAskProgress}
+                      onDismissAsk={session.dismissAsk}
+                      onEdit={edit}
+                      phone={phone}
+                      showTabs={false}
+                      blankUntouched={untouched}
+                      view={chatView}
+                      onViewChange={setChatView}
+                      onAttachFiles={composerAttachments.addFiles}
+                      attachments={composerAttachments.attachments}
+                      onRemoveAttachment={composerAttachments.removeAttachment}
+                      canAttach={composerAttachments.canAttach}
+                      attachNotices={composerAttachments.notices}
+                    />
+                  </div>
+                  {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
+                  <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
+                    <TripMapCanvas
+                      destination={plan?.brief.destination}
+                      viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
+                      tripPlaces={tripPlaces}
+                      selectedActivity={selectedActivity}
+                      onSelectActivity={session.showStop}
+                      routes={mapRoutes}
+                      focusedDay={phone ? layout.mapDay : undefined}
+                      focusRequest={phone ? layout.mapFocus : undefined}
+                      phone={phone}
+                      visible={!narrow || mobileView === "map"}
+                      showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+                      userLocation={userLocation}
+                    />
+                    {phone && <PhoneMapSheet model={model} />}
+                  </div>
+                  <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
+                    {phone && plan && (
+                      <div className="phone-trip__head">
+                        <h2 className="phone-trip__title">{t("Your trip")}</h2>
+                      </div>
+                    )}
+                    <Drawer
+                      side="right"
+                      open={phone || tripOpen}
+                      embedded={phone}
+                      title={t("Your trip")}
+                      closeLabel={t("Close your trip")}
+                      onClose={closeTrip}
+                      returnFocus={tripToggle}
+                      className={
+                        phone ? "phone-trip-surface" : "workspace-drawer workspace-drawer--trip"
+                      }
+                    >
+                      {tripContent}
+                    </Drawer>
+                  </div>
+                  {phone && (
+                    <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
+                      <PhoneMine model={model} />
+                    </div>
+                  )}
+                  {backdrop.value && (
+                    <button
+                      type="button"
+                      tabIndex={-1}
+                      className="workspace-drawer-backdrop"
+                      data-leaving={backdrop.leaving || undefined}
+                      aria-hidden={backdrop.leaving || undefined}
+                      aria-label={t("Close open panel")}
+                      onClick={() => {
+                        const trigger = tripOpen ? tripToggle : navToggle;
+                        closeDrawer();
+                        trigger.current?.focus({ preventScroll: true });
+                      }}
+                    />
+                  )}
+                  {navDrawer}
+                </>
+              )}
+            </main>
             {phone && (
-              <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
-                <PhoneMine model={model} />
-              </div>
-            )}
-            {backdrop.value && (
-              <button
-                type="button"
-                tabIndex={-1}
-                className="workspace-drawer-backdrop"
-                data-leaving={backdrop.leaving || undefined}
-                aria-hidden={backdrop.leaving || undefined}
-                aria-label={t("Close open panel")}
-                onClick={() => {
-                  const trigger = tripOpen ? tripToggle : navToggle;
-                  closeDrawer();
-                  trigger.current?.focus({ preventScroll: true });
+              <PhoneTabBar
+                view={mobileView}
+                onSelect={selectView}
+                hidden={keyboardOpen}
+                showTrip={Boolean(plan)}
+                badges={{
+                  trip: tripUpdated && <span className="phone-tabbar__dot" aria-hidden="true" />,
                 }}
               />
             )}
-            {navDrawer}
-          </main>
-          {phone && (
-            <PhoneTabBar
-              view={mobileView}
-              onSelect={selectView}
-              hidden={keyboardOpen}
-              showTrip={Boolean(plan)}
-              badges={{
-                trip: tripUpdated && <span className="phone-tabbar__dot" aria-hidden="true" />,
-              }}
-            />
-          )}
-        </div>
-      )}
-      <WorkspaceDialogs model={model} />
-    </div>
+          </div>
+        )}
+        <WorkspaceDialogs model={model} />
+      </div>
+    </TripDraftsProvider>
   );
 }

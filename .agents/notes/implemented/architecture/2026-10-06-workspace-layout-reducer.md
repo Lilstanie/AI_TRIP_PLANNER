@@ -25,10 +25,11 @@ browser. Spec #196, ticket #198.
   when they close; opening a chip editor still closes a dialog, as a rejected brief does from Review.
 - Crossing a breakpoint is a `resize` event carrying the previous media:
   - narrowing to phone width: Trip drawer → Trip tab, Your trips → Mine tab, other drawers close;
-  - widening from a phone: Trip tab → Trip drawer (over Chat), Mine tab → Your trips, Chat and Map
+  - widening from a phone: Trip tab → Trip workspace (the reducer retains its Trip drawer state),
+    Mine tab → Your trips, Chat and Map
     stay, the trip facts sheet closes; an open chip editor stays the one panel instead of the drawer;
   - the navigation drawer closes outside 521–1000 px and the Chats panel closes at 1000 px and below.
-  Dialogs and chip editors stay open across every crossing.
+    Dialogs and chip editors stay open across every crossing.
 - `useWorkspaceLayout` (`apps/web/components/workspace/useWorkspaceLayout.ts`) reads both media
   queries synchronously on its first render (the workspace mounts only after storage is read on the
   client), so a reload never replays a crossing, then turns media-query changes into `resize`
@@ -40,7 +41,7 @@ browser. Spec #196, ticket #198.
   Trip or Mine tab restores as Chat without opening anything.
 - The catalog layout no longer stores whether the Trip drawer or the preferences editor is open;
   an `open` value written by an older version is dropped when the catalog is read.
-- Sidebar width and collapse, the chat share and the Trip overview/timeline tab are preferences and
+- Sidebar width and collapse, the chat share and the Trip editor view are preferences and
   stay outside the reducer. The phone Back handler (`usePhoneBack`) is unchanged; it is now called
   from `WorkspaceView` instead of the trip-badge hook.
 
@@ -58,9 +59,10 @@ browser. Spec #196, ticket #198.
 - What is on screen after any sequence of taps and width changes is tested without a browser in
   `apps/web/tests/lib/workspace/layout.test.ts`; `phone-mine.e2e.mjs` checks the crossings in a real
   browser.
-- Widening from the Trip tab now opens the Trip drawer, and widening from Mine shows Your trips: a
-  visible behaviour change from the [phone shell](../feature/2026-10-05-phone-shell.md), which closed
-  drawers and fell back to Chat.
+- Widening from the Trip tab opens the dedicated Trip workspace described in the
+  [Trip redesign](../feature/2026-10-26-trip-redesign.md); the internal drawer state still owns its
+  visibility. Widening from Mine shows Your trips. These preserve the same surface instead of the
+  [phone shell](../feature/2026-10-05-phone-shell.md) fallback to Chat.
 - Settings opened from the navigation drawer now keeps the drawer open beneath it.
 - A new panel or page must be added to `Surface` and its events, not as controller state.
 - A desktop reload with a saved phone-only tab saves Chat, so the next phone visit opens on Chat.

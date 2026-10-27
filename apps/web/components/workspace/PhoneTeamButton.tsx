@@ -37,14 +37,28 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         ref={button}
         type="button"
         className="topbar-button team-trigger phone-topbar__team"
-        aria-label={t("Agent Team")}
+        aria-label={
+          team.working > 0
+            ? t("Agent Team, {count} working", { count: team.working })
+            : t("Agent Team")
+        }
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={TEAM_SHEET_ID}
         data-working={team.working}
         onClick={openTeamSheet}
       >
-        <TeamAvatars rows={team.rows} />
+        <TeamAvatars
+          rows={[team.rows.find((row) => row.status === "working") ?? team.rows[0]].filter(Boolean)}
+        />
+        {team.working > 0 && (
+          <span className="team-trigger__count" aria-hidden="true">
+            <span className="team-trigger__count-full">
+              {t("{count} working", { count: team.working })}
+            </span>
+            <span className="team-trigger__count-compact">{team.working}</span>
+          </span>
+        )}
       </button>
       <dialog
         ref={dialog}

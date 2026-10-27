@@ -60,7 +60,7 @@ export function ChatPanel({
 
   onSend: (message?: string) => void;
 
-  onResend?: (index: number, text: string) => void;
+  onResend?: (index: number, text: string) => boolean;
   onOpenTrip?: () => void;
   onEdit: () => void;
 

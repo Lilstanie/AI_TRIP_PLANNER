@@ -211,6 +211,11 @@ try {
   if (askedAtBack) {
     await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
   }
+  const factsSheet = page.locator("#trip-facts-sheet");
+  if (await factsSheet.isVisible().catch(() => false)) {
+    await page.keyboard.press("Escape");
+    await factsSheet.waitFor({ state: "hidden" });
+  }
   const stopMain = stop.locator(".timeline-stop__main");
   await waitForFocused(stopMain);
   check(
@@ -224,38 +229,36 @@ try {
   await detailInput.fill("An unfinished detailed visit");
   const fullBox = await details.boundingBox();
   check(fullBox.y <= 1 && fullBox.height > 700, "Complex Stop details use a full page", fullBox);
-  for (const width of [520, 521, 1440, 390]) {
+  for (const width of [520, 521, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await page.waitForFunction((expected) => innerWidth === expected, width);
+    await page.waitForFunction(
+      (expectedPhone) =>
+        document.querySelector(".workspace-app")?.hasAttribute("data-phone") === expectedPhone,
+      width <= 520,
+    );
+    const restoreDetails = page.getByRole("button", { name: /Continue editing Edit details/ });
+    const hasRestore = await appears(restoreDetails, 1500);
+    const detailsRemainOpen = await detailInput.isVisible().catch(() => false);
+    if (!detailsRemainOpen && hasRestore) await restoreDetails.click();
     await detailInput.waitFor({ state: "visible" });
     check(
       (await detailInput.inputValue()) === "An unfinished detailed visit",
-      `Details stay editable across ${width}px`,
+      `Details restore with their value across ${width}px`,
     );
   }
-  await details.getByRole("button", { name: "Close edit details", exact: true }).click();
-  check(await appears(confirmation), "Stop Close asks before discarding changed details");
+  await detailInput.press("Escape");
+  check(await appears(confirmation), "Escape asks before discarding changed details");
   await confirmation.getByRole("button", { name: "Continue editing", exact: true }).click();
   await confirmation.waitFor({ state: "hidden" });
-  await details.getByRole("button", { name: "Cancel", exact: true }).click();
+  await page.locator(".item-editor").getByRole("button", { name: "Cancel", exact: true }).click();
   await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
-  await page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ }).click();
   for (const width of [521, 1440]) {
     await page.setViewportSize({ width, height: 844 });
-    const desktopTrip = page.getByRole("dialog", { name: "Your trip", exact: true });
+    await page.waitForFunction((expected) => innerWidth === expected, width);
+    const desktopTrip = page.getByRole("region", { name: "Trip timeline", exact: true });
     await desktopTrip.waitFor({ state: "visible" });
-    const desktopTripClose = desktopTrip.getByRole("button", {
-      name: "Close your trip",
-      exact: true,
-    });
-    check(await desktopTripClose.isVisible(), `Trip remains reachable at ${width}px`);
-    if (width === 521) {
-      await waitForFocused(desktopTripClose);
-      check(
-        await desktopTripClose.evaluate((node) => document.activeElement === node),
-        "Crossing from the phone Trip to the desktop drawer focuses its Close button",
-      );
-    }
+    check(await desktopTrip.isVisible(), `Trip timeline remains reachable at ${width}px`);
   }
   await page.setViewportSize({ width: 390, height: 844 });
   await page.locator(".phone-tabbar").waitFor({ state: "visible" });

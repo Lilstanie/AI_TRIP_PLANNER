@@ -13,6 +13,10 @@ const check = (ok, name, detail) => {
 };
 
 const NAME = { en: "Agent Team", zh: "智能体团队" };
+const WORKING_NAME = {
+  en: (count) => `Agent Team, ${count} working`,
+  zh: (count) => `智能体团队，${count} 个正在工作`,
+};
 const IDLE = { en: "Idle", zh: "空闲" };
 const IDS = [
   "coordinator",
@@ -61,9 +65,7 @@ try {
     }
     await page.getByRole("tab", { name: /^(Chat|聊天)/ }).click();
 
-    const button = page
-      .locator(".workspace-topbar")
-      .getByRole("button", { name: NAME[locale], exact: true });
+    const button = page.locator(".workspace-topbar .phone-topbar__team");
     const sheet = page.locator("dialog.phone-trajectory[open]");
     const rows = sheet.locator(".team-panel__row");
     const topbar = () => page.locator(".workspace-topbar").boundingBox();
@@ -71,6 +73,10 @@ try {
       page.evaluate(() => document.documentElement.scrollWidth <= window.innerWidth);
 
     check((await button.count()) === 1, `${label}: the top bar has one Agent Team button`);
+    check(
+      (await button.getAttribute("aria-label")) === NAME[locale],
+      `${label}: the idle button has a localized Agent Team name`,
+    );
     check(
       await page.evaluate(() => {
         const title = document.querySelector(".phone-topbar__title");
@@ -188,6 +194,18 @@ try {
       caught && caught.working > 0 && caught.pulsing > 0,
       `${label}: the button avatars show who is working`,
       caught,
+    );
+    const workingButton = await button.evaluate((element) => ({
+      label: element.getAttribute("aria-label"),
+      iconCount: element.querySelectorAll(".team-trigger__avatars .assistant-icon").length,
+      count: element.querySelector(".team-trigger__count-compact")?.textContent?.trim(),
+    }));
+    check(
+      workingButton.label === WORKING_NAME[locale](caught?.working ?? 0) &&
+        workingButton.iconCount === 1 &&
+        workingButton.count === String(caught?.working ?? 0),
+      `${label}: the working button shows one icon and a localized numeric count`,
+      workingButton,
     );
     check(
       ((await topbar())?.height ?? 99) <= 64,

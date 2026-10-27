@@ -451,17 +451,21 @@ try {
 
   await tabs.getByRole("tab", { name: /^Trip/ }).click({ timeout: 3000 });
   await tabletPage.setViewportSize({ width: 800, height: 900 });
+  const tripWorkspace = tabletPage.getByRole("region", { name: "Your trip", exact: true });
+  await tripWorkspace.waitFor();
   check(
-    await shown(tabletPage.getByRole("dialog", { name: "Your trip", exact: true })),
-    "390->800: the Trip tab continues as the open Trip drawer",
+    (await shown(tripWorkspace)) &&
+      !(await tabletPage.getByRole("dialog", { name: "Your trip", exact: true }).count()),
+    "390->800: the Trip tab continues into the dedicated Trip workspace",
   );
   await tabletPage.waitForTimeout(500);
-  await tabletPage.screenshot({ path: `${OUT}/390-to-800-trip-drawer.png` });
+  await tabletPage.screenshot({ path: `${OUT}/390-to-800-trip-workspace.png` });
   await tabletPage.setViewportSize({ width: 390, height: 844 });
   check(
     (await shown(tabletPage.locator('[role="tab"][aria-selected="true"]#phone-tab-trip'))) &&
-      (await shown(tabletPage.locator(".workspace-panel--trip"))),
-    "800->390: the open Trip drawer continues as the Trip tab",
+      (await shown(tabletPage.locator(".workspace-panel--trip"))) &&
+      !(await tabletPage.getByRole("dialog", { name: "Your trip", exact: true }).count()),
+    "800->390: the dedicated Trip surface continues as the Trip tab",
   );
   await tabletPage.waitForTimeout(500);
   await tabletPage.screenshot({ path: `${OUT}/800-to-390-trip-tab.png` });

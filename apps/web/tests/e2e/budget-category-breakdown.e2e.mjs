@@ -223,6 +223,7 @@ async function transportCases() {
             .click();
         const card = fixturePage.locator(".trip-panel__budget-summary");
         await card.waitFor();
+        await card.locator("summary").click();
         const row = card.locator("li").filter({
           has: fixturePage.getByText(language === "en" ? "Transport" : "交通", { exact: true }),
         });
@@ -244,7 +245,7 @@ async function transportCases() {
           (await card.innerText()).includes(excluded) === missing,
           `${tag}: missing transport is disclosed`,
         );
-        const status = await card.locator(".budget-status").innerText();
+        const status = await card.locator(".budget-status").first().innerText();
         check(
           scenario.budget === 200
             ? /Over budget|超出预算/.test(status)
@@ -291,10 +292,11 @@ try {
   await page.getByRole("button", { name: "Open your trip" }).click();
   const budget = page.locator(".trip-panel__budget-summary");
   await budget.waitFor();
+  await budget.locator("summary").click();
   const breakdown = budget.locator('[aria-label="Budget breakdown"]');
   check((await breakdown.count()) === 1, "budget card exposes a category breakdown");
   const rows = await breakdown
-    .locator("li")
+    .locator(":scope > li")
     .allInnerTexts()
     .catch(() => []);
   check(
@@ -311,7 +313,8 @@ try {
     "known category estimates show their amounts",
     rows,
   );
-  const estimateValues = rows.flatMap((row) =>
+  const categoryRows = rows.map((row) => row.split("\n").slice(0, 2).join("\n"));
+  const estimateValues = categoryRows.flatMap((row) =>
     [...row.matchAll(/(?:A\$|AUD\s*)([\d,]+\.\d{2})/g)].map((match) =>
       Number(match[1].replaceAll(",", "")),
     ),
@@ -319,7 +322,7 @@ try {
   check(
     estimateValues.reduce((sum, amount) => sum + amount, 0) === plan.estTotal,
     "category estimates reconcile to the displayed total",
-    { estimateValues, total: plan.estTotal },
+    { categoryRows, estimateValues, total: plan.estTotal },
   );
   check(
     rows.some((row) => /estimated/i.test(row)),
@@ -332,10 +335,20 @@ try {
     rows,
   );
   await page.screenshot({ path: `${OUT}/budget-breakdown.png`, fullPage: true });
-  await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+  await page.getByRole("button", { name: "Open navigation" }).click();
+  await page.getByRole("button", { name: "Open account menu" }).click();
+  await page.getByRole("menuitem", { name: "Language & region" }).click();
+  await page.getByRole("tab", { name: "Language & region" }).waitFor();
+  await page.getByRole("button", { name: "Change" }).first().click();
+  await page.getByRole("button", { name: "简体中文", exact: true }).click();
+  await page.getByRole("button", { name: "关闭设置" }).click();
+  const navDrawer = page.locator(".workspace-drawer--nav");
+  if (await navDrawer.isVisible()) await page.getByRole("button", { name: "关闭导航" }).click();
+  await page.getByRole("button", { name: "打开你的行程" }).click();
+  await page.locator(".trip-panel__budget-summary > summary").click();
   const zhBreakdown = page.locator('[aria-label="预算明细"]');
   await zhBreakdown.waitFor();
-  const zhRows = await zhBreakdown.locator("li").allInnerTexts();
+  const zhRows = await zhBreakdown.locator(":scope > li").allInnerTexts();
   check(
     ["住宿", "交通", "餐饮", "活动"].every((label) => zhRows.some((row) => row.includes(label))) &&
       zhRows.every((row) => row.includes("估算")) &&
