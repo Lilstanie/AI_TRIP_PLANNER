@@ -304,6 +304,10 @@ Record the command and the steps or fixtures needed to reproduce it. Never write
 writing implementation code. If a system must be tested in isolation, first enumerate all the ways it
 could fail, then write the code and derive the isolated checks from that list.
 
+Trip export copies scheduled stops and accommodation or downloads `.ics` events. Times in calendar
+files are floating wall times interpreted by the importing calendar; untimed stops are all-day events.
+Run `pnpm --filter @trip/web e2e trip-export` to verify both export paths.
+
 This describes the preferred approach for new work. CI runs the Vitest suites through `pnpm test` and
 the repository script tests (`scripts/*.test.mjs`) through `pnpm test:scripts`. CLI acceptance uses
 [change selection and isolated CI workers](#cli-acceptance-in-ci), including its fixture browser
