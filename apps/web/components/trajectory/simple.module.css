@@ -189,7 +189,7 @@
 }
 
 .mode {
-  min-height: 28px;
+  height: 36px;
   margin: 0;
   padding: 2px 12px;
   border: 1px solid var(--border);
@@ -207,10 +207,8 @@
   color: var(--accent);
 }
 
-@media (pointer: coarse) {
-  .mode {
-    min-height: 44px;
-    padding-inline: 16px;
-    font-size: 14px;
-  }
+.modebar[data-phone] .mode {
+  height: 44px;
+  padding-inline: 16px;
+  font-size: 14px;
 }

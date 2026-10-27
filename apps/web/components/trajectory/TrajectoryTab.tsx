@@ -100,7 +100,12 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   return (
     <div className="trajectory-tab">
       {!empty && (
-        <div className={css.modebar} role="group" aria-label={tt("view.aria")}>
+        <div
+          className={css.modebar}
+          data-phone={phone || undefined}
+          role="group"
+          aria-label={tt("view.aria")}
+        >
           {(["simple", "full"] as const).map((id) => (
             <button
               key={id}
