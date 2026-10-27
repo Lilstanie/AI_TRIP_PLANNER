@@ -23,7 +23,12 @@ function scheduled(plan: TripPlan) {
 export function tripText(plan: TripPlan, locale: "en" | "zh" = "en"): string {
   const stops = scheduled(plan);
   const lines = [plan.brief.destination, `${plan.brief.dates[0]} – ${plan.brief.dates[1]}`];
-  const days = new Set(stops.map((item) => item.day!));
+  const count =
+    (Date.parse(`${plan.brief.dates[1]}T00:00:00Z`) -
+      Date.parse(`${plan.brief.dates[0]}T00:00:00Z`)) /
+      86400000 +
+    1;
+  const days = Array.from({ length: Math.max(0, count) }, (_, index) => index + 1);
   for (const day of days) {
     lines.push(
       "",
@@ -87,7 +92,7 @@ export function tripCalendar(plan: TripPlan): string {
     const nextDate = dateForDay(plan.brief.dates[0], item.day! + 1).replaceAll("-", "");
     lines.push(
       "BEGIN:VEVENT",
-      `UID:${escapeCalendar(`${plan.tripId}-${item.id ?? index}@ai-trip-planner`)}`,
+      `UID:${escapeCalendar(`${plan.tripId}-${item.id === undefined ? `index-${index}` : `id-${item.id}`}@ai-trip-planner`)}`,
       `DTSTAMP:${stamp}`,
     );
     if (item.startTime && item.endTime) {

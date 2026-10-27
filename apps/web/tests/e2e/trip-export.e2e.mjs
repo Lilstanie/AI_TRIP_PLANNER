@@ -40,7 +40,7 @@ const plan = {
         conflictsWith: [],
         items: [
           {
-            id: "museum",
+            id: "1",
             kind: "activity",
             day: 1,
             startTime: "09:00",
@@ -49,7 +49,7 @@ const plan = {
             detail: "Museum",
             note: "Bring tickets; ask, then go\\home",
           },
-          { id: "market", kind: "activity", day: 2, location: "Market", detail: "Market" },
+          { kind: "activity", day: 2, location: "Market", detail: "Market" },
           {
             id: "idea",
             kind: "activity",
@@ -163,6 +163,10 @@ try {
     await page.getByRole("button", { name: "Copy trip" }).click();
     const text = await page.evaluate(() => navigator.clipboard.readText());
     check(
+      text.includes("2030-10-03 · Day 3\nHarbour Hotel"),
+      `empty day stay ${width} ${colorScheme}`,
+    );
+    check(
       text.includes("Museum") &&
         text.includes("09:00") &&
         text.includes("Market") &&
@@ -176,6 +180,11 @@ try {
     const chunks = [];
     for await (const chunk of await download.createReadStream()) chunks.push(chunk);
     const ics = Buffer.concat(chunks).toString("utf8");
+    const uids = [...ics.matchAll(/^UID:(.+)$/gm)].map((match) => match[1].trim());
+    check(
+      uids.length === 2 && new Set(uids).size === 2,
+      `unique event IDs ${width} ${colorScheme}`,
+    );
     check(
       download.suggestedFilename().endsWith(".ics") &&
         ics.includes("BEGIN:VCALENDAR") &&
