@@ -2,6 +2,7 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import type { HTMLAttributes, PointerEvent } from "react";
 import {
+  END_OF_DAY,
   insertionIndex,
   parseZone,
   zoneKey,
@@ -55,6 +56,10 @@ function targetAt(
     const zone = parseZone(element.dataset.dropZone);
     if (!zone || !accepts(source, zone)) continue;
     const bounds = element.getBoundingClientRect();
+    if (element.dataset.dropEnd !== undefined) {
+      if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) continue;
+      return { zone, index: END_OF_DAY };
+    }
     if (x < bounds.left || x > bounds.right) continue;
     if (y < bounds.top - ZONE_REACH || y > bounds.bottom + ZONE_REACH) continue;
     const middles = [...element.querySelectorAll<HTMLElement>(":scope > [data-drop-row]")]
@@ -184,7 +189,15 @@ export function useItineraryDrag({
     };
     if (touch) current.timer = window.setTimeout(activate, LONG_PRESS_MS);
 
-    const move = (next: globalThis.PointerEvent) => {
+    let handled: Event | undefined;
+    const once =
+      <T extends Event>(handler: (event: T) => void) =>
+      (next: T) => {
+        if (handled === next) return;
+        handled = next;
+        handler(next);
+      };
+    const move = once((next: globalThis.PointerEvent) => {
       if (next.pointerId !== current.pointerId) return;
       current.x = next.clientX;
       current.y = next.clientY;
@@ -196,13 +209,13 @@ export function useItineraryDrag({
       }
       refresh();
       if (!frame) frame = window.requestAnimationFrame(autoScroll);
-    };
-    const up = (next: globalThis.PointerEvent) => {
+    });
+    const up = once((next: globalThis.PointerEvent) => {
       if (next.pointerId === current.pointerId) end(true);
-    };
-    const cancel = (next: globalThis.PointerEvent) => {
+    });
+    const cancel = once((next: globalThis.PointerEvent) => {
       if (next.pointerId === current.pointerId) end(false);
-    };
+    });
     const key = (next: KeyboardEvent) => {
       if (next.key === "Escape" && current.active) {
         next.stopPropagation();
@@ -215,19 +228,29 @@ export function useItineraryDrag({
     const suppress = (next: Event) => {
       if (touch || current.active) next.preventDefault();
     };
-    window.addEventListener("pointermove", move);
-    window.addEventListener("pointerup", up);
-    window.addEventListener("pointercancel", cancel);
+    const listen = (target: EventTarget) => {
+      target.addEventListener("pointermove", move as EventListener);
+      target.addEventListener("pointerup", up as EventListener);
+      target.addEventListener("pointercancel", cancel as EventListener);
+    };
+    const unlisten = (target: EventTarget) => {
+      target.removeEventListener("pointermove", move as EventListener);
+      target.removeEventListener("pointerup", up as EventListener);
+      target.removeEventListener("pointercancel", cancel as EventListener);
+    };
+    listen(window);
+    listen(current.element);
     window.addEventListener("keydown", key, true);
     window.addEventListener("touchmove", hold, { passive: false });
+    current.element.addEventListener("touchmove", hold, { passive: false });
     window.addEventListener("contextmenu", suppress);
     stop.current = () => {
       window.cancelAnimationFrame(frame);
-      window.removeEventListener("pointermove", move);
-      window.removeEventListener("pointerup", up);
-      window.removeEventListener("pointercancel", cancel);
+      unlisten(window);
+      unlisten(current.element);
       window.removeEventListener("keydown", key, true);
       window.removeEventListener("touchmove", hold);
+      current.element.removeEventListener("touchmove", hold);
       window.removeEventListener("contextmenu", suppress);
       stop.current = () => undefined;
     };

@@ -17,7 +17,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                   | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
 | Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                              | `ChatPanel`                                                                                                             |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                   | `TripMapCanvas`, `TripMap`                                                                                              |
-| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, day strip, selected-day stops and bookings, then Ideas; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
+| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, Ideas, day strip, then selected-day stops and bookings; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -808,8 +808,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   color is not the sole cue. Stops on other days step back to grey badges without labels.
 - **Trip itinerary.** One itinerary view: heading and summary, compact budget,
   collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
-  their place carries on the map (a repeat visit keeps it), the day's flights and stay rows, then Ideas,
-  unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
+  their place carries on the map (a repeat visit keeps it), and the day's flights and stay rows.
+  Ideas sit above the day strip, unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
   switch shows one at a time. The phone Trip tab continues to show the existing Trip surface. The
   itinerary has no status label:
   "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
@@ -899,8 +899,8 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
-  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas remain
-  outside the day panel. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas sit above
+  the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
@@ -962,6 +962,19 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   {total} on Day {d}". The drag state lives in `components/trip/useItineraryDrag.ts` and addresses
   rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
   `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
+- **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
+  Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every
+  tab in the day strip is a drop target that marks itself with an outline: dropping a Stop there
+  appends it to that day (an empty day included), and holding a dragged Stop over a tab for 600 ms
+  opens that day so the insertion line can choose any position in it. A Stop dropped on a day is one
+  `move` edit, a Stop dropped on Ideas is one `idea` edit that parks it last, and an Idea (pressed
+  anywhere on its row, long-press on touch) dropped on a tab or the open day is one `schedule` edit
+  that places it at the end of the day, with the line shown there. Each is a single Undo, and the
+  Stop numbers, times and Legs of both days refresh. A day without room, another accommodation
+  segment, the Stop's own day tab, Ideas dropped on Ideas, Escape and a locked trip change nothing or
+  show the usual refusal. While the day changes under a drag, the dragged row is not drawn; the line
+  and the outlined tab show the target. Verify with
+  `pnpm --filter @trip/web e2e cross-day-drag --prod` (1440 px with a mouse, 390 px with touch).
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens

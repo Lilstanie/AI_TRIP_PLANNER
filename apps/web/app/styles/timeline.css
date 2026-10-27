@@ -660,8 +660,20 @@ button.timeline-stop__time:disabled {
 .timeline-ideas {
   display: grid;
   gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+}
+.timeline-ideas > .timeline {
+  min-height: 44px;
+}
+.timeline-ideas[data-drop-target],
+button.day-strip__day[data-drop-target] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+html.is-reordering .timeline[data-empty] {
+  min-height: 44px;
 }
 .timeline-ideas__title {
   margin: 0;

@@ -7,12 +7,14 @@ export function DayStrip({
   selected,
   today,
   panelId,
+  dropDay,
   onSelect,
 }: {
   days: { day: number; date: string; stops: number; attention: boolean }[];
   selected: number;
   today?: number;
   panelId: string;
+  dropDay?: number;
   onSelect(day: number): void;
 }) {
   const { t } = useLocale();
@@ -39,6 +41,9 @@ export function DayStrip({
           type="button"
           role="tab"
           data-day={day}
+          data-drop-zone={`day:${day}`}
+          data-drop-end=""
+          {...(dropDay === day ? { "data-drop-target": "true" } : {})}
           id={`${panelId}-day-tab-${day}`}
           className="day-strip__day"
           aria-controls={panelId}
