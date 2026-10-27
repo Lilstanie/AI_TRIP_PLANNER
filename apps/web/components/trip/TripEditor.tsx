@@ -359,11 +359,6 @@ export function TripEditor({
         <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
           {t("Ideas")}
         </h4>
-        {ideas.length > 0 && (
-          <p className="timeline-ideas__hint">
-            {t("Set aside for later. Schedule one on a day from its menu.")}
-          </p>
-        )}
         <ol
           className="timeline"
           data-drop-zone="ideas"
