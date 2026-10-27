@@ -23,6 +23,9 @@ import { AddStop } from "./timeline/AddStop";
 import { TripChatShortcut } from "./timeline/TripChatShortcut";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
+import { useShowDistances } from "./useShowDistances";
+import { Switch } from "../account/SettingsControls";
+import { directionsUrl } from "@/lib/trip/leg-distance";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
 import type { EditOperation, PlanRevisions } from "./plan-revision";
@@ -113,6 +116,7 @@ export function TripEditor({
     onLegApplied,
     onTimelineChange,
   });
+  const [showDistances, setShowDistances] = useShowDistances();
   const days = dayCount(plan);
   const { day, today, selectDay } = useTripDay(
     plan,
@@ -244,6 +248,10 @@ export function TripEditor({
           {t("Return to today")}
         </button>
       )}
+      <div className="trip-editor__distances">
+        <span>{t("Show distances")}</span>
+        <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
+      </div>
       <DayStrip
         days={strip}
         selected={day}
@@ -353,12 +361,24 @@ export function TripEditor({
               previous = activity;
 
               const routable = !!(from?.placeId && activity.placeId);
+              const endpoint = (stop: typeof activity) => {
+                const id = placeIdFor(stop);
+                return {
+                  name: stop.location ?? stop.detail,
+                  ...(id ? { placeId: id, location: places[id]?.location } : {}),
+                };
+              };
+              const directions = from
+                ? directionsUrl(endpoint(from), endpoint(activity))
+                : undefined;
               return (
                 <Fragment key={activity.id ?? position}>
                   {connection && (
                     <LegRow
                       key={connection.status}
                       connection={connection}
+                      showDistance={showDistances}
+                      {...(directions ? { directions } : {})}
                       from={from ? (from.location ?? from.detail) : ""}
                       to={activity.location ?? activity.detail}
                       {...(routable && activity.id

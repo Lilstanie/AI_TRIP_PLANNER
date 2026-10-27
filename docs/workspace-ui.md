@@ -950,6 +950,16 @@ moves. Details, notes, booked and visit progress apply in the browser. The check
   and the plan stays as it was. In mock data mode the server answers with fixture legs marked "estimate", never "checked".
   A reload shows the stored legs as estimates, and a "No route found" result is not kept across a
   reload. Confirming a stop's place still needs a Maps key or a stub.
+- **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
+  and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
+  between the same place twice, shows none. Each leg also has a Directions link that opens
+  Google Maps in a new tab from the previous stop to this one, by coordinates when both places are
+  known and by stop name otherwise; it is left out between the same place twice. The Show distances switch above the day strip hides or shows every leg
+  distance and leaves the Directions links. It is on by default and kept in this browser under
+  `trip.show-distances.v1`; if the browser cannot read or write it, distances show and the switch still
+  works for the session. A stay whose selected candidate has a known `detailsUrl` shows a Book link to it
+  on its row; stops and stays without a link show nothing. `leg-distances.e2e.mjs` checks all of this on
+  desktop and phone, in English and Chinese.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
   refused edit leaves the plan unchanged and lists its blockers as an alert above the day, each naming the stop it is about. A place change
   on a day with an unconfirmed neighbour is accepted: that pair has no route until both places are

@@ -734,3 +734,32 @@ button.timeline-stop__time:disabled {
   list-style: disc;
   font-size: var(--font-size-meta);
 }
+
+.trip-editor__distances {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  margin-block: var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.trip-editor__distances button.settings-switch::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+.timeline-connection__directions,
+.timeline-booking__book {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.timeline-booking__book {
+  margin-inline-start: var(--space-2);
+}

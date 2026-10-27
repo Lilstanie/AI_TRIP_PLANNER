@@ -269,6 +269,17 @@ export function BookingRow({
         </div>
         <span className="timeline-row__cost">
           {selected ? money(selected.pricePerNight * stay.rooms) : t("Price unknown")}
+          {selected?.detailsUrl && (
+            <a
+              className="timeline-booking__book"
+              href={selected.detailsUrl}
+              target="_blank"
+              rel="noreferrer"
+              aria-label={t("Book {name}", { name: selected.name })}
+            >
+              {t("Book")}
+            </a>
+          )}
         </span>
       </li>
     );

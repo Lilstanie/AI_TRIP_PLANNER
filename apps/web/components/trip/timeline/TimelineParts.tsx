@@ -72,9 +72,13 @@ export function LegRow({
   from,
   to,
   locked = false,
+  showDistance = true,
+  directions,
   onChoose,
 }: {
   connection: Connection;
+  showDistance?: boolean;
+  directions?: string;
 
   from: string;
   to: string;
@@ -105,12 +109,26 @@ export function LegRow({
               )}
             </span>
           )}
+          {showDistance && connection.distance && (
+            <span className="timeline-connection__distance">· {connection.distance}</span>
+          )}
           {connection.status !== "failed" && (
             <span className="timeline-connection__status">
               {connection.status === "checked" ? t("checked") : t("estimate")}
             </span>
           )}
         </p>
+        {directions && (
+          <a
+            className="timeline-connection__directions"
+            href={directions}
+            target="_blank"
+            rel="noreferrer"
+            aria-label={t("Directions from {from} to {to}", { from, to })}
+          >
+            {t("Directions")}
+          </a>
+        )}
         {onChoose && (
           <select
             className="timeline-connection__mode"

@@ -9,6 +9,7 @@ import type {
 } from "@trip/shared";
 import type { RouteResult } from "../integrations/google";
 import { LEG_MODES, legModeOf, type LegMode } from "./leg-routes";
+import { formatDistance } from "./leg-distance";
 
 export type FixedKind = "flight" | "ground" | "stay";
 
@@ -278,6 +279,7 @@ export type Connection = {
 
   status: "checked" | "planned" | "failed";
   fare?: string;
+  distance?: string;
 
   choice?: LegMode;
 };
@@ -308,6 +310,10 @@ export function connectionBetween(
       status: route.simulated ? "planned" : "checked",
 
       fare: route.fare ? fare(route.fare, locale) : undefined,
+      distance:
+        previous?.placeId === current.placeId
+          ? undefined
+          : formatDistance(route.distanceMeters, locale),
       service: route.source && !route.simulated ? SERVICE_NAMES[route.source] : undefined,
       choice,
     };
