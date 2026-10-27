@@ -717,9 +717,6 @@ button.timeline-stop__time:disabled {
 .stop-place-card .item-editor {
   margin: 0;
 }
-.stop-place-card .stop-editor__order {
-  padding: 0;
-}
 .trip-panel__sections {
   display: grid;
   gap: var(--space-3);
@@ -762,4 +759,40 @@ button.timeline-stop__time:disabled {
 }
 .timeline-booking__book {
   margin-inline-start: var(--space-2);
+}
+
+.timeline-stop {
+  position: relative;
+}
+.stop-popover {
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-start: calc(100% - var(--space-2));
+  z-index: 20;
+  inline-size: min(22rem, calc(100% - 2 * var(--space-2)));
+  margin-inline-start: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.18));
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.stop-popover .item-editor,
+.stop-popover .stop-editor__time {
+  grid-column: auto;
+  margin: 0;
+  background: transparent;
+}
+.stop-popover .stop-editor__time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.stop-popover button {
+  min-block-size: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stop-popover {
+    animation: none;
+  }
 }

@@ -25,7 +25,7 @@ const LANGS = {
     mineTab: /^Mine/,
     openTrip: "Open your trip",
     chatTab: /^Chat/,
-    moveToDay: "Move to another day",
+    moveToPrevDay: "Move to previous day",
     chatCopy: (name) =>
       new RegExp(
         `^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`,
@@ -41,7 +41,7 @@ const LANGS = {
     mineTab: /^我的/,
     openTrip: "打开你的行程",
     chatTab: /^聊天/,
-    moveToDay: "移至其他一天",
+    moveToPrevDay: "移至前一天",
     chatCopy: (name) =>
       new RegExp(
         `^Day 1: ${escapeRe(name)} needs at least \\d+ minutes after the previous activity\\.$`,
@@ -245,13 +245,14 @@ async function plan(browser, { width, lang, run }) {
   check(saves.size === 4, `${run}: every stop the map finds is saved (${saves.size} saves)`);
 
   for (const fromDay of [2, 3]) {
-    await dayTab(page, fromDay).click();
-    await settle(page, 300);
-    const row = stopRows(page).first();
-    await row.locator(".action-menu__trigger").click();
-    await page.getByRole("menuitem", { name: L.moveToDay, exact: true }).click();
-    await trip.locator(".stop-place-card select").selectOption("1");
-    await settle(page, 900);
+    for (let day = fromDay; day > 1; day -= 1) {
+      await dayTab(page, day).click();
+      await settle(page, 300);
+      const row = day === fromDay ? stopRows(page).first() : stopRows(page).last();
+      await row.locator(".action-menu__trigger").click();
+      await page.getByRole("menuitem", { name: L.moveToPrevDay, exact: true }).click();
+      await settle(page, 900);
+    }
   }
   await dayTab(page, 1).click();
   await settle(page, 400);

@@ -31,7 +31,7 @@ const LANGS = {
     openTrip: "Open your trip",
     trips: /^Trips\b/,
     changeTime: "Change time",
-    moveToDay: "Move to another day",
+    moveToPrevDay: "Move to previous day",
     scheduleOnDay: "Schedule on a day",
     schedule: "Schedule",
     restaurant: "Restaurant suggestion",
@@ -44,7 +44,7 @@ const LANGS = {
     openTrip: "打开你的行程",
     trips: /^行程/,
     changeTime: "修改时间",
-    moveToDay: "移至其他一天",
+    moveToPrevDay: "移至前一天",
     scheduleOnDay: "安排到某一天",
     schedule: "安排日期",
     restaurant: "餐厅建议",
@@ -448,12 +448,13 @@ async function walk(browser, { width, lang }) {
   await shot("01-planned");
 
   for (const fromDay of [2, 3]) {
-    await dayTab(page, fromDay).click();
-    await settle(page, 300);
-    const row = page.locator(".timeline-day ol.timeline > li.timeline-stop").first();
-    await stopMenu(page, row, L.moveToDay);
-    await trip.locator(".stop-place-card select").selectOption("1");
-    await settle(page, 900);
+    for (let day = fromDay; day > 1; day -= 1) {
+      await dayTab(page, day).click();
+      await settle(page, 300);
+      const rows = page.locator(".timeline-day ol.timeline > li.timeline-stop");
+      await stopMenu(page, day === fromDay ? rows.first() : rows.last(), L.moveToPrevDay);
+      await settle(page, 900);
+    }
   }
   await dayTab(page, 1).click();
   await settle(page, 400);
@@ -709,8 +710,8 @@ async function walk(browser, { width, lang }) {
   );
   await idea.locator(".action-menu__trigger").click();
   await page.getByRole("menuitem", { name: L.scheduleOnDay, exact: true }).click();
-  await trip.locator(".stop-place-card select").selectOption("2");
-  await trip.locator(".stop-place-card button[type=submit]").click();
+  await trip.locator(".stop-popover select").selectOption("2");
+  await trip.locator(".stop-popover button[type=submit]").click();
   await settle(page, 700);
   check(
     (await page.locator(".timeline-ideas li.timeline-stop--idea").count()) === ideasBefore - 1,

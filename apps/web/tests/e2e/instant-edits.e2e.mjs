@@ -391,20 +391,13 @@ try {
     await waitSaved((items) => items.some((item) => item.detail === "Guided tour"));
     check((await undoButton.count()) > 0, `a details change offers Undo at ${tag}`);
     await undone("a details change", before);
-    await menu("Instant Museum", "Add a note");
-    await page.getByRole("textbox", { name: "Note", exact: true }).fill("Bring a hat");
+    await menu("Instant Museum", "Add a comment");
+    await page.getByRole("textbox", { name: "Comment", exact: true }).fill("Bring a hat");
     await page.getByRole("button", { name: "Save", exact: true }).click();
     await waitSaved((items) => items.some((item) => item.note === "Bring a hat"));
     await undone("a note change", before);
 
-    await menu("Instant Museum", "Move later");
-    await waitSaved(
-      (items) =>
-        items.find((item) => item.id === `museum-${viewport.width}`)?.startTime !== "09:00",
-    );
-    await undone("moving a stop later", before);
-    await menu("Instant Garden", "Move to another day");
-    await page.locator(".stop-editor__order select").selectOption("2");
+    await menu("Instant Garden", "Move to next day");
     await waitSaved(
       (items) => items.find((item) => item.id === `garden-${viewport.width}`)?.day === 2,
     );
@@ -460,8 +453,8 @@ try {
       (await noDiscard()) && (await details.count()) === 0,
       `Escape closes a half-filled details form without asking at ${tag}`,
     );
-    await menu("Instant Museum", "Add a note");
-    const note = page.getByRole("textbox", { name: "Note", exact: true });
+    await menu("Instant Museum", "Add a comment");
+    const note = page.getByRole("textbox", { name: "Comment", exact: true });
     await note.fill("Never saved");
     await page.getByRole("button", { name: "Cancel", exact: true }).first().click();
     check(

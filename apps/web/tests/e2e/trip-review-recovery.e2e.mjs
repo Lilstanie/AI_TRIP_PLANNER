@@ -317,9 +317,9 @@ try {
           const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
           if (scenario !== "background-time") {
             await stop.locator(".action-menu__trigger").click();
-            await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
+            await page.getByRole("menuitem", { name: "Add a comment", exact: true }).click();
             await page
-              .getByRole("textbox", { name: "Note", exact: true })
+              .getByRole("textbox", { name: "Comment", exact: true })
               .fill("Undo this note only");
             await page.getByRole("button", { name: "Save", exact: true }).click();
           } else {
@@ -386,8 +386,10 @@ try {
         } else if (scenario === "undo") {
           const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
           await stop.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
-          await page.getByRole("textbox", { name: "Note", exact: true }).fill("Last manual note");
+          await page.getByRole("menuitem", { name: "Add a comment", exact: true }).click();
+          await page
+            .getByRole("textbox", { name: "Comment", exact: true })
+            .fill("Last manual note");
           await page.getByRole("button", { name: "Save", exact: true }).click();
           await page.getByRole("button", { name: "Undo", exact: true }).waitFor();
           await openChat();
@@ -412,10 +414,8 @@ try {
           assert.equal(await page.getByRole("button", { name: /^Undo/ }).count(), 0);
           for (const note of ["First manual note", "Second manual note"]) {
             await stop.locator(".action-menu__trigger").click();
-            await page
-              .getByRole("menuitem", { name: /^(Add a note|Edit note)$/, exact: true })
-              .click();
-            await page.getByRole("textbox", { name: "Note", exact: true }).fill(note);
+            await page.getByRole("menuitem", { name: /^Add a comment$/, exact: true }).click();
+            await page.getByRole("textbox", { name: "Comment", exact: true }).fill(note);
             await page.getByRole("button", { name: "Save", exact: true }).click();
           }
           await page.getByRole("button", { name: "Undo", exact: true }).click();
