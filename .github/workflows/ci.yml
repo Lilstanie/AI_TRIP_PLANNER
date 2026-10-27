@@ -101,11 +101,11 @@ jobs:
           done
           exit 1
       - name: Install Chromium with system dependencies
-        timeout-minutes: 10
+        timeout-minutes: 20
         run: |
           echo 'DPkg::Lock::Timeout "300";' | sudo tee /etc/apt/apt.conf.d/99lock-timeout
-          for attempt in 1 2 3; do
-            timeout 240 pnpm --filter @trip/web exec playwright install --with-deps chromium && exit 0
+          for attempt in 1 2; do
+            timeout 540 pnpm --filter @trip/web exec playwright install --with-deps chromium && exit 0
           done
           exit 1
       - name: Sequential CLI acceptance shard
