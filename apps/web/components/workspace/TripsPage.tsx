@@ -11,7 +11,7 @@ import { TripCover, coverColours } from "./TripCover";
 import { TripUndo, type DeletedTrip } from "./TripUndo";
 import { HistoryMenu } from "./WorkspaceSidebar";
 
-type Tab = "trips" | "calendar";
+export type Tab = "trips" | "calendar";
 const TABS: { id: Tab; label: MessageKey }[] = [
   { id: "trips", label: "Trips" },
   { id: "calendar", label: "Calendar" },
@@ -34,6 +34,8 @@ export function TripsPage({
   deletedTrip,
   embedded = false,
   allTrips = trips,
+  tab: controlledTab,
+  onTab,
 }: {
   trips: TripRecord[];
   allTrips?: TripRecord[];
@@ -44,9 +46,16 @@ export function TripsPage({
   onDeleteTrip(id: string): void;
   deletedTrip?: DeletedTrip;
   embedded?: boolean;
+  tab?: Tab;
+  onTab?(tab: Tab): void;
 }) {
   const { t, locale } = useLocale();
-  const [tab, setTab] = useState<Tab>("trips");
+  const [ownTab, setOwnTab] = useState<Tab>("trips");
+  const tab = controlledTab ?? ownTab;
+  const setTab = (next: Tab) => {
+    setOwnTab(next);
+    onTab?.(next);
+  };
   const tabRefs = useRef<Partial<Record<Tab, HTMLButtonElement | null>>>({});
   const tabList = useRef<HTMLDivElement>(null);
   useSegmentIndicator(tabList, tab);

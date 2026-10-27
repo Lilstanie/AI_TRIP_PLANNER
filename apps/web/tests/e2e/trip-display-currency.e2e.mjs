@@ -310,7 +310,7 @@ try {
       if (phone) await selectTab("Mine");
       else await page.getByRole("button", { name: /^Chats/ }).click();
       await page
-        .locator(".chats-panel__actions")
+        .locator(".sidebar-nav, .chats-panel__section-head")
         .getByRole("button", { name: "New trip", exact: true })
         .click();
       await page.getByRole("dialog", { name: "Where", exact: true }).waitFor();

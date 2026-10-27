@@ -18,7 +18,7 @@ import { WorkspaceSidebar } from "./WorkspaceSidebar";
 import { SidebarResizer } from "./SidebarResizer";
 import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
-import { TripsPage } from "./TripsPage";
+import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
@@ -197,7 +197,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       searchRef={searchRef}
     />
   );
-  const showTrips = () => viewTransition(layout.showTrips);
+  const [tripsTab, setTripsTab] = useState<TripsTab>("trips");
+  const showTrips = () => {
+    setTripsTab("trips");
+    viewTransition(layout.showTrips);
+  };
+  const showCalendar = () => {
+    setTripsTab("calendar");
+    viewTransition(layout.showTrips);
+  };
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
@@ -280,6 +288,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         tripCount={catalog.trips.length}
         onChats={() => undefined}
         onTrips={showTrips}
+        onCalendar={showCalendar}
+        onNewTrip={swap(session.newTrip)}
+        onNewChat={swap(session.newChat)}
+        tripsView={tripsTab}
         onSettings={openSettings}
         saveState={saveState}
         syncStatus={syncStatus}
@@ -390,6 +402,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             chatsButton={chatsButton}
             onChats={toggleChats}
             onTrips={showTrips}
+            onCalendar={showCalendar}
+            onNewTrip={swap(session.newTrip)}
+            onNewChat={swap(session.newChat)}
+            tripsView={tripsTab}
             onSettings={openSettings}
             saveState={saveState}
             syncStatus={syncStatus}
@@ -417,6 +433,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             <main className="workspace-shell workspace-shell--trips">
               <TripsPage
+                tab={tripsTab}
+                onTab={setTripsTab}
                 trips={catalog.trips}
                 activeTripId={blank ? undefined : catalog.activeTripId}
                 onOpenTrip={swap(session.selectTrip)}

@@ -1,7 +1,16 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode, type Ref } from "react";
 import { BrandMark } from "./BrandMark";
-import { ChatIcon, MoreIcon, SidebarIcon, SuitcaseIcon } from "../ui/icons";
+import {
+  CalendarIcon,
+  ChatIcon,
+  ComposeIcon,
+  MoreIcon,
+  NewTripIcon,
+  PlusIcon,
+  SidebarIcon,
+  SuitcaseIcon,
+} from "../ui/icons";
 import { AccountButton } from "../account/AccountButton";
 import type { SettingsSection } from "../account/SettingsDialog";
 import type { SyncStatus } from "../account/useAccountSync";
@@ -26,6 +35,7 @@ function NavButton({
   expanded,
   controls,
   buttonRef,
+  action,
   onClick,
 }: {
   icon: ReactNode;
@@ -37,9 +47,10 @@ function NavButton({
   expanded?: boolean;
   controls?: string;
   buttonRef?: Ref<HTMLButtonElement>;
+  action?: { icon: ReactNode; label: string; onClick(): void };
   onClick(): void;
 }) {
-  return (
+  const main = (
     <button
       ref={buttonRef}
       type="button"
@@ -55,6 +66,22 @@ function NavButton({
       {!collapsed && <span className="sidebar-nav__label">{label}</span>}
       {!collapsed && count !== undefined && <span className="sidebar-nav__count">{count}</span>}
     </button>
+  );
+  if (!action) return main;
+  return (
+    <div className="sidebar-nav__row">
+      {main}
+      <button
+        type="button"
+        className="sidebar-nav__action"
+        aria-label={action.label}
+        title={collapsed ? undefined : action.label}
+        data-tooltip={collapsed ? action.label : undefined}
+        onClick={action.onClick}
+      >
+        {action.icon}
+      </button>
+    </div>
   );
 }
 
@@ -154,11 +181,15 @@ export function WorkspaceSidebar({
   collapsible = true,
   onToggleCollapsed,
   page,
+  tripsView = "trips",
   chatsOpen,
   chatCount,
   tripCount,
   onChats,
   onTrips,
+  onCalendar,
+  onNewTrip,
+  onNewChat,
   chatsButton,
   onSettings,
   saveState,
@@ -170,6 +201,7 @@ export function WorkspaceSidebar({
   collapsible?: boolean;
   onToggleCollapsed?(): void;
   page: WorkspacePage;
+  tripsView?: "trips" | "calendar";
   chatsOpen: boolean;
   chatCount: number;
   tripCount: number;
@@ -177,6 +209,9 @@ export function WorkspaceSidebar({
   onChats(): void;
 
   onTrips(): void;
+  onCalendar(): void;
+  onNewTrip(): void;
+  onNewChat(): void;
 
   chatsButton?: Ref<HTMLButtonElement>;
 
@@ -211,6 +246,12 @@ export function WorkspaceSidebar({
       </div>
 
       <nav className="sidebar-nav" aria-label={t("Workspace")}>
+        <NavButton
+          icon={<NewTripIcon />}
+          label={t("New trip")}
+          collapsed={isCollapsed}
+          onClick={onNewTrip}
+        />
         {collapsible ? (
           <NavButton
             buttonRef={chatsButton}
@@ -222,15 +263,30 @@ export function WorkspaceSidebar({
             expanded={chatsOpen}
             controls="chats-panel"
             onClick={onChats}
+            action={{ icon: <PlusIcon />, label: t("New chat"), onClick: onNewChat }}
           />
-        ) : null}
+        ) : (
+          <NavButton
+            icon={<ComposeIcon />}
+            label={t("New chat")}
+            collapsed={isCollapsed}
+            onClick={onNewChat}
+          />
+        )}
         <NavButton
-          icon={<SuitcaseIcon filled={page === "trips" && !chatsOpen} />}
+          icon={<SuitcaseIcon filled={page === "trips" && tripsView === "trips" && !chatsOpen} />}
           label={t("Trips")}
           collapsed={isCollapsed}
           count={tripCount}
-          current={page === "trips" && !chatsOpen}
+          current={page === "trips" && tripsView === "trips" && !chatsOpen}
           onClick={onTrips}
+        />
+        <NavButton
+          icon={<CalendarIcon />}
+          label={t("Calendar")}
+          collapsed={isCollapsed}
+          current={page === "trips" && tripsView === "calendar" && !chatsOpen}
+          onClick={onCalendar}
         />
       </nav>
 

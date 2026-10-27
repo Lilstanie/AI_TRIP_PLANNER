@@ -49,7 +49,10 @@ try {
   );
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page.locator(".chats-panel__actions").getByRole("button", { name: "New chat" }).click();
+  await page
+    .locator(".sidebar-nav, .chats-panel__section-head")
+    .getByRole("button", { name: "New chat" })
+    .click();
   await page.keyboard.press("Escape");
   await page
     .getByRole("button", { name: /^Where/ })
