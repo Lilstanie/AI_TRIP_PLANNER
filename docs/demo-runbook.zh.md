@@ -98,9 +98,9 @@ pnpm --filter @trip/web start -p 3000
 
 1. 规划悉尼出发去东京，2027-02-01 至 2027-02-04，2 位成人，预算 AUD 6000。运行期间打开“专家团队”面板：有一位 specialist 正在工作。
 2. 把预算降到方案超支，再发送 `@Stay find a cheaper stay again`。面板显示冲突检查和修订任务。
-3. 点击已完成回复上方的摘要行。“轨迹”标签页打开，该回复所在的轮在账本中居中（手机上是底部标签栏的“轨迹”）。
+3. 点击已完成回复上方的摘要行。“轨迹”标签页以简洁列表打开，该回复所在的轮已展开（手机上是底部标签栏的“轨迹”）。点击“完整视图”，账本会把该轮居中。
 4. 点击点名 Food & dining 的冲突检查。详情显示该决定和被退回的 specialist，没有 token 或耗时字段。
-5. 关闭详情，打开“专家团队”面板并点击 Food & dining。账本只保留该 specialist 的记录；“显示全部记录”可恢复。
+5. 关闭详情，打开“专家团队”面板并点击 Food & dining。简洁列表只保留该 specialist 参与的轮；点击“完整视图”后账本只保留该 specialist 的记录；“显示全部记录”可恢复。
 
 `CHANNEL=chromium DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo` 会在 1440 px 和 390 px、两种语言下重复这五步，保存带编号的截图（`<language>-<width>-NN-<step>.png`），并把 `output/playwright/trajectory-demo/result.json`（列出每一步的截图和检查）作为演示记录。`summary-jump` 在三轮对话中检查摘要行，并在 `output/playwright/summary-jump/` 保存结果。
 

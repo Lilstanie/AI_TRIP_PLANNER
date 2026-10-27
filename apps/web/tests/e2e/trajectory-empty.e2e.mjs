@@ -94,11 +94,14 @@ try {
     await page.waitForTimeout(800);
     await page.locator(".phone-topbar__team").tap();
     await panel.waitFor();
-    await panel.getByRole("toolbar").waitFor({ timeout: 10_000 });
+    await panel.locator("[data-trajectory-simple]").waitFor({ timeout: 10_000 });
     check(
-      (await empty.count()) === 0,
-      `${label}: the ledger replaces the empty state after the first message`,
+      (await empty.count()) === 0 && (await panel.locator("[data-simple-turn]").count()) === 1,
+      `${label}: the simple list replaces the empty state after the first message`,
     );
+    await page.screenshot({ path: `${out}/${label}-simple.png` });
+    await panel.getByRole("button", { name: /^(Full view|完整视图)$/ }).tap();
+    await panel.getByRole("toolbar").waitFor({ timeout: 10_000 });
     const rows = panel.locator("tr[data-record-index]");
     check(
       (await rows.count()) > 0,

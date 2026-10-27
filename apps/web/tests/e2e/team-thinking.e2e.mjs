@@ -136,8 +136,13 @@ try {
     const trajectoryTab = page.getByRole("tab", { name: "Trajectory" });
     const conversationTab = page.getByRole("tab", { name: "Conversation" });
     const chip = page.locator("[data-trajectory-filter]");
-    const ledger = () =>
-      page.evaluate(() =>
+    const ledger = async () => {
+      const simple = page.locator("[data-trajectory-simple]");
+      await simple.waitFor({ timeout: 3000 }).catch(() => undefined);
+      if (await simple.count())
+        await page.getByRole("button", { name: /^(Full view|完整视图)$/ }).click();
+      await page.locator("[data-trajectory-scroll]").waitFor();
+      return page.evaluate(() =>
         [...document.querySelectorAll("[data-trajectory-scroll] tr[data-record-index]")].map(
           (row) => ({
             kind: row.getAttribute("data-kind"),
@@ -147,6 +152,7 @@ try {
           }),
         ),
       );
+    };
     const thinkingOpen = () =>
       page.evaluate(
         () =>

@@ -30,3 +30,24 @@ Written before the code (TP-72, #668). Each line is a way the tab could fail; th
 - The timeline lane label for Assistant wraps onto two lines and overlaps the next label.
 
 The E2E runs in mock data mode with no keys. The first run is expected to fail before implementation.
+
+## Simple view as the default (TP-111, #735)
+
+Written before the code. Each line is a way the simple trajectory could fail.
+
+- Opening the Trajectory tab shows the full ledger (`[data-trajectory-scroll]`) first instead of the simple list, or shows both.
+- A simple row lacks the summary of the traveller's message, the avatars of the specialists that took part, or the result, or the summary shows the reply instead of the message.
+- A row's avatars list the Coordinator, repeat a specialist that worked in two rounds, or omit one that only appeared in a revision round.
+- The result says Done for a turn with a failed or stopped assignment, says Done while a conflict is still open, or says anything but Working while a request is streaming.
+- Expanding a row shows nothing, shows rounds out of order, drops the revision round, or lists assignments under the wrong round or without the specialist's name.
+- Expanding one row leaves another expanded, so the selected turn is ambiguous.
+- The switch to the full view loses the turn that was expanded: the ledger opens at the top instead of at that turn.
+- Switching back to the simple list collapses the row that was open or opens a different one.
+- The simple list and the ledger disagree on the number of turns, on the specialists of a turn, or on which turn failed, because they read different data.
+- The per-reply summary jump opens the full view, opens the simple list at the wrong turn, or leaves that turn collapsed.
+- The team-panel row jump opens the simple list unfiltered, lists turns the specialist took no part in, or loses the "Show all records" chip.
+- The tab reopens in the full view after it was closed in the full view.
+- The switch has no accessible name, is not keyboard operable, or does not say which view is shown (`aria-pressed`).
+- English labels appear in the simple list under the Chinese interface, or Chinese under English.
+- A long traveller message pushes the avatars or result off the row at 1440 px, or the page overflows horizontally.
+- An empty trajectory shows a switch and a list with no rows instead of its existing empty state.

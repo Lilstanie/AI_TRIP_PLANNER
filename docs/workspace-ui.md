@@ -554,6 +554,16 @@ the step dots are compact controls rather than the app's pill buttons, and the t
 line. The [desktop trajectory note](../.agents/notes/implemented/feature/2026-10-24-desktop-trajectory-layout.md)
 records why.
 
+- **Simple view.** The tab opens, on desktop and on the phone, on a simple list: one row per traveller
+  message with a summary of what the traveller said, the avatars of the specialists that took part (never
+  the Coordinator) and the result (Working, Done, Failed or Needs change). Pressing a row opens it, one at
+  a time, to list its steps and each step's assignments and checks in order. The Simple and Full view
+  buttons switch in place to the ledger below; the open row is the selected turn, so the ledger scrolls to
+  it and switching back keeps the row open. Reopening the tab starts on the simple list again. Both views
+  read the same `buildTrajectory` turns ([`TrajectorySimple`](../apps/web/components/trajectory/TrajectorySimple.tsx)
+  adds only `summary` and `result` on each turn). A reply summary opens its turn and a team-panel row
+  filters whichever view is showing. With no turns the existing empty state shows and there is no switch.
+  The [Agent Note](../.agents/notes/implemented/feature/2026-10-27-trajectory-simple-default.md) records why.
 - **Records.** `buildTrajectory` (`lib/trajectory/adapter.ts`) maps the stored messages and their
   `activity` events to one turn per traveller message. A traveller message is a User record. A Coordinator
   summary and the reply are Assistant records named with the assistant's current name, custom names
@@ -590,7 +600,8 @@ records why.
 - **Source.** The ledger files carry DeepSeek Harness's MIT header and are listed in
   [THIRD_PARTY_NOTICES.md](../THIRD_PARTY_NOTICES.md); see
   [the Agent Note](../.agents/notes/implemented/feature/2026-10-24-trajectory-tab.md).
-- **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the ledger,
+- **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the simple list, an
+  open row, the ledger,
   inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`;
   `trajectory-inspector` saves assignment, tool call and conflict check screenshots and `result.json`
   under `output/playwright/trajectory-inspector/`.

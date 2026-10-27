@@ -28,3 +28,11 @@ The E2E runs in mock data mode with no keys. The first run is expected to fail b
 - A ledger row is not one 56px card, so the rows and the virtual list disagree on height and the list drifts when scrolled.
 - A record's text runs past its row or wraps under the next row instead of clipping after two lines.
 - The inspector's Summary, Payload and Result controls overlap the rows or the status list, or are under 44px high.
+
+## Simple view as the default (TP-111, #735)
+
+- The phone trajectory opens on the full ledger cards instead of the simple list.
+- A simple row is under 44px high, or its avatars and result do not fit on a 360px screen without horizontal scroll.
+- The phone has no way to reach the full view, or the switch is under 44px high.
+- The summary jump and the team-card jump open the phone trajectory on the full view or at the wrong turn.
+- The empty phone trajectory shows a switch or an empty list instead of its one sentence and its Plan in Chat button.

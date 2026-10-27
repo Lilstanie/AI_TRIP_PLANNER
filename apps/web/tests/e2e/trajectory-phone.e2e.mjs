@@ -19,6 +19,7 @@ const COPY = {
     team: "Agent Team",
     details: "Event details",
     close: "Close details",
+    full: "Full view",
     timeline: "Trajectory timeline",
     showAll: "Show all records",
     chat: /^Chat/,
@@ -30,6 +31,7 @@ const COPY = {
     team: "专家团队",
     details: "事件详情",
     close: "关闭详情",
+    full: "完整视图",
     timeline: "轨迹时间线",
     showAll: "显示全部记录",
     chat: /^聊天/,
@@ -140,6 +142,50 @@ try {
     await page.waitForTimeout(800);
     await tab.tap();
     await panel.waitFor();
+    const simple = panel.locator("[data-trajectory-simple]");
+    await simple.waitFor({ timeout: 10_000 });
+    check(
+      (await panel.locator("tr[data-record-index]").count()) === 0,
+      `${label}: the phone trajectory opens on the simple list, not the ledger cards`,
+    );
+    const simpleBoxes = await simple
+      .locator("[data-simple-toggle]")
+      .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().height)));
+    check(
+      simpleBoxes.length >= 1 && simpleBoxes.every((h) => h >= 44),
+      `${label}: simple rows are at least 44px high`,
+      simpleBoxes,
+    );
+    const simpleFacts = await simple
+      .locator("[data-simple-turn]")
+      .first()
+      .evaluate((node) => ({
+        summary: node.querySelector("[data-simple-summary]")?.textContent ?? "",
+        avatars: node.querySelectorAll("[data-simple-avatar]").length,
+        result: node.getAttribute("data-turn-result"),
+      }));
+    check(
+      simpleFacts.summary.length > 0 && simpleFacts.avatars >= 4 && simpleFacts.result === "done",
+      `${label}: a simple row shows the message, the specialists and the result`,
+      simpleFacts,
+    );
+    const switches = await panel
+      .getByRole("group", { name: /^(Trajectory view|轨迹视图)$/ })
+      .locator("button")
+      .evaluateAll((nodes) => nodes.map((n) => Math.round(n.getBoundingClientRect().height)));
+    check(
+      switches.length === 2 && switches.every((h) => h >= 44),
+      `${label}: the view switch has 44px targets`,
+      switches,
+    );
+    check(await noSideScroll(), `${label}: the simple list does not scroll sideways`);
+    await simple.locator("[data-simple-toggle]").first().tap();
+    check(
+      (await simple.locator("[data-simple-round]").count()) >= 1,
+      `${label}: tapping a row lists its rounds`,
+    );
+    await page.screenshot({ path: `${out}/${label}-simple.png` });
+    await panel.getByRole("button", { name: copy.full, exact: true }).tap();
     const rows = panel.locator("tr[data-record-index]");
     await rows.first().waitFor({ timeout: 10_000 });
     const count = await rows.count();
@@ -246,6 +292,9 @@ try {
       (await filter.getAttribute("data-trajectory-filter")) === "dining",
       `${label}: the bar names the specialist`,
     );
+    await panel.locator("[data-trajectory-simple]").waitFor();
+    await panel.getByRole("button", { name: copy.full, exact: true }).tap();
+    await rows.first().waitFor();
     const owners = await panel
       .locator("tr[data-record-index]")
       .evaluateAll((nodes) => [...new Set(nodes.map((n) => n.getAttribute("data-assistant")))]);
