@@ -149,6 +149,19 @@ try {
       location: "Manual Unlocated Place",
     });
     const ideaBody = await idea.json();
+    const dayOneEnds = activities
+      .filter((item) => item.day === 1)
+      .map((item) => item.endTime)
+      .sort();
+    const auto = await post({ kind: "add", id: "e2e-auto-stop", detail: "Auto", day: 1 });
+    const autoBody = await auto.json();
+    const half = await post({
+      kind: "add",
+      id: "e2e-half-stop",
+      detail: "Half",
+      day: 1,
+      startTime: "09:00",
+    });
     const updated =
       scheduledBody.plan?.sections?.find((part) => part.id === "itinerary")?.proposal?.items ?? [];
     return {
@@ -165,6 +178,12 @@ try {
       }),
       invalidRejected: !invalid.ok,
       overlapRejected: overlap ? !overlap.ok : true,
+      autoOk: auto.ok,
+      autoItem: autoBody.plan?.sections
+        ?.find((part) => part.id === "itinerary")
+        ?.proposal?.items?.find((item) => item.id === "e2e-auto-stop"),
+      dayOneLastEnd: dayOneEnds.at(-1),
+      halfRejected: !half.ok,
       ideaOk: idea.ok,
       idea: ideaBody.plan?.sections
         ?.find((part) => part.id === "itinerary")
@@ -192,6 +211,15 @@ try {
     "preview-edit rejects invalid schedules and overlapping additions",
   );
   check(
+    apiEvidence.autoOk &&
+      apiEvidence.autoItem?.day === 1 &&
+      apiEvidence.autoItem.startTime < apiEvidence.autoItem.endTime &&
+      (!apiEvidence.dayOneLastEnd || apiEvidence.autoItem.startTime >= apiEvidence.dayOneLastEnd),
+    "preview-edit places a day-only addition after the last Stop of that day",
+    apiEvidence.autoItem,
+  );
+  check(apiEvidence.halfRejected, "preview-edit rejects an addition with only a start time");
+  check(
     apiEvidence.ideaOk &&
       apiEvidence.idea?.day === undefined &&
       apiEvidence.idea?.startTime === undefined &&
@@ -208,9 +236,6 @@ try {
     await search.press("Enter");
     await page.getByRole("button", { name: "Use Fixture No Coordinate Place" }).waitFor();
     await page.getByRole("button", { name: "Use Fixture No Coordinate Place" }).click();
-    await page.getByLabel("Day", { exact: true }).selectOption(String(apiEvidence.slot.day));
-    await page.getByLabel("Start time").fill(apiEvidence.slot.startTime);
-    await page.getByLabel("End time").fill(apiEvidence.slot.endTime);
     const previous = await page.evaluate(() => {
       const key = Object.keys(localStorage).find((item) =>
         item.startsWith("trip-workspace-catalog"),
@@ -225,7 +250,6 @@ try {
           ?.map(({ id, day, startTime, endTime }) => ({ id, day, startTime, endTime })) ?? []
       );
     });
-    await page.getByRole("button", { name: "Add stop" }).click();
     await waitUntil(() => editRequests.some((request) => request.operation?.kind === "add"));
     await waitForPlanLocation("Fixture No Coordinate Place");
     await page.getByRole("region", { name: "Add place" }).waitFor({ state: "detached" });
@@ -250,10 +274,17 @@ try {
     }
     check(
       created?.id &&
-        created.day === apiEvidence.slot.day &&
-        created.startTime === apiEvidence.slot.startTime &&
-        created.endTime === apiEvidence.slot.endTime,
-      "a searched place persists as a stable, scheduled Stop with the confirmed range",
+        created.day !== undefined &&
+        created.startTime &&
+        created.endTime &&
+        created.startTime < created.endTime &&
+        previous.every(
+          (item) =>
+            item.day !== created.day ||
+            created.startTime >= item.endTime ||
+            created.endTime <= item.startTime,
+        ),
+      "a searched place persists as a stable, scheduled Stop in a free range",
     );
     check(
       !created?.savedPlace && !created?.placeId && created?.estCost === undefined,
@@ -271,47 +302,10 @@ try {
       "adding a Stop leaves every existing Stop day and time unchanged",
     );
 
-    const secondSlot = await page.evaluate(() => {
-      const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
-      const trip = catalog?.trips?.find((item) => item.id === catalog.activeTripId);
-      const plan = trip?.snapshot?.plan;
-      const activities =
-        plan?.sections
-          ?.find((part) => part.id === "itinerary")
-          ?.proposal?.items?.filter((item) => item.kind === "activity" && item.day !== undefined) ??
-        [];
-      const days =
-        (Date.parse(plan?.brief?.dates?.[1]) - Date.parse(plan?.brief?.dates?.[0])) / 86_400_000 +
-        1;
-      for (let day = 1; day <= days; day += 1) {
-        for (let minute = 6 * 60; minute <= 23 * 60 - 30; minute += 30) {
-          const startTime =
-            String(Math.floor(minute / 60)).padStart(2, "0") +
-            ":" +
-            String(minute % 60).padStart(2, "0");
-          const endMinute = minute + 30;
-          const endTime =
-            String(Math.floor(endMinute / 60)).padStart(2, "0") +
-            ":" +
-            String(endMinute % 60).padStart(2, "0");
-          if (
-            !activities.some(
-              (item) => item.day === day && startTime < item.endTime && endTime > item.startTime,
-            )
-          )
-            return { day, startTime, endTime };
-        }
-      }
-      return undefined;
-    });
-    check(Boolean(secondSlot), "the persisted Plan has a free slot for a second direct edit");
-    if (secondSlot) {
+    if (created?.id) {
       await page.getByRole("button", { name: "Add place" }).click();
       await page.getByLabel("Place name").fill("Second Direct Stop");
-      await page.getByLabel("Day", { exact: true }).selectOption(String(secondSlot.day));
-      await page.getByLabel("Start time").fill(secondSlot.startTime);
-      await page.getByLabel("End time").fill(secondSlot.endTime);
-      await page.getByRole("button", { name: "Add stop" }).click();
+      await page.getByRole("button", { name: "Add", exact: true }).click();
       await waitUntil(() =>
         editRequests.some((request) => request.operation?.location === "Second Direct Stop"),
       );
@@ -467,8 +461,6 @@ try {
 
     await page.getByRole("button", { name: "Add place" }).click();
     await page.getByLabel("Place name").fill("Manual Unlocated Place");
-    await page.getByLabel("Start time").fill("18:00");
-    await page.getByLabel("End time").fill("19:00");
     await page.getByRole("button", { name: "Save as Idea" }).click();
     await waitUntil(() =>
       editRequests.some(
@@ -496,7 +488,7 @@ try {
         idea.day === undefined &&
         idea.startTime === undefined &&
         idea.endTime === undefined,
-      "Save as Idea discards the suggested day and times",
+      "Save as Idea leaves the Stop unscheduled",
     );
     check(
       !idea?.placeId && !idea?.savedPlace && idea?.estCost === undefined,

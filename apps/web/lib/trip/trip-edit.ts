@@ -84,14 +84,11 @@ export const EditRequest = z.object({
         note: z.string().max(500).optional(),
       })
       .refine(
-        (item) => {
-          const schedule = [item.day, item.startTime, item.endTime];
-          return (
-            schedule.every((part) => part === undefined) ||
-            schedule.every((part) => part !== undefined)
-          );
-        },
-        { message: "A Stop needs a day and both times; an Idea has no schedule." },
+        (item) =>
+          item.day === undefined
+            ? item.startTime === undefined && item.endTime === undefined
+            : (item.startTime === undefined) === (item.endTime === undefined),
+        { message: "A Stop needs a day and both times or neither; an Idea has no schedule." },
       ),
     z.object({ kind: z.literal("schedule"), id: z.string(), day: z.number().int().positive() }),
 
@@ -342,9 +339,24 @@ export async function previewEdit(
   };
   const affected = new Set<number>();
   let anchor: { day: number; index: number; time: string } | undefined;
+  let autoTimed = false;
   if (operation.kind === "add") {
     if (section.proposal.items.some((item) => item.id === operation.id))
       throw new NoticeError({ key: "That activity already exists in this plan." });
+    autoTimed = operation.day !== undefined && operation.startTime === undefined;
+    if (autoTimed) {
+      const lastEnd = activities
+        .filter((activity) => activity.day === operation.day)
+        .reduce((latest, activity) => Math.max(latest, mins(activity.endTime!)), -1);
+      const start = lastEnd < 0 ? 9 * 60 : lastEnd;
+      if (start + 60 >= 1440)
+        throw new NoticeError({
+          key: BEYOND_DAY,
+          params: { day: operation.day!, stop: operation.location ?? operation.detail },
+        });
+      operation.startTime = hhmm(start);
+      operation.endTime = hhmm(start + 60);
+    }
     const item: ProposalItem = {
       id: operation.id,
       kind: "activity",
@@ -587,7 +599,7 @@ export async function previewEdit(
             const earliest = mins(previous.endTime!) + travel + 15;
             const keepExact =
               operation.kind === "undo" ||
-              operation.kind === "add" ||
+              (operation.kind === "add" && !autoTimed) ||
               operation.kind === "verify" ||
               index < changedIndex ||
               (operation.kind === "time" && index === changedIndex);

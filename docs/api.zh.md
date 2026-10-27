@@ -342,7 +342,7 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`add`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。`add` 接收稳定的 `id`、`detail`、可选的 `location` 及可选的匹配地点 `placeId`/`savedPlace`，并且必须提供完整的 `day`、`startTime`、`endTime`（已排期停靠点）或完全不提供它们（Idea）。不完整、时间倒置、超出行程日期或与其他安排重叠的时间会被拒绝。添加时会保留现有停靠点的时间；未确认地点与价格继续保持未确认，不会伪造坐标或价格。`undo` 可用 `addedIds` 移除该编辑创建的停靠点或 Idea。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`add`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。`add` 接收稳定的 `id`、`detail`、可选的 `location` 及可选的匹配地点 `placeId`/`savedPlace`，并且提供完整的 `day`、`startTime`、`endTime`（已排期停靠点）、只提供 `day`（一小时的停靠点，由服务器排在当天最后一个停靠点之后，且不早于其路段时间加 15 分钟；当天没有空位时被拒绝），或完全不提供它们（Idea）。只有开始或结束时间之一、时间倒置、超出行程日期或与其他安排重叠的时间会被拒绝。添加时会保留现有停靠点的时间；未确认地点与价格继续保持未确认，不会伪造坐标或价格。`undo` 可用 `addedIds` 移除该编辑创建的停靠点或 Idea。
 响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
 `{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
 列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；

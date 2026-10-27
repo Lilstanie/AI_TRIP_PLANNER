@@ -200,12 +200,10 @@ async function run(browser, { width, height, tag }) {
   await drawer.getByLabel("What you will do").fill("Morning walk and coffee");
   await page.keyboard.press("Escape");
   await settle(page, 300);
-  if (tag === "phone") {
-    const discard = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-    await discard.waitFor();
-    await discard.getByRole("button", { name: "Discard changes", exact: true }).click();
-    await settle(page, 300);
-  }
+  check(
+    !(await page.getByRole("dialog", { name: "Discard changes?", exact: true }).count()),
+    `${tag}: Escape closes the details form without asking`,
+  );
   check(
     !(await drawer.getByLabel("What you will do").count()),
     `${tag}: Escape closes the details form`,

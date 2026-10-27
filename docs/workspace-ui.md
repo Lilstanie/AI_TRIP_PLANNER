@@ -262,14 +262,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     44 px targets; complex Stop details use a full page. The targets include each sheet's close
     button and primary action, every When day cell, both month arrows, Clear, and every Who − and +
     stepper button.
-  - A changed sheet keeps its values through tab switches and asks before Escape, close, outside
-    dismissal or browser Back discards them. Failed time or place changes keep the entered values and
-    show the error in place. Time, place, note, details and Idea scheduling drafts are isolated by Trip,
-    Stop and field; the unfinished-edits entry reopens the matching editor after navigation. If the
-    Stop disappears, the entry opens the unfinished values for copying; discarding still asks for
-    confirmation. A plan revision
-    marks an older draft stale until it is rebased before retry. Brief edits on a Trip with a Plan use
-    the explicit Replan trip action.
+  - A changed Brief sheet keeps its values through tab switches and asks before Escape, close, outside
+    dismissal or browser Back discards them. Stop sheets, popovers and full pages apply on submit and
+    close without asking: Escape, Cancel, outside dismissal and Back drop what was typed, and nothing
+    is kept as a draft or listed after navigation. A failed time or place change keeps the entered
+    values and shows the error in place. Brief edits on a Trip with a Plan use the explicit Replan trip
+    action. See the [instant itinerary edits Agent Note](../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md).
   - Trip shows Your Trip in place, with Budget and the day view. Before
     planning it explains the empty state and offers Plan in Chat. A plan created or changed while
     another tab is selected adds an accessible update dot to Trip; opening Trip clears it. Read revisions are tracked per trip,
@@ -862,6 +860,14 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   tab bar. Missing or zero budgets
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
+- **Add place** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md)).
+  The button under the day opens a search box and a Place name field. Choosing a result or pressing Add
+  puts the stop on the viewed day at once, and Save as Idea parks a typed name with no day; no preview,
+  Day or time fields or confirm step follow. A day-only `add` is timed by the server after the day's
+  last stop and no earlier than that stop's travel plus 15 minutes; a day with no room refuses with a
+  notice. Every edit applies as a plan revision and offers Undo; a running assistant disables the
+  button, times, menus and drags. Closing any form, with Cancel, Escape or outside dismissal, never asks
+  to discard and keeps no draft.
 - **Trip AI shortcuts.** Asking AI about a day or Stop opens Conversation after the request is accepted,
   so progress, replies and retry actions are visible. Cancelling the manual-change confirmation keeps
   the traveller in Trip.

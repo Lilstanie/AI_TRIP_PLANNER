@@ -49,8 +49,9 @@ The baseline is main commit `9343038bb5a136fca97a9bfdd3a9bea361515003` (#713).
 - Chat shows the compact Brief, at most two blank-chat examples, live specialist progress, and
   completion or failure feedback while preserving the active tab.
 - Brief and simple Stop edits use bottom sheets; complex Stop details use a full page. Unfinished
-  fields survive tab switches, destructive close actions confirm, failed changes keep their values,
-  and an existing Plan uses the explicit Replan trip action.
+  Brief fields survive tab switches and confirm before a close discards them. Stop edits apply on
+  submit and close without asking, failed changes keep their values, and an existing Plan uses the
+  explicit Replan trip action.
 - Repeatable fixture journeys are `phone-navigation`, `phone-browsing-context`,
   `phone-planning-flow` and `phone-editing` under `apps/web/tests/e2e/`; `phone-shell --prod`
   verifies the integrated production shell.
@@ -84,9 +85,11 @@ The traveller accepted the final edge-case recommendations:
 - **Q11 — selection:** within the same Trip, retain a day if it still exists after revision; otherwise
   choose the nearest remaining day. Clear a removed Stop. Opening another Trip restores its own
   browsing position, defaulting to its first day if no valid position exists.
-- **Q12 — unsubmitted edits:** tab switches retain editing. A close or Back that would discard changed
-  fields asks whether to continue editing or discard; unchanged forms close directly. Already applied
-  changes retain their existing persistence semantics.
+- **Q12 — unsubmitted edits:** tab switches retain Brief editing. A close or Back that would discard
+  changed Brief fields asks whether to continue editing or discard; unchanged forms close directly.
+  Stop edits no longer ask: the [instant itinerary edits Agent Note](../../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md)
+  supersedes this answer for the itinerary. Already applied changes retain their existing persistence
+  semantics.
 - **Q13 — edit scope:** retain replanning for destination/date/budget and other Brief updates to an
   existing Plan, with an action that makes that consequence clear. Keep Stop edits and automatic
   persistence; do not add a whole-Trip Save/Discard transaction or a new scheduling algorithm.

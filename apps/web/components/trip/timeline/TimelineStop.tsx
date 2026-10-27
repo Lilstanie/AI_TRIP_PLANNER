@@ -23,7 +23,6 @@ import {
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopEditSurface } from "./StopEditSurface";
-import { useTripDraftField, useTripDraftRestore } from "./TripDrafts";
 import { TripChatShortcut } from "./TripChatShortcut";
 
 type Activity = ProposalItem & { id?: string };
@@ -106,34 +105,13 @@ export function TimelineStop({
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
   const matched = !confirmed && status === "located" && !!place;
-  const timeDraft = useTripDraftField({
-    stopId: id,
-    stopName: activity.location ?? activity.detail,
-    day: activity.day,
-    field: "time",
-    initial: { start: activity.startTime ?? "", end: activity.endTime ?? "" },
-  });
-  const { start, end } = timeDraft.value;
+  const [start, setStart] = useState(activity.startTime ?? "");
+  const [end, setEnd] = useState(activity.endTime ?? "");
   const [timing, setTiming] = useState(false);
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
-
-  const { target: restoreTarget, consume: consumeRestore } = useTripDraftRestore(id);
-  useEffect(() => {
-    if (!restoreTarget) return;
-    if (restoreTarget.field === "time") setTiming(true);
-    else if (
-      restoreTarget.field === "note" ||
-      restoreTarget.field === "details" ||
-      restoreTarget.field === "place" ||
-      restoreTarget.field === "schedule"
-    )
-      setPanel(restoreTarget.field === "place" ? "search" : restoreTarget.field);
-    onOpen();
-    consumeRestore(restoreTarget.field);
-  }, [consumeRestore, onOpen, restoreTarget]);
 
   useEffect(() => {
     if (!selected) {
@@ -142,7 +120,7 @@ export function TimelineStop({
     } else row.current?.scrollIntoView?.({ block: "nearest" });
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [selected]);
-  const timeChanged = timeDraft.dirty;
+  const timeChanged = start !== (activity.startTime ?? "") || end !== (activity.endTime ?? "");
   const validTime = !!start && !!end && start < end;
   const range = `${activity.startTime ?? "—"}–${activity.endTime ?? "—"}`;
 
@@ -345,7 +323,11 @@ export function TimelineStop({
           aria-controls={timing ? `stop-time-${id}` : undefined}
           aria-label={`${t("Change time")}, ${range}`}
           disabled={locked}
-          onClick={() => setTiming((open) => !open)}
+          onClick={() => {
+            setStart(activity.startTime ?? "");
+            setEnd(activity.endTime ?? "");
+            setTiming((open) => !open);
+          }}
         >
           {activity.startTime ?? "—"}
           <span className="timeline-row__end">{activity.endTime}</span>
@@ -538,15 +520,6 @@ export function TimelineStop({
               focusOnMount={panel === "search"}
               phone={phone}
               onCancel={panel === "search" ? closePanel : undefined}
-              stopId={id}
-              stopName={name}
-              day={activity.day}
-              baseline={JSON.stringify({
-                id,
-                placeId: activity.placeId,
-                detail: activity.detail,
-                location: activity.location,
-              })}
               onUse={async (placeId) => {
                 const done = await edits.edit({ kind: "place", id, placeId });
                 if (done) closePanel();
@@ -566,12 +539,11 @@ export function TimelineStop({
           validTime={validTime}
           timeChanged={timeChanged}
           errors={edits.errors}
-          onStart={(value) => timeDraft.setValue({ start: value, end })}
-          onEnd={(value) => timeDraft.setValue({ start, end: value })}
+          onStart={setStart}
+          onEnd={setEnd}
           onSubmit={async () => {
             const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
             if (!done) return false;
-            timeDraft.clear();
             setTiming(false);
             timeButton.current?.focus({ preventScroll: true });
             return true;
@@ -580,9 +552,6 @@ export function TimelineStop({
             setTiming(false);
             timeButton.current?.focus({ preventScroll: true });
           }}
-          onDiscard={timeDraft.clear}
-          stale={timeDraft.stale}
-          onRebase={timeDraft.rebase}
         />
       )}
     </li>

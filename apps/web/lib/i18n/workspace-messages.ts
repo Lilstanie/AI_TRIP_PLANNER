@@ -184,12 +184,9 @@ export const WORKSPACE_ZH = {
   "Move to": "移动到",
   "Search Google Maps": "搜索 Google 地图",
   "Add place": "添加地点",
-  "Add stop": "添加站点",
+  Add: "添加",
   "Save as Idea": "保存为想法",
   "Search places": "搜索地点",
-  "Start time": "开始时间",
-  "End time": "结束时间",
-  "Suggested; editable": "建议时间，可修改",
   "Ask AI about this day": "向 AI 咨询这一天",
   "Ask AI about {v0}": "向 AI 咨询 {v0}",
   "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.":

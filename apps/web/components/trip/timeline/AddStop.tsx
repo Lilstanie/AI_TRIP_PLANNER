@@ -1,115 +1,77 @@
 "use client";
+import { useState } from "react";
 import type { GooglePlace } from "@/lib/integrations/google";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { TimelineEdits } from "./useTimelineEdits";
-import { DraftStaleNotice } from "./StopForms";
-
-export type AddStopDraft = {
-  open: boolean;
-  searchText: string;
-  place?: GooglePlace;
-  name: string;
-  detail: string;
-  day: number;
-  startTime: string;
-  endTime: string;
-};
-
-export const emptyAddStopDraft = (
-  day = 1,
-  suggestedTimes?: Pick<AddStopDraft, "startTime" | "endTime">,
-): AddStopDraft => ({
-  open: false,
-  searchText: "",
-  name: "",
-  detail: "",
-  day,
-  startTime: suggestedTimes?.startTime ?? "",
-  endTime: suggestedTimes?.endTime ?? "",
-});
 
 export function AddStop({
-  days,
-  dayLabels,
+  day,
   locked = false,
   edits,
-  draft,
-  onDraftChange,
-  suggestedTimesForDay,
-  onRequestCancel,
-  stale = false,
-  onRebase,
 }: {
-  days: number;
-  dayLabels: string[];
+  day: number;
   locked?: boolean;
   edits: TimelineEdits;
-  draft: AddStopDraft;
-  onDraftChange(draft: AddStopDraft): void;
-  suggestedTimesForDay?(day: number): Pick<AddStopDraft, "startTime" | "endTime"> | undefined;
-  onRequestCancel(): void;
-  stale?: boolean;
-  onRebase?(): void;
 }) {
   const { t, notice } = useLocale();
-  const update = (patch: Partial<AddStopDraft>) => onDraftChange({ ...draft, ...patch });
-  const title = (draft.place?.displayName?.text ?? draft.name).trim();
+  const [open, setOpen] = useState(false);
+  const [searchText, setSearchText] = useState("");
+  const [name, setName] = useState("");
 
-  async function save(asIdea: boolean) {
-    if (
-      !title ||
-      (!asIdea && (!draft.startTime || !draft.endTime || draft.endTime <= draft.startTime))
-    )
-      return;
+  const close = () => {
+    setOpen(false);
+    setSearchText("");
+    setName("");
+    edits.clearResults();
+  };
+
+  async function save(title: string, place: GooglePlace | undefined, asIdea: boolean) {
     const saved = await edits.add({
       id: crypto.randomUUID(),
-      detail: draft.detail.trim() || title,
+      detail: title,
       location: title,
-      ...(draft.place?.location
+      ...(place?.location
         ? {
-            placeId: draft.place.id,
+            placeId: place.id,
             savedPlace: {
               name: title,
-              address: draft.place.formattedAddress ?? title,
-              location: draft.place.location,
+              address: place.formattedAddress ?? title,
+              location: place.location,
             },
           }
         : {}),
-      ...(!asIdea ? { day: draft.day, startTime: draft.startTime, endTime: draft.endTime } : {}),
+      ...(!asIdea ? { day } : {}),
     });
-    if (!saved) return;
-    edits.clearResults();
-    onDraftChange(emptyAddStopDraft(draft.day));
+    if (saved) close();
   }
 
-  if (!draft.open)
+  if (!open)
     return (
       <div className="timeline-add-stop">
-        <button
-          type="button"
-          disabled={locked}
-          onClick={() => {
-            const suggested = suggestedTimesForDay?.(draft.day);
-            update({
-              open: true,
-              ...(!draft.startTime && suggested ? { startTime: suggested.startTime } : {}),
-              ...(!draft.endTime && suggested ? { endTime: suggested.endTime } : {}),
-            });
-          }}
-        >
+        <button type="button" disabled={locked} onClick={() => setOpen(true)}>
           {t("Add place")}
         </button>
       </div>
     );
 
+  const typed = name.trim();
   return (
-    <section className="timeline-add-stop stop-editor" aria-label={t("Add place")}>
+    <section
+      className="timeline-add-stop stop-editor"
+      aria-label={t("Add place")}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        close();
+      }}
+    >
       <form
         className="stop-editor__group stop-editor__search"
         role="search"
         onSubmit={(event) => {
           event.preventDefault();
-          if (draft.searchText.trim()) void edits.search(draft.searchText.trim());
+          if (searchText.trim()) void edits.search(searchText.trim());
         }}
       >
         <label>
@@ -118,14 +80,15 @@ export function AddStop({
             <input
               type="search"
               aria-label={t("Search places")}
-              value={draft.searchText}
+              value={searchText}
+              autoFocus
               placeholder={t("Search Google Maps")}
               disabled={locked || edits.busy}
-              onChange={(event) => update({ searchText: event.target.value })}
+              onChange={(event) => setSearchText(event.target.value)}
             />
           </span>
         </label>
-        <button type="submit" disabled={locked || stale || edits.busy || !draft.searchText.trim()}>
+        <button type="submit" disabled={locked || edits.busy || !searchText.trim()}>
           {t("Search")}
         </button>
       </form>
@@ -139,18 +102,18 @@ export function AddStop({
       {!!edits.results.length && (
         <ul className="stop-editor__results" aria-label={t("Place results")}>
           {edits.results.map((result) => {
-            const name = result.displayName?.text ?? t("Unnamed place");
+            const title = result.displayName?.text ?? t("Unnamed place");
             return (
               <li key={result.id}>
                 <span>
-                  <strong>{name}</strong>
+                  <strong>{title}</strong>
                   <small>{result.formattedAddress ?? t("Address unavailable")}</small>
                 </span>
                 <button
                   type="button"
-                  disabled={locked || stale}
-                  aria-label={t("Use {v0}", { v0: name })}
-                  onClick={() => update({ place: result, name })}
+                  disabled={locked || edits.busy}
+                  aria-label={t("Use {v0}", { v0: title })}
+                  onClick={() => void save(title, result, false)}
                 >
                   {t("Use")}
                 </button>
@@ -162,93 +125,29 @@ export function AddStop({
       <label>
         {t("Place name")}
         <input
-          value={draft.place?.displayName?.text ?? draft.name}
+          value={name}
           disabled={locked}
           maxLength={120}
-          onChange={(event) => update({ place: undefined, name: event.target.value })}
+          onChange={(event) => setName(event.target.value)}
         />
       </label>
-      <label>
-        {t("What you will do")}
-        <textarea
-          value={draft.detail}
-          maxLength={500}
-          rows={2}
-          disabled={locked}
-          onChange={(event) => update({ detail: event.target.value })}
-        />
-      </label>
-      <label>
-        {t("Day")}
-        <select
-          aria-label={t("Day")}
-          value={draft.day}
-          disabled={locked}
-          onChange={(event) => {
-            const day = Number(event.target.value);
-            const suggested = suggestedTimesForDay?.(day);
-            update({
-              day,
-              ...(suggested ? suggested : {}),
-            });
-          }}
-        >
-          {Array.from({ length: days }, (_, index) => (
-            <option key={index + 1} value={index + 1}>
-              {t("Day {v0}", { v0: index + 1 })} · {dayLabels[index]}
-            </option>
-          ))}
-        </select>
-      </label>
-      <label>
-        {t("Start time")} <small>{t("Suggested; editable")}</small>
-        <input
-          type="time"
-          value={draft.startTime}
-          disabled={locked}
-          onChange={(event) => update({ startTime: event.target.value })}
-        />
-      </label>
-      <label>
-        {t("End time")} <small>{t("Suggested; editable")}</small>
-        <input
-          type="time"
-          value={draft.endTime}
-          disabled={locked}
-          onChange={(event) => update({ endTime: event.target.value })}
-        />
-      </label>
-      {draft.startTime && draft.endTime && draft.endTime <= draft.startTime && (
-        <ul className="stop-editor__errors" role="alert">
-          <li>{t("End time must be after start time on the same day.")}</li>
-        </ul>
-      )}
-      {stale && <DraftStaleNotice onRebase={onRebase} />}
       <div className="item-editor__actions">
         <button
           type="button"
           className="primary"
-          disabled={
-            locked ||
-            stale ||
-            edits.busy ||
-            !title ||
-            !draft.startTime ||
-            !draft.endTime ||
-            draft.endTime <= draft.startTime
-          }
-          onClick={() => void save(false)}
+          disabled={locked || edits.busy || !typed}
+          onClick={() => void save(typed, undefined, false)}
         >
-          {t("Add stop")}
+          {t("Add")}
         </button>
         <button
           type="button"
-          disabled={locked || stale || edits.busy || !title}
-          onClick={() => void save(true)}
+          disabled={locked || edits.busy || !typed}
+          onClick={() => void save(typed, undefined, true)}
         >
           {t("Save as Idea")}
         </button>
-        <button type="button" disabled={edits.busy} onClick={onRequestCancel}>
+        <button type="button" disabled={edits.busy} onClick={close}>
           {t("Cancel")}
         </button>
       </div>
