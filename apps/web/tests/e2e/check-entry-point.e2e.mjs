@@ -376,13 +376,12 @@ async function main() {
         "5: the leg from the second stop into the third is shown before the move",
       );
       const row = await rowNamed(page, 1, "Royal Botanic Garden Sydney");
-      await row.getByRole("button", { name: /^Actions for / }).click();
-      await trip(page).getByRole("menuitem", { name: "Move earlier", exact: true }).click();
+      await row.dragTo(trip(page).locator(".timeline-day .timeline-stop").first());
       await settleChecks(page);
       await settle(page, 800);
       await settleChecks(page);
       const kinds = stub.operations.map((op) => op.kind);
-      check(kinds.includes("swap"), `5: an arrow move is sent to the check (${kinds.join(", ")})`);
+      check(kinds.includes("move"), `5: a drop is sent to the check (${kinds.join(", ")})`);
       check(
         (await oldLeg("Royal Botanic Garden Sydney", "Bondi Beach").count()) === 0,
         "5: no leg from the moved stop's old neighbour into the next stop remains",

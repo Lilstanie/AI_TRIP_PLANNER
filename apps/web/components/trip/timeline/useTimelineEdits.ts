@@ -6,6 +6,7 @@ import { TripPlan } from "@trip/shared";
 import type { GooglePlace, RouteResult } from "@/lib/integrations/google";
 import type { EditInput } from "@/lib/trip/trip-edit";
 import type { LegMode } from "@/lib/trip/leg-routes";
+import type { SearchKind } from "@/lib/trip/add-filters";
 import { undoStepOf } from "@/lib/trip/undo-step";
 import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n/notice";
 import type { TripUndo } from "../useTripUndo";
@@ -187,13 +188,18 @@ export function useTimelineEdits({
     return edit({ kind: "add", ...input });
   }
 
-  async function search(text: string) {
+  async function search(text: string, kind?: SearchKind) {
     setResults([]);
     await run("search", async (signal) => {
       const response = await fetch("/api/places/search", {
         method: "POST",
         headers: { "Content-Type": "application/json", ...dataModeHeaders(dataMode) },
-        body: JSON.stringify({ text, destination: plan.brief.destination, language: locale }),
+        body: JSON.stringify({
+          text,
+          destination: plan.brief.destination,
+          language: locale,
+          ...(kind ? { kind } : {}),
+        }),
         signal,
       });
       const body = await response.json().catch(() => null);

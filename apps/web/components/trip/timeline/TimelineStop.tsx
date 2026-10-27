@@ -22,13 +22,15 @@ import {
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
-import { StopEditSurface } from "./StopEditSurface";
+import { StopPopover } from "./StopPopover";
 import { TripChatShortcut } from "./TripChatShortcut";
 import type { RowDrag } from "../useItineraryDrag";
 
 type Activity = ProposalItem & { id?: string };
 
-type Panel = "" | "details" | "note" | "schedule" | "day" | "search";
+type Panel = "" | "search";
+
+type Popover = "" | "time" | "details" | "comment" | "day";
 
 const PROGRESS = {
   planned: { label: "Planned", action: "Mark as planned", notice: "{name} marked as planned." },
@@ -111,7 +113,7 @@ export function TimelineStop({
   const matched = !confirmed && status === "located" && !!place;
   const [start, setStart] = useState(activity.startTime ?? "");
   const [end, setEnd] = useState(activity.endTime ?? "");
-  const [timing, setTiming] = useState(false);
+  const [popover, setPopover] = useState<Popover>("");
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
@@ -136,20 +138,34 @@ export function TimelineStop({
     setPanel("");
     mainButton.current?.focus({ preventScroll: true });
   };
+  const closePopover = () => {
+    (popover === "time" ? timeButton : mainButton).current?.focus({ preventScroll: true });
+    setPopover("");
+  };
 
   const act = (action: ItemAction, message: Notice) => {
     return Promise.resolve(onItem(action, message)).then((done) => {
-      if (done) closePanel();
+      if (done) {
+        closePanel();
+        setPopover("");
+      }
       return done;
     });
   };
-  const moveTo = (direction: -1 | 1) =>
-    onItem(
-      { kind: "move", direction },
-      direction < 0
-        ? { key: "{name} moved earlier.", params: { name } }
-        : { key: "{name} moved later.", params: { name } },
+  const shiftDay = (step: -1 | 1) =>
+    act(
+      { kind: "day", day: activity.day! + step },
+      { key: "{name} moved to Day {day}.", params: { name, day: activity.day! + step } },
     );
+  const addAgain = () =>
+    edits.add({
+      id: crypto.randomUUID(),
+      detail: activity.detail,
+      location: activity.location ?? name,
+      ...(activity.placeId ? { placeId: activity.placeId } : {}),
+      ...(activity.savedPlace ? { savedPlace: activity.savedPlace } : {}),
+      day: activity.day!,
+    });
   const open = (next: Panel) => {
     onOpen();
     setPanel(next);
@@ -157,81 +173,107 @@ export function TimelineStop({
 
   const menu = (): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [];
+    const removal: ActionMenuItem = {
+      label: t("Remove"),
+      icon: <CloseIcon />,
+      tone: "danger",
+      separated: true,
+      disabled: locked,
+      onSelect: () => act({ kind: "remove" }, { key: "{name} removed.", params: { name } }),
+    };
+    const detailsItem: ActionMenuItem = {
+      label: t("Edit details"),
+      icon: <ComposeIcon />,
+      disabled: locked,
+      onSelect: () => setPopover("details"),
+    };
+    const commentItem: ActionMenuItem = {
+      label: t("Add a comment"),
+      icon: <ChatIcon />,
+      disabled: locked,
+      onSelect: () => setPopover("comment"),
+    };
     if (suggestion) {
       items.push(
         {
           label: t("Schedule on a day"),
           icon: <CalendarIcon />,
           disabled: locked,
-          onSelect: () => open("schedule"),
+          onSelect: () => setPopover("day"),
         },
-        {
-          label: t("Remove"),
-          icon: <CloseIcon />,
-          tone: "danger",
-          separated: true,
-          disabled: locked,
-          onSelect: () => act({ kind: "remove" }, { key: "{name} removed.", params: { name } }),
-        },
+        removal,
       );
       return items;
     }
-    if (!idea) {
-      if (index > 0)
-        items.push({
-          label: t("Move earlier"),
-          icon: (
-            <span className="action-menu__up">
-              <ChevronIcon />
-            </span>
-          ),
+    if (idea) {
+      items.push(
+        {
+          label: t("Schedule on a day"),
+          icon: <CalendarIcon />,
           disabled: locked,
-          onSelect: () => moveTo(-1),
-        });
-      if (index < count - 1)
-        items.push({
-          label: t("Move later"),
-          icon: (
-            <span className="action-menu__down">
-              <ChevronIcon />
-            </span>
-          ),
-          disabled: locked,
-          onSelect: () => moveTo(1),
-        });
-      items.push({
-        label: t("Move to another day"),
+          onSelect: () => setPopover("day"),
+        },
+        detailsItem,
+        commentItem,
+        removal,
+      );
+      return items;
+    }
+    items.push(
+      {
+        label: t("Adjust schedule"),
         icon: <CalendarIcon />,
         disabled: locked,
-        onSelect: () => open("day"),
-      });
-      items.push({
+        onSelect: () => openTime(),
+      },
+      detailsItem,
+      commentItem,
+      {
         label: t("Move to ideas"),
         icon: <SuitcaseIcon />,
         disabled: locked,
         onSelect: () => act({ kind: "idea" }, { key: "{name} moved to Ideas.", params: { name } }),
-      });
-      items.push({
+      },
+      {
+        label: t("Move to previous day"),
+        icon: (
+          <span className="action-menu__up">
+            <ChevronIcon />
+          </span>
+        ),
+        disabled: locked || activity.day! <= 1,
+        onSelect: () => shiftDay(-1),
+      },
+      {
+        label: t("Move to next day"),
+        icon: (
+          <span className="action-menu__down">
+            <ChevronIcon />
+          </span>
+        ),
+        disabled: locked || activity.day! >= days,
+        onSelect: () => shiftDay(1),
+      },
+      {
+        label: t("Add again"),
+        icon: <ComposeIcon />,
+        disabled: locked,
+        onSelect: () => addAgain(),
+      },
+      removal,
+      {
         label: t("Replace place"),
         icon: <MapPinIcon />,
         separated: true,
         disabled: locked,
         onSelect: () => open("search"),
-      });
-    } else {
-      items.push({
-        label: t("Schedule on a day"),
-        icon: <CalendarIcon />,
-        disabled: locked,
-        onSelect: () => open("schedule"),
-      });
-    }
+      },
+    );
     if (place?.location) {
       const { latitude, longitude } = place.location;
       items.push({
         label: t("Open in Maps"),
         icon: <RouteIcon />,
-        separated: true,
         onSelect: () =>
           window.open(
             `https://www.google.com/maps/dir/?api=1&destination=${latitude},${longitude}`,
@@ -249,42 +291,25 @@ export function TimelineStop({
           act({ kind: "progress", progress }, { key: PROGRESS[progress].notice, params: { name } }),
       });
     }
-    items.push(
-      {
-        label: t("Edit details"),
-        icon: <ComposeIcon />,
-        disabled: locked,
-        onSelect: () => open("details"),
-      },
-      {
-        label: t(activity.note ? "Edit note" : "Add a note"),
-        icon: <ChatIcon />,
-        disabled: locked,
-        onSelect: () => open("note"),
-      },
-      {
-        label: t(activity.booked ? "Mark as not booked" : "Mark as booked"),
-        icon: <CheckIcon />,
-        separated: true,
-        disabled: locked,
-        onSelect: () =>
-          act(
-            { kind: "booked", booked: !activity.booked },
-            activity.booked
-              ? { key: "{name} marked as not booked.", params: { name } }
-              : { key: "{name} marked as booked.", params: { name } },
-          ),
-      },
-      {
-        label: t("Remove"),
-        icon: <CloseIcon />,
-        tone: "danger",
-        separated: true,
-        disabled: locked,
-        onSelect: () => act({ kind: "remove" }, { key: "{name} removed.", params: { name } }),
-      },
-    );
+    items.push({
+      label: t(activity.booked ? "Mark as not booked" : "Mark as booked"),
+      icon: <CheckIcon />,
+      disabled: locked,
+      onSelect: () =>
+        act(
+          { kind: "booked", booked: !activity.booked },
+          activity.booked
+            ? { key: "{name} marked as not booked.", params: { name } }
+            : { key: "{name} marked as booked.", params: { name } },
+        ),
+    });
     return items;
+  };
+
+  const openTime = () => {
+    setStart(activity.startTime ?? "");
+    setEnd(activity.endTime ?? "");
+    setPopover("time");
   };
 
   const searching = !idea && (panel === "search" || (!confirmed && !matched));
@@ -309,15 +334,12 @@ export function TimelineStop({
           ref={timeButton}
           type="button"
           className="timeline-row__time timeline-stop__time"
-          aria-expanded={timing}
-          aria-controls={timing ? `stop-time-${id}` : undefined}
+          aria-expanded={popover === "time"}
+          aria-haspopup="dialog"
+          aria-controls={popover === "time" ? `stop-time-${id}` : undefined}
           aria-label={`${t("Change time")}, ${range}`}
           disabled={locked}
-          onClick={() => {
-            setStart(activity.startTime ?? "");
-            setEnd(activity.endTime ?? "");
-            setTiming((open) => !open);
-          }}
+          onClick={() => (popover === "time" ? setPopover("") : openTime())}
         >
           {activity.startTime ?? "—"}
           <span className="timeline-row__end">{activity.endTime}</span>
@@ -439,76 +461,6 @@ export function TimelineStop({
               {t("This place could not be saved. Search for it to try again.")}
             </p>
           )}
-          {panel === "details" && (
-            <ItemForm
-              activity={activity}
-              mode="details"
-              days={days}
-              labels={dayLabels}
-              phone={phone}
-              onCancel={closePanel}
-              onSubmit={(action) => act(action, { key: "Details saved." })}
-            />
-          )}
-          {panel === "note" && (
-            <ItemForm
-              activity={activity}
-              mode="note"
-              days={days}
-              labels={dayLabels}
-              phone={phone}
-              onCancel={closePanel}
-              onSubmit={(action) => act(action, { key: "Note saved." })}
-            />
-          )}
-          {panel === "schedule" && (
-            <ItemForm
-              activity={activity}
-              mode="schedule"
-              days={days}
-              labels={dayLabels}
-              phone={phone}
-              onCancel={closePanel}
-              onSubmit={(action) =>
-                act(action, {
-                  key: "{name} scheduled on Day {day}.",
-                  params: { name, day: action.kind === "day" ? action.day : 0 },
-                })
-              }
-            />
-          )}
-          {panel === "day" && !idea && (
-            <StopEditSurface phone={phone} title={t("Move to another day")} onClose={closePanel}>
-              <div className="stop-editor__group stop-editor__order">
-                <label>
-                  {t("Move to")}
-                  <select
-                    autoFocus
-                    disabled={locked}
-                    value={activity.day}
-                    onChange={(event) => {
-                      const day = Number(event.target.value);
-                      act(
-                        { kind: "day", day },
-                        { key: "{name} moved to Day {day}.", params: { name, day } },
-                      );
-                    }}
-                    onKeyDown={(event) => {
-                      if (event.key !== "Escape") return;
-                      event.stopPropagation();
-                      closePanel();
-                    }}
-                  >
-                    {Array.from({ length: days }, (_, d) => (
-                      <option key={d} value={d + 1}>
-                        {t("Day {v0}", { v0: d + 1 })} · {dayLabels[d]}
-                      </option>
-                    ))}
-                  </select>
-                </label>
-              </div>
-            </StopEditSurface>
-          )}
           {searching && (
             <PlaceSearch
               label={confirmed || matched ? t("Replace with another place") : t("Find this place")}
@@ -526,30 +478,75 @@ export function TimelineStop({
           )}
         </div>
       )}
-      {timing && !idea && (
-        <TimeForm
-          id={id}
-          start={start}
-          end={end}
-          locked={locked}
-          phone={phone}
-          validTime={validTime}
-          timeChanged={timeChanged}
-          errors={edits.errors}
-          onStart={setStart}
-          onEnd={setEnd}
-          onSubmit={async () => {
-            const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
-            if (!done) return false;
-            setTiming(false);
-            timeButton.current?.focus({ preventScroll: true });
-            return true;
-          }}
-          onCancel={() => {
-            setTiming(false);
-            timeButton.current?.focus({ preventScroll: true });
-          }}
-        />
+      {popover && (
+        <StopPopover
+          title={t(
+            popover === "time"
+              ? "Adjust schedule"
+              : popover === "details"
+                ? "Edit details"
+                : popover === "comment"
+                  ? "Add a comment"
+                  : "Schedule on a day",
+          )}
+          anchor={popover === "time" ? timeButton : undefined}
+          onClose={closePopover}
+        >
+          {popover === "time" && (
+            <TimeForm
+              id={id}
+              start={start}
+              end={end}
+              locked={locked}
+              validTime={validTime}
+              timeChanged={timeChanged}
+              errors={edits.errors}
+              onStart={setStart}
+              onEnd={setEnd}
+              onSubmit={async () => {
+                const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
+                if (done) closePopover();
+                return done;
+              }}
+              onCancel={closePopover}
+            />
+          )}
+          {popover === "details" && (
+            <ItemForm
+              activity={activity}
+              mode="details"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePopover}
+              onSubmit={(action) => act(action, { key: "Details saved." })}
+            />
+          )}
+          {popover === "comment" && (
+            <ItemForm
+              activity={activity}
+              mode="note"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePopover}
+              onSubmit={(action) => act(action, { key: "Comment saved." })}
+            />
+          )}
+          {popover === "day" && (
+            <ItemForm
+              activity={activity}
+              mode="schedule"
+              days={days}
+              labels={dayLabels}
+              onCancel={closePopover}
+              onSubmit={(action) =>
+                act(action, {
+                  key: "{name} scheduled on Day {day}.",
+                  params: { name, day: action.kind === "day" ? action.day : 0 },
+                })
+              }
+            />
+          )}
+        </StopPopover>
       )}
     </li>
   );

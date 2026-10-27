@@ -33,22 +33,6 @@ const waitForFocused = (locator) =>
         poll();
       }),
   );
-const waitForInsideViewport = (locator, bottom) =>
-  locator.evaluate(
-    (element, viewportBottom) =>
-      new Promise((resolve, reject) => {
-        const deadline = performance.now() + 5000;
-        const poll = () => {
-          const box = element.getBoundingClientRect();
-          if (box.top >= 0 && box.bottom <= viewportBottom) resolve(true);
-          else if (performance.now() > deadline)
-            reject(new Error("Element did not fit in the contracted viewport"));
-          else requestAnimationFrame(poll);
-        };
-        poll();
-      }),
-    bottom,
-  );
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   const context = await browser.newContext({
@@ -104,8 +88,8 @@ try {
   const stop = page.locator(".timeline-stop").first();
   const trigger = stop.locator(".action-menu__trigger");
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  const note = page.getByRole("textbox", { name: "Note", exact: true });
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  const note = page.getByRole("textbox", { name: "Comment", exact: true });
   await note.fill("Keep my unfinished note");
   await note.press("Escape");
   const confirmation = page.getByRole("dialog", { name: "Discard changes?", exact: true });
@@ -120,7 +104,7 @@ try {
     "A closed Stop note is neither applied nor kept as a draft",
   );
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
   await note.press("Escape");
   check(
     !(await confirmation.isVisible()) && (await note.count()) === 0,
@@ -131,73 +115,39 @@ try {
   await dayTabs.filter({ hasText: /^Day 2/ }).click();
   await page.locator(".timeline-stop").first().waitFor({ state: "visible" });
   await page.locator(".timeline-stop").first().locator(".action-menu__trigger").click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  await page.getByRole("textbox", { name: "Note", exact: true }).press("Escape");
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await page.getByRole("textbox", { name: "Comment", exact: true }).press("Escape");
   check(
     !(await confirmation.isVisible()) &&
-      (await page.getByRole("textbox", { name: "Note", exact: true }).count()) === 0,
+      (await page.getByRole("textbox", { name: "Comment", exact: true }).count()) === 0,
     "Unchanged Day 2 Stop note closes directly",
   );
   await dayTabs.filter({ hasText: /^Day 1/ }).click();
   await stop.waitFor({ state: "visible" });
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
   await note.fill("A note for the keyboard");
-  const noteSurface = note.locator("xpath=ancestor::section[@role='dialog']");
-  check((await noteSurface.boundingBox()).height < 500, "A single note edit uses a bottom sheet");
-  await note.press("Tab");
-  await note.press("Shift+Tab");
-  await note.focus();
-  await page.evaluate(() => {
-    window.__phoneViewport.height = 420;
-    window.__phoneViewport.dispatchEvent(new Event("resize"));
-  });
-  const saveButton = noteSurface.getByRole("button", { name: "Save", exact: true });
-  await page.waitForFunction(() => {
-    const app = document.querySelector(".workspace-app");
-    return (
-      app?.hasAttribute("data-phone-keyboard") &&
-      app.style.getPropertyValue("--phone-viewport-height") === "420px"
-    );
-  });
-  await waitForInsideViewport(saveButton, 420);
-  const saveBox = await saveButton.boundingBox();
+  const noteSurface = note.locator("xpath=ancestor::div[@role='dialog']");
+  const noteBox = await noteSurface.boundingBox();
   check(
-    saveBox && saveBox.y >= 0 && saveBox.y + saveBox.height <= 420,
-    "Note Save stays reachable under contracted keyboard",
-    saveBox,
+    noteBox.height < 500 && (await stop.locator(".stop-popover").count()) === 1,
+    "A single note edit opens a popover on the row",
+    noteBox,
   );
-  await page.screenshot({ path: `${out}/note-keyboard.png` });
-  await page.evaluate(() => {
-    document.activeElement?.blur();
-    window.__phoneViewport.height = 844;
-    window.__phoneViewport.dispatchEvent(new Event("resize"));
-  });
-  await page.waitForFunction(() => {
-    const app = document.querySelector(".workspace-app");
-    return (
-      !app?.hasAttribute("data-phone-keyboard") &&
-      app.style.getPropertyValue("--phone-viewport-height") === "844px"
-    );
-  });
+  await page.screenshot({ path: `${out}/note-popover.png` });
   await page.mouse.click(8, 100);
   check(
     !(await appears(confirmation, 1000)) && (await note.count()) === 0,
     "Outside Stop dismissal closes a changed note without asking",
   );
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  await note.fill("Back closes this");
-  await page.evaluate(() => history.back());
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await note.fill("Escape closes this");
+  await note.press("Escape");
   check(
-    !(await appears(confirmation, 1000)),
-    "Phone Back closes a changed Stop note without asking",
+    !(await appears(confirmation, 1000)) && (await note.count()) === 0,
+    "Escape closes a changed Stop note without asking",
   );
-  const factsSheet = page.locator("#trip-facts-sheet");
-  if (await factsSheet.isVisible().catch(() => false)) {
-    await page.keyboard.press("Escape");
-    await factsSheet.waitFor({ state: "hidden" });
-  }
   const stopMain = stop.locator(".timeline-stop__main");
   await waitForFocused(stopMain);
   check(
@@ -206,11 +156,17 @@ try {
   );
   await trigger.click();
   await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
-  const details = page.getByRole("dialog", { name: "Edit details", exact: true });
+  const details = stop.getByRole("dialog", { name: "Edit details", exact: true });
   const detailInput = page.getByRole("textbox", { name: "What you will do", exact: true });
   await detailInput.fill("An unfinished detailed visit");
-  const fullBox = await details.boundingBox();
-  check(fullBox.y <= 1 && fullBox.height > 700, "Complex Stop details use a full page", fullBox);
+  const detailsBox = await details.boundingBox();
+  check(
+    detailsBox.y > 1 &&
+      detailsBox.height < 700 &&
+      (await stop.locator(".stop-popover").count()) === 1,
+    "Stop details open as a popover on the row, not a full page",
+    detailsBox,
+  );
   await detailInput.press("Escape");
   check(
     !(await appears(confirmation, 1000)) && (await detailInput.count()) === 0,
@@ -343,8 +299,8 @@ try {
   {
     await page.locator(".phone-tabbar").getByRole("tab", { name: /^行程/ }).click();
     await trigger.click();
-    await page.getByRole("menuitem", { name: "添加备注", exact: true }).click();
-    const zhNote = page.getByRole("textbox", { name: "备注", exact: true });
+    await page.getByRole("menuitem", { name: "添加评论", exact: true }).click();
+    const zhNote = page.getByRole("textbox", { name: "评论", exact: true });
     await zhNote.fill("这段备注只在输入框里");
     await page.screenshot({ path: `${out}/zh-note.png` });
     for (const width of [360, 375, 390]) {

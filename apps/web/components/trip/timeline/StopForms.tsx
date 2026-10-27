@@ -15,7 +15,6 @@ export function TimeForm({
   start,
   end,
   locked,
-  phone,
   validTime,
   timeChanged,
   errors = [],
@@ -28,7 +27,6 @@ export function TimeForm({
   start: string;
   end: string;
   locked: boolean;
-  phone: boolean;
   validTime: boolean;
   timeChanged: boolean;
   errors?: Notice[];
@@ -41,52 +39,50 @@ export function TimeForm({
   const first = useRef<HTMLInputElement>(null);
   useEffect(() => first.current?.focus(), []);
   return (
-    <StopEditSurface phone={phone} title={t("Change time")} onClose={onCancel}>
-      <form
-        id={`stop-time-${id}`}
-        className="stop-editor stop-editor__group stop-editor__time"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (validTime && timeChanged) void onSubmit();
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          event.preventDefault();
-          event.stopPropagation();
-          onCancel();
-        }}
-      >
-        <label>
-          {t("Start")}
-          <input
-            ref={first}
-            type="time"
-            required
-            value={start}
-            disabled={locked}
-            onChange={(event) => onStart(event.target.value)}
-          />
-        </label>
-        <label>
-          {t("End")}
-          <input
-            type="time"
-            required
-            value={end}
-            disabled={locked}
-            onChange={(event) => onEnd(event.target.value)}
-          />
-        </label>
-        <button type="submit" className="primary" disabled={locked || !timeChanged || !validTime}>
-          {t("Change time")}
-        </button>
-        <button type="button" onClick={onCancel}>
-          {t("Cancel")}
-        </button>
-        {!validTime && <p className="stop-editor__hint">{t("End must be after start.")}</p>}
-        <EditErrors errors={errors} />
-      </form>
-    </StopEditSurface>
+    <form
+      id={`stop-time-${id}`}
+      className="stop-editor stop-editor__group stop-editor__time"
+      onSubmit={(event) => {
+        event.preventDefault();
+        if (validTime && timeChanged) void onSubmit();
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onCancel();
+      }}
+    >
+      <label>
+        {t("Start")}
+        <input
+          ref={first}
+          type="time"
+          required
+          value={start}
+          disabled={locked}
+          onChange={(event) => onStart(event.target.value)}
+        />
+      </label>
+      <label>
+        {t("End")}
+        <input
+          type="time"
+          required
+          value={end}
+          disabled={locked}
+          onChange={(event) => onEnd(event.target.value)}
+        />
+      </label>
+      <button type="submit" className="primary" disabled={locked || !timeChanged || !validTime}>
+        {t("Change time")}
+      </button>
+      <button type="button" onClick={onCancel}>
+        {t("Cancel")}
+      </button>
+      {!validTime && <p className="stop-editor__hint">{t("End must be after start.")}</p>}
+      <EditErrors errors={errors} />
+    </form>
   );
 }
 
@@ -95,7 +91,6 @@ export function ItemForm({
   mode,
   days,
   labels,
-  phone,
   onSubmit,
   onCancel,
 }: {
@@ -103,7 +98,6 @@ export function ItemForm({
   mode: "details" | "note" | "schedule";
   days: number;
   labels: string[];
-  phone: boolean;
   onSubmit(action: ItemAction): boolean | Promise<boolean>;
   onCancel(): void;
 }) {
@@ -117,97 +111,88 @@ export function ItemForm({
   const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
   useEffect(() => first.current?.focus(), []);
   return (
-    <StopEditSurface
-      title={t(
-        mode === "details" ? "Edit details" : mode === "note" ? "Note" : "Schedule on a day",
-      )}
-      complex={mode === "details"}
-      phone={phone}
-      onClose={onCancel}
+    <form
+      className="item-editor"
+      onSubmit={(event) => {
+        event.preventDefault();
+        const action: ItemAction =
+          mode === "details"
+            ? { kind: "details", detail, location }
+            : mode === "note"
+              ? { kind: "note", note }
+              : { kind: "day", day };
+        if (!validDay) return;
+        void Promise.resolve(onSubmit(action)).then((done) => setFailed(!done));
+      }}
+      onKeyDown={(event) => {
+        if (event.key !== "Escape") return;
+        event.preventDefault();
+        event.stopPropagation();
+        onCancel();
+      }}
     >
-      <form
-        className="item-editor"
-        onSubmit={(event) => {
-          event.preventDefault();
-          const action: ItemAction =
-            mode === "details"
-              ? { kind: "details", detail, location }
-              : mode === "note"
-                ? { kind: "note", note }
-                : { kind: "day", day };
-          if (!validDay) return;
-          void Promise.resolve(onSubmit(action)).then((done) => setFailed(!done));
-        }}
-        onKeyDown={(event) => {
-          if (event.key !== "Escape") return;
-          event.preventDefault();
-          event.stopPropagation();
-          onCancel();
-        }}
-      >
-        {mode === "details" && (
-          <>
-            <label>
-              {t("Place name")}
-              <input
-                ref={first}
-                value={location}
-                maxLength={120}
-                onChange={(e) => setLocation(e.target.value)}
-              />
-            </label>
-            <label>
-              {t("What you will do")}
-              <textarea
-                value={detail}
-                maxLength={500}
-                rows={2}
-                onChange={(e) => setDetail(e.target.value)}
-              />
-            </label>
-          </>
-        )}
-        {mode === "note" && (
+      {mode === "details" && (
+        <>
           <label>
-            {t("Note")}
-            <textarea
+            {t("Place name")}
+            <input
               ref={first}
-              value={note}
-              maxLength={500}
-              rows={2}
-              placeholder={t("e.g. Book tickets a day ahead")}
-              onChange={(e) => setNote(e.target.value)}
+              value={location}
+              maxLength={120}
+              onChange={(e) => setLocation(e.target.value)}
             />
           </label>
-        )}
-        {mode === "schedule" && (
           <label>
-            {t("Day")}
-            <select
-              ref={first}
-              aria-label={t("Day")}
-              value={day}
-              onChange={(e) => setDay(Number(e.target.value))}
-            >
-              {Array.from({ length: days }, (_, index) => (
-                <option key={index} value={index + 1}>
-                  {t("Day {v0}", { v0: index + 1 })} · {labels[index]}
-                </option>
-              ))}
-            </select>
+            {t("What you will do")}
+            <textarea
+              value={detail}
+              maxLength={500}
+              rows={2}
+              onChange={(e) => setDetail(e.target.value)}
+            />
           </label>
-        )}
-        {failed && <EditErrors errors={[{ key: "Something went wrong. Try again." }]} />}
-        <div className="item-editor__actions">
-          <button type="submit" className="primary" disabled={!validDay}>
-            {mode === "schedule" ? t("Schedule") : t("Save")}
-          </button>
-          <button type="button" onClick={onCancel}>
-            {t("Cancel")}
-          </button>
-        </div>
-      </form>
-    </StopEditSurface>
+        </>
+      )}
+      {mode === "note" && (
+        <label>
+          {t("Comment")}
+          <textarea
+            ref={first}
+            value={note}
+            maxLength={500}
+            rows={2}
+            placeholder={t("e.g. Book tickets a day ahead")}
+            onChange={(e) => setNote(e.target.value)}
+          />
+        </label>
+      )}
+      {mode === "schedule" && (
+        <label>
+          {t("Day")}
+          <select
+            ref={first}
+            aria-label={t("Day")}
+            value={day}
+            onChange={(e) => setDay(Number(e.target.value))}
+          >
+            {Array.from({ length: days }, (_, index) => (
+              <option key={index} value={index + 1}>
+                {t("Day {v0}", { v0: index + 1 })} · {labels[index]}
+              </option>
+            ))}
+          </select>
+        </label>
+      )}
+      {failed && <EditErrors errors={[{ key: "Something went wrong. Try again." }]} />}
+      <div className="item-editor__actions">
+        <button type="submit" className="primary" disabled={!validDay}>
+          {mode === "schedule" ? t("Schedule") : t("Save")}
+        </button>
+        <button type="button" onClick={onCancel}>
+          {t("Cancel")}
+        </button>
+      </div>
+    </form>
   );
 }
 

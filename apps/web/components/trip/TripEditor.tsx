@@ -19,7 +19,7 @@ import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
-import { AddStop } from "./timeline/AddStop";
+import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { TripChatShortcut } from "./timeline/TripChatShortcut";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
@@ -177,6 +177,8 @@ export function TripEditor({
   const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
   const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
+  const [adding, setAdding] = useState<{ kind: "day" | "ideas" } | undefined>(undefined);
+  useEffect(() => setAdding(undefined), [day]);
 
   const leaving = useRef<string | undefined>(undefined);
   const dayTitle = useRef<HTMLHeadingElement>(null);
@@ -314,6 +316,27 @@ export function TripEditor({
     };
   };
 
+  const panel = (target: AddTarget) => (
+    <AddToTripPanel
+      target={target}
+      tripId={plan.tripId}
+      locked={locked}
+      edits={edits}
+      ideas={itinerary.ideas() as Activity[]}
+      onSchedule={(idea, scheduleDay) =>
+        act(
+          idea,
+          { kind: "day", day: scheduleDay },
+          {
+            key: "{name} moved to Day {day}.",
+            params: { name: idea.location ?? idea.detail, day: scheduleDay },
+          },
+        )
+      }
+      onClose={() => setAdding(undefined)}
+    />
+  );
+
   let previous: (typeof daily)[number] | undefined;
   let shownCount = 0;
   const dragged = activities.find((activity) => activity.id === drag.dragging);
@@ -354,14 +377,30 @@ export function TripEditor({
         <span>{t("Show distances")}</span>
         <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
       </div>
+      <div className="timeline-ideas__head">
+        <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
+          {t("Ideas")}
+        </h4>
+        <button
+          type="button"
+          disabled={locked}
+          aria-label={t("Add to Ideas")}
+          onClick={() => setAdding({ kind: "ideas" })}
+        >
+          {t("Add")}
+        </button>
+      </div>
+      {adding?.kind === "ideas" && panel({ kind: "ideas" })}
       <section
         className="timeline-ideas"
         aria-labelledby="timeline-ideas-title"
         {...(overIdeas ? { "data-drop-target": "true" } : {})}
       >
-        <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
-          {t("Ideas")}
-        </h4>
+        {ideas.length > 0 && (
+          <p className="timeline-ideas__hint">
+            {t("Set aside for later. Schedule one on a day from its menu.")}
+          </p>
+        )}
         <ol
           className="timeline"
           data-drop-zone="ideas"
@@ -540,7 +579,17 @@ export function TripEditor({
         )}
       </div>
 
-      <AddStop day={day} locked={locked} edits={edits} />
+      <div className="timeline-add-stop">
+        <button
+          type="button"
+          disabled={locked}
+          aria-label={t("Add to Day {v0}", { v0: day })}
+          onClick={() => setAdding({ kind: "day" })}
+        >
+          {t("Add")}
+        </button>
+      </div>
+      {adding?.kind === "day" && panel({ kind: "day", day })}
     </section>
   );
 }

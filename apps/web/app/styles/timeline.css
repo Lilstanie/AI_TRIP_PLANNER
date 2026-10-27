@@ -680,6 +680,11 @@ html.is-reordering .timeline[data-empty] {
   font-size: var(--font-size-body);
   font-weight: 600;
 }
+.timeline-ideas__hint {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
 .stop-place-card.stop-editor {
   gap: var(--space-2);
   padding: var(--space-2);
@@ -758,9 +763,6 @@ html.is-reordering .timeline[data-empty] {
 .stop-place-card .item-editor {
   margin: 0;
 }
-.stop-place-card .stop-editor__order {
-  padding: 0;
-}
 .trip-panel__sections {
   display: grid;
   gap: var(--space-3);
@@ -803,4 +805,105 @@ html.is-reordering .timeline[data-empty] {
 }
 .timeline-booking__book {
   margin-inline-start: var(--space-2);
+}
+
+.timeline-stop {
+  position: relative;
+}
+.stop-popover {
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-start: calc(100% - var(--space-2));
+  z-index: 20;
+  inline-size: min(22rem, calc(100% - 2 * var(--space-2)));
+  margin-inline-start: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.18));
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.stop-popover .item-editor,
+.stop-popover .stop-editor__time {
+  grid-column: auto;
+  margin: 0;
+  background: transparent;
+}
+.stop-popover .stop-editor__time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.stop-popover button {
+  min-block-size: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stop-popover {
+    animation: none;
+  }
+}
+.timeline-ideas__head ~ .timeline-ideas {
+  margin-top: 0;
+}
+.timeline-ideas__head {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2, var(--surface));
+}
+.add-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel__tabs,
+.add-panel__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+[data-phone] .add-panel button,
+[data-phone] .add-panel input:not([type="checkbox"]) {
+  min-height: 44px !important;
+}
+.add-panel [role="tab"][aria-selected="true"],
+.add-panel__filters [aria-pressed="true"] {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.add-panel__body {
+  display: grid;
+  gap: var(--space-2);
+}
+.add-panel__custom label {
+  display: grid;
+  gap: var(--space-1);
+}
+.add-panel__empty {
+  margin: 0;
+  color: var(--text-dim);
+}
+.add-panel__keep {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+.add-panel .stop-editor__search {
+  display: flex;
+  gap: var(--space-2);
+}
+.add-panel .stop-editor__search input {
+  flex: 1 1 0;
+  min-width: 0;
 }

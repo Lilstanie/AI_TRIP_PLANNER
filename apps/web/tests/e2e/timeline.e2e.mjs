@@ -337,8 +337,7 @@ async function interactions(browser) {
       .getByRole("button", { name: /^Actions for / })
       .first()
       .click();
-    await timeline.getByRole("menuitem", { name: "Move to another day", exact: true }).click();
-    await timeline.locator(".stop-place-card select").selectOption("1");
+    await timeline.getByRole("menuitem", { name: "Move to previous day", exact: true }).click();
     await applyEdit(page, "move to day 1");
     check(/2 stops/.test(await days.nth(0).innerText()), "moving a stop to another day");
     routeDay = /2 stops/.test(await days.nth(0).innerText()) ? 0 : -1;
@@ -781,19 +780,15 @@ async function stopNumbers(browser) {
 
     await days.nth(1).click();
     await settle(page);
-    await dayStops(timeline)
-      .first()
-      .getByRole("button", { name: /^Actions for / })
-      .click();
     const moveResponse = page.waitForResponse(
       (response) => response.url().endsWith("/api/trip/preview-edit"),
       { timeout: 15_000 },
     );
-    await drawer.getByRole("menuitem", { name: "Move later", exact: true }).click();
+    await dayStops(timeline).first().dragTo(dayStops(timeline).nth(1));
     const response = await moveResponse.catch(() => undefined);
     check(
       response?.ok(),
-      `numbers: Move later preview returned ${response ? response.status() : "no response within 15s"}`,
+      `numbers: drop preview returned ${response ? response.status() : "no response within 15s"}`,
     );
     await settle(page, 800);
     const swapped = "3 Delta Market, 1 Alpha Museum, 4 Charlie Gallery";
