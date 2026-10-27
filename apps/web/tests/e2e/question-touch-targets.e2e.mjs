@@ -65,8 +65,6 @@ try {
       });
       await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
       await page.addStyleTag({ content: "nextjs-portal { display:none!important }" });
-      await page.locator(".location-prompt").waitFor();
-      await page.locator(".location-prompt button").last().click();
       const send = async () => {
         await page.locator(".composer__input").fill("Question target fixture");
         await page.locator(".composer__primary").click();

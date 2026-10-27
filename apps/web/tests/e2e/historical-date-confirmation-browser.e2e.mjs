@@ -66,8 +66,6 @@ try {
   });
   await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important }" });
-  await page.locator(".location-prompt").waitFor();
-  await page.locator(".location-prompt button").last().click();
   await page
     .getByRole("textbox", { name: "Message AI Trip Planner" })
     .fill("Plan Sydney from 1 Jan 2020 to 4 Jan 2020 for 2 adults, budget AUD 2000.");

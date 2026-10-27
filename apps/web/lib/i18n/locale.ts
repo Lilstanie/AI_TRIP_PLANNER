@@ -134,20 +134,10 @@ const ZH = {
   "Add files": "添加文件",
   "Stop planning": "停止规划",
   Send: "发送",
-  "Show where you are on the map?": "要在地图上显示你的位置吗？",
-  "Your location is used only to show you on the map and for routes you ask for. It is not saved.":
-    "你的位置仅用于在地图上显示当前位置和规划路线，不会被保存。",
-  "Allow location": "允许定位",
-  "Not now": "暂不",
   "Live data": "实时数据",
   "Mock data": "示例数据",
   "Data and language controls": "数据与语言控制",
   "Trip map": "行程地图",
-  "Your map will appear here": "地图将在这里显示",
-  "Tell us a destination and dates in the chat, or add them in the bar at the top.":
-    "在聊天中告诉我们目的地和日期，或在顶部栏中添加。",
-  "Tell us a destination and dates in the chat, or tap New trip at the top.":
-    "在聊天中告诉我们目的地和日期，或点击顶部的“新行程”。",
   "Sign in": "登录",
   Account: "账户",
   "Keep your trips in sync": "登录后在各设备间同步行程",

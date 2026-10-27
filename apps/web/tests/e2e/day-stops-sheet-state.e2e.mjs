@@ -2,6 +2,8 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
+import { seedTrip, sydney } from "./phone-map-seed.mjs";
+
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/day-stops-sheet-state", process.env.LABEL ?? "run");
@@ -15,8 +17,8 @@ const check = (ok, name, observed) => {
 };
 
 const copy = {
-  en: { label: "Day stops", tab: /^Map/ },
-  zh: { label: "当日站点", tab: /^地图/ },
+  en: { label: "Day stops", tab: /^Map/, mine: /^Mine/ },
+  zh: { label: "当日站点", tab: /^地图/, mine: /^我的/ },
 };
 
 const browser = await chromium.launch({
@@ -32,23 +34,36 @@ try {
       reducedMotion: "reduce",
       locale: language === "zh" ? "zh-CN" : "en-AU",
     });
-    await context.addInitScript((language) => {
-      localStorage.setItem(
-        "trip.settings.v1",
-        JSON.stringify({
-          version: 1,
-          travel: { homeCity: "", preferences: [] },
-          language,
-          dataMode: "mock",
-          appearance: "system",
-          updatedAt: "2026-10-23T00:00:00Z",
-        }),
-      );
-    }, language);
+    await context.addInitScript(
+      ({ language, seed }) => {
+        localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
+        localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
+        localStorage.setItem(
+          "trip.settings.v1",
+          JSON.stringify({
+            version: 1,
+            travel: { homeCity: "", preferences: [] },
+            language,
+            dataMode: "mock",
+            appearance: "system",
+            updatedAt: "2026-10-23T00:00:00Z",
+          }),
+        );
+      },
+      { language, seed: seedTrip() },
+    );
     const page = await context.newPage();
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
+    await page.route("**/api/places/search", (route) =>
+      route.fulfill({ json: { places: [sydney] } }),
+    );
+    await page.route("**/api/places/details", (route) =>
+      route.fulfill({ json: { place: sydney } }),
+    );
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
+    await page.locator(".phone-tabbar").getByRole("tab", { name: copy[language].mine }).click();
+    await page.locator(".phone-mine .trip-card").first().click();
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy[language].tab }).click();
     const sheet = page.locator(".phone-map-sheet");
     const handle = sheet.locator(".phone-map-sheet__handle");
