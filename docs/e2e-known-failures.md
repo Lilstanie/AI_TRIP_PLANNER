@@ -68,9 +68,10 @@ server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS
   workspace top bar, which sets the chat view directly, so the chat panel never recorded the stream's
   scroll position and the new reply stayed below the fold (gap 365 px at 1440). The panel now tracks
   the stream's scroll position and the messages it last showed itself, whoever changes the view.
-  `phone-map-empty-hint` and `sidebar-entries` need no entry: the first matches the #737 decision that
-  the empty 1440 map area is hidden, and `sidebar-entries` belongs to the sidebar tickets; both pass on
-  the integration branch with the command above.
+  `phone-map-empty-hint` already encodes the #737 decision that the empty 1440 map area is hidden; it
+  failed once in six runs because `locator.evaluate` read the panel's visibility from a node that
+  hydration had replaced (empty string), so it now reads the live node. `sidebar-entries` belongs to
+  the sidebar tickets and passes on the integration branch; neither needs an entry.
 
 ## Not failures
 

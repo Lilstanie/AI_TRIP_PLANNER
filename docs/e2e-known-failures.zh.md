@@ -53,7 +53,7 @@
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`。
 
 - `trajectory-tab` 的“轨迹 Tab 上到达的回复在返回对话时可见”在 `main` `629cf2a` 上就已失败（2026-10-27，#740）：Tab 按钮移到了工作区顶栏，顶栏直接设置聊天视图，聊天面板因此从未记录信息流的滚动位置，新回复留在可视区域之下（1440 下差 365 px）。面板现在无论由谁切换视图，都会自行记录信息流的滚动位置和上次显示的消息。
-  `phone-map-empty-hint` 和 `sidebar-entries` 无需条目：前者符合 #737 的决定（1440 下空地图区域隐藏），`sidebar-entries` 属于侧栏相关票据；两者在集成分支上用上述命令均通过。
+  `phone-map-empty-hint` 已按 #737 的决定检查 1440 下空地图区域隐藏；六次运行中失败一次，原因是 `locator.evaluate` 读取的节点已被水合替换（返回空字符串），现改为读取当前节点。`sidebar-entries` 属于侧栏相关票据，在集成分支上通过；两者均无需条目。
 
 <a id="not-failures"></a>
 

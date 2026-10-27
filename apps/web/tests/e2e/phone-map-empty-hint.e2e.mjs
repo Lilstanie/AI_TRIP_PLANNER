@@ -196,9 +196,18 @@ try {
     const label = "desktop-1440x900";
     const { context, page, errors } = await open({ width: 1440, height: 900, language: "en" });
     await page.locator(".workspace-shell").waitFor();
-    const visibility = await page
-      .locator(".workspace-panel--map")
-      .evaluate((node) => getComputedStyle(node).visibility);
+    const readVisibility = () =>
+      page.evaluate(() => {
+        const node = document.querySelector(".workspace-panel--map");
+        return node ? getComputedStyle(node).visibility : "";
+      });
+    await page
+      .waitForFunction(() => {
+        const node = document.querySelector(".workspace-panel--map");
+        return node !== null && getComputedStyle(node).visibility !== "";
+      })
+      .catch(() => undefined);
+    const visibility = await readVisibility();
     check(
       visibility === "hidden",
       `${label}: the wide empty workspace keeps the map area hidden`,
