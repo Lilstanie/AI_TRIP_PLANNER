@@ -986,7 +986,6 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   empty day. Edit title and Add note are not built: the plan has no field for a day title or note, so
   they wait for a `packages/shared` change. Logic is in `lib/trip/day-actions.ts`; verify with
   `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
-
 - **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
   Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every
   tab in the day strip is a drop target that marks itself with an outline: dropping a Stop there
