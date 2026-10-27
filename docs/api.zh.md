@@ -190,6 +190,8 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 
 <a id="get-apiagent-labbenchmark"></a>
 
+部署环境中的匿名聊天不调用模型，而使用本地回退。已登录用户即使选择模拟提供方数据，也可使用真实模型。本地未配置认证时保留模型访问。
+
 ## `GET /api/agent-lab/benchmark`
 
 返回版本化 Agent Lab 基准注册表，其中包含基准和产物 schema 版本、fixture 场景及其预期结果和检查、已注册策略与故障档案，以及受上限约束的实时场景、策略和重复次数子集。该响应只读，并使用 `Cache-Control: no-store`。
@@ -241,9 +243,9 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 `dataMode` 为 `fixture`（默认）或 `live`。fixture 运行对该请求使用 mock 工具且不使用模型，因此无论部署持有什么密钥、默认数据模式是什么，
 它都不发起外部调用、不消耗额度。它不需要任何凭据，并且它和实时运行都不会持久化聊天、行程或实验结果。
 
-实时运行使用部署自己的模型和提供方，且只在部署设置了 `AGENT_LAB_LIVE_ENABLED=true` 时存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
+部署环境中的实时运行需要登录；未配置认证的部署会拒绝实时运行。本地未配置认证时仍可实时运行。实时运行使用部署自己的模型和提供方，且只在部署设置了 `AGENT_LAB_LIVE_ENABLED=true` 时存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
 单 agent 基线回放的是一份录制结果，因此请求它的实时运行会被拒绝。无法开始的请求只会收到一个带类型的 `rejected` 帧，没有运行，也绝不会有产物：
-503 `live_disabled`、400 `live_unsupported`，或带有 `Retry-After` 头和 `retryAfterSeconds` 的 429 `concurrency_limit` / `rate_limit`。
+认证需要登录或未配置时返回 401 `live_disabled`、503 `live_disabled`、400 `live_unsupported`，或带有 `Retry-After` 头和 `retryAfterSeconds` 的 429 `concurrency_limit` / `rate_limit`。
 这些都不是实验的失败，且消息不会点出任何设置或限额。实时产物的 `dataMode`，以及每个事件上的同名字段，都是 `live`。
 它的 `metrics.usage` 仅当提供方为每次模型调用都返回了用量时才是带有输入、输出和总 token 数的 `{ "status": "measured", ... }`，否则是
 `{ "status": "unavailable", "reason": ... }`，绝不会是 0 或部分合计。模型成本从不报告，轨迹也从不包含模型自己的推理。
@@ -261,7 +263,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 ```
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
-`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非部署环境（本地、CI）也为 true。 `liveBlock` 说明为何不可用：已配置部署中未登录调用方为 `sign-in-required`，未配置 Clerk 的 Vercel 部署为 `auth-not-configured`，可用时为 `null`。
+`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非生产开发环境也为 true。 `liveBlock` 说明为何不可用：已配置部署中未登录调用方为 `sign-in-required`，未配置 Clerk 的生产服务器或 Vercel 部署为 `auth-not-configured`，可用时为 `null`。
 为 false 时工作区的数据模式按钮保持示例数据并带 `aria-disabled="true"`，仍可用键盘聚焦，其隐藏文字提示登录后才能使用真实的酒店和航班价格。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 

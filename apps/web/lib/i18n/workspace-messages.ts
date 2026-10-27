@@ -250,6 +250,10 @@ export const WORKSPACE_ZH = {
   Travellers: "出行人数",
   "Flight time": "飞行时长",
   "Travel tips": "旅行提示",
+  "Copy trip": "复制行程",
+  "Download calendar": "下载日历",
+  "Trip copied": "行程已复制",
+  "Could not copy trip": "无法复制行程",
   "Night {v0} of {v1}": "第 {v0} 晚，共 {v1} 晚",
   "Included in the outbound fare": "含在去程票价中",
   "View property details": "查看酒店详情",
@@ -471,8 +475,8 @@ export const WORKSPACE_ZH = {
   "Actions for {v0}": "{v0}的操作",
   "Mock data: bundled fixtures. No provider requests and no allowance spent.":
     "示例数据：使用内置示例，不会请求服务商，也不会消耗额度。",
-  "Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.":
-    "示例数据：使用内置示例。登录后即可使用真实的酒店和航班价格规划行程。",
+  "Mock data: bundled fixtures. Sign in to use the AI model and live hotel and flight prices.":
+    "示例数据：使用内置示例。登录后可使用 AI 模型和真实的酒店与航班价格。",
   "Mock data: bundled fixtures. Live provider data is off on this deployment.":
     "示例数据：使用内置示例。此部署未开启实时服务商数据。",
   ". Currently using mock fixtures. Live provider data is off on this deployment.":
@@ -485,8 +489,8 @@ export const WORKSPACE_ZH = {
     "。当前使用实时数据。点击切换到示例数据。",
   ". Currently using mock fixtures. Activate to switch to live provider data.":
     "。当前使用示例数据。点击切换到实时数据。",
-  ". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.":
-    "。当前使用示例数据。登录后即可使用真实的酒店和航班价格规划行程。",
+  ". Currently using mock fixtures. Sign in to use the AI model and live hotel and flight prices.":
+    "。当前使用示例数据。登录后可使用 AI 模型和真实的酒店与航班价格。",
   day: "天",
   days: "天",
   "No matching trips.": "没有匹配的行程。",

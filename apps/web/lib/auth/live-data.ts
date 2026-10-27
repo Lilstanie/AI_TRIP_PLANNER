@@ -5,7 +5,10 @@ import { authEnabled } from "./config";
 export type LiveDataBlock = "sign-in-required" | "auth-not-configured";
 
 export async function liveDataBlock(): Promise<LiveDataBlock | undefined> {
-  if (!authEnabled) return process.env.VERCEL_ENV ? "auth-not-configured" : undefined;
+  if (!authEnabled)
+    return process.env.VERCEL_ENV || process.env.NODE_ENV === "production"
+      ? "auth-not-configured"
+      : undefined;
   const { userId } = await auth();
   return userId ? undefined : "sign-in-required";
 }

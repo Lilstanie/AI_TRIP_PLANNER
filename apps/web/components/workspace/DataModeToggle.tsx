@@ -26,11 +26,15 @@ export function DataModeToggle({
   const unsignedMessage =
     liveBlock === "auth-not-configured"
       ? t("Mock data: bundled fixtures. Live provider data is off on this deployment.")
-      : t("Mock data: bundled fixtures. Sign in to plan with live hotel and flight prices.");
+      : t(
+          "Mock data: bundled fixtures. Sign in to use the AI model and live hotel and flight prices.",
+        );
   const unsignedSrMessage =
     liveBlock === "auth-not-configured"
       ? t(". Currently using mock fixtures. Live provider data is off on this deployment.")
-      : t(". Currently using mock fixtures. Sign in to plan with live hotel and flight prices.");
+      : t(
+          ". Currently using mock fixtures. Sign in to use the AI model and live hotel and flight prices.",
+        );
   const title = !liveAvailable
     ? unsignedMessage
     : live
