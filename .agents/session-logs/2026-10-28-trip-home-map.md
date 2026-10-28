@@ -24,10 +24,12 @@ Spec #765 says the page works on a phone with the map stacked, so the phone had 
 
 ## Validation
 
-See the pull request body for the commands and results.
+- `e2e trip-home-map trip-home-shell trip-home-cards --prod`: pass; `trip-home-chats` fails only on the same-millisecond tie of its "new chat leads the list" check, which also fails on the base branch.
+- `pnpm typecheck`, `pnpm lint` (existing warnings only), `verify:docs`, `verify:pairs`, `verify:protected`, `verify:e2e-selectors`, `verify:e2e-artifacts`, `check-ui-copy`, `check:comments`: pass.
 
 ## Notes for the next person
 
+- `useTripPlaces` now throws when a lookup is aborted while its body is read; before, an unmounted second map made `place` undefined and raised a page error.
 - A trip always carries a plan snapshot, so "no plan, no map" cannot be reached from storage; the map renders from `snapshot.plan`.
 - Until #767 lists chats on the home, a phone reaches a conversation from the chat rows in Mine.
 - The map keeps `touch-action: pan-y pinch-zoom` on phone so the page still scrolls; not tried on a real device.
