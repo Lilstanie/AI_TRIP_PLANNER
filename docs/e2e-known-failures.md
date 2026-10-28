@@ -38,17 +38,8 @@ The following scripts failed on the unmodified base of the quiet itinerary panel
 
 | Script                          | Checked    |
 | ------------------------------- | ---------- |
-| `activities-not-costed`         | 2026-10-28 |
-| `trip-ui-triage`                | 2026-10-28 |
-| `budget-source-replacement`     | 2026-10-28 |
-| `trip-display-currency`         | 2026-10-28 |
-| `display-currency`              | 2026-10-28 |
 | `reply-cost-line`               | 2026-10-28 |
-| `workspace-control-overflow`    | 2026-10-28 |
-| `workspace-chinese`             | 2026-10-28 |
-| `stop-progress`                 | 2026-10-28 |
 | `open-in-maps`                  | 2026-10-28 |
-| `settings`                      | 2026-10-28 |
 | `workspace-performance`         | 2026-10-28 |
 | `trajectory-timeline`           | 2026-10-28 |
 | `cross-day-drag`                | 2026-10-28 |
@@ -112,6 +103,20 @@ The following scripts failed on the unmodified base of the quiet itinerary panel
   failed once in six runs because `locator.evaluate` read the panel's visibility from a node that
   hydration had replaced (empty string), so it now reads the live node. `sidebar-entries` belongs to
   the sidebar tickets and passes on the integration branch; neither needs an entry.
+
+- `activities-not-costed`, `trip-ui-triage`, `budget-source-replacement`, `trip-display-currency`,
+  `display-currency`, `workspace-control-overflow`, `workspace-chinese`, `stop-progress` and `settings`
+  already failed on unmodified `main` (2026-10-28) because they drove controls the calmer workspace
+  (#740), the progressive-empty workspace and the Trip home (#765) moved or removed. They now use the
+  current premises: the interface language is switched in Settings (`setPhoneLanguage`,
+  `setDesktopLanguage`); the Trip view covers the conversation on desktop, so the scripts return with
+  the Conversation tab or close the Trip toggle (`aria-expanded`) before typing; opening a trip lands on
+  its Trip home, so they go through `openTripWorkspace`; a blank trip has no budget chip, so the budget
+  is stated in the first message and a blank trip's currency is read from the stored catalog; a stop is
+  opened by clicking its row, not by Edit details; the phone shows the converted-amounts notice in the
+  workspace notices, not the Trip panel; a Chinese message gets a Chinese reply, so the budget-reply
+  checks accept it; the unpriced wording is "unpriced costs not counted". Run each with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
 
 ## Not failures
 

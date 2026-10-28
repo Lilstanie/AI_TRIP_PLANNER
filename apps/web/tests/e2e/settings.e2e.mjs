@@ -191,13 +191,15 @@ async function run(browser, { width, height, tag }) {
       await chats.click();
       await settle(page);
     }
-    if (width <= 520) await page.getByRole("button", { name: "New chat" }).first().click();
-    else {
-      await page.getByRole("button", { name: "New trip" }).first().click();
-      const where = page.getByRole("dialog", { name: "Where" });
-      await where.waitFor();
-      if (!keepOpen) await closeWhere();
-    }
+    if (width <= 520)
+      await page
+        .locator(".phone-mine .chats-panel__section-head")
+        .getByRole("button", { name: "New trip", exact: true })
+        .click();
+    else await page.getByRole("button", { name: "New trip" }).first().click();
+    const where = page.getByRole("dialog", { name: "Where" });
+    await where.waitFor();
+    if (!keepOpen || width <= 520) await closeWhere();
     await settle(page, 700);
   };
   await newChat(true);
