@@ -34,6 +34,26 @@ drawer that the calmer workspace (#740) replaced.
 | `notice-keys`        | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
 | `narrow-time-editor` | Waits for the button "Close your trip" at 1001 px, then times out.                                         | none yet |
 
+The following scripts failed on the unmodified base of the quiet itinerary panel work (2026-10-28), found by the ticket implementers who ran them in a clean worktree as `pnpm --filter @trip/web e2e <script> --prod`. The quiet panel tickets did not cause them; the cause of each is not yet investigated.
+
+| Script                       | Checked    |
+| ---------------------------- | ---------- |
+| `activities-not-costed`      | 2026-10-28 |
+| `trip-ui-triage`             | 2026-10-28 |
+| `budget-source-replacement`  | 2026-10-28 |
+| `trip-display-currency`      | 2026-10-28 |
+| `display-currency`           | 2026-10-28 |
+| `reply-cost-line`            | 2026-10-28 |
+| `workspace-control-overflow` | 2026-10-28 |
+| `workspace-chinese`          | 2026-10-28 |
+| `stop-progress`              | 2026-10-28 |
+| `open-in-maps`               | 2026-10-28 |
+| `settings`                   | 2026-10-28 |
+| `workspace-performance`      | 2026-10-28 |
+| `trajectory-timeline`        | 2026-10-28 |
+| `cross-day-drag`             | 2026-10-28 |
+| `itinerary-walkthrough`      | 2026-10-28 |
+
 `phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
 
 ## Covered regressions
