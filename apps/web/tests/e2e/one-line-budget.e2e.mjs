@@ -37,6 +37,14 @@ const scenarios = [
   { name: "all-priced", costs: [180, 80, 60, 40], budget: 800, unpriced: 0, pct: 45 },
   { name: "every-unpriced", costs: [], budget: 800, unpriced: 4, pct: 0 },
   { name: "over-budget", costs: [180, 80, 60, 40], budget: 200, unpriced: 0, pct: 100 },
+  {
+    name: "no-transport",
+    costs: [180, 80, 60, 40],
+    noTransport: true,
+    budget: 800,
+    unpriced: 1,
+    pct: 35,
+  },
   { name: "yen", costs: [180, 80, 60, 40], budget: 800, unpriced: 0, pct: 45, currency: "JPY" },
 ];
 
@@ -52,7 +60,10 @@ function fixture(scenario) {
       item("activity", "Unpriced activity"),
       item("activity", "Second unpriced"),
     );
-  const total = scenario.costs.reduce((sum, amount) => sum + amount, 0);
+  const total = scenario.costs.reduce(
+    (sum, amount, index) => sum + (scenario.noTransport && index === 1 ? 0 : amount),
+    0,
+  );
   const plan = {
     tripId: "one-line-budget-757",
     brief: {
@@ -77,8 +88,8 @@ function fixture(scenario) {
       section(
         "transport",
         "Transport",
-        [item("flight", "Provider flight description", flight)],
-        flight,
+        scenario.noTransport ? [] : [item("flight", "Provider flight description", flight)],
+        scenario.noTransport ? 0 : flight,
       ),
       section("dining", "Dining", [item("meal", "Provider meal description", meal)], meal),
       section("itinerary", "Day plan", itinerary, activity),

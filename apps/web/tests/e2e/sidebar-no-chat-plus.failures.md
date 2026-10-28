@@ -7,6 +7,7 @@
 - New trip stops opening the Where dialog on a blank trip, or the dialog does not take focus.
 - Keyboard order of the sidebar entries changes, or Enter on New trip does nothing.
 - Tablet navigation drawer still offers a New chat row beside Chats.
+- Tablet navigation drawer shows a Chats entry that does nothing: it controls a panel that is not rendered, or pressing it changes nothing. The drawer lists its chats inline instead.
 - Phone Mine tab loses its Chats section New chat button, or New chat there no longer opens Chat.
 - Chinese shows English labels in the sidebar, or the removed label leaves a gap in the layout.
 - The page overflows horizontally, or a page error appears.

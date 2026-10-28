@@ -9,6 +9,7 @@ Written before the code (#757, spec #755). Each line is a way the feature could 
 - No limit set: a saved plan whose limit is zero or missing is refused when restored, so the panel never shows a limit of zero; a restore that crashes the page or shows "NaN" is a failure.
 - Every item unpriced: the total shows a made-up amount instead of zero known, or the unpriced count is missing or smaller than the number of unpriced items.
 - Nothing unpriced: an unpriced count of zero is shown.
+- Transport has no priced item and no item at all (nothing priced, nothing listed): the line reads fully "Within budget" with no unpriced note, so a major missing cost goes unmentioned. It must count as one unpriced item.
 - Over budget: the status does not say so, the bar is not capped at full, or the bar is not marked over.
 - At budget or under budget with unpriced items: the caution wording is dropped.
 - A currency other than AUD: the total or the limit is shown in AUD, or the two use different currencies.

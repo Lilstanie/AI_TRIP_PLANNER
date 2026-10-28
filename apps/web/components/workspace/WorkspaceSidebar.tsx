@@ -185,7 +185,7 @@ export function WorkspaceSidebar({
   chatCount: number;
   tripCount: number;
 
-  onChats(): void;
+  onChats?(): void;
 
   onTrips(): void;
   onCalendar(): void;
@@ -230,17 +230,19 @@ export function WorkspaceSidebar({
           collapsed={isCollapsed}
           onClick={onNewTrip}
         />
-        <NavButton
-          buttonRef={chatsButton}
-          icon={<ChatIcon filled={chatsOpen} />}
-          label={t("Chats")}
-          collapsed={isCollapsed}
-          count={chatCount}
-          current={chatsOpen}
-          expanded={chatsOpen}
-          controls="chats-panel"
-          onClick={onChats}
-        />
+        {onChats && (
+          <NavButton
+            buttonRef={chatsButton}
+            icon={<ChatIcon filled={chatsOpen} />}
+            label={t("Chats")}
+            collapsed={isCollapsed}
+            count={chatCount}
+            current={chatsOpen}
+            expanded={chatsOpen}
+            controls="chats-panel"
+            onClick={onChats}
+          />
+        )}
         <NavButton
           icon={<SuitcaseIcon filled={page === "trips" && tripsView === "trips" && !chatsOpen} />}
           label={t("Trips")}

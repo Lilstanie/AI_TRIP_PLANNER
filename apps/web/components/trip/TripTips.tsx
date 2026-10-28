@@ -2,7 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { MessageKey } from "@/lib/i18n/locale";
-import { MAX_TIPS, firstSentence, packingLine } from "@/lib/trip/tip-text";
+import { MAX_TIPS, packingLine, tipSentence } from "@/lib/trip/tip-text";
 import { useLocale } from "../account/LocaleProvider";
 
 const KIND_LABEL: Record<string, MessageKey> = {
@@ -71,7 +71,7 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
               {KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]!) : item.kind}
             </p>
             {item.detail.trim() ? (
-              <p>{item.kind === "weather-packing" ? item.detail : firstSentence(item.detail)}</p>
+              <p>{item.kind === "weather-packing" ? item.detail : tipSentence(item.detail)}</p>
             ) : null}
             {packingLine(item.packing, "") ? (
               <p className="trip-tips__packing">{packingLine(item.packing, separator)}</p>

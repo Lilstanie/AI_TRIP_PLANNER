@@ -150,6 +150,23 @@ try {
         0,
       `${language} tablet: navigation drawer has no New chat row`,
     );
+    const dead = await drawer
+      .locator(".sidebar-nav button[aria-controls]")
+      .evaluateAll((nodes) =>
+        nodes
+          .filter((node) => !document.getElementById(node.getAttribute("aria-controls")))
+          .map((node) => node.textContent),
+      );
+    check(
+      dead.length === 0,
+      `${language} tablet: no navigation button controls a missing panel`,
+      dead,
+    );
+    check(
+      (await drawer.locator(".sidebar-nav").getByRole("button", { name: text.chats }).count()) ===
+        0 && (await drawer.locator(".history-item__open").count()) >= 0,
+      `${language} tablet: the drawer has no dead Chats entry`,
+    );
     check(tablet.errors.length === 0, `${language} tablet: no page errors`);
     await tablet.context.close();
 
