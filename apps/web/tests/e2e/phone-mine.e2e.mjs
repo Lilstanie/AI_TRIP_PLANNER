@@ -392,13 +392,18 @@ try {
     .getByRole("button", { name: "Map", exact: true })
     .click();
   await tabletPage.getByRole("button", { name: "Open navigation" }).click();
-  await tabletPage.locator(".drawer .history-item--trip .history-item__open").first().click();
+  await tabletPage
+    .locator(".drawer .history-item:not(.history-item--trip)")
+    .filter({ hasText: "Trip to" })
+    .locator(".history-item__open")
+    .first()
+    .click();
   check(
     (await tabletPage
       .getByRole("group", { name: "Workspace view" })
       .getByRole("button", { name: "Map", exact: true })
       .getAttribute("aria-pressed")) === "true",
-    "800: selecting a trip preserves the tablet Map view",
+    "800: selecting a chat preserves the tablet Map view",
   );
   await tabletPage.screenshot({ path: `${OUT}/800-trip-retains-map.png` });
 

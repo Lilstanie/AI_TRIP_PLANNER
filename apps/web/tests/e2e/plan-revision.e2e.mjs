@@ -12,6 +12,7 @@ import {
   waitUntil,
   waitForQuiet,
 } from "./trip-setup.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
@@ -391,7 +392,7 @@ async function main() {
         .locator(".sidebar-nav")
         .getByRole("button", { name: /^Trips/ })
         .click();
-      await stale.locator(".trips-page .trip-card").first().click();
+      await openTripWorkspace(stale, stale.locator(".trips-page .trip-card").first());
       await stale.getByRole("button", { name: "Open your trip" }).click();
       await trip(stale).waitFor();
       const oldTime = await firstStopTime(stale);
@@ -450,7 +451,7 @@ async function main() {
         .locator(".sidebar-nav")
         .getByRole("button", { name: /^Trips/ })
         .click();
-      await stale.locator(".trips-page .trip-card").first().click();
+      await openTripWorkspace(stale, stale.locator(".trips-page .trip-card").first());
       await stale.getByRole("button", { name: "Open your trip" }).click();
       await trip(stale).waitFor();
       await waitUntil(async () => await stale.evaluate(() => window.lockAttempts > 0));

@@ -392,6 +392,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const linked = catalog.conversations.filter((item) => item.tripId === id);
     const next: WorkspaceCatalog = {
       ...catalog,
+      activeTripId: catalog.activeTripId === id ? undefined : catalog.activeTripId,
       trips: catalog.trips.filter((item) => item.id !== id),
       conversations: catalog.conversations.map((item) => {
         if (item.tripId !== id) return item;
@@ -446,6 +447,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       closeDrawer: () => layout({ type: "close-drawer" }),
       toggleChats: () => layout({ type: "toggle-chats" }),
       showTrips: () => layout({ type: "show-trips" }),
+      openHome: (tripId: string) => layout({ type: "open-home", tripId }),
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
       showChatView: (view: ChatView) => layout({ type: "show-chat-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
@@ -532,6 +534,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       phone,
       narrow,
       page: surface.page,
+      homeTripId: surface.tripId,
       mobileView,
       chatView: surface.chatView ?? "conversation",
       dialog,

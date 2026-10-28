@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -302,7 +303,7 @@ async function openDesktopTrip(page, language) {
       .getByRole("button", { name: language === "zh" ? /^行程/ : /^Trips/ })
       .first()
       .click();
-    await page.locator(".trips-page .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".trips-page .trip-card").first());
   }
   await open.waitFor({ timeout: 30_000 });
   if ((await open.getAttribute("aria-expanded")) !== "true") await open.click();

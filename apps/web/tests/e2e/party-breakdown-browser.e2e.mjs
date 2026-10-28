@@ -2,6 +2,7 @@ import assert from "node:assert/strict";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve("output/playwright/party-breakdown-browser");
@@ -68,7 +69,7 @@ try {
               .locator(".sidebar-nav")
               .getByRole("button", { name: zh ? /^行程/ : /^Trips/ })
               .click();
-          await page.locator(".trip-card").first().click();
+          await openTripWorkspace(page, page.locator(".trip-card").first());
         }
         if (width === 390) {
           await page.locator(".phone-topbar__title-button").click();

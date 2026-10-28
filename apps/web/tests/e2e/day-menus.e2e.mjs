@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { placeFor, sleep, waitUntil } from "./trip-setup.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(
@@ -240,7 +241,10 @@ try {
         if (await tripTab.count()) await tripTab.click();
       } else {
         await page.getByRole("button", { name: /^(Trips|行程)/ }).click();
-        await pick(page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" })).click();
+        await openTripWorkspace(
+          page,
+          pick(page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" })),
+        );
         const toggle = page.locator(".trip-trigger");
         if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
       }

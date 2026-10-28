@@ -11,7 +11,8 @@ export type Drawer = "trip" | "nav" | "chats";
 export type Media = { phone: boolean; narrow: boolean };
 
 export type Surface = {
-  page: "workspace" | "trips";
+  page: "workspace" | "trips" | "home";
+  tripId?: string;
   view: MobileView;
   chatView?: ChatView;
   drawer?: Drawer;
@@ -35,6 +36,7 @@ export type LayoutEvent =
   | { type: "open-dialog"; dialog: DialogKind }
   | { type: "close-dialog" }
   | { type: "show-trips" }
+  | { type: "open-home"; tripId: string }
   | { type: "select-view"; view: MobileView }
   | { type: "show-chat-view"; view: ChatView }
   | { type: "chat-opened" }
@@ -47,8 +49,19 @@ type Panel = Pick<Surface, "drawer" | "sheet" | "fact">;
 const strip = (surface: Surface): Surface =>
   Object.fromEntries(Object.entries(surface).filter(([, value]) => value !== undefined)) as Surface;
 
-const only = (surface: Surface, panel: Panel & Partial<Pick<Surface, "page" | "view">>) =>
-  strip({ page: surface.page, view: surface.view, dialog: surface.dialog, ...panel });
+const only = (
+  surface: Surface,
+  panel: Panel & Partial<Pick<Surface, "page" | "view" | "tripId">>,
+) => {
+  const page = panel.page ?? surface.page;
+  return strip({
+    view: surface.view,
+    dialog: surface.dialog,
+    ...panel,
+    page,
+    tripId: page === "home" ? (panel.tripId ?? surface.tripId) : undefined,
+  });
+};
 const without = (surface: Surface, key: keyof Panel | "dialog"): Surface =>
   strip({ ...surface, [key]: undefined });
 
@@ -100,6 +113,8 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
       return media.phone
         ? only(surface, { page: "workspace", view: "mine" })
         : only(surface, { page: "trips" });
+    case "open-home":
+      return media.phone ? surface : only(surface, { page: "home", tripId: event.tripId });
     case "select-view":
       if (!media.phone && event.view === "trip")
         return layout(surface, { type: "open-trip" }, media);
@@ -133,7 +148,9 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
 function cross(surface: Surface, from: Media, to: Media): Surface {
   let next = surface;
   if (!from.phone && to.phone) {
-    if (next.page === "trips") next = { ...next, page: "workspace", view: "mine" };
+    if (next.page === "home")
+      next = strip({ ...next, page: "workspace", view: "mine", tripId: undefined });
+    else if (next.page === "trips") next = { ...next, page: "workspace", view: "mine" };
     else if (next.drawer === "trip") next = { ...next, view: "trip" };
     next = without(next, "drawer");
   }

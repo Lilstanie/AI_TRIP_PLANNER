@@ -1,6 +1,7 @@
 import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const output = resolve("output/e2e/trip-export");
@@ -156,7 +157,10 @@ try {
       if (await tab.count()) await tab.click();
     } else {
       await page.getByRole("button", { name: /^Trips/ }).click();
-      await page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" }).first().click();
+      await openTripWorkspace(
+        page,
+        page.locator(".trips-page .trip-card").filter({ hasText: "Sydney" }).first(),
+      );
       const button = page.getByRole("button", { name: "Open your trip", exact: true });
       if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
     }
