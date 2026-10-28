@@ -189,7 +189,10 @@ async function run(browser, { width, height, tag }) {
     if (width <= 520) await page.getByRole("button", { name: "New chat" }).first().click();
     else {
       await page.getByRole("button", { name: "New trip" }).first().click();
+      const where = page.getByRole("dialog", { name: "Where" });
+      await where.waitFor();
       await page.keyboard.press("Escape");
+      await where.waitFor({ state: "hidden" });
     }
     await settle(page, 700);
   };
