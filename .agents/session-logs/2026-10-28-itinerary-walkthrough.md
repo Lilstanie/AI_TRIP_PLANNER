@@ -19,7 +19,7 @@ contract-impact: none
 
 ## Why
 
-The spec asks for one repeatable proof of the whole interaction and for the decision that reversed the redesign to be recorded. Edit title and Add note are not covered: set `WALKTHROUGH_DAY_TITLE_NOTE=1` once the Day menu has them.
+The spec asks for one repeatable proof of the whole interaction and for the decision that reversed the redesign to be recorded. Edit title and Add note were added to the Day menu by #750 after this branch started, so the walkthrough covers them too.
 
 ## Validation
 

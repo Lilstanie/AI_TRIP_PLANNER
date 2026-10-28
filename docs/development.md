@@ -400,8 +400,7 @@ records the assertion consolidation boundaries.
 journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and to Ideas
 and back, every Stop, Idea, Day and Itinerary menu item, the Add to trip panel from a day and from Ideas on
 each tab, Undo after each change, Leg distances, Directions and Show distances off and on. Screenshots and
-`result.json` land in `output/playwright/itinerary-walkthrough/after/`. Set `WALKTHROUGH_DAY_TITLE_NOTE=1`
-once the Day menu gains Edit title and Add note.
+`result.json` land in `output/playwright/itinerary-walkthrough/after/`. It includes Edit title and Add note on a day.
 
 ```bash
 pnpm --filter @trip/web e2e itinerary-walkthrough --prod

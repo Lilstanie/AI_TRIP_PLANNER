@@ -274,7 +274,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 
 `auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 
-`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` 在一次旅程中完整运行 Mindtrip 式行程交互，覆盖桌面、手机（长按拖动）和中文：当天内拖动、拖到另一天、拖到备选地点再拖回，Stop、Idea、日和行程菜单的每一项，从某一天和从备选地点打开的“添加到行程”面板的每个标签，每次修改后的撤销，路段距离、路线和“显示距离”的关闭与开启。截图和 `result.json` 写入 `output/playwright/itinerary-walkthrough/after/`。日菜单加入“编辑标题”和“添加备注”后，设置 `WALKTHROUGH_DAY_TITLE_NOTE=1`。
+`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` 在一次旅程中完整运行 Mindtrip 式行程交互，覆盖桌面、手机（长按拖动）和中文：当天内拖动、拖到另一天、拖到备选地点再拖回，Stop、Idea、日和行程菜单的每一项，从某一天和从备选地点打开的“添加到行程”面板的每个标签，每次修改后的撤销，路段距离、路线和“显示距离”的关闭与开启。截图和 `result.json` 写入 `output/playwright/itinerary-walkthrough/after/`。也包含某一天的“编辑标题”和“添加备注”。
 
 ```bash
 pnpm --filter @trip/web e2e itinerary-walkthrough --prod

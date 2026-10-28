@@ -37,6 +37,9 @@ const TEXT = {
     secondary: ["Replace place", "Open in Maps"],
     dayMenu: (n) => `Day ${n} actions`,
     dayItems: ["Add day before", "Add day after", "Clear day", "Remove day"],
+    dayText: ["Edit title", "Add note"],
+    titleField: "Day title",
+    noteField: "Day note",
     itineraryMenu: "Itinerary actions",
     bulk: ["Move all events to ideas", "Remove all scheduled events"],
     dayMap: (n) => `Day map, Day ${n}`,
@@ -91,6 +94,9 @@ const TEXT = {
     secondary: [],
     dayMenu: (n) => `第 ${n} 天的操作`,
     dayItems: ["在前面加一天", "在后面加一天", "清空这一天", "删除这一天"],
+    dayText: ["编辑标题", "添加备注"],
+    titleField: "日标题",
+    noteField: "日备注",
     itineraryMenu: "行程操作",
     bulk: ["全部活动移至备选地点", "移除所有已安排的活动"],
     dayMap: (n) => `当天地图，第 ${n} 天`,
@@ -152,7 +158,6 @@ const metresBetween = (from, to) => {
       Math.sin(rad(b.longitude - a.longitude) / 2) ** 2;
   return Math.round(2 * radius * Math.asin(Math.sqrt(half)));
 };
-const DAY_TITLE_NOTE = process.env.WALKTHROUGH_DAY_TITLE_NOTE === "1";
 const SHOW_DISTANCES_KEY = "trip.show-distances.v1";
 
 const typed = (name, primaryType, coordinates = true) => ({
@@ -1135,15 +1140,9 @@ try {
 
     await dayMenuButton(1).click();
     const dayItems = await page.getByRole("menuitem").allTextContents();
-    const dayTextItems = dayItems.filter((label) =>
-      /Edit title|Add note|编辑标题|添加备注/.test(label),
-    );
     check(
-      T.dayItems.every((label) => dayItems.includes(label)) &&
-        (DAY_TITLE_NOTE ? dayTextItems.length === 2 : dayTextItems.length === 0),
-      DAY_TITLE_NOTE
-        ? `the Day menu also lists Edit title and Add note at ${tag}`
-        : `the Day menu lists Add day before, Add day after, Clear day and Remove day only at ${tag}`,
+      [...T.dayText, ...T.dayItems].every((label) => dayItems.includes(label)),
+      `the Day menu lists Edit title, Add note, Add day before, Add day after, Clear day and Remove day at ${tag}`,
       dayItems,
     );
     await shot("day-menu");
@@ -1242,6 +1241,45 @@ try {
       );
       await shot("day-map");
     }
+    await showDay(2);
+    const dayNotes = async () => (await savedPlan()).dayNotes;
+    const formField = (name) => page.getByRole("textbox", { name, exact: true });
+    const saveForm = () => page.getByRole("button", { name: T.pop.save, exact: true }).click();
+    await dayMenuButton(2).click();
+    await page.getByRole("menuitem", { name: T.dayText[0], exact: true }).click();
+    await formField(T.titleField).fill("Harbour day");
+    await shot("day-title");
+    await saveForm();
+    check(
+      (await waitUntil(async () => (await dayNotes())?.["2"]?.title === "Harbour day", 10_000)) &&
+        (await dayPanel.innerText()).includes("Harbour day"),
+      `Edit title saves at once and shows on the day at ${tag}`,
+      await dayNotes(),
+    );
+    await undoButton.first().click();
+    check(
+      await waitUntil(async () => (await dayNotes())?.["2"] === undefined, 10_000),
+      `Undo after Edit title removes the title at ${tag}`,
+      await dayNotes(),
+    );
+    await dayMenuButton(2).click();
+    await page.getByRole("menuitem", { name: T.dayText[1], exact: true }).click();
+    await formField(T.noteField).fill("Bring sunscreen");
+    await saveForm();
+    check(
+      (await waitUntil(
+        async () => (await dayNotes())?.["2"]?.note === "Bring sunscreen",
+        10_000,
+      )) && (await dayPanel.innerText()).includes("Bring sunscreen"),
+      `Add note saves at once and shows on the day at ${tag}`,
+      await dayNotes(),
+    );
+    await undoButton.first().click();
+    check(
+      await waitUntil(async () => (await dayNotes())?.["2"] === undefined, 10_000),
+      `Undo after Add note removes the note at ${tag}`,
+      await dayNotes(),
+    );
     await showDay(1);
     check(
       (await noPrompt()) && dialogs.length === 0,

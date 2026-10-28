@@ -35,8 +35,7 @@ column, every row draggable, one menu per stop, and each edit simply taking effe
   edits, and discard confirmation on the Brief sheets, which are not itinerary edits.
 - A trip locked by a running assistant still disables every itinerary edit, drag and Add button.
 - The [day menu and itinerary menu](2026-10-27-day-menus.md) and the per-Leg distance with its Directions
-  link and Show distances switch complete the interaction. Edit title and Add note on a day are not built
-  until the plan can store them.
+  link and Show distances switch complete the interaction, with Edit title and Add note on each day.
 - One E2E walkthrough, `itinerary-walkthrough`, runs the whole journey at desktop, phone and in Chinese
   and leaves screenshots and `result.json` under `output/playwright/itinerary-walkthrough/`.
 
