@@ -12,11 +12,12 @@ export const KIND_QUERY_WORD: Record<SearchKind, string> = {
   events: "events",
 };
 
-const EVENT_TYPE = /event|theat|stadium|concert|festival|performing|arena|amusement|cinema/;
+const EVENT_TYPE = /event|theat|stadium|concert|festival|performing|arena|cinema/;
 
 export function matchesFilter(place: GooglePlace, filter: AddFilter): boolean {
   if (filter === "places") return true;
-  const type = place.primaryType ?? "";
+  if (!place.primaryType) return true;
+  const type = place.primaryType;
   const isEvent = EVENT_TYPE.test(type);
   if (filter === "events") return isEvent;
   if (isEvent) return false;

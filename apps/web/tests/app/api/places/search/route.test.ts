@@ -46,6 +46,18 @@ describe("POST /api/places/search", () => {
     await expect(response.json()).resolves.toEqual({ places: [{ id: "p1" }], source: "google" });
   });
 
+  it("adds the kind word to a short query and never past 200 characters", async () => {
+    const { searchPlaces } = await import("@/lib/integrations/google");
+    vi.mocked(searchPlaces).mockResolvedValue([]);
+
+    await POST(request({ text: "temple", kind: "stays" }));
+    await POST(request({ text: "a".repeat(200), kind: "experiences" }));
+    await POST(request({ text: "a".repeat(201), kind: "events" }));
+
+    const queries = vi.mocked(searchPlaces).mock.calls.map(([text]) => text);
+    expect(queries).toEqual(["temple hotel", "a".repeat(200)]);
+  });
+
   it("maps a 429 from Google to a retryable 429, not a generic 502", async () => {
     const { searchPlaces } = await import("@/lib/integrations/google");
     vi.mocked(searchPlaces).mockRejectedValue(new GoogleRequestError(429));

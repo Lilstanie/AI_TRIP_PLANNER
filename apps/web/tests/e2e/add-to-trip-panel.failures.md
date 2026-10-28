@@ -8,6 +8,9 @@ The agreed seam is the real Trip workspace in a browser at 1440x900 and 390x844,
 - Search sends no trip destination, so results start far from the trip.
 - A filter (places, stays, restaurants, experiences, events) leaves results that are not of that kind.
 - A search with no results adds nothing and says nothing.
+- A filter hides every returned place and the panel says nothing.
+- A place with no type vanishes under Stays, Restaurants or Events, or an amusement park is dropped by Experiences.
+- Custom with a late start time adds a stop whose end is not after its start, or one that is silently shorter than an hour.
 - A search that fails offline adds nothing and says nothing, or leaves the panel stuck busy.
 - A place that is already on the day replaces or merges with the existing stop instead of adding a second stop.
 - A search result with coordinates is added without a saved map match, or a result without coordinates shows a match confirm instead of the stop showing a search box when the lookup fails.

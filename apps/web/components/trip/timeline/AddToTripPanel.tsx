@@ -21,9 +21,11 @@ const FILTER_LABEL = {
 
 const TAB_LABEL = { search: "Search", ideas: "Ideas", saved: "Saved", custom: "Custom" } as const;
 
+const LATEST_START = "22:59";
+
 function clockPlusHour(start: string) {
   const [hours = 0, minutes = 0] = start.split(":").map(Number);
-  const total = Math.min(hours * 60 + minutes + 60, 23 * 60 + 59);
+  const total = hours * 60 + minutes + 60;
   return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }
 
@@ -102,6 +104,7 @@ export function AddToTripPanel({
     if (value.trim()) void edits.search(value.trim(), next === "places" ? undefined : next);
   };
   const results = edits.results.filter((place: GooglePlace) => matchesFilter(place, filter));
+  const hidden = edits.results.length > 0 && results.length === 0;
   const typed = name.trim();
 
   return (
@@ -194,6 +197,9 @@ export function AddToTripPanel({
               </button>
             ))}
           </div>
+          {hidden && (
+            <p className="add-panel__empty">{t("No places found. Try different words.")}</p>
+          )}
           {!!results.length && (
             <ul className="stop-editor__results" aria-label={t("Place results")}>
               {results.map((place) => {
@@ -326,6 +332,7 @@ export function AddToTripPanel({
               <input
                 type="time"
                 value={start}
+                max={LATEST_START}
                 disabled={locked}
                 onChange={(event) => setStart(event.target.value)}
               />

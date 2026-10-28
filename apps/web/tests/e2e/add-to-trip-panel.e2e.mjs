@@ -1,7 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
-import { placeFor, waitUntil } from "./trip-setup.mjs";
+import { placeFor, sleep, waitUntil } from "./trip-setup.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(
@@ -126,6 +126,17 @@ try {
       const body = route.request().postDataJSON();
       searchRequests.push(body);
       if (offline) return route.abort();
+      if (/panel extras/i.test(body.text))
+        return route.fulfill({
+          json: {
+            places: [
+              typed("Panel Funfair", "amusement_park"),
+              { ...placeFor("Panel Untyped"), primaryType: undefined },
+            ],
+          },
+        });
+      if (/panel cafe only/i.test(body.text))
+        return route.fulfill({ json: { places: [CATALOG_OF["Panel Cafe"]] } });
       if (/nothing/i.test(body.text)) return route.fulfill({ json: { places: [] } });
       if (/^panel$/i.test(body.text.trim()))
         return route.fulfill({ json: { places: Object.values(CATALOG_OF) } });
@@ -508,6 +519,27 @@ try {
     await expectFilter("experiences", ["Panel Bridge", "Panel Museum"]);
     await expectFilter("events", ["Panel Theatre"]);
     await expectFilter("places", Object.keys(CATALOG_OF).sort());
+    await panel.getByRole("button", { name: T.filters.places, exact: true }).click();
+    await searchFor("Panel Extras");
+    await waitUntil(async () => (await resultNames()).length === 2, 6000);
+    await expectFilter("experiences", ["Panel Funfair", "Panel Untyped"]);
+    await expectFilter("stays", ["Panel Untyped"]);
+    await expectFilter("restaurants", ["Panel Untyped"]);
+    await expectFilter("events", ["Panel Untyped"]);
+    await panel.getByRole("button", { name: T.filters.places, exact: true }).click();
+    await searchFor("Panel Cafe Only");
+    await panel.getByRole("list", { name: T.results }).waitFor();
+    await panel.getByRole("button", { name: T.filters.stays, exact: true }).click();
+    check(
+      await panel
+        .getByText(T.none)
+        .waitFor({ timeout: 6000 })
+        .then(
+          () => true,
+          () => false,
+        ),
+      `a filter that hides every returned place says no places were found at ${tag}`,
+    );
     await panel.getByRole("button", { name: T.close, exact: true }).click();
     check((await panel.count()) === 0, `Close shuts the panel without asking to discard at ${tag}`);
 
@@ -544,6 +576,35 @@ try {
       meeting,
     );
     await undone("a custom add", before);
+
+    await openFromDay(1);
+    await tab(T.tabs.custom).click();
+    await panel.getByRole("textbox", { name: T.name, exact: true }).fill("Late show");
+    const lateStart = panel.getByLabel(T.start, { exact: true });
+    const lateAdd = panel.getByRole("button", { name: T.add, exact: true });
+    const lateAdds = [];
+    for (const time of ["23:30", "23:59", "22:59"]) {
+      await lateStart.fill(time);
+      const requestsBefore = editRequests.length;
+      await lateAdd.click();
+      await sleep(1500);
+      const late = await stored("Late show");
+      lateAdds.push({
+        time,
+        added: editRequests.length > requestsBefore,
+        range: late ? [late.startTime, late.endTime] : null,
+      });
+      if (late) break;
+    }
+    const lateStop = await stored("Late show");
+    check(
+      lateAdds.slice(0, 2).every((item) => !item.added) &&
+        lateStop?.startTime === "22:59" &&
+        lateStop.endTime === "23:59",
+      `Custom never adds a stop whose end is not after its start at ${tag}`,
+      lateAdds,
+    );
+    await undone("a late custom add", before);
 
     await openFromDay(1);
     await tab(T.tabs.custom).click();
