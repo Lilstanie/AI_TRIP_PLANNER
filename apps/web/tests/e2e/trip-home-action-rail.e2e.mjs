@@ -231,8 +231,7 @@ try {
   await openHome(page);
 
   check(
-    (await actions(page).count()) === 1 &&
-      (await actions(page).getByRole("button").count()) === 5,
+    (await actions(page).count()) === 1 && (await actions(page).getByRole("button").count()) === 5,
     "Trip home has one five-action rail",
   );
   const actionNames = await actions(page).getByRole("button").allInnerTexts();
@@ -251,7 +250,9 @@ try {
     chatNames,
   );
 
-  await chats(page).getByRole("button", { name: /Family plan/ }).click();
+  await chats(page)
+    .getByRole("button", { name: /Family plan/ })
+    .click();
   await page.getByText("Family plan marker", { exact: true }).waitFor();
   check(
     (await home(page).count()) === 1 &&
@@ -272,7 +273,8 @@ try {
     return { mainLeft: main.left, mainRight: main.right, drawerLeft: drawer.left };
   });
   check(
-    boxes.mainRight <= boxes.drawerLeft + 1 &&
+    boxes.drawerLeft > boxes.mainLeft &&
+      boxes.drawerLeft < boxes.mainRight &&
       (await itinerary.getByText("Sydney Opera House", { exact: true }).count()) === 1,
     "desktop Itinerary drawer covers the rail and leaves the main column visible",
     boxes,
@@ -293,7 +295,8 @@ try {
       (await ideas.getByText("Art Gallery", { exact: true }).count()) === 1,
     "Ideas lists unscheduled activities",
   );
-  await action(page, /^Bookings/).click();
+  await action(page, /^Bookings/).focus();
+  await page.keyboard.press("Enter");
   const bookings = dialog(page, "Bookings");
   await bookings.waitFor();
   check(
@@ -322,13 +325,13 @@ try {
       (await calendar.getByText("Sydney Opera House", { exact: true }).count()) >= 1,
     "Calendar is a read-only view of this Trip's month and activity",
   );
-  await calendar.getByRole("button", { name: /November 14, 2030/i }).click();
+  await calendar.getByRole("button", { name: /14 November 2030/i }).click();
   await dialog(page, "Itinerary").waitFor();
   const mapDay = await page.locator(".trip-home__map").getAttribute("data-day");
+  check(mapDay === "1", "choosing a calendar date focuses the map on that day", mapDay);
   check(
-    (await dialog(page, "Calendar").count()) === 0 && mapDay === "1",
-    "choosing a calendar date opens Itinerary and focuses the map on that day",
-    mapDay,
+    (await dialog(page, "Calendar").count()) === 0,
+    "choosing a calendar date replaces Calendar with Itinerary",
   );
   await page.keyboard.press("Escape");
 
@@ -353,7 +356,11 @@ try {
   );
   check((await noOverflow(page)) <= 0, "desktop layout has no horizontal overflow");
   await page.screenshot({ path: `${OUT}/new-chat-1440-en.png` });
-  check(desktop.errors.length === 0, "desktop journey has no page or console errors", desktop.errors);
+  check(
+    desktop.errors.length === 0,
+    "desktop journey has no page or console errors",
+    desktop.errors,
+  );
   await desktop.context.close();
 
   const phone = await open("en", { width: 390, height: 844 }, true);
@@ -409,11 +416,7 @@ try {
   await browser?.close();
   writeFileSync(
     `${OUT}/summary.json`,
-    JSON.stringify(
-      { fixture: "local catalog; no live providers", results },
-      null,
-      2,
-    ),
+    JSON.stringify({ fixture: "local catalog; no live providers", results }, null, 2),
   );
 }
 

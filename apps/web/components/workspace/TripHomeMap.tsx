@@ -31,18 +31,18 @@ export function TripHomeMap({
   const [selected, setSelected] = useState<string>();
   return (
     <section className="trip-home__map" data-day={focusedDay}>
-    <TripMapCanvas
-      destination={plan.brief.destination}
-      viewKey={`${plan.tripId}|${plan.brief.destination}`}
-      tripPlaces={tripPlaces}
-      selectedActivity={selected}
-      onSelectActivity={setSelected}
-      routes={[]}
-      focusedDay={focusedDay}
-      focusRequest={focusRequest}
-      showPhotos={mode === "live" && !!providers?.maps}
-      userLocation={userLocation}
-    />
+      <TripMapCanvas
+        destination={plan.brief.destination}
+        viewKey={`${plan.tripId}|${plan.brief.destination}`}
+        tripPlaces={tripPlaces}
+        selectedActivity={selected}
+        onSelectActivity={setSelected}
+        routes={[]}
+        focusedDay={focusedDay}
+        focusRequest={focusRequest}
+        showPhotos={mode === "live" && !!providers?.maps}
+        userLocation={userLocation}
+      />
     </section>
   );
 }

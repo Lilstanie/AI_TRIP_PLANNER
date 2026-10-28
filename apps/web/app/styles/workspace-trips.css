@@ -497,6 +497,7 @@
 }
 
 .trip-home {
+  --trip-home-aside: 40%;
   display: flex;
   min-height: 100%;
 }
@@ -508,8 +509,13 @@
   padding: 40px var(--space-5) 64px;
 }
 .trip-home__aside {
-  flex: 0 0 40%;
+  display: flex;
+  flex: 0 0 var(--trip-home-aside);
+  flex-direction: column;
   min-width: 0;
+  gap: var(--space-4);
+  padding: var(--space-5) var(--space-5) var(--space-5) 0;
+  overflow-y: auto;
 }
 .trip-home[data-aside] {
   height: 100%;
@@ -517,8 +523,24 @@
 .trip-home[data-aside] .trip-home__main {
   overflow-y: auto;
 }
-.trip-home__aside .trip-map-canvas {
+.trip-home__map {
+  flex: 1 0 min(45vh, 420px);
+  min-height: 280px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg);
+  overflow: hidden;
+}
+.trip-home__map .trip-map-canvas,
+.trip-home__map .google-map {
+  height: 100%;
+  min-height: 280px;
+}
+.trip-home__map .trip-map-canvas {
   border-inline-start: 1px solid var(--border);
+}
+.trip-home__actions {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  margin: 0;
 }
 .trip-home__head {
   display: flex;
@@ -640,14 +662,23 @@
   }
   .trip-home__aside {
     flex: none;
-    height: min(60vh, 420px);
     margin: 0 var(--space-4) var(--space-5);
-    border: 1px solid var(--border);
-    border-radius: var(--radius-lg);
-    overflow: hidden;
     touch-action: pan-y pinch-zoom;
   }
   .trip-home__aside .trip-map-canvas {
     border-inline-start: 0;
+  }
+}
+@media (max-width: 520px) {
+  .trip-home__main {
+    padding: var(--space-5) var(--space-4) var(--space-6);
+  }
+  .trip-home__map {
+    flex-basis: 340px;
+    min-height: 340px;
+    margin-top: var(--space-5);
+  }
+  .trip-home__actions {
+    margin-top: var(--space-5);
   }
 }

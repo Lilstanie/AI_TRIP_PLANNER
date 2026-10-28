@@ -6,13 +6,7 @@ export type MobileView = "chat" | "map" | "trip" | "trajectory" | "mine";
 export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
 export type DialogKind = "settings";
 
-export const TRIP_ACTIONS = [
-  "itinerary",
-  "ideas",
-  "bookings",
-  "preferences",
-  "calendar",
-] as const;
+export const TRIP_ACTIONS = ["itinerary", "ideas", "bookings", "preferences", "calendar"] as const;
 export type TripAction = (typeof TRIP_ACTIONS)[number];
 export const isTripAction = (value: unknown): value is TripAction =>
   TRIP_ACTIONS.includes(value as TripAction);
@@ -178,8 +172,8 @@ function cross(surface: Surface, from: Media, to: Media): Surface {
   let next = surface;
   if (!from.phone && to.phone) {
     if (next.page === "trips") next = { ...next, page: "workspace", view: "mine" };
-    else if (next.drawer === "trip") next = { ...next, view: "trip" };
-    next = without(next, "drawer");
+    else if (next.drawer === "trip") next = without({ ...next, view: "trip" }, "drawer");
+    else if (!isTripAction(next.drawer)) next = without(next, "drawer");
   }
   if (from.phone && !to.phone) {
     next = without(next, "sheet");

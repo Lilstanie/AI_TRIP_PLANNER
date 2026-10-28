@@ -1,0 +1,86 @@
+.trip-home-chat {
+  display: flex;
+  flex: 1 1 auto;
+  flex-direction: column;
+  min-height: 0;
+  margin-top: var(--space-4);
+}
+.trip-home-chat__back {
+  align-self: flex-start;
+  min-height: 40px;
+  margin-bottom: var(--space-2);
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--accent);
+}
+.trip-home-chat > .chat {
+  flex: 1 1 auto;
+  min-height: 420px;
+}
+.trip-home-action-backdrop {
+  position: absolute;
+  z-index: 30;
+  inset: 0;
+  min-height: 0 !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.trip-home-action-surface {
+  z-index: 40;
+  width: var(--trip-home-aside, 40%);
+}
+.trip-home-action {
+  padding: var(--space-4) var(--space-5);
+}
+.trip-home-action__day + .trip-home-action__day {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.trip-home-action__day h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-title);
+}
+.trip-home-action__list {
+  display: grid;
+  gap: var(--space-3);
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-home-action__list li {
+  display: flex;
+  gap: var(--space-3);
+  min-width: 0;
+}
+.trip-home-action__list strong,
+.trip-home-action__list small {
+  display: block;
+  overflow-wrap: anywhere;
+}
+.trip-home-action__list small {
+  margin-top: var(--space-1);
+  color: var(--text-dim);
+}
+.trip-home-action__time {
+  flex: 0 0 84px;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.trip-home-action__empty {
+  color: var(--text-dim);
+}
+@media (max-width: 520px) {
+  .trip-home-action-surface {
+    width: 100%;
+    border: 0;
+  }
+  .trip-home-action {
+    padding: var(--space-4);
+  }
+  .trip-home-chat > .chat {
+    min-height: min(620px, 75vh);
+  }
+}

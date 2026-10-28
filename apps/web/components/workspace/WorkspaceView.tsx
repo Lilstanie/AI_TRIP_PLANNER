@@ -227,13 +227,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
-  const openCalendarAt = (id: string) => {
-    setHomeChatId(undefined);
-    setTripsTab("calendar");
-    setCalendarTripId(id);
-    viewTransition(layout.showTrips);
-  };
-
   const openHome = (id: string) => {
     setHomeChatId(undefined);
     setCalendarTripId(undefined);
@@ -278,7 +271,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     requestAnimationFrame(() => homeActionTarget.current?.focus({ preventScroll: true }));
   };
   const chooseHomeDay = (day: number) => {
-    layout.pickMapDay(day);
+    layout.focusMapDay(day);
     openTripAction("itinerary");
   };
 
@@ -531,6 +524,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           <main className="workspace-shell workspace-shell--trips">
             {homeTrip ? (
               <TripHome
+                phone={phone}
                 title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
                   homeTrip.id,
                 )!}
@@ -538,39 +532,53 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onBack={() => viewTransition(layout.showTrips)}
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}
-                aside={
-                  <TripHomeMap
-                    plan={homeTrip.snapshot.plan}
-                    mode={dataMode.mode}
-                    providers={dataMode.providers}
-                  />
+                actions={
+                  homeTrip.snapshot.plan ? (
+                    <TripHomeCards
+                      plan={homeTrip.snapshot.plan}
+                      draft={homeTrip.snapshot.draft}
+                      onOpen={openHomeAction}
+                    />
+                  ) : undefined
+                }
+                map={
+                  homeTrip.snapshot.plan ? (
+                    <TripHomeMap
+                      plan={homeTrip.snapshot.plan}
+                      mode={dataMode.mode}
+                      providers={dataMode.providers}
+                      focusedDay={layout.mapDay}
+                      focusRequest={layout.mapFocus}
+                    />
+                  ) : undefined
+                }
+                composer={
+                  homeChatId ? undefined : (
+                    <TripHomeComposer onStart={(text) => startHomeChat(homeTrip.id, text)} />
+                  )
                 }
               >
-                <TripHomeChats
-                  chats={tripConversations(catalog, homeTrip.id).map((item) => ({
-                    id: item.id,
-                    title: conversationTitle(item, locale),
-                    updatedAt: item.updatedAt,
-                  }))}
-                  onOpen={swap(session.selectConversation)}
-                  onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
-                />
-                <TripHomeCards
-                  trip={homeTrip}
-                  onItinerary={() =>
-                    viewTransition(() => {
-                      session.selectTrip(homeTrip.id);
-                      openTrip();
-                    })
-                  }
-                  onCalendar={() => openCalendarAt(homeTrip.id)}
-                  onPreferences={() =>
-                    viewTransition(() => {
-                      session.selectTrip(homeTrip.id);
-                      openPreferences();
-                    })
-                  }
-                />
+                {homeChatId && plan ? (
+                  <section className="trip-home-chat" aria-label={t("Chat")}>
+                    <button
+                      type="button"
+                      className="trip-home-chat__back"
+                      onClick={() => backToHome(homeTrip.id)}
+                    >
+                      {t("Back to trip home")}
+                    </button>
+                    {chatPanel(true)}
+                  </section>
+                ) : (
+                  <TripHomeChats
+                    chats={tripConversations(catalog, homeTrip.id).map((item) => ({
+                      id: item.id,
+                      title: conversationTitle(item, locale),
+                      updatedAt: item.updatedAt,
+                    }))}
+                    onOpen={openHomeChat}
+                  />
+                )}
               </TripHome>
             ) : (
               <TripsPage
@@ -599,6 +607,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               />
             )}
             {navDrawer}
+            {homeTrip?.snapshot.plan && (
+              <>
+                {tripAction && (
+                  <button
+                    type="button"
+                    tabIndex={-1}
+                    className="trip-home-action-backdrop"
+                    aria-label={t("Close open panel")}
+                    onClick={closeHomeAction}
+                  />
+                )}
+                <TripHomeActionDrawer
+                  action={tripAction}
+                  plan={homeTrip.snapshot.plan}
+                  draft={homeTrip.snapshot.draft}
+                  onDraft={session.saveFacts}
+                  onClose={closeHomeAction}
+                  onSelectDay={chooseHomeDay}
+                  returnFocus={homeActionTarget}
+                />
+              </>
+            )}
           </main>
         </div>
       ) : (

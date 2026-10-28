@@ -527,6 +527,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
           dispatch({ kind: "selected", activity: undefined });
         }
       },
+      focusMapDay: (day: number) => {
+        stable.layout.pickMapDay(day);
+        setMapFocus((request) => request + 1);
+      },
     },
     history: {
       search: (query: string) => setHistoryQuery(query),
@@ -599,7 +603,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       navOpen,
       chatsOpen: surface.drawer === "chats",
 
-      tripAction: surface.page === "home" && isTripAction(surface.drawer) ? surface.drawer : undefined,
+      tripAction:
+        surface.page === "home" && isTripAction(surface.drawer) ? surface.drawer : undefined,
       drawerOpen: tripOpen || navOpen,
       sidebarCollapsed,
       sidebarWidth,
