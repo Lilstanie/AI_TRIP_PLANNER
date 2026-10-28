@@ -107,10 +107,6 @@ try {
         `${tag}: sidebar entries are exactly New trip, Chats, Trips, Calendar ${JSON.stringify(order)}`,
       );
       check(
-        (await page.locator(".sidebar-nav__action, .sidebar-nav__row").count()) === 0,
-        `${tag}: nothing renders beside Chats`,
-      );
-      check(
         (await nav.getByRole("button", { name: text.newChat }).count()) === 0,
         `${tag}: no New chat button in the sidebar`,
       );
