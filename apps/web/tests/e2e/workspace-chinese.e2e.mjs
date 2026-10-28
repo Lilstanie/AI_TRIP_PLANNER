@@ -96,6 +96,7 @@ try {
     await page.screenshot({ path: `${out}/${width}-settings.png`, fullPage: true });
     await page.keyboard.press("Escape");
     if (phone) await page.getByRole("tab", { name: /^聊天/ }).click();
+    else await page.getByRole("tab", { name: "对话", exact: true }).click();
     await page.route("**/api/chat", (route) =>
       route.fulfill({ status: 503, contentType: "text/plain", body: "unavailable" }),
     );
@@ -130,6 +131,10 @@ try {
   await fullPage.screenshot({ path: `${out}/1440-storage-full.png` });
   await full.close();
 
+  const chineseReady = async (target) => {
+    await target.locator(".workspace-app").waitFor();
+    await target.waitForFunction(() => document.documentElement.lang === "zh-CN");
+  };
   const notices = await browser.newContext({
     locale: "zh-CN",
     viewport: { width: 1440, height: 1000 },
@@ -138,7 +143,7 @@ try {
   const noticeErrors = [];
   np.on("pageerror", (e) => noticeErrors.push(String(e)));
   await np.goto(process.env.BASE_URL ?? "http://localhost:3000");
-  await np.getByRole("button", { name: "切换至 English" }).waitFor();
+  await chineseReady(np);
 
   await np.locator(".chat-empty__suggestions button").first().click();
   await np.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
@@ -271,6 +276,7 @@ try {
   await np.screenshot({ path: `${out}/1440-search-failed.png` });
   await np.unroute("**/api/places/search");
   await np.keyboard.press("Escape");
+  await np.getByRole("tab", { name: "对话", exact: true }).click();
   await np.getByLabel("添加文件").setInputFiles(
     [1, 2, 3, 4].map((n) => ({
       name: `note-${n}.txt`,
@@ -282,7 +288,7 @@ try {
   await limit.waitFor({ timeout: 10000 }).catch(() => {});
   check(await limit.isVisible(), "attachment limit notice Chinese");
   await np.reload();
-  await np.getByRole("button", { name: "切换至 English" }).waitFor();
+  await chineseReady(np);
 
   for (const [frame, text, name] of [
     [{ type: "complete", response: {} }, "返回的行程方案无效，请重试。", "invalid plan frame"],
@@ -304,7 +310,7 @@ try {
     check(await alert.isVisible(), `${name} notice Chinese`);
     await np.unroute("**/api/chat");
     await np.reload();
-    await np.getByRole("button", { name: "切换至 English" }).waitFor();
+    await chineseReady(np);
   }
   check(noticeErrors.length === 0, `notices: no page errors ${noticeErrors.join(" | ")}`);
   await notices.close();

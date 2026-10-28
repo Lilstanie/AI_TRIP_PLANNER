@@ -2,7 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { openMockWorkspace, planSuggestedTrip, installSeededItinerary } from "./trip-setup.mjs";
-import { openTripWorkspace } from "./support/e2e-helpers.mjs";
+import { openTripWorkspace, setDesktopLanguage } from "./support/e2e-helpers.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const key = JSON.parse(
   readFileSync("apps/web/lib/workspace/catalog.ts", "utf8").match(
@@ -20,74 +20,77 @@ const hit = (node) => {
   const r = node.getBoundingClientRect();
   return node.contains(document.elementFromPoint(r.x + r.width / 2, r.y + r.height / 2));
 };
-const tripDrawerGeometry = async (page) =>
-  page.locator(".drawer--right.is-open").evaluate((drawer) => {
-    const body = drawer.querySelector(".drawer__body");
-    const panel = body?.querySelector(".trip-panel");
-    const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
-    const bounds = (node) => {
-      const r = node.getBoundingClientRect();
-      return { left: r.left, right: r.right, width: r.width };
-    };
-    return {
-      drawer: bounds(drawer),
-      body: {
-        ...bounds(body),
-        scrollLeft: body.scrollLeft,
-        scrollWidth: body.scrollWidth,
-        clientWidth: body.clientWidth,
-      },
-      panel: panel ? bounds(panel) : null,
-      children: [...(panel?.children ?? [])].map((node) => ({
-        tag: node.tagName,
-        className: typeof node.className === "string" ? node.className : "",
-        ...bounds(node),
-      })),
-      overflowingDescendants: [...(body?.querySelectorAll("*") ?? [])]
-        .map((node) => ({ node, rect: node.getBoundingClientRect() }))
-        .filter(
-          ({ rect }) =>
-            rect.left < body.getBoundingClientRect().left - 1 ||
-            rect.right > body.getBoundingClientRect().right + 1,
-        )
-        .map(({ node, rect }) => ({
+const tripPanelGeometry = async (page) =>
+  page
+    .locator(".trip-panel")
+    .first()
+    .evaluate((drawer) => {
+      const body = drawer;
+      const panel = drawer;
+      const focused = document.activeElement instanceof HTMLElement ? document.activeElement : null;
+      const bounds = (node) => {
+        const r = node.getBoundingClientRect();
+        return { left: r.left, right: r.right, width: r.width };
+      };
+      return {
+        drawer: bounds(drawer),
+        body: {
+          ...bounds(body),
+          scrollLeft: body.scrollLeft,
+          scrollWidth: body.scrollWidth,
+          clientWidth: body.clientWidth,
+        },
+        panel: panel ? bounds(panel) : null,
+        children: [...(panel?.children ?? [])].map((node) => ({
           tag: node.tagName,
           className: typeof node.className === "string" ? node.className : "",
-          insideDayStrip: Boolean(node.closest(".day-strip")),
-          left: rect.left,
-          right: rect.right,
-          width: rect.width,
-          text: node.textContent?.trim().slice(0, 80),
+          ...bounds(node),
         })),
-      focused:
-        document.activeElement instanceof HTMLElement
-          ? { tag: document.activeElement.tagName, ...bounds(document.activeElement) }
-          : null,
-      actions: [
-        ...(focused?.closest(".item-editor")?.querySelectorAll(".item-editor__actions button") ??
-          []),
-      ].map((node) => ({
-        ...bounds(node),
-        scrollWidth: node.scrollWidth,
-        clientWidth: node.clientWidth,
-      })),
-      focusAncestors: (() => {
-        const ancestors = [];
-        for (let node = focused; node && node !== body; node = node.parentElement) {
-          const style = getComputedStyle(node);
-          ancestors.push({
+        overflowingDescendants: [...(body?.querySelectorAll("*") ?? [])]
+          .map((node) => ({ node, rect: node.getBoundingClientRect() }))
+          .filter(
+            ({ rect }) =>
+              rect.left < body.getBoundingClientRect().left - 1 ||
+              rect.right > body.getBoundingClientRect().right + 1,
+          )
+          .map(({ node, rect }) => ({
             tag: node.tagName,
             className: typeof node.className === "string" ? node.className : "",
-            ...bounds(node),
-            minWidth: style.minWidth,
-            width: style.width,
-            marginLeft: style.marginLeft,
-          });
-        }
-        return ancestors;
-      })(),
-    };
-  });
+            insideDayStrip: Boolean(node.closest(".day-strip")),
+            left: rect.left,
+            right: rect.right,
+            width: rect.width,
+            text: node.textContent?.trim().slice(0, 80),
+          })),
+        focused:
+          document.activeElement instanceof HTMLElement
+            ? { tag: document.activeElement.tagName, ...bounds(document.activeElement) }
+            : null,
+        actions: [
+          ...(focused?.closest(".item-editor")?.querySelectorAll(".item-editor__actions button") ??
+            []),
+        ].map((node) => ({
+          ...bounds(node),
+          scrollWidth: node.scrollWidth,
+          clientWidth: node.clientWidth,
+        })),
+        focusAncestors: (() => {
+          const ancestors = [];
+          for (let node = focused; node && node !== body; node = node.parentElement) {
+            const style = getComputedStyle(node);
+            ancestors.push({
+              tag: node.tagName,
+              className: typeof node.className === "string" ? node.className : "",
+              ...bounds(node),
+              minWidth: style.minWidth,
+              width: style.width,
+              marginLeft: style.marginLeft,
+            });
+          }
+          return ancestors;
+        })(),
+      };
+    });
 const browser = await chromium.launch(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {});
 let page;
 try {
@@ -116,15 +119,27 @@ try {
   await planSuggestedTrip(page);
   const dismiss = page.getByRole("button", { name: "Not now", exact: true });
   if (await dismiss.isVisible()) await dismiss.click();
+  const closeTrip = async (zh) => {
+    const toggle = page.getByRole("button", {
+      name: zh ? "打开你的行程" : "Open your trip",
+      exact: true,
+      expanded: true,
+    });
+    if (await toggle.isVisible()) await toggle.click();
+    const drawerClose = page.getByRole("button", {
+      name: zh ? "关闭行程" : "Close your trip",
+      exact: true,
+    });
+    if (await drawerClose.isVisible()) await drawerClose.click();
+  };
   for (const language of ["en", "zh"]) {
     const zh = language === "zh";
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator(".phone-tabbar").waitFor({ state: "hidden" });
     if (await page.locator(".trips-page").isVisible())
       await openTripWorkspace(page, page.locator(".trip-card").first());
-    const close = page.getByRole("button", { name: "Close your trip", exact: true });
-    if (await close.isVisible()) await close.click();
-    if (zh) await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+    await closeTrip(false);
+    if (zh) await setDesktopLanguage(page, "zh");
     for (const width of [1024, 1001, 1440, 1000, 521, 520, 390]) {
       await page.setViewportSize({ width, height: width === 1024 ? 768 : 1000 });
       await page.locator(".phone-tabbar").waitFor({ state: width <= 520 ? "visible" : "hidden" });
@@ -136,11 +151,7 @@ try {
       });
       for (const split of width > 1000 ? ["End", "Home", "default"] : [null]) {
         const label = `${language}/${width}/${split ?? "phone"}`;
-        const close = page.getByRole("button", {
-          name: zh ? "关闭行程" : "Close your trip",
-          exact: true,
-        });
-        if (await close.isVisible()) await close.click();
+        await closeTrip(zh);
         if (split) {
           await separator.focus();
           if (split === "default") await separator.dblclick();
@@ -189,14 +200,14 @@ try {
             .click();
         if (width === 1024 && split === "End") {
           await page.waitForFunction(() => {
-            const drawer = document.querySelector(".drawer--right.is-open");
-            const bounds = drawer?.getBoundingClientRect();
+            const panel = document.querySelector(".trip-panel");
+            const bounds = panel?.getBoundingClientRect();
             return bounds && bounds.left >= 0 && bounds.right <= innerWidth;
           });
           check(
             true,
-            `${label}: #489 drawer geometry after opening`,
-            await tripDrawerGeometry(page),
+            `${label}: #489 Trip panel geometry after opening`,
+            await tripPanelGeometry(page),
           );
         }
         const badge = page.locator(".budget-status");
@@ -221,20 +232,17 @@ try {
           .locator(".timeline-stop")
           .filter({ hasText: "Mock attraction near Sydney" })
           .first();
-        await row.locator(".action-menu__trigger").click();
-        await page
-          .getByRole("menuitem", { name: zh ? "编辑详情" : "Edit details", exact: true })
-          .click();
+        await row.locator(".timeline-stop__main").click();
         const heading = page.locator(".stop-place-card__bare h4");
         await heading.waitFor();
         if (width === 1024 && split === "End")
           check(
             true,
-            `${label}: #489 drawer geometry after editor focus`,
-            await tripDrawerGeometry(page),
+            `${label}: #489 Trip panel geometry after editor focus`,
+            await tripPanelGeometry(page),
           );
         if (width === 1024 && split === "End") {
-          const geometry = await tripDrawerGeometry(page);
+          const geometry = await tripPanelGeometry(page);
           check(
             geometry.body.scrollLeft === 0 &&
               geometry.overflowingDescendants.every((node) => node.insideDayStrip) &&
@@ -246,7 +254,7 @@ try {
                   action.right <= geometry.body.right + 1 &&
                   action.scrollWidth <= action.clientWidth,
               ),
-            `${label}: #489 focused editor remains within the drawer without horizontal panning`,
+            `${label}: #489 focused editor remains within the Trip panel without horizontal panning`,
             geometry,
           );
         }

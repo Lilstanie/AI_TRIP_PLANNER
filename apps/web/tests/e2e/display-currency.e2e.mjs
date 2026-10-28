@@ -44,7 +44,10 @@ try {
       await setCurrency(currency);
       if (width <= 520)
         await page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ }).click();
-      else await page.getByRole("button", { name: "Open your trip" }).click();
+      else {
+        const toggle = page.getByRole("button", { name: "Open your trip" });
+        if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+      }
       const total = page.locator(".trip__budget strong");
       const plan = await page.evaluate(
         () => JSON.parse(localStorage.getItem("trip-workspace-v1")).plan,
@@ -83,15 +86,13 @@ try {
       if (width <= 520) {
         await page.keyboard.press("Escape");
         await page.locator(".facts-sheet").waitFor({ state: "detached" });
+        await page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ }).click();
       }
-      check(
-        await page.locator(".trip-panel .currency-notice").isVisible(),
-        `${width}: dated estimate notice visible`,
+      const notice = page.locator(
+        width <= 520 ? ".workspace-notices .currency-notice" : ".trip-panel .currency-notice",
       );
-      check(
-        (await page.locator(".trip-panel .currency-notice").textContent()).includes("2026-09-20"),
-        `${width}: rate date shown`,
-      );
+      check(await notice.isVisible(), `${width}: dated estimate notice visible`);
+      check((await notice.textContent()).includes("2026-09-20"), `${width}: rate date shown`);
 
       const amounts =
         (await page.locator(".trip-panel").first().innerText()).match(

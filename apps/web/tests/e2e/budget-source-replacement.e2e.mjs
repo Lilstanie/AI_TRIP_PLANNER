@@ -112,12 +112,8 @@ try {
     .getByRole("button", { name: "CNY", exact: true })
     .click();
   await page.keyboard.press("Escape");
-  phase = "set initial CNY source budget";
-  await page.getByRole("button", { name: "Budget", exact: true }).click();
-  await page.getByLabel("Or enter an amount (CNY)").fill("5000");
-  await page.getByRole("button", { name: "Save", exact: true }).click();
-  phase = "create initial plan";
-  await input.fill("Sydney, 2026-11-10 to 2026-11-14, 2 travellers.");
+  phase = "create initial plan with a CNY source budget";
+  await input.fill("Sydney, 2026-11-10 to 2026-11-14, 2 travellers, budget CNY 5000.");
   await send.click();
   await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 60_000 });
   await waitForPlan(1050);
