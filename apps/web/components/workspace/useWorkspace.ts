@@ -22,6 +22,7 @@ import {
 } from "@/lib/workspace/catalog";
 import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
 import { seed, type MobileView } from "./workspace-helpers";
+import type { ChatView } from "../chat/ChatViewTabs";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import {
   idleSession,
@@ -446,6 +447,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       toggleChats: () => layout({ type: "toggle-chats" }),
       showTrips: () => layout({ type: "show-trips" }),
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
+      showChatView: (view: ChatView) => layout({ type: "show-chat-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
       closeFactsSheet: () => layout({ type: "close-sheet" }),
       openTeamSheet: () => layout({ type: "open-team-sheet" }),
@@ -531,6 +533,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       narrow,
       page: surface.page,
       mobileView,
+      chatView: surface.chatView ?? "conversation",
       dialog,
       openFact,
       preferencesOpen: openFact !== undefined,

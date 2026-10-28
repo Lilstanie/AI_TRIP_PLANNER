@@ -1,5 +1,5 @@
 "use client";
-import { createContext, useCallback, useContext, useMemo, useState } from "react";
+import { createContext, useCallback, useContext, useMemo, useRef, useState } from "react";
 import type { AssistantId } from "@trip/shared";
 
 export interface TrajectoryFocus {
@@ -12,12 +12,14 @@ export interface TrajectoryFocusState {
   focus: TrajectoryFocus | undefined;
   open: (assistant: AssistantId) => void;
   openTurn: (turn: number) => void;
+  claim: (nonce: number) => boolean;
 }
 
 const TrajectoryFocusContext = createContext<TrajectoryFocusState>({
   focus: undefined,
   open: () => undefined,
   openTurn: () => undefined,
+  claim: () => false,
 });
 
 export const TrajectoryFocusProvider = TrajectoryFocusContext.Provider;
@@ -34,5 +36,11 @@ export function useTrajectoryFocusState(): TrajectoryFocusState {
   const openTurn = useCallback((turn: number) => {
     setFocus((current) => ({ assistant: undefined, turn, nonce: (current?.nonce ?? 0) + 1 }));
   }, []);
-  return useMemo(() => ({ focus, open, openTurn }), [focus, open, openTurn]);
+  const claimed = useRef(0);
+  const claim = useCallback((nonce: number) => {
+    if (nonce <= claimed.current) return false;
+    claimed.current = nonce;
+    return true;
+  }, []);
+  return useMemo(() => ({ focus, open, openTurn, claim }), [focus, open, openTurn, claim]);
 }

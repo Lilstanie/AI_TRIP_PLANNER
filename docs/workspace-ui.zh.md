@@ -139,6 +139,8 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
 
 ## Trajectory 标签页
 
+所选的聊天视图保存在布局的 `chatView` 中，而不是聊天栏里。Trip 面板打开时按“对话”或“轨迹”，或在 Agent Team 中选择专家，都会派发 `show-chat-view`，一次性关闭 Trip 面板并切到该视图；Trip 按钮可再次打开面板，所选视图保留在下面。`trajectory-with-trip-open` 端到端脚本覆盖这一行为。
+
 桌面端聊天栏有“对话”和“轨迹”两个标签页。对话是消息流，打开轨迹时仍保持挂载，因此切回时滚动位置不变；若期间有新回复，则回到最新回复处。手机宽度的聊天栏没有标签页；Agent Team 入口以全屏模态框打开“轨迹”（[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx)），显示同样的账本、搜索和筛选栏，但没有时间线概览，记录详情铺满整个账本，关闭后回到账本；关闭、Escape 或浏览器返回还会恢复原来的视图。还没有任何轮次时，模态框用一张空状态卡片代替工具栏和账本，其中的“去聊天规划”按钮会关闭模态框并选择 Chat。手机上每条记录是固定 56 px 的卡片：左侧是类型图标，第一行是请求，第二行是结果，超过两行的文字被截断（详情里有完整文字）。工具栏的“轮次”“调用”和搜索控件高 44 px，搜索框文字为 16 px，避免 iOS Safari 放大页面；检查器的标签和分区标题也是 44 px 的触控目标。理由见[手机轨迹卡片记录](../.agents/notes/implemented/feature/2026-10-24-phone-trajectory-cards.md)。轨迹宽度小于 820 px 时（例如桌面默认的聊天栏），记录详情在全宽账本的下方打开，而不是挤在旁边，详情内容可以滚动。工具栏按钮、详情标签和步骤点是紧凑的控件，不再是应用的胶囊按钮，时间线的分道标签保持一行。理由见[桌面轨迹布局记录](../.agents/notes/implemented/feature/2026-10-24-desktop-trajectory-layout.md)。`trajectory-phone` 端到端脚本（390 与 360 px，中英文）在 `output/playwright/trajectory-phone/` 保存截图和 `result.json`。`trajectory-empty` 端到端脚本（375 px，中英文）保存空状态卡片和发送消息后的账本截图，并在 `output/playwright/trajectory-empty/` 写入 `result.json`。
 
 - **简洁视图。** 轨迹标签页在桌面和手机上默认打开一个简洁列表：每条旅行者消息一行，显示该消息的摘要、参与专家的头像（不含 Coordinator）和结果（工作中、完成、失败或需修改）。点击一行会展开它（同一时间只展开一行），按顺序列出各步骤及其任务和检查。“简洁”和“完整视图”按钮就地切换到下面的账本；展开的行就是所选轮次，因此账本会滚动到该轮，切回后该行仍保持展开。重新打开标签页或打开另一个聊天，又从没有展开行的简洁列表开始。两种视图读取同一份 `buildTrajectory` 的轮次（[`TrajectorySimple`](../apps/web/components/trajectory/TrajectorySimple.tsx) 只在每轮上增加 `summary` 和 `result`）。回复摘要会打开对应轮次，团队面板的一行会筛选当前显示的视图。没有任何轮次时仍显示原有的空状态，也没有切换按钮。理由见[Agent Note](../.agents/notes/implemented/feature/2026-10-27-trajectory-simple-default.md)。
