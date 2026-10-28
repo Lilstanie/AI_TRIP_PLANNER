@@ -663,6 +663,7 @@ export const WORKSPACE_ZH = {
   "Rename chat": "重命名聊天",
   "Rename trip": "重命名行程",
   "Back to trips": "返回行程",
+  "Start chat": "开始聊天",
   "Deleted “{name}”. Its chats are kept.": "已删除“{name}”，相关聊天已保留。",
   "Choose both a start and an end date.": "请选择开始和结束日期。",
   "Enter a destination.": "请输入目的地。",
