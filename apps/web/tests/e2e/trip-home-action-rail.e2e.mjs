@@ -340,6 +340,12 @@ try {
   await box.fill("Find a quiet dinner");
   await home(page).getByRole("button", { name: "Start chat" }).click();
   await page.locator(".composer textarea").waitFor();
+  await page.waitForFunction(
+    (count) =>
+      JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}").conversations
+        ?.length === count,
+    before.conversations.length + 1,
+  );
   check(
     (await page.locator(".composer textarea").inputValue()) === "Find a quiet dinner" &&
       (await home(page).count()) === 1,
@@ -348,7 +354,8 @@ try {
   const after = await stored(page);
   const linked = after.conversations.filter((item) => item.tripId === "trip:sydney-action-rail");
   check(
-    linked.length === before.conversations.length + 1 &&
+    after.conversations.length === before.conversations.length + 1 &&
+      linked.length === 3 &&
       after.trips.length === before.trips.length &&
       after.trips[0].conversationIds.includes(after.activeConversationId),
     "the new Chat is stored under the same Trip",
@@ -364,6 +371,7 @@ try {
   await desktop.context.close();
 
   const phone = await open("en", { width: 390, height: 844 }, true);
+  await phone.page.locator(".phone-tabbar").waitFor();
   await openHome(phone.page);
   const phoneOrder = await phone.page.evaluate(() => {
     const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect().top;

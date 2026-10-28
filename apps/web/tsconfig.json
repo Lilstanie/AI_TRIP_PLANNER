@@ -18,13 +18,14 @@
   "include": [
     "**/*.ts",
     "**/*.tsx",
-    ".next/types/**/*.ts",
-    "next-env.d.ts",
     ".next-dev/types/**/*.ts",
-    ".next-e2e/types/**/*.ts",
     ".next-e2e-2/types/**/*.ts",
     ".next-e2e-3/types/**/*.ts",
-    ".next-e2e-4/types/**/*.ts"
+    ".next-e2e-4/types/**/*.ts",
+    ".next-e2e/types/**/*.ts",
+    ".next/types/**/*.ts",
+    "next-env.d.ts",
+    ".next-trip-home-integration/types/**/*.ts"
   ],
   "exclude": [
     "node_modules"
