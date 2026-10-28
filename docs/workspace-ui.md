@@ -539,6 +539,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Trajectory tab
 
+The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
+
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,
@@ -756,8 +758,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   estimates footer until a message exists. Mine with no trips and no saved chat shows the Trips heading,
   New trip and "No trips yet."; the search field, the Trips and Calendar switch and the Chats section
   (with its blank row and New chat) appear once there is something to search, switch or open. A day with
-  no stops says "Nothing planned for this day yet." and leaves Ask AI about this day and Add to Day N as the
-  day's own controls. The empty Trajectory says "Each step the assistant takes will be listed here after
+  no stops says "Nothing planned for this day yet." and leaves Add to Day N as the
+  day's own control; Ask AI is an item in the day menu and in each stop's menu. The empty Trajectory says "Each step the assistant takes will be listed here after
   you send a message." beside Plan in Chat; a phone Trip drawer without a plan offers Plan in Chat only.
   See the [empty phone screens Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-empty-states.md).
 - **Markers** (`components/map/map-layers.ts`, `lib/map/place-category.ts`). Each located stop is a

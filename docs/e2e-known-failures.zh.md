@@ -23,7 +23,6 @@
 | 脚本                 | 失败内容                                                                        | Issue |
 | -------------------- | ------------------------------------------------------------------------------- | ----- |
 | `timeline`           | 第一项检查后，截图一直等待不再渲染的 `.workspace-drawer--trip`。                | 暂无  |
-| `trip-add-stop`      | 通过 14 项检查后等待按钮 “Ask AI about this day”，随后超时。                    | 暂无  |
 | `auto-save-places`   | 通过 35 项检查后，“the priced stop raises the estimate” 失败：估算仍为空。      | 暂无  |
 | `drawer-walkthrough` | 规划后等待 `.workspace-drawer--trip .trip-editor`，随后超时。                   | 暂无  |
 | `itinerary`          | “Day 1 timeline is shown” 失败，且在 `.workspace-drawer--trip` 下找不到站点行。 | 暂无  |

@@ -19,11 +19,11 @@ import {
   ComposeIcon,
   MapPinIcon,
   RouteIcon,
+  SendIcon,
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopPopover } from "./StopPopover";
-import { TripChatShortcut } from "./TripChatShortcut";
 import type { RowDrag } from "../useItineraryDrag";
 
 type Activity = ProposalItem & { id?: string };
@@ -219,6 +219,22 @@ export function TimelineStop({
       );
       return items;
     }
+    const askItem: ActionMenuItem[] = onAskAI
+      ? [
+          {
+            label: t("Ask AI"),
+            icon: <SendIcon />,
+            disabled: locked,
+            onSelect: () =>
+              onAskAI(
+                t(
+                  "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.",
+                  { v0: name, v1: activity.day! },
+                ),
+              ),
+          },
+        ]
+      : [];
     items.push(
       {
         label: t("Adjust schedule"),
@@ -228,6 +244,7 @@ export function TimelineStop({
       },
       detailsItem,
       commentItem,
+      ...askItem,
       {
         label: t("Move to ideas"),
         icon: <SuitcaseIcon />,
@@ -414,9 +431,6 @@ export function TimelineStop({
             items={menu()}
           />
         </div>
-        {activity.day !== undefined && onAskAI && (
-          <TripChatShortcut day={activity.day} stop={name} onSend={onAskAI} />
-        )}
         {conflicts.length > 0 && (
           <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
             {conflicts.map((notice, index) => (

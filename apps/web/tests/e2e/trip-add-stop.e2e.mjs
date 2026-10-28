@@ -341,7 +341,28 @@ try {
         "Undo removes its own addition while preserving the earlier direct Stop",
       );
 
-      const shortcut = page.getByRole("button", { name: "Ask AI about this day" });
+      const shortcut = {
+        isEnabled: async () => {
+          const toggle = page.locator(".trip-trigger");
+          if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
+          await page
+            .getByRole("button", { name: /^Day \d+ actions$/ })
+            .first()
+            .click();
+          const enabled = await page
+            .getByRole("menuitem", { name: "Ask AI", exact: true })
+            .isEnabled();
+          await page.keyboard.press("Escape");
+          return enabled;
+        },
+        click: async () => {
+          await page
+            .getByRole("button", { name: /^Day \d+ actions$/ })
+            .first()
+            .click();
+          await page.getByRole("menuitem", { name: "Ask AI", exact: true }).click();
+        },
+      };
       const beforeCancel = chatRequests.length;
       page.once("dialog", (dialog) => void dialog.dismiss());
       await shortcut.click();

@@ -22,6 +22,7 @@ import {
   MinusIcon,
   PencilIcon,
   PlusIcon,
+  SendIcon,
   SuitcaseIcon,
 } from "../ui/icons";
 import type { LegMode } from "@/lib/trip/leg-routes";
@@ -37,7 +38,6 @@ import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { DayNoteForm } from "./timeline/DayNoteForm";
-import { TripChatShortcut } from "./timeline/TripChatShortcut";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
 import { useShowDistances } from "./useShowDistances";
@@ -259,6 +259,22 @@ export function TripEditor({
   useEffect(() => setEditingDay(undefined), [day]);
   const dayEntry = plan.dayNotes?.[String(day)];
   const dayMenu = (): ActionMenuItem[] => [
+    ...(onSend
+      ? [
+          {
+            label: t("Ask AI"),
+            icon: <SendIcon />,
+            disabled: locked,
+            onSelect: () =>
+              onSend(
+                t(
+                  "Suggest improvements for Day {v0}, taking the rest of my current plan into account.",
+                  { v0: day },
+                ),
+              ),
+          },
+        ]
+      : []),
     {
       label: t("Edit title"),
       icon: <PencilIcon />,
@@ -631,7 +647,6 @@ export function TripEditor({
           />
         )}
         {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
-        <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
