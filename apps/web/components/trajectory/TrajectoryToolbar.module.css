@@ -188,6 +188,7 @@
 [data-trajectory-phone] .search {
   flex: 1 1 150px;
   height: 44px;
+  border-width: 0;
   margin-left: 0;
   padding: 0 12px;
 }

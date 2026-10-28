@@ -1334,3 +1334,8 @@
   border-radius: 0 !important;
   background: transparent !important;
 }
+
+[data-trajectory-phone] .details {
+  margin: 0;
+  border-radius: 0;
+}
