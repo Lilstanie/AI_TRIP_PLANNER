@@ -230,13 +230,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const homeTrip =
     page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
+  const leaveHome = useRef(layout.showTrips);
+  leaveHome.current = layout.showTrips;
+  const homeMissing = page === "home" && !homeTrip;
   useEffect(() => {
-    if (page === "home" && !homeTrip) layout.showTrips();
-  }, [page, homeTrip, layout]);
-  const deleteTrip = (id: string) => {
-    history.deleteTrip(id);
-    if (page === "home" && homeTripId === id) layout.showTrips();
-  };
+    if (homeMissing) leaveHome.current();
+  }, [homeMissing]);
+  const deleteTrip = history.deleteTrip;
   const sidebarPage = page === "home" ? "trips" : page;
 
   const selectView = (view: MobileView) =>

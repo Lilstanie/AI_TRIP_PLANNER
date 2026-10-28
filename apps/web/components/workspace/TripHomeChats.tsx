@@ -17,6 +17,10 @@ export function TripHomeChats({
   const { t, locale } = useLocale();
   const [text, setText] = useState("");
   const date = new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "medium" });
+  const formatDate = (value: string) => {
+    const parsed = new Date(value);
+    return Number.isNaN(parsed.getTime()) ? "" : date.format(parsed);
+  };
   const submit = (event: FormEvent) => {
     event.preventDefault();
     onStart(text.trim());
@@ -37,7 +41,7 @@ export function TripHomeChats({
                 >
                   <span className="trip-home-chats__name">{chat.title}</span>
                   <time className="trip-home-chats__date" dateTime={chat.updatedAt}>
-                    {date.format(new Date(chat.updatedAt))}
+                    {formatDate(chat.updatedAt)}
                   </time>
                 </button>
               </li>

@@ -13,6 +13,7 @@ import {
   reusableBlankConversation,
   conversationTitle,
   latestSnapshot,
+  tripConversations,
   upsertCurrent,
   searchCatalog,
   updateCatalog,
@@ -309,6 +310,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   function startTripChat(tripId: string, text: string) {
     const trip = catalog.trips.find((item) => item.id === tripId);
     if (!trip) return;
+    const untouched = text
+      ? undefined
+      : tripConversations(catalog, tripId).find(
+          (item) => !item.messages.length && !item.input.trim() && !item.ask,
+        );
+    if (untouched) {
+      selectConversation(untouched.id);
+      return;
+    }
     const id = crypto.randomUUID();
     const snapshot = {
       ...trip.snapshot,
@@ -328,7 +338,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         ?.focus({ preventScroll: true }),
     );
   }
-  function startBlankChat(base?: WorkspaceCatalog, kind: "chat" | "trip" = "chat") {
+  function startBlankChat(
+    base?: WorkspaceCatalog,
+    kind: "chat" | "trip" = "chat",
+    navigate = true,
+  ) {
     const defaults = draftDefaults(settings);
     const id =
       reusableBlankConversation(base ?? catalog, defaults)?.id ??
@@ -346,6 +360,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       }),
     );
 
+    if (!navigate) return;
     layout({ type: "chat-started", fact: kind === "trip" ? "where" : undefined });
     if (kind === "trip") return;
     requestAnimationFrame(() =>
@@ -422,7 +437,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         return { ...rest, updatedAt: new Date().toISOString() };
       }),
     };
-    if (catalog.activeTripId === id) startBlankChat(next);
+    if (catalog.activeTripId === id) startBlankChat(next, "chat", surface.page !== "home");
     else setCatalog(next);
     setDeletedTrip({ trip, linked, name: tripName(trip, t) });
   }

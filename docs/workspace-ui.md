@@ -86,7 +86,7 @@ now. Implementation history and browser acceptance for each phase are in the
     changes it. Below the list a box named "New chat" and a "Start chat" button start a new chat on
     the trip: the chat keeps the trip's plan, becomes the active chat, and carries any typed text into the
     composer without sending it. A trip with no chats shows only the box, and an empty box still starts a
-    chat. Starting a chat while the assistant answers on another chat stops that answer, as opening any
+    chat; an empty box reuses the trip's untouched empty chat instead of storing another. Starting a chat while the assistant answers on another chat stops that answer, as opening any
     chat does. Three entry cards sit under the chats (`TripHomeCards`): Itinerary with the number of
     scheduled stops, which selects the trip and opens the conversation view with the Trip panel on its
     itinerary; Calendar, which opens the Trips page on the Calendar tab at the month the trip starts, even
