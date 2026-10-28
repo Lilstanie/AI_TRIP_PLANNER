@@ -589,7 +589,8 @@ describe("Workspace interactions", () => {
     });
 
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
-    const list = await within(drawer("trip")).findByRole("list", { name: "Stops, Ideas" });
+    fireEvent.click(await within(drawer("trip")).findByRole("button", { name: "1 idea" }));
+    const list = await within(drawer("trip")).findByRole("list", { name: "Ideas" });
     await waitFor(() => expect(within(list).getAllByText("Louvre").length).toBeGreaterThan(0));
 
     expect(within(list).queryByRole("button", { name: /Stop \d/ })).toBeNull();

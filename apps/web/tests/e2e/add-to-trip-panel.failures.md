@@ -2,9 +2,9 @@
 
 The agreed seam is the real Trip workspace in a browser at 1440x900 and 390x844, plus 1440x900 in Chinese, with a saved fixture Trip, a second saved fixture Trip that holds a saved place, stubbed place search and details, and the mock edit route. It covers what the traveller sees and the saved plan. It does not establish live-provider behaviour.
 
-- The Add button at the end of a day or in Ideas is missing, or opens the old Add place form with its Place name field and Save as Idea button.
-- Add from a day puts the place in Ideas, or add from Ideas puts it on a day, or either shows a preview or a confirm first.
-- The panel has no Search, Ideas, Saved and Custom tabs, or shows a Receipt tab, or offers the Ideas tab when it was opened from Ideas.
+- The Add button at the end of a day is missing, or the ideas chip does not open the panel, or opens the old Add place form with its Place name field and Save as Idea button.
+- Add from a day puts the place in Ideas, or either shows a preview or a confirm first.
+- The panel has no Search, Ideas, Saved and Custom tabs, or shows a Receipt tab.
 - Search sends no trip destination, so results start far from the trip.
 - A filter (places, stays, restaurants, experiences, events) leaves results that are not of that kind.
 - A search with no results adds nothing and says nothing.

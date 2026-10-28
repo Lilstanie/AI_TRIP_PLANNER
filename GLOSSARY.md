@@ -75,7 +75,7 @@ A place kept in the itinerary without a day. It is not a stop until the travelle
 _Avoid_: unscheduled stop, saved place, backlog
 
 **Add to trip panel**:
-The one panel places are added from, opened by the Add button at the end of a day or in Ideas. It adds to that day or to Ideas from Search, Ideas, Saved or Custom, and each choice takes effect at once with an Undo.
+The one panel places are added from, opened by the Add button at the end of a day or by the ideas chip. It adds to the open day from Search, Ideas, Saved or Custom, and each choice takes effect at once with an Undo.
 _Avoid_: Add place, add dialog, add form
 
 **Visit**:

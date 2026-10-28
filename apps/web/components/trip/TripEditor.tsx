@@ -40,10 +40,8 @@ import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { DayNoteForm } from "./timeline/DayNoteForm";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
-import { useShowDistances } from "./useShowDistances";
 import { useItineraryDrag } from "./useItineraryDrag";
 import { END_OF_DAY, zoneKey, type DragSource, type DropTarget } from "@/lib/trip/drag-target";
-import { Switch } from "../account/SettingsControls";
 import { directionsUrl } from "@/lib/trip/leg-distance";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
@@ -144,7 +142,6 @@ export function TripEditor({
     onLegApplied,
     onTimelineChange,
   });
-  const [showDistances, setShowDistances] = useShowDistances();
   const days = dayCount(plan);
   const { day, today, selectDay } = useTripDay(
     plan,
@@ -175,6 +172,7 @@ export function TripEditor({
     () => [...itinerary.ideas(), ...suggestions] as Activity[],
     [itinerary, suggestions],
   );
+  const ideasLabel = ideas.length === 1 ? t("1 idea") : t("{v0} ideas", { v0: ideas.length });
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
@@ -197,7 +195,7 @@ export function TripEditor({
   const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
   const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
-  const [adding, setAdding] = useState<{ kind: "day" | "ideas" } | undefined>(undefined);
+  const [adding, setAdding] = useState<"day" | "ideas" | undefined>(undefined);
   useEffect(() => setAdding(undefined), [day]);
 
   const leaving = useRef<string | undefined>(undefined);
@@ -367,7 +365,7 @@ export function TripEditor({
   };
   const drag = useItineraryDrag({
     locked,
-    accepts: (source, zone) => (source.zone.kind === "ideas" ? zone.kind === "day" : true),
+    accepts: () => true,
     onDrop: (source: DragSource, target: DropTarget) => {
       const moved = activities.find((activity) => activity.id === source.id);
       if (!moved?.id) return;
@@ -378,14 +376,6 @@ export function TripEditor({
         return;
       }
       const to = target.zone.day;
-      if (moved.day === undefined) {
-        void act(
-          moved,
-          { kind: "day", day: to },
-          { key: "{name} scheduled on Day {day}.", params: { name, day: to } },
-        );
-        return;
-      }
       if (moved.day === to) {
         if (target.index === END_OF_DAY) return;
         const shown = itinerary.stopsOn(to).map((stop) => stop.activity);
@@ -426,9 +416,7 @@ export function TripEditor({
       ...(!activity.id
         ? {}
         : activity.day === undefined
-          ? suggested.has(activity.id)
-            ? {}
-            : { drag: drag.rowProps({ id: activity.id, zone: { kind: "ideas" } }) }
+          ? {}
           : {
               drag: drag.rowProps({ id: activity.id, zone: { kind: "day", day: activity.day } }),
               onReorder: (direction: -1 | 1) => reorder(activity, direction),
@@ -438,13 +426,14 @@ export function TripEditor({
     };
   };
 
-  const panel = (target: AddTarget) => (
+  const panel = (target: AddTarget, initialTab?: "ideas") => (
     <AddToTripPanel
       target={target}
+      {...(initialTab ? { initialTab } : {})}
       tripId={plan.tripId}
       locked={locked}
       edits={edits}
-      ideas={itinerary.ideas() as Activity[]}
+      ideas={ideas}
       onSchedule={(idea, scheduleDay) =>
         act(
           idea,
@@ -495,48 +484,24 @@ export function TripEditor({
           {t("Return to today")}
         </button>
       )}
-      <div className="trip-editor__distances">
-        <div className="trip-editor__distances-switch">
-          <span>{t("Show distances")}</span>
-          <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
-        </div>
+      <div className="trip-editor__toolbar">
+        {ideas.length > 0 && (
+          <button
+            type="button"
+            className="timeline-ideas-chip"
+            disabled={locked}
+            data-drop-zone="ideas"
+            data-drop-end=""
+            aria-expanded={adding === "ideas"}
+            {...(overIdeas ? { "data-drop-target": "true" } : {})}
+            onClick={() => setAdding(adding === "ideas" ? undefined : "ideas")}
+          >
+            {ideasLabel}
+          </button>
+        )}
         <ActionMenu label={t("Itinerary actions")} items={itineraryMenu()} />
       </div>
-      <div className="timeline-ideas__head">
-        <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
-          {t("Ideas")}
-        </h4>
-        <button
-          type="button"
-          disabled={locked}
-          aria-label={t("Add to Ideas")}
-          onClick={() => setAdding({ kind: "ideas" })}
-        >
-          {t("Add")}
-        </button>
-      </div>
-      {adding?.kind === "ideas" && panel({ kind: "ideas" })}
-      <section
-        className="timeline-ideas"
-        aria-labelledby="timeline-ideas-title"
-        {...(overIdeas ? { "data-drop-target": "true" } : {})}
-      >
-        <ol
-          className="timeline"
-          data-drop-zone="ideas"
-          aria-label={t("Stops, {v0}", { v0: t("Ideas") })}
-        >
-          {ideas.map((idea, position) => (
-            <TimelineStop
-              key={idea.id ?? `idea-${position}`}
-              {...stopProps(idea)}
-              index={0}
-              count={1}
-            />
-          ))}
-          {overIdeas && <DropLine />}
-        </ol>
-      </section>
+      {adding === "ideas" && panel({ kind: "day", day }, "ideas")}
       <DayStrip
         days={strip}
         selected={day}
@@ -701,7 +666,6 @@ export function TripEditor({
                     <LegRow
                       key={connection.status}
                       connection={connection}
-                      showDistance={showDistances}
                       {...(directions ? { directions } : {})}
                       from={from ? (from.location ?? from.detail) : ""}
                       to={activity.location ?? activity.detail}
@@ -734,12 +698,12 @@ export function TripEditor({
           type="button"
           disabled={locked}
           aria-label={t("Add to Day {v0}", { v0: day })}
-          onClick={() => setAdding({ kind: "day" })}
+          onClick={() => setAdding("day")}
         >
           {t("Add")}
         </button>
       </div>
-      {adding?.kind === "day" && panel({ kind: "day", day })}
+      {adding === "day" && panel({ kind: "day", day })}
     </section>
   );
 }

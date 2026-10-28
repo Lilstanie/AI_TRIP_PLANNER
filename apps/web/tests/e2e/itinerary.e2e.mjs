@@ -118,19 +118,14 @@ async function run(browser, { width, height, tag }) {
     await settle(page, 300);
   };
   const dayList = (day) => drawer.getByRole("list", { name: new RegExp(`^Day ${day} timeline$`) });
-  const ideasList = () => drawer.getByRole("list", { name: "Stops, Ideas" });
+  const ideasChip = () => drawer.locator("button.timeline-ideas-chip");
+  const chipCount = async () =>
+    (await ideasChip().count()) ? Number((await ideasChip().innerText()).match(/\d+/)?.[0]) : 0;
+  const addPanel = () => drawer.getByRole("region", { name: "Add to trip" });
   const stopsIn = (list) => list.locator(".timeline-stop");
   const noted = () => drawer.locator(".timeline-stop").filter({ hasText: NOTE }).first();
   const firstStop = (day) => stopsIn(dayList(day)).first();
   const menuOf = (row) => row.getByRole("button", { name: /^Actions for / });
-  const menuLabels = async (row) => {
-    await menuOf(row).click();
-    await drawer.getByRole("menu").waitFor();
-    const found = (await drawer.getByRole("menuitem").allInnerTexts()).map((l) => l.trim());
-    await page.keyboard.press("Escape");
-    await settle(page, 200);
-    return found;
-  };
   const choose = async (row, label) => {
     await menuOf(row).click();
     await drawer.getByRole("menuitem", { name: label, exact: true }).click();
@@ -285,29 +280,27 @@ async function run(browser, { width, height, tag }) {
   await drawer.getByRole("button", { name: /^Undo/ }).click();
   await settle(page, 500);
 
+  const noteName = (await menuOf(noted()).getAttribute("aria-label")).match(
+    /^Actions for (.+?), /,
+  )?.[1];
+  const ideasBefore = await chipCount();
   await choose(noted(), "Move to ideas");
-  check((await ideasList().getByText(NOTE).count()) === 1, `${tag}: the stop is in Ideas`);
-  const ideaRow = ideasList().locator(".timeline-stop").filter({ hasText: NOTE });
-  const ideaLabels = await menuLabels(ideaRow);
   check(
-    !ideaLabels.includes("Adjust schedule") &&
-      !ideaLabels.includes("Add again") &&
-      ideaLabels.includes("Schedule on a day"),
-    `${tag}: an idea offers Schedule on a day and no stop-only actions`,
-  );
-  check(
-    !(await ideaRow.locator(".timeline-stop__time").count()),
-    `${tag}: an idea has no time button`,
+    (await chipCount()) === ideasBefore + 1 &&
+      (await stopsIn(drawer).filter({ hasText: NOTE }).count()) === 0,
+    `${tag}: the stop is parked and the ideas chip counts it`,
   );
   await page.screenshot({ path: `${OUT}/${tag}-04-ideas.png` });
-  await choose(ideaRow, "Schedule on a day");
-  await drawer.getByLabel("Day", { exact: true }).selectOption("3");
-  await drawer.getByRole("button", { name: "Schedule", exact: true }).click();
-  await settle(page, 500);
   await showDay(3);
+  await ideasChip().click();
+  await addPanel()
+    .getByRole("button", { name: `Add ${noteName}`, exact: true })
+    .click();
+  await settle(page, 500);
   check(
-    (await stopsIn(dayList(3)).filter({ hasText: NOTE }).count()) === 1,
-    `${tag}: an idea is scheduled back onto a day`,
+    (await stopsIn(dayList(3)).filter({ hasText: NOTE }).count()) === 1 &&
+      (await chipCount()) === ideasBefore,
+    `${tag}: an idea is scheduled back onto a day from the chip`,
   );
 
   const timed = stopsIn(dayList(3)).filter({ hasText: NOTE }).first();
@@ -462,35 +455,28 @@ async function run(browser, { width, height, tag }) {
     await showDay(1);
   }
 
-  const picks = () =>
-    ideasList().locator(".timeline-stop").filter({ hasText: "Restaurant suggestion" });
-  const pickCount = await picks().count();
-  check(pickCount >= 1, `${tag}: a dining pick is listed under Ideas (${pickCount})`);
+  const pickCount = await chipCount();
+  check(pickCount >= 1, `${tag}: the ideas chip counts the dining picks (${pickCount})`);
   if (pickCount) {
-    const before = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
-    const pick = picks().first();
-    const pickMenu = await menuLabels(pick);
-    check(
-      pickMenu.join("|") === "Schedule on a day|Remove",
-      `${tag}: a pick offers only Schedule on a day and Remove (${pickMenu.join(", ")})`,
-    );
-    await choose(pick, "Schedule on a day");
-    await drawer
-      .locator("form.item-editor")
-      .getByRole("button", { name: "Schedule", exact: true })
+    const before = { day: await stopsIn(dayList(1)).count(), ideas: pickCount };
+    await ideasChip().click();
+    await addPanel()
+      .getByRole("list", { name: "Ideas" })
+      .getByRole("button", { name: /^Add / })
+      .first()
       .click();
     await settle(page, 600);
-    const scheduled = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
+    const scheduled = { day: await stopsIn(dayList(1)).count(), ideas: await chipCount() };
     check(
       scheduled.day === before.day + 1 && scheduled.ideas === before.ideas - 1,
-      `${tag}: the pick is scheduled on Day 1 and leaves Ideas`,
+      `${tag}: the pick is scheduled on Day 1 and leaves the ideas`,
     );
     await drawer.locator(".item-undo").getByRole("button", { name: "Undo" }).click();
     await settle(page, 600);
-    const undone = { day: await stopsIn(dayList(1)).count(), ideas: await picks().count() };
+    const undone = { day: await stopsIn(dayList(1)).count(), ideas: await chipCount() };
     check(
       undone.day === before.day && undone.ideas === before.ideas,
-      `${tag}: Undo returns the pick to Ideas`,
+      `${tag}: Undo returns the pick to the ideas`,
     );
   }
 

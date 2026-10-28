@@ -2,6 +2,7 @@
 
 Status: implemented
 Owner: spec #743, ticket #747
+Superseded in part: the Add to Ideas button and the panel opened from Ideas, by [Ideas as an "N ideas" chip](2026-10-28-ideas-chip.md).
 
 ## Problem
 

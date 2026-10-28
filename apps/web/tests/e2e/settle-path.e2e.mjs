@@ -191,7 +191,7 @@ async function waitUntil(test, ms = 8000) {
 
 const trip = (page) => page.getByRole("region", { name: "Trip timeline" });
 const dayRows = (page) => trip(page).locator(".timeline-day .timeline-stop");
-const ideaRows = (page) => trip(page).locator(".timeline-ideas li.timeline-stop--idea");
+const ideasChip = (page) => trip(page).locator("button.timeline-ideas-chip");
 
 async function settleChecks(page) {
   await settle(page, 600);
@@ -217,7 +217,6 @@ async function openDay(page, day) {
   await settle(page, 400);
 }
 const stopNamed = (page, name) => dayRows(page).filter({ hasText: name }).first();
-const ideaNamed = (page, name) => ideaRows(page).filter({ hasText: name }).first();
 
 async function pick(row, page, item) {
   await row.getByRole("button", { name: /^Actions for / }).click();
@@ -296,16 +295,17 @@ async function main() {
     await pick(botanic, page, "Move to ideas");
     total = await expectTotal(page, stub, "D. Move a priced stop to Ideas", total, -40);
     check(
-      (await ideaNamed(page, "Royal Botanic Garden Sydney").count()) === 1,
-      "D. the stop is listed under Ideas",
+      (await ideasChip(page).count()) === 1 &&
+        /^\d+ ideas?$/.test(await ideasChip(page).innerText()),
+      "D. the ideas chip counts the parked stop",
     );
 
-    await ideaNamed(page, "Royal Botanic Garden Sydney")
-      .getByRole("button", { name: /^Actions for / })
+    await openDay(page, 2);
+    await ideasChip(page).click();
+    await page
+      .getByRole("region", { name: "Add to trip" })
+      .getByRole("button", { name: "Add Royal Botanic Garden Sydney", exact: true })
       .click();
-    await page.getByRole("menuitem", { name: "Schedule on a day", exact: true }).click();
-    await trip(page).locator(".stop-popover select").selectOption("2");
-    await trip(page).locator(".stop-popover button[type=submit]").click();
     await settle(page, 700);
     total = await expectTotal(page, stub, "E. Schedule the Idea on Day 2", total, 40);
 
