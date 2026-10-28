@@ -396,6 +396,16 @@ assertions, request interception, held responses and screenshots; concurrency an
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.
 
+`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` runs the whole Mindtrip itinerary interaction in one
+journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and to Ideas
+and back, every Stop, Idea, Day and Itinerary menu item, the Add to trip panel from a day and from Ideas on
+each tab, Undo after each change, Leg distances, Directions and Show distances off and on. Screenshots and
+`result.json` land in `output/playwright/itinerary-walkthrough/after/`. It includes Edit title and Add note on a day.
+
+```bash
+pnpm --filter @trip/web e2e itinerary-walkthrough --prod
+```
+
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
 swapped. Four scenarios need no model (the choice arrives on the brief) and one does (the traveller

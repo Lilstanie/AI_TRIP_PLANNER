@@ -518,6 +518,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       estTotal,
       overrunPct,
       sections,
+      ...keptDayNotes(options.mention?.plan.dayNotes, state.brief.dates),
       conflicts: state.conflicts,
     };
     return { plan: TripPlanSchema.parse(plan) };
@@ -563,4 +564,18 @@ export async function runOrchestrator(
   });
   if (!result.plan) throw new Error("Orchestrator graph finished without a trip plan.");
   return TripPlanSchema.parse(result.plan);
+}
+
+function keptDayNotes(
+  notes: TripPlan["dayNotes"],
+  [start, end]: TripBrief["dates"],
+): Pick<TripPlan, "dayNotes"> {
+  if (!notes) return {};
+  const days = Math.max(
+    1,
+    Math.round((Date.parse(`${end}T00:00:00Z`) - Date.parse(`${start}T00:00:00Z`)) / 86_400_000) +
+      1,
+  );
+  const kept = Object.fromEntries(Object.entries(notes).filter(([key]) => Number(key) <= days));
+  return Object.keys(kept).length ? { dayNotes: kept } : {};
 }

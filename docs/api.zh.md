@@ -277,7 +277,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
-`destination` 是可选字段；查找城市本身时省略它。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
+`destination` 是可选字段；查找城市本身时省略它。`kind` 也是可选字段（`stays`、`restaurants`、`experiences` 或 `events`）；路由会为它附加一个查询词（`apps/web/lib/trip/add-filters.ts`），使结果属于该类别；合并后的查询超过 200 个字符时，保持原文不变。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
 错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示所选服务不可用或仅 Google 模式未配置密钥，
@@ -342,7 +342,7 @@ Google `name` 必须是从最新查询中获得的 `places/{id}/photos/{id}` 名
 }
 ```
 
-`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`add`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。`add` 接收稳定的 `id`、`detail`、可选的 `location` 及可选的匹配地点 `placeId`/`savedPlace`，并且必须提供完整的 `day`、`startTime`、`endTime`（已排期停靠点）或完全不提供它们（Idea）。不完整、时间倒置、超出行程日期或与其他安排重叠的时间会被拒绝。添加时会保留现有停靠点的时间；未确认地点与价格继续保持未确认，不会伪造坐标或价格。`undo` 可用 `addedIds` 移除该编辑创建的停靠点或 Idea。
+`operation.kind` 为 `verify`（检查某一天的路线）、`move`（拖动：`day` 和 `index`）、`time`、`place`、`leg`、`choose`、`add`、`undo`，或时间线菜单发出的四种停靠点操作之一：`remove`（`id`）、`idea`（`id`，将停靠点移出其日期）、`schedule`（`id`、`day`：放到该天末尾）和 `swap`（`id`、`direction` 为 -1 或 1：箭头移动）。停靠点操作与浏览器中的停靠点操作使用同一变换，随后检查其所涉及的日期。`move` 遇到任何阻碍项即被拒绝，`schedule` 遇到除未确认地点以外的阻碍项即被拒绝。`swap` 保留其交换后的开始时间，只因站点超过午夜而被拒绝；不合这些时间的路段以通知显示在其停靠点上。只有带日期的活动会被规划路线和重新排时；ideas（没有日期的活动）原样保留。`add` 接收稳定的 `id`、`detail`、可选的 `location` 及可选的匹配地点 `placeId`/`savedPlace`，并且提供完整的 `day`、`startTime`、`endTime`（已排期停靠点）、只提供 `day`（一小时的停靠点，由服务器排在当天最后一个停靠点之后，且不早于其路段时间加 15 分钟；当天没有空位时被拒绝），或完全不提供它们（Idea）。只有开始或结束时间之一、时间倒置、超出行程日期或与其他安排重叠的时间会被拒绝。添加时会保留现有停靠点的时间；未确认地点与价格继续保持未确认，不会伪造坐标或价格。`undo` 可用 `addedIds` 移除该编辑创建的停靠点或 Idea。
 响应为 `{ plan, baseVersion, routes, differences, blockers, blockerNotices }`。每条 difference 是数值对象
 `{ stop, days?: { from, to }, before, after, placeChanged }`，由界面按所选语言组织文字。`blockerNotices` 以 Notice
 列出阻止此修改的原因（应用自身的措辞为 `{ key, params }`，路线服务商的文字为 `{ raw }`），界面按所选语言显示；

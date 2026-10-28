@@ -69,6 +69,7 @@ export function useWorkspaceTransport({
     JSON.stringify({
       tripId: value.tripId,
       brief: value.brief,
+      dayNotes: value.dayNotes,
       sections: value.sections.map((section) => ({
         id: section.id,
         proposal: section.proposal

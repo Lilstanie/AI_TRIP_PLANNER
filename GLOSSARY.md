@@ -74,6 +74,10 @@ _Avoid_: activity (in prose), item, point
 A place kept in the itinerary without a day. It is not a stop until the traveller schedules it.
 _Avoid_: unscheduled stop, saved place, backlog
 
+**Add to trip panel**:
+The one panel places are added from, opened by the Add button at the end of a day or in Ideas. It adds to that day or to Ideas from Search, Ideas, Saved or Custom, and each choice takes effect at once with an Undo.
+_Avoid_: Add place, add dialog, add form
+
 **Visit**:
 One stop at one place; a place on two days has two visits.
 _Avoid_: occurrence, repeat stop

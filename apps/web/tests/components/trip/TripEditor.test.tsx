@@ -3,7 +3,6 @@ import { describe, it, expect, vi } from "vitest";
 import { type ComponentProps } from "react";
 import { useTripUndo } from "@/components/trip/useTripUndo";
 import { TripEditor } from "@/components/trip/TripEditor";
-import { TripDraftsProvider } from "@/components/trip/timeline/TripDrafts";
 import { usePlanRevision } from "@/components/trip/plan-revision";
 import type { TripPlaces } from "@/components/map/useTripPlaces";
 import { plan as seed } from "@/tests/fixtures/workspace";
@@ -19,11 +18,7 @@ function Editor(props: Omit<ComponentProps<typeof TripEditor>, "revisions" | "un
     dataMode: undefined,
     onApply: props.onApply,
   });
-  return (
-    <TripDraftsProvider tripId={props.plan.tripId}>
-      <TripEditor {...props} revisions={revisions} undo={undo} />
-    </TripDraftsProvider>
-  );
+  return <TripEditor {...props} revisions={revisions} undo={undo} />;
 }
 
 function fixture() {

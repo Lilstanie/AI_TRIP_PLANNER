@@ -14,8 +14,7 @@ const savedAt = "2026-10-26T00:00:00Z";
 const results = [];
 try {
   for (const scenario of (
-    process.env.RECOVERY_CASE ??
-    "chat,schedule,orphan,undo,background-note,background-time,background-route"
+    process.env.RECOVERY_CASE ?? "chat,undo,background-note,background-time,background-route"
   ).split(",")) {
     for (const viewport of [
       { width: 1440, height: 1000 },
@@ -318,9 +317,9 @@ try {
           const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
           if (scenario !== "background-time") {
             await stop.locator(".action-menu__trigger").click();
-            await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
+            await page.getByRole("menuitem", { name: "Add a comment", exact: true }).click();
             await page
-              .getByRole("textbox", { name: "Note", exact: true })
+              .getByRole("textbox", { name: "Comment", exact: true })
               .fill("Undo this note only");
             await page.getByRole("button", { name: "Save", exact: true }).click();
           } else {
@@ -387,8 +386,10 @@ try {
         } else if (scenario === "undo") {
           const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
           await stop.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
-          await page.getByRole("textbox", { name: "Note", exact: true }).fill("Last manual note");
+          await page.getByRole("menuitem", { name: "Add a comment", exact: true }).click();
+          await page
+            .getByRole("textbox", { name: "Comment", exact: true })
+            .fill("Last manual note");
           await page.getByRole("button", { name: "Save", exact: true }).click();
           await page.getByRole("button", { name: "Undo", exact: true }).waitFor();
           await openChat();
@@ -413,10 +414,8 @@ try {
           assert.equal(await page.getByRole("button", { name: /^Undo/ }).count(), 0);
           for (const note of ["First manual note", "Second manual note"]) {
             await stop.locator(".action-menu__trigger").click();
-            await page
-              .getByRole("menuitem", { name: /^(Add a note|Edit note)$/, exact: true })
-              .click();
-            await page.getByRole("textbox", { name: "Note", exact: true }).fill(note);
+            await page.getByRole("menuitem", { name: /^Add a comment$/, exact: true }).click();
+            await page.getByRole("textbox", { name: "Comment", exact: true }).fill(note);
             await page.getByRole("button", { name: "Save", exact: true }).click();
           }
           await page.getByRole("button", { name: "Undo", exact: true }).click();
@@ -453,69 +452,6 @@ try {
           await stop.getByRole("button", { name: /^Change time, 10:00.*11:00/ }).waitFor();
           assert.equal(await page.getByRole("button", { name: /^Undo/ }).count(), 0);
           await page.screenshot({ path: resolve(out, `undo-${viewport.width}.png`) });
-        } else if (scenario === "schedule") {
-          const idea = page.locator(".timeline-stop").filter({ hasText: "Draft Idea" });
-          await idea.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Schedule on a day", exact: true }).click();
-          await page.getByRole("combobox", { name: "Day", exact: true }).selectOption("3");
-          if (viewport.width <= 520) await page.setViewportSize({ width: 521, height: 844 });
-          await openChat();
-          await openTrip();
-          const restore = page.getByRole("button", { name: /Continue editing Schedule on a day/ });
-          await restore.click();
-          const targetDay = page.getByRole("combobox", { name: "Day", exact: true });
-          assert.equal(await targetDay.inputValue(), "3");
-          await targetDay.press("Escape");
-          const discard = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-          await discard.getByRole("button", { name: "Continue editing", exact: true }).click();
-          assert.equal(await targetDay.inputValue(), "3");
-          await targetDay.press("Escape");
-          await discard.getByRole("button", { name: "Discard changes", exact: true }).click();
-          await restore.waitFor({ state: "detached" });
-          await idea.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Schedule on a day", exact: true }).click();
-          await targetDay.selectOption("3");
-          await page.getByRole("button", { name: "Schedule", exact: true }).click();
-          await restore.waitFor({ state: "detached" });
-          await page
-            .getByRole("tab")
-            .filter({ hasText: /^Day 3/ })
-            .click();
-          await page
-            .locator(".timeline-stop:not(.timeline-stop--idea)")
-            .filter({ hasText: "Draft Idea" })
-            .waitFor();
-          await page.screenshot({ path: resolve(out, `schedule-${viewport.width}.png`) });
-        } else if (scenario === "orphan") {
-          const stop = page.locator(".timeline-stop").filter({ hasText: "Draft Museum" });
-          await stop.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Add a note", exact: true }).click();
-          await page
-            .getByRole("textbox", { name: "Note", exact: true })
-            .fill("Recover this note after its Stop disappears");
-          if (viewport.width <= 520) await page.setViewportSize({ width: 521, height: 844 });
-          await openChat();
-          await openTrip();
-          await stop.locator(".action-menu__trigger").click();
-          await page.getByRole("menuitem", { name: "Remove", exact: true }).click();
-          await stop.waitFor({ state: "detached" });
-          const restore = page.getByRole("button", { name: /Draft Museum.*Continue editing Note/ });
-          await restore.click();
-          const recovery = page.getByRole("dialog", {
-            name: "Recover unfinished edit",
-            exact: true,
-          });
-          const recovered = recovery.getByRole("textbox", { name: "Note", exact: true });
-          assert.equal(await recovered.inputValue(), "Recover this note after its Stop disappears");
-          assert.equal(await recovered.getAttribute("readonly"), "");
-          await page.screenshot({ path: resolve(out, `orphan-${viewport.width}.png`) });
-          await recovery.getByRole("button", { name: "Discard changes", exact: true }).click();
-          const confirmation = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-          await confirmation.getByRole("button", { name: "Continue editing", exact: true }).click();
-          assert.equal(await recovered.inputValue(), "Recover this note after its Stop disappears");
-          await recovery.getByRole("button", { name: "Discard changes", exact: true }).click();
-          await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
-          await restore.waitFor({ state: "detached" });
         }
         assert.deepEqual(errors, []);
         const layout = await page.evaluate(() => ({

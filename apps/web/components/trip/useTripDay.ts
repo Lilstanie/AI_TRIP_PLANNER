@@ -70,7 +70,7 @@ export function useTripDay(
     else
       setState({
         tripId,
-        day: Math.min(Math.max(1, next), days),
+        day: Math.max(1, next),
         selectedOnToday: today ?? null,
         manual: true,
       });

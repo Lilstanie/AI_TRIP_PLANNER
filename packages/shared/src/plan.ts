@@ -14,6 +14,15 @@ export const TripSection = z.object({
 });
 export type TripSection = z.infer<typeof TripSection>;
 
+export const DayNote = z.object({
+  title: z.string().trim().min(1).max(80).optional(),
+  note: z.string().trim().min(1).max(500).optional(),
+});
+export type DayNote = z.infer<typeof DayNote>;
+
+export const DayNotes = z.record(z.string().regex(/^[1-9]\d*$/), DayNote);
+export type DayNotes = z.infer<typeof DayNotes>;
+
 export const TripPlan = z.object({
   tripId: z.string(),
   brief: TripBrief,
@@ -23,6 +32,7 @@ export const TripPlan = z.object({
   estTotal: z.number().nonnegative(),
   overrunPct: z.number(),
   sections: z.array(TripSection),
+  dayNotes: DayNotes.optional(),
   conflicts: z.array(RevisionRequest.extend({ kind: RevisionKind.catch("request") })).optional(),
   editIssues: z
     .array(

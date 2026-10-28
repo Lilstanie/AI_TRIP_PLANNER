@@ -325,7 +325,7 @@ Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map-provider/` (Goog
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
-`destination` is optional; omit it to look up a city itself. The response is
+`destination` is optional; omit it to look up a city itself. `kind` is optional (`stays`, `restaurants`, `experiences` or `events`); the route appends a query word for it (`apps/web/lib/trip/add-filters.ts`) so the results are of that kind, and leaves the text as sent when the combined query would pass 200 characters. The response is
 `{ "places": GooglePlace[], "source": "google" | "osm" }`. The workspace only sends saved place names, explicit activity locations
 or titles that are themselves place names (`apps/web/lib/map/place-query.ts`), never descriptive activity
 text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures, 503 when the selected provider is unavailable or Google-only mode has no key, each with a
@@ -393,9 +393,11 @@ day), `schedule` (`id`, `day`: the end of that day) and `swap` (`id`, `direction
 actions are applied by the same transform the browser's item actions use, then their days are routed. A `move` is
 refused by any blocker it raises, and a `schedule` by any blocker but an unconfirmed place. A `swap` keeps the start
 times it traded, is refused only for a stop running past midnight, and a leg that does not fit those times is a notice on
-its stop. `add` takes a stable `id`, `detail`, optional `location`, optional matched `placeId`/`savedPlace`, and either
-all of `day`, `startTime`, and `endTime` (a scheduled Stop) or none of them (an Idea). It rejects incomplete,
-reversed, out-of-trip, and overlapping schedules. It preserves the submitted times of all existing Stops; unresolved
+its stop. `add` takes a stable `id`, `detail`, optional `location`, optional matched `placeId`/`savedPlace`, and
+either all of `day`, `startTime`, and `endTime` (a scheduled Stop), `day` alone (a one-hour Stop timed by the
+server after that day's last Stop, no earlier than its leg plus 15 minutes, and refused when the day has no room),
+or none of them (an Idea). It rejects a start or end time without the other, reversed, out-of-trip, and
+overlapping schedules. It preserves the submitted times of all existing Stops; unresolved
 places and costs remain unresolved rather than receiving fabricated coordinates or prices. `undo` may include
 `addedIds` to remove Stops or Ideas created by the edit it reverses.
 Only activities with a day are routed and re-timed; ideas (activities without a day) pass through unchanged. The response is

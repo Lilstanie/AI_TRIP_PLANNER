@@ -33,22 +33,6 @@ const waitForFocused = (locator) =>
         poll();
       }),
   );
-const waitForInsideViewport = (locator, bottom) =>
-  locator.evaluate(
-    (element, viewportBottom) =>
-      new Promise((resolve, reject) => {
-        const deadline = performance.now() + 5000;
-        const poll = () => {
-          const box = element.getBoundingClientRect();
-          if (box.top >= 0 && box.bottom <= viewportBottom) resolve(true);
-          else if (performance.now() > deadline)
-            reject(new Error("Element did not fit in the contracted viewport"));
-          else requestAnimationFrame(poll);
-        };
-        poll();
-      }),
-    bottom,
-  );
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 try {
   const context = await browser.newContext({
@@ -104,155 +88,90 @@ try {
   const stop = page.locator(".timeline-stop").first();
   const trigger = stop.locator(".action-menu__trigger");
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  const note = page.getByRole("textbox", { name: "Note", exact: true });
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  const note = page.getByRole("textbox", { name: "Comment", exact: true });
   await note.fill("Keep my unfinished note");
   await note.press("Escape");
   const confirmation = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-  const askedAtEscape = await appears(confirmation);
-  check(askedAtEscape, "Escape asks before discarding a changed Stop note");
-  if (askedAtEscape) {
-    await confirmation.getByRole("button", { name: "Continue editing", exact: true }).click();
-    await confirmation.waitFor({ state: "hidden" });
-    check(
-      (await note.inputValue()) === "Keep my unfinished note",
-      "Continue editing retains the unfinished note",
-    );
-    await page.getByRole("button", { name: "Cancel", exact: true }).click();
-    await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
-    await note.waitFor({ state: "hidden" });
-    check(
-      (await note.count()) === 0 && !(await stop.textContent()).includes("Keep my unfinished note"),
-      "Discard closes without applying the note",
-    );
-    await trigger.click();
-    await page.getByRole("menuitem", { name: "Add a note" }).click();
-    await note.press("Escape");
-    check(
-      !(await confirmation.isVisible()) && (await note.count()) === 0,
-      "Unchanged Stop note closes directly",
-    );
-  }
+  const askedAtEscape = await appears(confirmation, 1000);
+  check(
+    !askedAtEscape && (await note.count()) === 0,
+    "Escape closes a changed Stop note without asking",
+  );
+  check(
+    !(await stop.textContent()).includes("Keep my unfinished note") &&
+      (await page.getByRole("button", { name: /Continue editing/ }).count()) === 0,
+    "A closed Stop note is neither applied nor kept as a draft",
+  );
+  await trigger.click();
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await note.press("Escape");
+  check(
+    !(await confirmation.isVisible()) && (await note.count()) === 0,
+    "Unchanged Stop note closes directly",
+  );
   const tripTimeline = page.getByRole("region", { name: "Trip timeline" });
   const dayTabs = tripTimeline.getByRole("tab");
   await dayTabs.filter({ hasText: /^Day 2/ }).click();
   await page.locator(".timeline-stop").first().waitFor({ state: "visible" });
   await page.locator(".timeline-stop").first().locator(".action-menu__trigger").click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  await page.getByRole("textbox", { name: "Note", exact: true }).press("Escape");
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await page.getByRole("textbox", { name: "Comment", exact: true }).press("Escape");
   check(
     !(await confirmation.isVisible()) &&
-      (await page.getByRole("textbox", { name: "Note", exact: true }).count()) === 0,
+      (await page.getByRole("textbox", { name: "Comment", exact: true }).count()) === 0,
     "Unchanged Day 2 Stop note closes directly",
   );
   await dayTabs.filter({ hasText: /^Day 1/ }).click();
   await stop.waitFor({ state: "visible" });
   await trigger.click();
-  await page.getByRole("menuitem", { name: "Add a note" }).click();
-  await note.fill("A note kept between tabs");
-  await page.locator(".phone-tabbar").getByRole("tab", { name: /^Map/ }).click();
-  await page.locator(".phone-tabbar").getByRole("tab", { name: /^Trip/ }).click();
-  await note.waitFor({ state: "visible" });
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await note.fill("A note for the keyboard");
+  const noteSurface = note.locator("xpath=ancestor::div[@role='dialog']");
+  const noteBox = await noteSurface.boundingBox();
   check(
-    (await note.inputValue()) === "A note kept between tabs",
-    "Tab switches preserve the unfinished note",
+    noteBox.height < 500 && (await stop.locator(".stop-popover").count()) === 1,
+    "A single note edit opens a popover on the row",
+    noteBox,
   );
+  await page.screenshot({ path: `${out}/note-popover.png` });
   await page.mouse.click(8, 100);
-  const outsideStopAsked = await appears(confirmation);
-  check(outsideStopAsked, "Outside Stop dismissal asks before discarding a changed note");
-  if (outsideStopAsked) {
-    await confirmation.getByRole("button", { name: "Continue editing", exact: true }).click();
-    await confirmation.waitFor({ state: "hidden" });
-    check(
-      (await note.inputValue()) === "A note kept between tabs",
-      "Continue editing retains the note after outside dismissal",
-    );
-  }
-  const noteSurface = note.locator("xpath=ancestor::section[@role='dialog']");
-  check((await noteSurface.boundingBox()).height < 500, "A single note edit uses a bottom sheet");
-  await note.press("Tab");
-  await note.press("Shift+Tab");
-  await note.focus();
-  await page.evaluate(() => {
-    window.__phoneViewport.height = 420;
-    window.__phoneViewport.dispatchEvent(new Event("resize"));
-  });
-  const saveButton = noteSurface.getByRole("button", { name: "Save", exact: true });
-  await page.waitForFunction(() => {
-    const app = document.querySelector(".workspace-app");
-    return (
-      app?.hasAttribute("data-phone-keyboard") &&
-      app.style.getPropertyValue("--phone-viewport-height") === "420px"
-    );
-  });
-  await waitForInsideViewport(saveButton, 420);
-  const saveBox = await saveButton.boundingBox();
   check(
-    saveBox && saveBox.y >= 0 && saveBox.y + saveBox.height <= 420,
-    "Note Save stays reachable under contracted keyboard",
-    saveBox,
+    !(await appears(confirmation, 1000)) && (await note.count()) === 0,
+    "Outside Stop dismissal closes a changed note without asking",
   );
-  await page.screenshot({ path: `${out}/note-keyboard.png` });
-  await page.evaluate(() => {
-    document.activeElement?.blur();
-    window.__phoneViewport.height = 844;
-    window.__phoneViewport.dispatchEvent(new Event("resize"));
-  });
-  await page.waitForFunction(() => {
-    const app = document.querySelector(".workspace-app");
-    return (
-      !app?.hasAttribute("data-phone-keyboard") &&
-      app.style.getPropertyValue("--phone-viewport-height") === "844px"
-    );
-  });
-  await page.evaluate(() => history.back());
-  const askedAtBack = await appears(confirmation);
-  check(askedAtBack, "Phone Back asks before discarding a changed Stop note");
-  if (askedAtBack) {
-    await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
-  }
-  const factsSheet = page.locator("#trip-facts-sheet");
-  if (await factsSheet.isVisible().catch(() => false)) {
-    await page.keyboard.press("Escape");
-    await factsSheet.waitFor({ state: "hidden" });
-  }
+  await trigger.click();
+  await page.getByRole("menuitem", { name: "Add a comment" }).click();
+  await note.fill("Escape closes this");
+  await note.press("Escape");
+  check(
+    !(await appears(confirmation, 1000)) && (await note.count()) === 0,
+    "Escape closes a changed Stop note without asking",
+  );
   const stopMain = stop.locator(".timeline-stop__main");
   await waitForFocused(stopMain);
   check(
     await stopMain.evaluate((el) => document.activeElement === el),
-    "Discard returns focus to the Stop",
+    "Closing a note returns focus to the Stop",
   );
   await trigger.click();
   await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
-  const details = page.getByRole("dialog", { name: "Edit details", exact: true });
+  const details = stop.getByRole("dialog", { name: "Edit details", exact: true });
   const detailInput = page.getByRole("textbox", { name: "What you will do", exact: true });
   await detailInput.fill("An unfinished detailed visit");
-  const fullBox = await details.boundingBox();
-  check(fullBox.y <= 1 && fullBox.height > 700, "Complex Stop details use a full page", fullBox);
-  for (const width of [520, 521, 1440]) {
-    await page.setViewportSize({ width, height: 844 });
-    await page.waitForFunction((expected) => innerWidth === expected, width);
-    await page.waitForFunction(
-      (expectedPhone) =>
-        document.querySelector(".workspace-app")?.hasAttribute("data-phone") === expectedPhone,
-      width <= 520,
-    );
-    const restoreDetails = page.getByRole("button", { name: /Continue editing Edit details/ });
-    const hasRestore = await appears(restoreDetails, 1500);
-    const detailsRemainOpen = await detailInput.isVisible().catch(() => false);
-    if (!detailsRemainOpen && hasRestore) await restoreDetails.click();
-    await detailInput.waitFor({ state: "visible" });
-    check(
-      (await detailInput.inputValue()) === "An unfinished detailed visit",
-      `Details restore with their value across ${width}px`,
-    );
-  }
+  const detailsBox = await details.boundingBox();
+  check(
+    detailsBox.y > 1 &&
+      detailsBox.height < 700 &&
+      (await stop.locator(".stop-popover").count()) === 1,
+    "Stop details open as a popover on the row, not a full page",
+    detailsBox,
+  );
   await detailInput.press("Escape");
-  check(await appears(confirmation), "Escape asks before discarding changed details");
-  await confirmation.getByRole("button", { name: "Continue editing", exact: true }).click();
-  await confirmation.waitFor({ state: "hidden" });
-  await page.locator(".item-editor").getByRole("button", { name: "Cancel", exact: true }).click();
-  await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
+  check(
+    !(await appears(confirmation, 1000)) && (await detailInput.count()) === 0,
+    "Escape closes changed details without asking",
+  );
   for (const width of [521, 1440]) {
     await page.setViewportSize({ width, height: 844 });
     await page.waitForFunction((expected) => innerWidth === expected, width);
@@ -277,10 +196,10 @@ try {
   );
   if (await start.count()) {
     await start.press("Escape");
-    const timeAsked = await appears(confirmation);
-    check(timeAsked, "Changed time Escape asks before discarding");
-    if (timeAsked)
-      await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
+    check(
+      !(await appears(confirmation, 1000)) && (await start.count()) === 0,
+      "Changed time Escape closes without asking",
+    );
   }
   placeResults = [replacement];
   await trigger.click();
@@ -308,11 +227,10 @@ try {
     "Failed place application retains the query and result",
   );
   await placeSearch.press("Escape");
-  const placeAsked = await appears(confirmation);
-  check(placeAsked, "Changed place search Escape asks before discarding");
-  if (placeAsked) {
-    await confirmation.getByRole("button", { name: "Discard changes", exact: true }).click();
-  }
+  check(
+    !(await appears(confirmation, 1000)) && (await placeSearch.count()) === 0,
+    "Changed place search Escape closes without asking",
+  );
   await page.locator(".phone-tabbar").getByRole("tab", { name: /^Chat/ }).click();
   await page.locator(".phone-topbar__title-button").click();
   await page.locator('.facts-sheet__row[data-fact="budget"]').click();
@@ -381,14 +299,10 @@ try {
   {
     await page.locator(".phone-tabbar").getByRole("tab", { name: /^行程/ }).click();
     await trigger.click();
-    await page.getByRole("menuitem", { name: "添加备注", exact: true }).click();
-    const zhNote = page.getByRole("textbox", { name: "备注", exact: true });
-    await zhNote.fill("切页和返回后保留这段未完成的备注");
-    await zhNote.press("Escape");
-    const zhConfirmation = page.getByRole("dialog", { name: "放弃更改？", exact: true });
-    check(await appears(zhConfirmation), "Chinese edit protection is localized");
-    await page.screenshot({ path: `${out}/zh-confirmation.png` });
-    await zhConfirmation.getByRole("button", { name: "继续编辑", exact: true }).click();
+    await page.getByRole("menuitem", { name: "添加评论", exact: true }).click();
+    const zhNote = page.getByRole("textbox", { name: "评论", exact: true });
+    await zhNote.fill("这段备注只在输入框里");
+    await page.screenshot({ path: `${out}/zh-note.png` });
     for (const width of [360, 375, 390]) {
       await page.setViewportSize({ width, height: 844 });
       await page.waitForFunction(
@@ -400,6 +314,12 @@ try {
       check(!overflow, `Chinese phone edit fits ${width}px`);
       await page.screenshot({ path: `${out}/zh-${width}.png` });
     }
+    await zhNote.press("Escape");
+    check(
+      !(await appears(page.getByRole("dialog", { name: "放弃更改？", exact: true }), 1000)) &&
+        (await zhNote.count()) === 0,
+      "Chinese note closes without asking",
+    );
   }
   await context.close();
 } catch (error) {

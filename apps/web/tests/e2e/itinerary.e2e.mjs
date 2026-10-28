@@ -158,17 +158,23 @@ async function run(browser, { width, height, tag }) {
   const labels = (await drawer.getByRole("menuitem").allInnerTexts()).map((l) => l.trim());
   check(
     [
-      "Move to another day",
-      "Move to ideas",
-      "Replace place",
+      "Adjust schedule",
       "Edit details",
-      "Add a note",
-      "Mark as booked",
+      "Add a comment",
+      "Move to ideas",
+      "Move to previous day",
+      "Move to next day",
+      "Add again",
       "Remove",
+      "Replace place",
+      "Mark as booked",
     ].every((label) => labels.includes(label)),
     `${tag}: menu lists every action (${labels.join(", ")})`,
   );
-  check(!labels.includes("Move earlier"), `${tag}: the first stop of a day offers no Move earlier`);
+  check(
+    !labels.some((label) => /^Move (earlier|later)$|^Move to another day$/.test(label)),
+    `${tag}: the menu has no Move earlier, Move later or Move to another day`,
+  );
   await page.screenshot({ path: `${OUT}/${tag}-01-menu.png` });
   await page.keyboard.press("Escape");
   await settle(page, 300);
@@ -186,12 +192,12 @@ async function run(browser, { width, height, tag }) {
     (await drawer.locator(".timeline-tag", { hasText: "Booked" }).count()) === 1,
     `${tag}: booked shows a tag`,
   );
-  await choose(firstStop(1), "Add a note");
+  await choose(firstStop(1), "Add a comment");
   check(
-    await drawer.locator(".stop-place-card").isVisible(),
-    `${tag}: a menu form opens in the place card`,
+    await drawer.locator(".stop-popover").isVisible(),
+    `${tag}: a menu form opens in a popover on the row`,
   );
-  await drawer.getByRole("textbox", { name: "Note", exact: true }).fill(NOTE);
+  await drawer.getByRole("textbox", { name: "Comment", exact: true }).fill(NOTE);
   await drawer.getByRole("button", { name: "Save", exact: true }).click();
   await settle(page, 400);
   check(await drawer.getByText(NOTE).first().isVisible(), `${tag}: the note shows under the stop`);
@@ -200,12 +206,10 @@ async function run(browser, { width, height, tag }) {
   await drawer.getByLabel("What you will do").fill("Morning walk and coffee");
   await page.keyboard.press("Escape");
   await settle(page, 300);
-  if (tag === "phone") {
-    const discard = page.getByRole("dialog", { name: "Discard changes?", exact: true });
-    await discard.waitFor();
-    await discard.getByRole("button", { name: "Discard changes", exact: true }).click();
-    await settle(page, 300);
-  }
+  check(
+    !(await page.getByRole("dialog", { name: "Discard changes?", exact: true }).count()),
+    `${tag}: Escape closes the details form without asking`,
+  );
   check(
     !(await drawer.getByLabel("What you will do").count()),
     `${tag}: Escape closes the details form`,
@@ -224,8 +228,7 @@ async function run(browser, { width, height, tag }) {
   );
   await page.screenshot({ path: `${OUT}/${tag}-02-booked-note.png` });
 
-  await choose(noted(), "Move to another day");
-  await drawer.locator(".stop-place-card select").selectOption("2");
+  await choose(noted(), "Move to next day");
   await settle(page, 600);
   await showDay(2);
 
@@ -235,7 +238,7 @@ async function run(browser, { width, height, tag }) {
     .catch(() => undefined);
   check(
     (await stopsIn(dayList(2)).filter({ hasText: NOTE }).count()) === 1,
-    `${tag}: Move to another day puts the stop on Day 2`,
+    `${tag}: Move to next day puts the stop on Day 2`,
   );
 
   const day2 = dayList(2);
@@ -243,16 +246,6 @@ async function run(browser, { width, height, tag }) {
   check(
     (await stopsIn(day2).count()) === 2 && (await notedIndex(day2)) === 1,
     `${tag}: Day 2 has two stops, the noted one last`,
-  );
-  const firstLabels = await menuLabels(stopsIn(day2).first());
-  check(
-    !firstLabels.includes("Move earlier") && firstLabels.includes("Move later"),
-    `${tag}: the first stop of a day offers Move later only`,
-  );
-  const lastLabels = await menuLabels(stopsIn(day2).last());
-  check(
-    lastLabels.includes("Move earlier") && !lastLabels.includes("Move later"),
-    `${tag}: the last stop of a day offers Move earlier only`,
   );
   if (tag === "phone") {
     const trigger = menuOf(stopsIn(day2).first());
@@ -273,17 +266,22 @@ async function run(browser, { width, height, tag }) {
     await page.keyboard.press("Escape");
     await settle(page, 200);
   }
-  await choose(stopsIn(day2).first(), "Move later");
+  await stopsIn(day2).first().dragTo(stopsIn(day2).last());
+  await settle(page, 500);
   check(
     (await notedIndex(day2)) === 0,
-    `${tag}: Move later puts the other stop after the noted one`,
+    `${tag}: dropping the first stop on the last puts the other stop after the noted one`,
   );
   await page.screenshot({ path: `${OUT}/${tag}-03b-moved-later.png` });
   await drawer.getByRole("button", { name: /^Undo/ }).click();
   await settle(page, 500);
   check((await rowsText(day2)) === before2, `${tag}: Undo restores Day 2's order and times`);
-  await choose(stopsIn(day2).last(), "Move earlier");
-  check((await notedIndex(day2)) === 0, `${tag}: Move earlier puts the noted stop first`);
+  await stopsIn(day2).last().dragTo(stopsIn(day2).first());
+  await settle(page, 500);
+  check(
+    (await notedIndex(day2)) === 0,
+    `${tag}: dropping the last stop on the first puts it first`,
+  );
   await drawer.getByRole("button", { name: /^Undo/ }).click();
   await settle(page, 500);
 
@@ -292,10 +290,10 @@ async function run(browser, { width, height, tag }) {
   const ideaRow = ideasList().locator(".timeline-stop").filter({ hasText: NOTE });
   const ideaLabels = await menuLabels(ideaRow);
   check(
-    !ideaLabels.includes("Move earlier") &&
-      !ideaLabels.includes("Move later") &&
+    !ideaLabels.includes("Adjust schedule") &&
+      !ideaLabels.includes("Add again") &&
       ideaLabels.includes("Schedule on a day"),
-    `${tag}: an idea offers Schedule on a day and neither Move earlier nor Move later`,
+    `${tag}: an idea offers Schedule on a day and no stop-only actions`,
   );
   check(
     !(await ideaRow.locator(".timeline-stop__time").count()),

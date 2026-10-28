@@ -8,6 +8,22 @@ import type { TripPlaces } from "../map/useTripPlaces";
 import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
+import {
+  applyDayAction,
+  scheduledCount,
+  scheduledOn,
+  type DayAction,
+} from "@/lib/trip/day-actions";
+import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
+import {
+  CloseIcon,
+  ComposeIcon,
+  MapIcon,
+  MinusIcon,
+  PencilIcon,
+  PlusIcon,
+  SuitcaseIcon,
+} from "../ui/icons";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { FlowStayIcon } from "../ui/flow-icons";
@@ -19,16 +35,16 @@ import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
-import { AddStop, type AddStopDraft } from "./timeline/AddStop";
+import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
+import { DayNoteForm } from "./timeline/DayNoteForm";
 import { TripChatShortcut } from "./timeline/TripChatShortcut";
-import {
-  useTripDraftField,
-  useTripDraftRestore,
-  type AddStopDraftValue,
-} from "./timeline/TripDrafts";
-import { useDiscardChanges } from "../ui/useDiscardChanges";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
+import { useShowDistances } from "./useShowDistances";
+import { useItineraryDrag } from "./useItineraryDrag";
+import { END_OF_DAY, zoneKey, type DragSource, type DropTarget } from "@/lib/trip/drag-target";
+import { Switch } from "../account/SettingsControls";
+import { directionsUrl } from "@/lib/trip/leg-distance";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
 import type { EditOperation, PlanRevisions } from "./plan-revision";
@@ -48,6 +64,12 @@ function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
     default:
       return undefined;
   }
+}
+
+const HOVER_OPEN_MS = 600;
+
+function DropLine() {
+  return <li className="timeline-drop-line" aria-hidden="true" />;
 }
 
 export function TripEditor({
@@ -71,6 +93,7 @@ export function TripEditor({
   saves = IDLE_AUTO_SAVE,
   onChoose,
   onTimelineChange,
+  onShowMap,
   phone = false,
 }: {
   plan: TripPlan;
@@ -103,6 +126,8 @@ export function TripEditor({
 
   onTimelineChange?(changed: boolean): void;
 
+  onShowMap?(day: number): void;
+
   phone?: boolean;
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
@@ -119,6 +144,7 @@ export function TripEditor({
     onLegApplied,
     onTimelineChange,
   });
+  const [showDistances, setShowDistances] = useShowDistances();
   const days = dayCount(plan);
   const { day, today, selectDay } = useTripDay(
     plan,
@@ -143,75 +169,6 @@ export function TripEditor({
     () => itinerary.stopsOn(day).map((stop) => stop.activity),
     [itinerary, day],
   );
-  const addStopId = `add-stop:${plan.tripId}`;
-  const suggestedTimesForDay = (targetDay: number) => {
-    const scheduled = itinerary
-      .stopsOn(targetDay)
-      .map(({ activity }) => activity)
-      .filter((activity) => activity.endTime)
-      .sort((left, right) => (left.endTime ?? "").localeCompare(right.endTime ?? ""));
-    const latestEnd = scheduled.at(-1)?.endTime;
-    const start = latestEnd ? addMinutes(latestEnd, 30) : "09:00";
-    return { startTime: start, endTime: addMinutes(start, 60) };
-  };
-  const suggestedAddTime = suggestedTimesForDay(day);
-  const addFingerprint = JSON.stringify(
-    activities.map((activity) => [activity.id, activity.day, activity.startTime, activity.endTime]),
-  );
-  const addBaseline: AddStopDraftValue = {
-    open: false,
-    searchText: "",
-    name: "",
-    detail: "",
-    day: 0,
-    startTime: "",
-    endTime: "",
-    fingerprint: addFingerprint,
-  };
-  const addInitial: AddStopDraftValue = {
-    open: false,
-    searchText: "",
-    name: "",
-    detail: "",
-    day,
-    startTime: suggestedAddTime.startTime,
-    endTime: suggestedAddTime.endTime,
-    fingerprint: addFingerprint,
-  };
-  const addDraft = useTripDraftField({
-    stopId: addStopId,
-    stopName: t("Add place"),
-    day,
-    field: "add",
-    initial: addInitial,
-    baseline: addBaseline,
-  });
-  const addRestore = useTripDraftRestore(addStopId);
-  const restoreAdd = addRestore.target?.field === "add";
-  const addValue = addDraft.value;
-  const addStopValue: AddStopDraft = {
-    open: addValue.open || restoreAdd,
-    searchText: addValue.searchText,
-    name: addValue.name,
-    detail: addValue.detail,
-    day: addValue.day,
-    startTime: addValue.startTime,
-    endTime: addValue.endTime,
-    ...(addValue.placeId
-      ? {
-          place: {
-            id: addValue.placeId,
-            ...(addValue.placeName ? { displayName: { text: addValue.placeName } } : {}),
-            ...(addValue.placeAddress ? { formattedAddress: addValue.placeAddress } : {}),
-            ...(addValue.latitude !== undefined && addValue.longitude !== undefined
-              ? { location: { latitude: addValue.latitude, longitude: addValue.longitude } }
-              : {}),
-          },
-        }
-      : {}),
-  };
-  const addDiscard = useDiscardChanges(addDraft.dirty);
-
   const suggestions = useMemo(() => restaurantSuggestions(plan), [plan]);
   const suggested = useMemo(() => new Set(suggestions.map((item) => item.id)), [suggestions]);
   const ideas = useMemo(
@@ -240,6 +197,8 @@ export function TripEditor({
   const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
   const dayPanelId = `trip-day-panel-${useId().replaceAll(":", "")}`;
   const [problem, setProblem] = useState<Notice | "">("");
+  const [adding, setAdding] = useState<{ kind: "day" | "ideas" } | undefined>(undefined);
+  useEffect(() => setAdding(undefined), [day]);
 
   const leaving = useRef<string | undefined>(undefined);
   const dayTitle = useRef<HTMLHeadingElement>(null);
@@ -282,6 +241,149 @@ export function TripEditor({
     }
   };
 
+  const runDay = (action: DayAction, message: Notice, then?: (next: TripPlan) => void) => {
+    try {
+      const next = applyDayAction(plan, action, settings.displayCurrency);
+      undo.record(next, { previous: plan, message });
+      setProblem("");
+      onTimelineChange?.(true);
+      onApply(next);
+      then?.(next);
+    } catch (error) {
+      setProblem(
+        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
+      );
+    }
+  };
+  const [editingDay, setEditingDay] = useState<"title" | "note" | undefined>(undefined);
+  useEffect(() => setEditingDay(undefined), [day]);
+  const dayEntry = plan.dayNotes?.[String(day)];
+  const dayMenu = (): ActionMenuItem[] => [
+    {
+      label: t("Edit title"),
+      icon: <PencilIcon />,
+      disabled: locked,
+      onSelect: () => setEditingDay("title"),
+    },
+    {
+      label: t(dayEntry?.note ? "Edit note" : "Add note"),
+      icon: <ComposeIcon />,
+      disabled: locked,
+      onSelect: () => setEditingDay("note"),
+    },
+    {
+      label: t("Add day before"),
+      separated: true,
+      icon: <PlusIcon />,
+      disabled: locked,
+      onSelect: () =>
+        runDay({ kind: "insert", at: day }, { key: "Day {day} added.", params: { day } }, () =>
+          selectDay(day),
+        ),
+    },
+    {
+      label: t("Add day after"),
+      icon: <PlusIcon />,
+      disabled: locked,
+      onSelect: () =>
+        runDay(
+          { kind: "insert", at: day + 1 },
+          { key: "Day {day} added.", params: { day: day + 1 } },
+          () => selectDay(day + 1),
+        ),
+    },
+    {
+      label: t("Clear day"),
+      icon: <CloseIcon />,
+      separated: true,
+      disabled: locked || !scheduledOn(plan, day),
+      onSelect: () =>
+        runDay({ kind: "clear", day }, { key: "Day {day} cleared.", params: { day } }),
+    },
+    {
+      label: t("Remove day"),
+      icon: <MinusIcon />,
+      tone: "danger",
+      disabled: locked || days < 2,
+      onSelect: () =>
+        runDay({ kind: "remove", day }, { key: "Day {day} removed.", params: { day } }, () =>
+          selectDay(Math.min(day, days - 1)),
+        ),
+    },
+  ];
+  const itineraryMenu = (): ActionMenuItem[] => [
+    {
+      label: t("Move all events to ideas"),
+      icon: <SuitcaseIcon />,
+      disabled: locked || !scheduledCount(plan),
+      onSelect: () => runDay({ kind: "ideas" }, { key: "All events moved to Ideas." }),
+    },
+    {
+      label: t("Remove all scheduled events"),
+      icon: <CloseIcon />,
+      tone: "danger",
+      disabled: locked || !scheduledCount(plan),
+      onSelect: () => runDay({ kind: "removeAll" }, { key: "All scheduled events removed." }),
+    },
+  ];
+
+  const [announcement, setAnnouncement] = useState<Notice | undefined>();
+  const commitMove = async (activity: Activity, day: number, index: number) => {
+    if (!activity.id) return;
+    const id = activity.id;
+    const total = itinerary.stopsOn(day).filter((stop) => stop.activity.id !== id).length + 1;
+    const done = await edits.edit(
+      { kind: "move", id, day, index: itinerary.planIndex(id, day, index) },
+      () => {
+        setProblem("");
+        setAnnouncement({
+          key: "{name} moved to position {position} of {total} on Day {day}.",
+          params: {
+            name: activity.location ?? activity.detail,
+            position: Math.min(index, total - 1) + 1,
+            total,
+            day,
+          },
+        });
+      },
+    );
+    return done;
+  };
+  const drag = useItineraryDrag({
+    locked,
+    accepts: (source, zone) => (source.zone.kind === "ideas" ? zone.kind === "day" : true),
+    onDrop: (source: DragSource, target: DropTarget) => {
+      const moved = activities.find((activity) => activity.id === source.id);
+      if (!moved?.id) return;
+      const name = moved.location ?? moved.detail;
+      if (target.zone.kind === "ideas") {
+        if (moved.day !== undefined)
+          void act(moved, { kind: "idea" }, { key: "{name} moved to Ideas.", params: { name } });
+        return;
+      }
+      const to = target.zone.day;
+      if (moved.day === undefined) {
+        void act(
+          moved,
+          { kind: "day", day: to },
+          { key: "{name} scheduled on Day {day}.", params: { name, day: to } },
+        );
+        return;
+      }
+      if (moved.day === to) {
+        if (target.index === END_OF_DAY) return;
+        const shown = itinerary.stopsOn(to).map((stop) => stop.activity);
+        if (target.index === shown.indexOf(moved)) return;
+      }
+      void commitMove(moved, to, target.index);
+    },
+  });
+  const reorder = (activity: Activity, direction: -1 | 1) => {
+    const to = daily.indexOf(activity) + direction;
+    if (!locked && activity.day !== undefined && to >= 0 && to < daily.length)
+      void commitMove(activity, activity.day, to);
+  };
+
   const stopProps = (activity: Activity) => {
     const placeId = placeIdFor(activity);
     return {
@@ -305,25 +407,126 @@ export function TripEditor({
       onOpen: () => onSelect(activity.id!),
       conflicts: (activity.id && conflicts.stops.get(activity.id)) || [],
       onItem: (action: ItemAction, message: Notice) => act(activity, action, message),
+      ...(!activity.id
+        ? {}
+        : activity.day === undefined
+          ? suggested.has(activity.id)
+            ? {}
+            : { drag: drag.rowProps({ id: activity.id, zone: { kind: "ideas" } }) }
+          : {
+              drag: drag.rowProps({ id: activity.id, zone: { kind: "day", day: activity.day } }),
+              onReorder: (direction: -1 | 1) => reorder(activity, direction),
+            }),
       ...(activity.day === undefined || !onSend ? {} : { onAskAI: onSend }),
       phone,
     };
   };
 
+  const panel = (target: AddTarget) => (
+    <AddToTripPanel
+      target={target}
+      tripId={plan.tripId}
+      locked={locked}
+      edits={edits}
+      ideas={itinerary.ideas() as Activity[]}
+      onSchedule={(idea, scheduleDay) =>
+        act(
+          idea,
+          { kind: "day", day: scheduleDay },
+          {
+            key: "{name} moved to Day {day}.",
+            params: { name: idea.location ?? idea.detail, day: scheduleDay },
+          },
+        )
+      }
+      onClose={() => setAdding(undefined)}
+    />
+  );
+
   let previous: (typeof daily)[number] | undefined;
+  let shownCount = 0;
+  const dragged = activities.find((activity) => activity.id === drag.dragging);
+  const aim = drag.target;
+  const lineAt =
+    aim?.zone.kind === "day" && aim.zone.day === day && aim.index !== END_OF_DAY
+      ? dragged?.day === undefined
+        ? daily.length
+        : aim.index
+      : -1;
+  const dropDay =
+    aim?.zone.kind === "day" && aim.index === END_OF_DAY && dragged?.day !== aim.zone.day
+      ? aim.zone.day
+      : undefined;
+  const overIdeas = aim?.zone.kind === "ideas";
+  const hoverDay = dropDay !== undefined && dropDay !== day ? dropDay : undefined;
+  const openDay = useRef(selectDay);
+  useEffect(() => {
+    openDay.current = selectDay;
+  });
+  useEffect(() => {
+    if (hoverDay === undefined) return;
+    const timer = window.setTimeout(() => openDay.current(hoverDay), HOVER_OPEN_MS);
+    return () => window.clearTimeout(timer);
+  }, [hoverDay]);
   return (
     <section className="trip-editor" aria-label={t("Trip timeline")}>
+      <p className="sr-only" role="status">
+        {announcement ? localizeNotice(announcement) : ""}
+      </p>
       <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
       {today !== undefined && day !== today && (
         <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
           {t("Return to today")}
         </button>
       )}
+      <div className="trip-editor__distances">
+        <div className="trip-editor__distances-switch">
+          <span>{t("Show distances")}</span>
+          <Switch label={t("Show distances")} checked={showDistances} onChange={setShowDistances} />
+        </div>
+        <ActionMenu label={t("Itinerary actions")} items={itineraryMenu()} />
+      </div>
+      <div className="timeline-ideas__head">
+        <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
+          {t("Ideas")}
+        </h4>
+        <button
+          type="button"
+          disabled={locked}
+          aria-label={t("Add to Ideas")}
+          onClick={() => setAdding({ kind: "ideas" })}
+        >
+          {t("Add")}
+        </button>
+      </div>
+      {adding?.kind === "ideas" && panel({ kind: "ideas" })}
+      <section
+        className="timeline-ideas"
+        aria-labelledby="timeline-ideas-title"
+        {...(overIdeas ? { "data-drop-target": "true" } : {})}
+      >
+        <ol
+          className="timeline"
+          data-drop-zone="ideas"
+          aria-label={t("Stops, {v0}", { v0: t("Ideas") })}
+        >
+          {ideas.map((idea, position) => (
+            <TimelineStop
+              key={idea.id ?? `idea-${position}`}
+              {...stopProps(idea)}
+              index={0}
+              count={1}
+            />
+          ))}
+          {overIdeas && <DropLine />}
+        </ol>
+      </section>
       <DayStrip
         days={strip}
         selected={day}
         today={today}
         panelId={dayPanelId}
+        {...(dropDay !== undefined ? { dropDay } : {})}
         onSelect={selectDay}
       />
 
@@ -389,9 +592,45 @@ export function TripEditor({
         aria-labelledby={`${dayPanelId}-day-tab-${day}`}
         tabIndex={0}
       >
-        <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
-          {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
-        </h3>
+        <div className="timeline-day__head">
+          <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
+            {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
+            {dayEntry?.title && <span className="timeline-day__name">{dayEntry.title}</span>}
+          </h3>
+          {onShowMap && (
+            <button
+              type="button"
+              className="timeline-day__map"
+              aria-label={t("Day map, Day {v0}", { v0: day })}
+              onClick={() => onShowMap(day)}
+            >
+              <MapIcon />
+              {t("Day map")}
+            </button>
+          )}
+          <ActionMenu label={t("Day {v0} actions", { v0: day })} items={dayMenu()} />
+        </div>
+        {editingDay && (
+          <DayNoteForm
+            key={`${day}-${editingDay}`}
+            mode={editingDay}
+            value={(editingDay === "title" ? dayEntry?.title : dayEntry?.note) ?? ""}
+            phone={phone}
+            onCancel={() => setEditingDay(undefined)}
+            onSubmit={(text) =>
+              runDay(
+                editingDay === "title"
+                  ? { kind: "title", day, title: text }
+                  : { kind: "note", day, note: text },
+                editingDay === "title"
+                  ? { key: "Day {day} title updated.", params: { day } }
+                  : { key: "Day {day} note updated.", params: { day } },
+                () => setEditingDay(undefined),
+              )
+            }
+          />
+        )}
+        {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
         <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">
@@ -405,10 +644,12 @@ export function TripEditor({
             ))}
           </ul>
         )}
-        {rows.length ? (
+        <>
           <ol
             key={day}
             className="timeline tab-panel-enter"
+            data-drop-zone={zoneKey({ kind: "day", day })}
+            {...(rows.length ? {} : { "data-empty": "true" })}
             aria-label={t("Day {v0} timeline", { v0: day })}
           >
             {rows.map((row, position) => {
@@ -428,12 +669,25 @@ export function TripEditor({
               previous = activity;
 
               const routable = !!(from?.placeId && activity.placeId);
+              const endpoint = (stop: typeof activity) => {
+                const id = placeIdFor(stop);
+                return {
+                  name: stop.location ?? stop.detail,
+                  ...(id ? { placeId: id, location: places[id]?.location } : {}),
+                };
+              };
+              const directions = from
+                ? directionsUrl(endpoint(from), endpoint(activity))
+                : undefined;
               return (
                 <Fragment key={activity.id ?? position}>
+                  {activity.id !== drag.dragging && lineAt === shownCount++ && <DropLine />}
                   {connection && (
                     <LegRow
                       key={connection.status}
                       connection={connection}
+                      showDistance={showDistances}
+                      {...(directions ? { directions } : {})}
                       from={from ? (from.location ?? from.detail) : ""}
                       to={activity.location ?? activity.detail}
                       {...(routable && activity.id
@@ -448,21 +702,16 @@ export function TripEditor({
                     {...stopProps(activity)}
                     index={daily.indexOf(activity)}
                     count={daily.length}
-                    dropIndex={(moved) =>
-                      itinerary.planIndex(
-                        moved,
-                        day,
-                        daily.filter((other) => other.id !== moved).indexOf(activity),
-                      )
-                    }
                   />
                 </Fragment>
               );
             })}
+            {lineAt === shownCount && <DropLine />}
           </ol>
-        ) : (
-          <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>
-        )}
+          {!rows.length && (
+            <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>
+          )}
+        </>
         {daily.length > 1 && (
           <p className="timeline-day__tip">
             {t("Drag a stop to reorder the day, or select it to edit.")}
@@ -470,84 +719,17 @@ export function TripEditor({
         )}
       </div>
 
-      <AddStop
-        days={days}
-        dayLabels={labels}
-        locked={locked}
-        edits={edits}
-        draft={addStopValue}
-        stale={addDraft.stale}
-        onRebase={addDraft.rebase}
-        suggestedTimesForDay={suggestedTimesForDay}
-        onDraftChange={(next) => {
-          if (!next.open && !next.searchText && !next.place && !next.name && !next.detail) {
-            addDraft.clear();
-            return;
-          }
-          addDraft.setValue({
-            open: next.open,
-            searchText: next.searchText,
-            name: next.name,
-            detail: next.detail,
-            day: next.day,
-            startTime: next.startTime,
-            endTime: next.endTime,
-            fingerprint: addFingerprint,
-            ...(next.place
-              ? {
-                  placeId: next.place.id,
-                  ...(next.place.displayName?.text
-                    ? { placeName: next.place.displayName.text }
-                    : {}),
-                  ...(next.place.formattedAddress
-                    ? { placeAddress: next.place.formattedAddress }
-                    : {}),
-                  ...(next.place.location
-                    ? {
-                        latitude: next.place.location.latitude,
-                        longitude: next.place.location.longitude,
-                      }
-                    : {}),
-                }
-              : {}),
-          });
-        }}
-        onRequestCancel={() =>
-          addDiscard.requestClose(() => {
-            addDraft.clear();
-            addRestore.consume("add");
-            edits.clearResults();
-          })
-        }
-      />
-      {addDiscard.confirmation}
-
-      {ideas.length > 0 && (
-        <section className="timeline-ideas" aria-labelledby="timeline-ideas-title">
-          <h4 id="timeline-ideas-title" tabIndex={-1} className="timeline-ideas__title">
-            {t("Ideas")}
-          </h4>
-          <p className="timeline-ideas__hint">
-            {t("Set aside for later. Schedule one on a day from its menu.")}
-          </p>
-          <ol className="timeline" aria-label={t("Stops, {v0}", { v0: t("Ideas") })}>
-            {ideas.map((idea, position) => (
-              <TimelineStop
-                key={idea.id ?? `idea-${position}`}
-                {...stopProps(idea)}
-                index={0}
-                count={1}
-              />
-            ))}
-          </ol>
-        </section>
-      )}
+      <div className="timeline-add-stop">
+        <button
+          type="button"
+          disabled={locked}
+          aria-label={t("Add to Day {v0}", { v0: day })}
+          onClick={() => setAdding({ kind: "day" })}
+        >
+          {t("Add")}
+        </button>
+      </div>
+      {adding?.kind === "day" && panel({ kind: "day", day })}
     </section>
   );
-}
-
-function addMinutes(value: string, amount: number) {
-  const [hour = "09", minute = "00"] = value.split(":");
-  const total = (Number(hour) * 60 + Number(minute) + amount) % (24 * 60);
-  return `${String(Math.floor(total / 60)).padStart(2, "0")}:${String(total % 60).padStart(2, "0")}`;
 }

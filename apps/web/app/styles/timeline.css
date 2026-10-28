@@ -67,6 +67,25 @@ button.day-strip__day[aria-selected="true"] {
   display: grid;
   gap: var(--space-2);
 }
+.timeline-day__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+}
+.timeline-day__head .timeline-day__title {
+  flex: 1;
+  min-width: 0;
+}
+.timeline-day__map {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
 .timeline-day__title {
   margin: 0;
   font-size: var(--font-size-body);
@@ -75,6 +94,20 @@ button.day-strip__day[aria-selected="true"] {
   margin-inline-start: var(--space-1);
   color: var(--text-dim);
   font-weight: 400;
+}
+.timeline-day__title .timeline-day__name {
+  color: var(--text);
+  font-weight: 600;
+}
+.timeline-day__title .timeline-day__name::before {
+  content: "· ";
+  color: var(--text-dim);
+}
+.timeline-day__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  white-space: pre-wrap;
 }
 .timeline-day__staying,
 .timeline-day__tip {
@@ -292,8 +325,42 @@ button.timeline-stop__main:hover {
   background: var(--warn-bg);
   color: var(--warn);
 }
-.timeline-stop[draggable="true"] {
+.timeline-stop[data-drop-row] {
   cursor: grab;
+  -webkit-touch-callout: none;
+  user-select: none;
+}
+.timeline-stop[data-drop-row] .stop-editor {
+  cursor: auto;
+  user-select: text;
+}
+.timeline-stop[data-dragging] {
+  position: relative;
+  z-index: 2;
+  border-radius: var(--radius);
+  background: var(--surface, Canvas);
+  box-shadow: 0 8px 24px color-mix(in srgb, CanvasText 18%, transparent);
+  opacity: 0.92;
+}
+html.is-reordering,
+html.is-reordering * {
+  cursor: grabbing !important;
+  user-select: none;
+}
+.timeline-drop-line {
+  position: relative;
+  height: 0;
+  list-style: none;
+  pointer-events: none;
+}
+.timeline-drop-line::before {
+  content: "";
+  position: absolute;
+  inset-inline: var(--time-col) 0;
+  top: -1px;
+  height: 3px;
+  border-radius: 2px;
+  background: var(--accent);
 }
 
 .timeline-connection {
@@ -626,18 +693,25 @@ button.timeline-stop__time:disabled {
 .timeline-ideas {
   display: grid;
   gap: var(--space-2);
-  margin-top: var(--space-4);
-  padding-bottom: var(--space-4);
+  margin-bottom: var(--space-4);
+  padding: var(--space-2);
+  border-radius: var(--radius);
+}
+.timeline-ideas > .timeline {
+  min-height: 44px;
+}
+.timeline-ideas[data-drop-target],
+button.day-strip__day[data-drop-target] {
+  outline: 2px solid var(--accent);
+  outline-offset: -2px;
+}
+html.is-reordering .timeline[data-empty] {
+  min-height: 44px;
 }
 .timeline-ideas__title {
   margin: 0;
   font-size: var(--font-size-body);
   font-weight: 600;
-}
-.timeline-ideas__hint {
-  margin: 0;
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
 }
 .stop-place-card.stop-editor {
   gap: var(--space-2);
@@ -717,9 +791,6 @@ button.timeline-stop__time:disabled {
 .stop-place-card .item-editor {
   margin: 0;
 }
-.stop-place-card .stop-editor__order {
-  padding: 0;
-}
 .trip-panel__sections {
   display: grid;
   gap: var(--space-3);
@@ -733,4 +804,139 @@ button.timeline-stop__time:disabled {
   padding-inline-start: var(--space-4);
   list-style: disc;
   font-size: var(--font-size-meta);
+}
+
+.trip-editor__distances {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  min-height: 44px;
+  margin-block: var(--space-2);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.trip-editor__distances-switch {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.trip-editor__distances button.settings-switch::after {
+  content: "";
+  position: absolute;
+  inset: -6px 0;
+}
+.timeline-connection__directions,
+.timeline-booking__book {
+  display: inline-flex;
+  align-items: center;
+  min-height: 44px;
+  padding: 0 var(--space-2);
+  color: var(--accent);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+}
+.timeline-booking__book {
+  margin-inline-start: var(--space-2);
+}
+
+.timeline-stop {
+  position: relative;
+}
+.stop-popover {
+  position: absolute;
+  inset-inline: var(--space-2);
+  inset-block-start: calc(100% - var(--space-2));
+  z-index: 20;
+  inline-size: min(22rem, calc(100% - 2 * var(--space-2)));
+  margin-inline-start: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.18));
+  animation: panel-in var(--duration) var(--ease-out);
+}
+.stop-popover .item-editor,
+.stop-popover .stop-editor__time {
+  grid-column: auto;
+  margin: 0;
+  background: transparent;
+}
+.stop-popover .stop-editor__time {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: end;
+}
+.stop-popover button {
+  min-block-size: 44px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .stop-popover {
+    animation: none;
+  }
+}
+.timeline-ideas__head ~ .timeline-ideas {
+  margin-top: 0;
+}
+.timeline-ideas__head {
+  margin-top: var(--space-4);
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel {
+  display: grid;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2, var(--surface));
+}
+.add-panel__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+}
+.add-panel__tabs,
+.add-panel__filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+}
+[data-phone] .add-panel button,
+[data-phone] .add-panel input:not([type="checkbox"]) {
+  min-height: 44px !important;
+}
+.add-panel [role="tab"][aria-selected="true"],
+.add-panel__filters [aria-pressed="true"] {
+  border-color: var(--accent);
+  font-weight: 600;
+}
+.add-panel__body {
+  display: grid;
+  gap: var(--space-2);
+}
+.add-panel__custom label {
+  display: grid;
+  gap: var(--space-1);
+}
+.add-panel__empty {
+  margin: 0;
+  color: var(--text-dim);
+}
+.add-panel__keep {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+}
+.add-panel .stop-editor__search {
+  display: flex;
+  gap: var(--space-2);
+}
+.add-panel .stop-editor__search input {
+  flex: 1 1 0;
+  min-width: 0;
 }
