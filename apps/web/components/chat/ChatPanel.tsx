@@ -127,14 +127,12 @@ export function ChatPanel({
     if (next === view) return;
     setView(next);
   };
-  const { focus } = useTrajectoryFocus();
+  const { focus, claim } = useTrajectoryFocus();
   const [only, setOnly] = useState<AssistantId | undefined>();
   const [jump, setJump] = useState<TurnJump | undefined>();
   const turns = useMemo(() => messageTurns(messages), [messages]);
-  const handled = useRef(focus?.nonce ?? 0);
   useEffect(() => {
-    if (!focus || focus.nonce === handled.current) return;
-    handled.current = focus.nonce;
+    if (!focus || !claim(focus.nonce)) return;
     if (phone) return;
     setOnly(focus.assistant);
     setJump(focus.turn === undefined ? undefined : { turn: focus.turn, nonce: focus.nonce });
