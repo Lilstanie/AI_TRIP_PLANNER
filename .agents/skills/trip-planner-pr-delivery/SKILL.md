@@ -18,9 +18,10 @@ The team tracks sprints in Jira project `TP` (https://headmastereggy.atlassian.n
   - **Reporter** is the person who created the story. When Joey creates a story, Joey is the reporter. If a session creates it on his behalf and the reporter comes out as someone else, set the reporter to Joey.
   - **Assignee** (经办人) is the person who completes the story. When Joey completes a story, Joey is the assignee. Set it on creation and again when the PR merges, if it is empty or someone else.
   - Leave stories that other people created and completed as they are.
+- Set the assignee to Joey when you create the story, not only at merge (`editJiraIssue` `fields`, `{"assignee": {"accountId": "<id>"}}`); a story created by `createJiraIssue` starts with no assignee.
 - Then prefix the GitHub ticket title with the key.
 - Call shapes that work with the connector: `transitionJiraIssue` takes a top-level `transitionId` (Done is `31`), not a `transition` object. `addOrEditJiraIssueComment` takes `commentBody`, not `body`. `editJiraIssue` takes `fields`, for example `{"assignee": {"accountId": "<id>"}}`.
-- Jira list and search calls return a lot by default. Pass `responseFields` (for example `summary`, `status`, `labels`), and fetch `description` for one key at a time, or the call can exceed the token limit.
+- Jira list, search, transition and edit calls return the whole story by default. Pass `responseFields` (for example `summary`, `status`, `labels`), and fetch `description` for one key at a time, or the call can exceed the token limit. Do the same for GitHub: `list_issues` and `issue_read` take `minimal_output`.
 - The cloud container cannot reach atlassian.net directly (proxy 403); use the connector. Without it, ask the user to connect Atlassian MCP.
 - Do not use smart-commit commands (`#done`). No Jira Automation rule moves a story to 完成 when a PR merges, so the story is moved by hand (step 6).
 
@@ -46,7 +47,7 @@ Done: no duplicate PR exists, or you are working on the existing one.
 - A behaviour change under `packages/*/src` or `apps/web/lib` with only Vitest tests needs either a redgreen record or a stated reason no E2E can cover it, in the PR Evidence section. The repository's CLAUDE.md prefers E2E tests as the sole mechanism.
 - Run what `pre-push-checks` selects: `pnpm verify:docs`, `pnpm verify:pairs`, `pnpm verify:protected`, `pnpm verify:e2e-selectors`, `pnpm verify:e2e-artifacts` (root scripts, not `--filter`), Prettier on the changed files, and the package tests/typecheck/lint the diff touches.
 - `verify:pairs` compares inline code between a doc and its `.zh.md`: Prettier can wrap a long inline-code span in one file and not the other, so keep inline-code examples short.
-- Comment policy: `node .agents/skills/review-trip-planner/scripts/check-comment-policy-ci.mjs --event pull_request --base $(git merge-base origin/main HEAD) --head $(git rev-parse HEAD)`.
+- Comment policy: commit first, then `pnpm check:comments` (CI's `added-comments` job runs the same check against the merge base; a comment it flags fails the PR).
 - Add a session log (`session-log` skill) and update en + zh docs. A `packages/shared/src` change also needs an Agent Note and `contract-impact: packages/shared`.
 - Start commit messages with the key (`TP-72 docs: ...`).
   Done: every selected command was run and its real result is written down.
@@ -55,7 +56,7 @@ Done: no duplicate PR exists, or you are working on the existing one.
 
 - Title starts with the key: `TP-72 feat(chat): ...`.
 - Commit trailer and PR footer: the attribution lines the session gives.
-- Body: start with the project-attribution comment and requester line when working in a project thread, then the template's `**Jira:** TP-<n>` line, then the sections Summary, Evidence, Merge Danger.
+- Body: a PR closes an issue only through a keyword written once per issue (`Closes #743, Closes #744`); `Closes #743, #744` closes only the first. Start with the project-attribution comment and requester line when working in a project thread, then the template's `**Jira:** TP-<n>` line, then the sections Summary, Evidence, Merge Danger.
 - Create it as a draft with `gh api $R/pulls -F draft=true -F body=@<file>` (or MCP `create_pull_request` with `draft: true`). The MCP create call does not set assignees. Set them with MCP `issue_write`, method `update`, `issue_number` and `assignees: ["HeadmasterEggy"]`. `update_pull_request` does not take assignees.
 - Then `subscribe_pr_activity` with `owner`, `repo` and `pullNumber`.
 - Run `pnpm clean:output` once the evidence is quoted.
@@ -86,6 +87,7 @@ Done: every check `success`, `mergeable_state` is `clean`.
 
 - Merge PRs you opened in this session, or ones the user named, when green and nothing awaits the user's decision; protected files need the user's OK first. Another person's PR (a teammate's, or one saying "No merge is requested") needs the user's explicit OK for that batch.
 - Mark ready with `gh api -X POST $R/pulls/<n>/ccr/ready_for_review` (GraphQL is blocked; MCP `update_pull_request` with `draft: false` also works), then `gh api -X PUT $R/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`.
+- After the merge, list the issues the PR was meant to close and close any still open (`issue_write`, `state_reason: completed`).
 - Delete the local branch and its worktree after merge. The cloud container cannot delete remote branches; once the repo owner turns on auto-delete, GitHub does it.
 - Jira, by hand after every merge: transition the story to 完成 with `transitionJiraIssue` (`transitionId` 31), add one comment naming the merged PR with `addOrEditJiraIssueComment`, and check that the assignee is right (step 0). No Automation rule does this for us.
 - Tell the user in one line, with the PR link.

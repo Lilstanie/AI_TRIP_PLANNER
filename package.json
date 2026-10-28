@@ -22,6 +22,7 @@
     "verify:pairs": "node .agents/skills/translate-docs/scripts/check-pairs.mjs",
     "test:scripts": "node --test \"scripts/*.test.mjs\"",
     "clean:output": "node scripts/clean-output.mjs",
+    "check:comments": "node scripts/check-comments.mjs",
     "verify:e2e-artifacts": "node scripts/check-e2e-artifacts.mjs"
   },
   "pnpm": {
