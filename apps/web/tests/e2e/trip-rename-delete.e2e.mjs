@@ -178,7 +178,11 @@ try {
   await page.waitForSelector(".workspace-app");
   await settle(page, 800);
   await openChats();
-  await page.locator(".chats-panel.is-open .history-item--trip").first().click();
+  await page
+    .locator(".chats-panel.is-open .history-item:not(.history-item--trip)")
+    .filter({ hasText: NAME })
+    .first()
+    .click();
   await settle(page, 800);
   check(
     (await page.locator(".topbar-title").first().textContent()).trim() === NAME &&

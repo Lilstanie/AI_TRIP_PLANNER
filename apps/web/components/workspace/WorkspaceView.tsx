@@ -20,6 +20,8 @@ import { SidebarResizer } from "./SidebarResizer";
 import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
+import { TripHome } from "./TripHome";
+import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
@@ -71,6 +73,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   } = session;
   const {
     page,
+    homeTripId,
     mobileView,
     preferencesOpen,
     tripOpen,
@@ -190,11 +193,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onNewChat={swap(session.newChat)}
       onNewTrip={swap(session.newTrip)}
       onOpenChat={swap(session.selectConversation)}
-      onOpenTrip={swap(session.selectTrip)}
+      onOpenTrip={openHome}
       onRenameChat={history.rename}
       onDeleteChat={history.delete}
       onRenameTrip={history.renameTrip}
-      onDeleteTrip={history.deleteTrip}
+      onDeleteTrip={deleteTrip}
       deletedTrip={history.deletedTrip}
       searchRef={searchRef}
     />
@@ -208,6 +211,19 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     setTripsTab("calendar");
     viewTransition(layout.showTrips);
   };
+
+  const openHome = (id: string) =>
+    phone ? swap(session.selectTrip)(id) : viewTransition(() => layout.openHome(id));
+  const homeTrip =
+    page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
+  useEffect(() => {
+    if (page === "home" && !homeTrip) layout.showTrips();
+  }, [page, homeTrip, layout]);
+  const deleteTrip = (id: string) => {
+    history.deleteTrip(id);
+    if (page === "home" && homeTripId === id) layout.showTrips();
+  };
+  const sidebarPage = page === "home" ? "trips" : page;
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
@@ -269,7 +285,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       <WorkspaceSidebar
         collapsible={false}
         collapsed={sidebarCollapsed}
-        page={page}
+        page={sidebarPage}
         chatsOpen={false}
         chatCount={catalog.conversations.length}
         tripCount={catalog.trips.length}
@@ -386,7 +402,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         <WorkspaceSidebar
           onToggleCollapsed={layout.toggleSidebar}
           collapsed={sidebarCollapsed}
-          page={page}
+          page={sidebarPage}
           chatsOpen={chatsOpen}
           chatCount={catalog.conversations.length}
           tripCount={catalog.trips.length}
@@ -416,23 +432,35 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       {!narrow && !sidebarCollapsed && (
         <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
       )}
-      {page === "trips" ? (
+      {page !== "workspace" ? (
         <div className="workspace-main">
           {narrow && (
             <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
           )}
           <main className="workspace-shell workspace-shell--trips">
-            <TripsPage
-              tab={tripsTab}
-              onTab={setTripsTab}
-              trips={catalog.trips}
-              activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={swap(session.selectTrip)}
-              onNewTrip={swap(session.newTrip)}
-              onRenameTrip={history.renameTrip}
-              onDeleteTrip={history.deleteTrip}
-              deletedTrip={history.deletedTrip}
-            />
+            {homeTrip ? (
+              <TripHome
+                title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
+                  homeTrip.id,
+                )!}
+                tags={tripTags(homeTrip, locale, settings.displayCurrency, t)}
+                onBack={() => viewTransition(layout.showTrips)}
+                onRename={() => history.renameTrip(homeTrip.id)}
+                onDelete={() => deleteTrip(homeTrip.id)}
+              />
+            ) : (
+              <TripsPage
+                tab={tripsTab}
+                onTab={setTripsTab}
+                trips={catalog.trips}
+                activeTripId={blank ? undefined : catalog.activeTripId}
+                onOpenTrip={openHome}
+                onNewTrip={swap(session.newTrip)}
+                onRenameTrip={history.renameTrip}
+                onDeleteTrip={deleteTrip}
+                deletedTrip={history.deletedTrip}
+              />
+            )}
             {navOpen && (
               <button
                 type="button"

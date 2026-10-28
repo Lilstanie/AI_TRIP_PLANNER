@@ -56,3 +56,32 @@ export function tripMeta(
   );
   return `${brief.destination} · ${dateRange ? `${dateRange} · ` : ""}${length} ${length === 1 ? t("day") : t("days")} · ${total}`;
 }
+
+export function tripTags(
+  trip: TripRecord,
+  locale: AppLocale,
+  displayCurrency: Currency,
+  t: (
+    text: "day" | "days" | "{count} traveller" | "{count} travellers",
+    params?: { count: number },
+  ) => string,
+): string[] {
+  const { brief } = trip.snapshot.plan;
+  const days = tripDays(trip);
+  const travellers = brief.groupSize;
+  return [
+    brief.destination.trim(),
+    dateRangeLabel(brief.dates[0], brief.dates[1], locale) ??
+      `${days} ${days === 1 ? t("day") : t("days")}`,
+    travellers > 0
+      ? t(travellers === 1 ? "{count} traveller" : "{count} travellers", { count: travellers })
+      : "",
+    brief.budgetTotal > 0
+      ? moneyDisplay({
+          currency: effectiveCurrency(brief, displayCurrency),
+          locale,
+          whole: true,
+        }).money(brief.budgetTotal, brief.budgetSource)
+      : "",
+  ].filter(Boolean);
+}
