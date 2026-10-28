@@ -924,6 +924,7 @@ try {
     before = await stable();
     await frame(ideaRow("Birch"), row("Cedar"));
     await begin(ideaRows, "Birch");
+    await row("Cedar").scrollIntoViewIfNeeded();
     const cedarAgain = await centre(row("Cedar"));
     await go(cedarAgain.x, cedarAgain.box.y + cedarAgain.box.height * 0.25);
     const dogwood = await row("Dogwood").boundingBox();
@@ -950,6 +951,7 @@ try {
     );
     await frame(ideaRow("Birch"), row("Cedar"));
     await begin(ideaRows, "Birch");
+    await row("Cedar").scrollIntoViewIfNeeded();
     const last = await centre(row("Cedar"));
     await go(last.x, last.box.y + last.box.height * 0.25);
     await release();

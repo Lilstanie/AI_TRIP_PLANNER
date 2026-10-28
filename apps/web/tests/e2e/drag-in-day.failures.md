@@ -38,6 +38,7 @@ Written before the code (#748, spec #743). Each line is a way the feature could 
 - A long press does not start a drag, or starts it before the press is long.
 - A long press opens the browser context menu or selects text.
 - Releasing a long press without moving opens the place details.
+- A held touch drag in the middle of the list pans the page or is cancelled by the browser.
 
 ## Keyboard
 

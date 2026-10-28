@@ -499,6 +499,38 @@ try {
     await go(pos.x, phone ? pos.y : 5);
     await release();
     await unchanged("a release outside every day and Ideas", before);
+    if (phone) {
+      await chip(1).click();
+      const clipped = await page.evaluate(() => {
+        const bounds = document.querySelector(".day-strip").getBoundingClientRect();
+        const hidden = [...document.querySelectorAll(".day-strip__day")]
+          .map((element) => element.getBoundingClientRect())
+          .find((rect) => rect.right > bounds.right + 12 && bounds.right + 12 < innerWidth);
+        if (!hidden) return null;
+        return {
+          x: (bounds.right + Math.min(hidden.right, innerWidth)) / 2,
+          y: (hidden.top + hidden.bottom) / 2,
+          hit: document
+            .elementsFromPoint(
+              (bounds.right + Math.min(hidden.right, innerWidth)) / 2,
+              (hidden.top + hidden.bottom) / 2,
+            )
+            .some((element) => element.closest("[data-drop-zone]")),
+        };
+      });
+      check(
+        clipped !== null && !clipped.hit,
+        `a Day chip clipped by the strip has a part beyond the strip with no chip showing at ${tag}`,
+        clipped,
+      );
+      if (clipped) {
+        before = requestCount();
+        await begin(rows, "Alder");
+        await go(clipped.x, clipped.y);
+        await release();
+        await unchanged("a release over the clipped part of a Day chip", before);
+      }
+    }
 
     if (!phone) {
       before = requestCount();

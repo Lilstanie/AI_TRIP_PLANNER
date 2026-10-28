@@ -15,5 +15,6 @@ Written before the script (#751, spec #743). Each line is a way the whole intera
 - The removed Ideas helper line is still rendered.
 - A running phone viewport cannot start a drag by long press, or a quick swipe starts one instead of scrolling.
 - Chinese labels are missing on a menu, the panel, the switch or the Directions link.
+- A drag in the walkthrough aims at a point outside the viewport, which no finger can reach, so a drop passes in the test and cannot be made by a person.
 - A page error, a console error or an unexpected dialog appears anywhere in the journey.
 - The run leaves no screenshots or no `result.json`, or the result says passed while a check failed.

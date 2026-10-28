@@ -44,6 +44,7 @@ Written before the code (#749, spec #743). Each line is a way the feature could 
 - A drop released while another edit is being checked sends a second edit.
 - Escape during a drag over a day chip applies the drop, or leaves the day it opened selected with a line showing.
 - Releasing outside every day, chip and Ideas changes the plan.
+- Releasing over the part of a Day chip that is scrolled out of the strip, where no chip shows, drops the Stop on that day.
 
 ## Touch
 

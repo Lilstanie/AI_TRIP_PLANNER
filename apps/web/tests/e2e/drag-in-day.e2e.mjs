@@ -465,6 +465,33 @@ try {
     };
 
     if (phone) {
+      await page.evaluate(() => {
+        window.__cancels = 0;
+        window.addEventListener("pointercancel", () => (window.__cancels += 1), true);
+      });
+      await row("Birch").scrollIntoViewIfNeeded();
+      const topBefore = await scrollTopOf();
+      const held = await row("Birch").locator(".timeline-stop__name").boundingBox();
+      await touchSend("touchStart", held.x + 20, held.y + held.height / 2);
+      await sleep(700);
+      for (let step = 1; step <= 8; step += 1)
+        await touchSend("touchMove", held.x + 20, held.y + held.height / 2 + step * 12);
+      await sleep(200);
+      const holding = {
+        line: await line.count(),
+        top: [topBefore, await scrollTopOf()],
+        cancels: await page.evaluate(() => window.__cancels),
+      };
+      await cdp.send("Input.dispatchTouchEvent", { type: "touchCancel", touchPoints: [] });
+      await sleep(300);
+      check(
+        holding.line === 1 && holding.top[0] === holding.top[1] && holding.cancels === 0,
+        `a held touch drag moves the stop without panning the page or being cancelled at ${tag}`,
+        holding,
+      );
+      await noChange("a held touch drag cancelled in the middle of the list");
+    }
+    if (phone) {
       await row("Alder").scrollIntoViewIfNeeded();
       const topBefore = await scrollTopOf();
       const start = await row("Alder").locator(".timeline-stop__name").boundingBox();

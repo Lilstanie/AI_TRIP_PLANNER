@@ -46,6 +46,10 @@ export type RowDrag = HTMLAttributes<HTMLLIElement> & {
   "data-dragging"?: "true";
 };
 
+function showsZone(zone: HTMLElement, x: number, y: number): boolean {
+  return document.elementsFromPoint(x, y).some((element) => zone.contains(element));
+}
+
 function targetAt(
   source: DragSource,
   x: number,
@@ -58,10 +62,12 @@ function targetAt(
     const bounds = element.getBoundingClientRect();
     if (element.dataset.dropEnd !== undefined) {
       if (x < bounds.left || x > bounds.right || y < bounds.top || y > bounds.bottom) continue;
+      if (!showsZone(element, x, y)) continue;
       return { zone, index: END_OF_DAY };
     }
     if (x < bounds.left || x > bounds.right) continue;
     if (y < bounds.top - ZONE_REACH || y > bounds.bottom + ZONE_REACH) continue;
+    if (!showsZone(element, x, Math.min(Math.max(y, bounds.top), bounds.bottom - 1))) continue;
     const middles = [...element.querySelectorAll<HTMLElement>(":scope > [data-drop-row]")]
       .filter((row) => row.dataset.dropRow !== source.id)
       .map((row) => {
