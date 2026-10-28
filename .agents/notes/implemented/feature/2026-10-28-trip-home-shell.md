@@ -20,6 +20,10 @@ entry cards, map) had no page to live on.
 - The shell is `TripHome`: a header (back button, title heading, the Trips page's Rename and Delete menu), one
   list of tags built by `tripTags` from the brief with empty values dropped, then `children` for the main
   column and an optional `aside` column. Later tickets pass sections as children; the map is `TripHomeMap` in `aside`, fed by the opened trip's plan so it never changes the active conversation.
+- Three entry cards (`TripHomeCards`, ticket #768) fill the main column: Itinerary and Preferences select the
+  trip with `selectTrip`, which loads the trip's own snapshot rather than a chat's, then open the Trip panel
+  or the Preferences panel; Calendar opens the Trips page calendar at the trip's start month. Counts come from
+  the trip's saved plan and draft and are left out at zero.
 - A trip deleted while its page is open, from the menu or from the Chats panel, returns to the Trips page on
   the tab it came from; the Trips page's Undo notice restores it.
 - Deleting the active trip cleared the conversation but kept `activeTripId` on the removed trip, which made
