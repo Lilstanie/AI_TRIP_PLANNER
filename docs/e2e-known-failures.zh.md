@@ -16,6 +16,22 @@
 | ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
 | `timeline` | fare-decimals 控制台检查记录四个 fixture 地点详情的 404 响应。fixture 使用占位地点 ID，但未模拟其详情；JPY/AUD/KRW 票价和路线检查全部通过（总计 99/100 项通过）。 | 暂无  |
 
+以下脚本也在未修改的 `main` `c8ebd9b`（2026-10-27）上失败：在干净的 worktree 中以
+`pnpm --filter @trip/web e2e <script> --prod` 运行，不设置额外环境变量。它们在 Mindtrip 行程分支上的失败方式相同，
+因此不是行程相关工单造成的。多数脚本是为已被更平静的工作区（#740）取代的行程抽屉编写的。
+
+| 脚本                 | 失败内容                                                                                  | Issue |
+| -------------------- | ----------------------------------------------------------------------------------------- | ----- |
+| `timeline`           | 第一项检查后，截图一直等待不再渲染的 `.workspace-drawer--trip`。                          | 暂无  |
+| `trip-add-stop`      | 通过 14 项检查后等待按钮 “Ask AI about this day”，随后超时。                              | 暂无  |
+| `auto-save-places`   | 通过 35 项检查后，“the priced stop raises the estimate” 失败：估算仍为空。                | 暂无  |
+| `drawer-walkthrough` | 规划后等待 `.workspace-drawer--trip .trip-editor`，随后超时。                             | 暂无  |
+| `itinerary`          | “Day 1 timeline is shown” 失败，且在 `.workspace-drawer--trip` 下找不到站点行。           | 暂无  |
+| `settle-path`        | “the trip has an estimated total” 读到 0，其后所有总额检查都失败。                        | 暂无  |
+| `check-entry-point`  | 通过 28 项检查后等待文本框 “Message AI Trip Planner”，随后超时。                          | 暂无  |
+| `notice-keys`        | 规划后等待 `.workspace-drawer--trip .trip-editor`，随后超时。                             | 暂无  |
+| `narrow-time-editor` | 在 1001 px 等待按钮 “Close your trip”，随后超时。                                         | 暂无  |
+
 `phone-state` 的重新加载现在能恢复 Map：脚本在恢复循环前重新加载一次，因为陈旧编辑段落会让布局持久化暂停直到重新加载。这一暂停是产品缺口，记录在 `apps/web/tests/e2e/phone-state.failures.md`。
 
 <a id="covered-regressions"></a>

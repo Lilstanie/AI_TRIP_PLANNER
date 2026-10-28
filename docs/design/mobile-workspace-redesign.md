@@ -26,7 +26,7 @@ The traveller accepted the recommendations for Q4–Q14.
 - **Mine:** saved Trips are the primary content, with recent chats secondary. Put search at the top,
   group account and settings behind one entry, and place creation actions beside the content they create.
 - **Manual editing:** retain phone editing of dates, budget, Stops and Stop order. Use bottom sheets
-  for individual changes and a full page for complex editing.
+  for Brief changes and a small popover on the row for Stop changes.
 - **Map and Trip:** retain separate full-screen views, sharing the selected day and Stop. Contextual
   actions link them: opening a Stop on the map locates that Stop, and returning to Trip preserves context.
 - **Chat:** a compact top trip summary opens Brief details; the composer stays at the bottom. Show at
@@ -48,7 +48,7 @@ The baseline is main commit `9343038bb5a136fca97a9bfdd3a9bea361515003` (#713).
   visit on the other, and revisions retain a valid day and clear only a removed Stop.
 - Chat shows the compact Brief, at most two blank-chat examples, live specialist progress, and
   completion or failure feedback while preserving the active tab.
-- Brief and simple Stop edits use bottom sheets; complex Stop details use a full page. Unfinished
+- Brief edits use bottom sheets; Stop edits open as a popover on the row. Unfinished
   Brief fields survive tab switches and confirm before a close discards them. Stop edits apply on
   submit and close without asking, failed changes keep their values, and an existing Plan uses the
   explicit Replan trip action.

@@ -14,6 +14,8 @@ The empty-day view directs travellers to chat or to move an existing Stop from a
 
 ## Decision
 
+Partly superseded by [One itinerary column that edits at once](2026-10-27-itinerary-interaction.md): confirm-before-save, draft protection, discard confirmation and the sheet or full-page Stop editors no longer apply to the itinerary.
+
 Accepted in interview round one (the traveller answered "all as recommended"):
 
 - Cover desktop, tablet and phone with a shared information hierarchy and adaptive layouts.

@@ -237,8 +237,6 @@ export const WORKSPACE_ZH = {
   Cancel: "取消",
   Stops: "停靠点",
   Undo: "撤销",
-  "Set aside for later. Schedule one on a day from its menu.":
-    "暂留待选。可通过菜单将其安排到某一天。",
   Booked: "已预订",
   Stop: "停靠点",
   "Result source": "结果来源",

@@ -258,12 +258,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     layout restores the last tab, including older Chat/Map choices.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
-    closing returns focus to the title. Brief and single-field Stop edits are bottom sheets with
-    44 px targets; complex Stop details use a full page. The targets include each sheet's close
+    closing returns focus to the title. Brief edits are bottom sheets with 44 px targets; Stop
+    edits open as a small popover on the row, never a sheet or page. The targets include each sheet's close
     button and primary action, every When day cell, both month arrows, Clear, and every Who − and +
     stepper button.
   - A changed Brief sheet keeps its values through tab switches and asks before Escape, close, outside
-    dismissal or browser Back discards them. Stop sheets, popovers and full pages apply on submit and
+    dismissal or browser Back discards them. Stop popovers apply on submit and
     close without asking: Escape, Cancel, outside dismissal and Back drop what was typed, and nothing
     is kept as a draft or listed after navigation. A failed time or place change keeps the entered
     values and shows the error in place. Brief edits on a Trip with a Plan use the explicit Replan trip
@@ -764,7 +764,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   estimates footer until a message exists. Mine with no trips and no saved chat shows the Trips heading,
   New trip and "No trips yet."; the search field, the Trips and Calendar switch and the Chats section
   (with its blank row and New chat) appear once there is something to search, switch or open. A day with
-  no stops says "Nothing planned for this day yet." and leaves Ask AI about this day and Add place as the
+  no stops says "Nothing planned for this day yet." and leaves Ask AI about this day and Add to Day N as the
   day's own controls. The empty Trajectory says "Each step the assistant takes will be listed here after
   you send a message." beside Plan in Chat; a phone Trip drawer without a plan offers Plan in Chat only.
   See the [empty phone screens Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-empty-states.md).

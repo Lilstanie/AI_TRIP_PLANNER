@@ -480,11 +480,6 @@ export function TripEditor({
         aria-labelledby="timeline-ideas-title"
         {...(overIdeas ? { "data-drop-target": "true" } : {})}
       >
-        {ideas.length > 0 && (
-          <p className="timeline-ideas__hint">
-            {t("Set aside for later. Schedule one on a day from its menu.")}
-          </p>
-        )}
         <ol
           className="timeline"
           data-drop-zone="ideas"
