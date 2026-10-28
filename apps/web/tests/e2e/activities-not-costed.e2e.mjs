@@ -92,11 +92,8 @@ try {
       `${language}: Activities with no priced stop reads "${copy.notCosted}" with no amount`,
       rows,
     );
-    check(
-      copy.unpriced.test(activities),
-      `${language}: Activities keeps its unpriced count`,
-      activities,
-    );
+    const line = await card.locator("summary").innerText();
+    check(copy.unpriced.test(line), `${language}: the budget line shows the unpriced count`, line);
     check(
       transport.includes(copy.notCosted),
       `${language}: Transport still reads "${copy.notCosted}"`,

@@ -152,8 +152,8 @@ try {
   check(
     !(await lastReply()).includes("CNY 5,000") &&
       (await budgetChip()).includes("AUD") &&
-      (await page.locator(".trip__budget-delta").textContent())?.includes("AUD"),
-    "assistant, visible budget and gap no longer show the stale CNY source",
+      (await page.locator(".trip__budget").textContent())?.includes("AUD"),
+    "assistant, visible budget and limit no longer show the stale CNY source",
   );
 
   phase = "replace AUD with JPY source";
@@ -176,8 +176,8 @@ try {
   );
   check(
     (await budgetChip()).includes("JPY") &&
-      (await page.locator(".trip__budget-delta").textContent())?.includes("JPY"),
-    "new JPY source is reflected by the budget display and gap",
+      (await page.locator(".trip__budget").textContent())?.includes("JPY"),
+    "new JPY source is reflected by the budget display and limit",
   );
 
   phase = "replace JPY source with bare AUD";
@@ -202,8 +202,8 @@ try {
   check(
     !(await lastReply()).includes("JPY 500,000") &&
       (await budgetChip()).includes("JPY") &&
-      (await page.locator(".trip__budget-delta").textContent())?.includes("JPY"),
-    "assistant, converted display and gap agree after the bare AUD replacement",
+      (await page.locator(".trip__budget").textContent())?.includes("JPY"),
+    "assistant, converted display and limit agree after the bare AUD replacement",
   );
   phase = "set new CNY source";
   await message("Set the total budget to CNY 5000.", {
