@@ -542,6 +542,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
 
+The Trajectory chrome uses the glass tokens on floating surfaces only: the Simple and Full view switch, the full view toolbar and the record inspector (`glass-float`, `glass-float--raised`, so reduced transparency and high contrast give the solid surface). Rows, the timeline and the ledger stay solid. Secondary text is the primary text colour mixed 74% into the surface, which keeps 4.5:1 on glass in light and dark. Data, search, jumps and the two views are unchanged. The `trajectory-restyle` E2E script stores before and after screenshots at 1440 and 390 px in English and Chinese under `output/playwright/trajectory-restyle/` and checks glass, contrast, overflow and reduced transparency. See the [Trajectory glass restyle note](../.agents/notes/implemented/feature/2026-10-28-trajectory-glass-restyle.md).
+
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,

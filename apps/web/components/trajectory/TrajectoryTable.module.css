@@ -58,7 +58,7 @@
   padding: 0 8px;
   overflow: hidden;
   border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   background: var(--dsw-specific-sidebar-fill);
   font: var(--dsw-font-xxs-12);
   font-weight: 500;
@@ -664,8 +664,9 @@
   max-width: calc(100% - 280px);
   min-width: 0;
   min-height: 0;
-  border-left: 0.5px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-bg-layer-1);
+  margin: var(--space-2) var(--space-2) var(--space-2) 0;
+  overflow: hidden;
+  border-radius: var(--radius-lg);
 }
 
 .detailsResizeHandle {
@@ -723,7 +724,7 @@
 .detailsLocation {
   min-width: 0;
   overflow: hidden;
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   font: 11px/16px var(--ds-font-family-code);
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -778,7 +779,7 @@
   flex: none;
   padding: 0 9px;
   border: 0;
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   background: transparent;
   cursor: pointer;
   font: var(--dsw-font-xs-13);
@@ -1134,15 +1135,17 @@
     bottom: 0;
     width: min(92%, 420px);
     max-width: 92%;
-    border-left-color: var(--dsw-alias-border-l3);
-    box-shadow: -12px 0 32px rgba(0, 0, 0, 0.14);
+    margin: var(--space-2);
   }
 }
 
 @media (max-width: 520px) {
   .details {
-    width: 100%;
-    max-width: 100%;
+    inset: 0;
+    width: auto;
+    max-width: none;
+    margin: 0;
+    border-radius: 0;
   }
   .detailsResizeHandle {
     display: none;
@@ -1159,11 +1162,10 @@
   }
   .details {
     flex: 1 1 0;
-    width: 100%;
-    max-width: 100%;
+    width: auto;
+    max-width: none;
     min-height: 0;
-    border-top: 0.5px solid var(--dsw-alias-border-l2);
-    border-left: 0;
+    margin: 0 var(--space-2) var(--space-2);
   }
   .detailsResizeHandle {
     display: none;
@@ -1331,4 +1333,9 @@
   border: 0 !important;
   border-radius: 0 !important;
   background: transparent !important;
+}
+
+[data-trajectory-phone] .details {
+  margin: 0;
+  border-radius: 0;
 }

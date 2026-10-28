@@ -297,12 +297,13 @@
   min-height: 0;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   margin-bottom: var(--space-2);
 }
 
 .trajectory-tab {
   display: flex;
+  background: var(--surface);
   flex: 1;
   flex-direction: column;
   min-width: 0;
