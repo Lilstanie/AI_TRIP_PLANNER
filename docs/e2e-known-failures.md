@@ -26,7 +26,6 @@ drawer that the calmer workspace (#740) replaced.
 | Script               | What fails                                                                                                 | Issue    |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
 | `timeline`           | After the first check the screenshot waits forever for `.workspace-drawer--trip`, which no longer renders. | none yet |
-| `trip-add-stop`      | After 14 checks it waits for the button "Ask AI about this day", then times out.                           | none yet |
 | `auto-save-places`   | After 35 checks "the priced stop raises the estimate" fails: the estimate stays empty.                     | none yet |
 | `drawer-walkthrough` | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
 | `itinerary`          | "Day 1 timeline is shown" fails and no stop rows are found under `.workspace-drawer--trip`.                | none yet |
