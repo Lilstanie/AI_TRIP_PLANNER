@@ -26,9 +26,11 @@ const activity = (id, location, day, startTime, endTime) => ({
 const tip = (kind, detail, packing) => ({ kind, detail, ...(packing ? { packing } : {}) });
 const EN = {
   attraction: "St. Kilda Pier: Sight candidate rated 4.5 by visitors. Verify opening hours.",
-  customs: "Tip generously only where service is not included. Locals queue politely.",
+  customs:
+    "Shops open 9 a.m. to 5 p.m. daily, e.g. in the CBD, and U.S. dollars are not taken. Locals queue politely.",
   safety: "Keep copies of your documents",
-  entry: "Check official entry rules for your passport; they can change. Verify before booking.",
+  entry:
+    "Planning context for December 2030 only; recheck guidance for the remaining months through January 2031. Check official entry rules for your passport; they can change. Verify before booking.",
   weather: "Mild days and cool evenings are typical. Check the forecast before departure.",
   note: "SIXTH tip that must not appear. It is cut.",
   seventh: "SEVENTH tip that must not appear.",
@@ -38,7 +40,8 @@ const ZH = {
   attraction: "圣基尔达码头：评分 4.5 的景点。前往前请确认开放时间。",
   customs: "只在不含服务费时给小费。当地人排队很有礼貌。",
   safety: "保存证件复印件",
-  entry: "请查看护照的官方入境要求；要求可能会变。预订前请再确认。",
+  entry:
+    "以下仅为2030年12月的规划参考；2031年1月之前的其余月份请重新查看。请查看护照的官方入境要求；要求可能会变。预订前请再确认。",
   weather: "天气温和，晚间偏凉。出发前请查看预报。",
   note: "第六条不应出现。它被截掉了。",
   seventh: "第七条不应出现。",
@@ -48,7 +51,7 @@ const EXPECT = {
   en: {
     texts: [
       "St. Kilda Pier: Sight candidate rated 4.5 by visitors.",
-      "Tip generously only where service is not included.",
+      "Shops open 9 a.m. to 5 p.m. daily, e.g. in the CBD, and U.S. dollars are not taken.",
       "Keep copies of your documents",
       "Check official entry rules for your passport; they can change.",
       "Mild days and cool evenings are typical. Check the forecast before departure.",
@@ -260,6 +263,15 @@ try {
       items.map((item) => item.detail),
     );
     const packing = items.find((item) => item.kind === "weather-packing")?.packing ?? [];
+    check(
+      items.filter((item) => item.kind === "attraction").length <= 1,
+      `fresh ${name}: at most one place to explore`,
+    );
+    check(
+      /official sources/i.test(items.find((item) => item.kind === "entry-health")?.detail ?? ""),
+      `fresh ${name}: the entry and health tip keeps a short verify clause`,
+      items.find((item) => item.kind === "entry-health")?.detail,
+    );
     check(packing.length >= 1 && packing.length <= 4, `fresh ${name}: packing is short`, packing);
     check(
       (guide?.assumptions ?? []).some((line) => /official government sources/.test(line)),

@@ -273,7 +273,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         chatsOpen={false}
         chatCount={catalog.conversations.length}
         tripCount={catalog.trips.length}
-        onChats={() => undefined}
         onTrips={showTrips}
         onCalendar={showCalendar}
         onNewTrip={swap(session.newTrip)}
