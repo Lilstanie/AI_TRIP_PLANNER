@@ -200,8 +200,7 @@ export const WORKSPACE_ZH = {
   "Nothing saved yet.": "还没有已保存的地点。",
   "Saved places": "已保存的地点",
   "Search places": "搜索地点",
-  "Ask AI about this day": "向 AI 咨询这一天",
-  "Ask AI about {v0}": "向 AI 咨询 {v0}",
+  "Ask AI": "询问 AI",
   "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.":
     "请结合当前行程，调整第 {v1} 天的 {v0} 安排。",
   "Suggest improvements for Day {v0}, taking the rest of my current plan into account.":
