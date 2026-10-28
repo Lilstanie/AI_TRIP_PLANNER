@@ -21,8 +21,10 @@ Spec #755: New trip is the one sidebar entry for a new conversation. Phone Mine 
 
 ## Validation
 
-See the commit report; commands and results are listed in the hand-off.
+- `sidebar-no-chat-plus --prod`: red first (Mine selector clash), then ok; `sidebar-entries --prod`: ok. Output in `apps/web/output/playwright/sidebar-no-chat-plus/`.
+- Updated scripts `progressive-empty-workspace`, `workspace-walkthrough`, `liquid-glass`: ok. `settings`, `workspace-performance`, `check-entry-point` fail the same way on the parent commit (settings and performance verified there; check-entry-point is listed in `docs/e2e-known-failures.md`). `profile-home-base` fails on its first Where click, before the changed lines.
+- `vitest run tests/components/workspace`: 45 passed. `tsc --noEmit`, `check:comments`, `verify:docs`, `verify:pairs`: clean.
 
 ## Notes for the next person
 
-Unit tests under `apps/web/tests/components/workspace` that click the sidebar New chat need the same move.
+The component tests in `apps/web/tests/components/workspace` now start blank conversations with New trip.
