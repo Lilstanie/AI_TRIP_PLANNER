@@ -838,7 +838,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Visit progress.** Every stop has one state: Planned (the default for existing trips), Visited or
   Skipped. Its menu changes the state, and Undo restores the previous plan. The label is saved with the
   stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
-  booking and cost, including the plan total; it does not select the next stop.
+  booking and cost, including the plan total; it does not select the next stop. Only Visited and
+  Skipped show a tag on the row; Planned shows none.
+- **Quiet stop rows.** A stop row shows its time, name, one short line and the price or "Price
+  unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
+  that need action stay visible through the Open item badge and the conflict list under the row. The
+  time cell, the flight, stay and transfer icons and the idea icon have no fill or ring; the time
+  still changes colour on hover and while its popover is open, and keeps its focus ring. A day ends
+  on its Add button with no helper sentence. Verify with
+  `pnpm --filter @trip/web e2e quiet-stop-rows` (1440 px, 390 px and Chinese).
 - **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-stop-menu-popovers.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Adjust schedule, Edit details, Add a comment,

@@ -347,8 +347,8 @@ async function run(browser, { width, height, tag }) {
     (await stopsIn(dayList(3))
       .filter({ hasText: NOTE })
       .first()
-      .locator(".timeline-tag--ok")
-      .count()) === 1,
+      .locator(".timeline-tag")
+      .count()) === 0,
     `${tag}: the picked place is saved and confirmed`,
   );
   searchReply = { places: [] };
