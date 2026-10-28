@@ -269,7 +269,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const closeHomeAction = () => {
     closeTripAction();
-    requestAnimationFrame(() => homeActionTarget.current?.focus({ preventScroll: true }));
+    homeActionTarget.current?.focus({ preventScroll: true });
   };
   const chooseHomeDay = (day: number) => {
     layout.focusMapDay(day);

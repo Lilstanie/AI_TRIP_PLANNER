@@ -309,6 +309,7 @@ try {
   await action(page, /^Itinerary/).click();
   const itinerary = dialog(page, "Itinerary");
   await itinerary.waitFor();
+  await itinerary.getByRole("heading", { name: /16 Nov/ }).waitFor();
   const boxes = await page.evaluate(() => {
     const main = document.querySelector(".trip-home__main").getBoundingClientRect();
     const drawer = document.querySelector(".trip-home-action-surface").getBoundingClientRect();
@@ -327,6 +328,14 @@ try {
     (await page.evaluate(() => document.activeElement?.textContent?.includes("Itinerary"))) ===
       true,
     "Escape closes the drawer and restores focus to its card",
+  );
+  await action(page, /^Itinerary/).click();
+  await itinerary.waitFor();
+  await itinerary.getByRole("button", { name: /Close/ }).click();
+  await itinerary.waitFor({ state: "hidden" });
+  check(
+    (await action(page, /^Itinerary/).evaluate((node) => node === document.activeElement)) === true,
+    "Close restores focus to its card",
   );
 
   await action(page, /^Ideas/).click();
@@ -348,6 +357,10 @@ try {
   );
   await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
   await bookings.waitFor({ state: "hidden" });
+  check(
+    (await action(page, /^Bookings/).evaluate((node) => node === document.activeElement)) === true,
+    "outside press restores focus to its card",
+  );
 
   await action(page, /^Trip preferences/).click();
   const preferences = dialog(page, "Trip preferences");
@@ -367,13 +380,18 @@ try {
       (await calendar.getByText("Sydney Opera House", { exact: true }).count()) >= 1,
     "Calendar is a read-only view of this Trip's month and activity",
   );
-  await calendar.getByRole("button", { name: /14 November 2030/i }).click();
+  await calendar.getByRole("button", { name: /16 Nov/i }).click();
   await dialog(page, "Itinerary").waitFor();
   const mapDay = await page.locator(".trip-home__map").getAttribute("data-day");
-  check(mapDay === "1", "choosing a calendar date focuses the map on that day", mapDay);
+  check(mapDay === "3", "choosing a calendar date focuses the map on that day", mapDay);
   check(
     (await dialog(page, "Calendar").count()) === 0,
     "choosing a calendar date replaces Calendar with Itinerary",
+  );
+  check(
+    (await dialog(page, "Itinerary").getByRole("heading", { name: /16 Nov/ }).count()) ===
+      1,
+    "choosing a calendar date exposes the matching Itinerary day",
   );
   await page.keyboard.press("Escape");
 
@@ -445,6 +463,18 @@ try {
     "the phone action drawer fills the screen",
     phoneDrawer,
   );
+  const phoneItineraryDay = phoneDialog.getByRole("heading", { name: /14 Nov/ });
+  await phoneItineraryDay.scrollIntoViewIfNeeded();
+  const phoneDayBox = await phoneItineraryDay.boundingBox();
+  check(
+    phoneDayBox &&
+      phoneDayBox.y >= 0 &&
+      phoneDayBox.y + phoneDayBox.height <= 844 &&
+      (await phoneItineraryDay.isVisible()),
+    "phone Itinerary content is visible and scrollable",
+    phoneDayBox,
+  );
+  await phoneItineraryDay.scrollIntoViewIfNeeded();
   check((await noOverflow(phone.page)) <= 0, "phone layout has no horizontal overflow");
   await phone.page.screenshot({ path: `${OUT}/drawer-390-en.png` });
   check(phone.errors.length === 0, "phone journey has no page or console errors", phone.errors);

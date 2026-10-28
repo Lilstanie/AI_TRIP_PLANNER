@@ -29,7 +29,7 @@ function ItineraryContent({ plan }: { plan: TripPlan }) {
   const { locale, t } = useLocale();
   const itinerary = buildItinerary(plan, () => undefined);
   return (
-    <div className="trip-home-action itinerary">
+    <div className="trip-home-action">
       {Array.from({ length: dayCount(plan) }, (_, index) => index + 1).map((day) => {
         const stops = itinerary.stopsOn(day);
         return (
