@@ -13,6 +13,7 @@ now. Implementation history and browser acceptance for each phase are in the
 | Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                                                            | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                                                | `ChatsPanel`, `TripCover`                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                                                         | `TripsPage`, `TripCover`                                                                                                |
+| Trip home         | Opened by choosing a trip card, a calendar band or a trip in the Chats search: trip title, back button, Rename and Delete menu, one line of tags from the plan's brief, the trip's chats and a box for a new chat, the trip map                                                                                                            | `TripHome`, `TripHomeChats`, `TripHomeMap`, `TripsPage`, `WorkspaceView`                                                |
 | Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                                                | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                                                | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
 | Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                                                           | `ChatPanel`                                                                                                             |
@@ -66,6 +67,40 @@ now. Implementation history and browser acceptance for each phase are in the
     next, drawing each trip as a band over its days, filled with the dark colour of its cover palette
     so the white label stays readable, labelled where it starts and at each week's start, with the label running across that week's days of the bar and ending in an ellipsis only if it still does not fit; it opens on the next trip's month. Calendar labels and accessible names reuse the Trips card disambiguation for trips with the same destination, dates, group size and budget; compact phone bars show a contrasting short destination prefix and ordinal (for example, `Syd·1`) so duplicate trips stay visibly identifiable. Each trip band announces its full title and inclusive start and end dates using the same full localized weekday, date and year format as the date cells, with UTC keeping calendar dates stable across time zones. Each date cell has a full localized weekday, date and year name; today has `aria-current="date"`; arrow keys move visible focus across every date, including empty dates. Choosing a trip, a chat, New chat or New trip returns
     to the workspace.
+  - **Trip home** is a page of its own between the Trips page and the conversation. Choosing a trip card,
+    a trip band on the calendar or a trip in the Chats search opens it (`layout` page `home`, carrying the
+    trip id); opening a chat from Chats still opens the conversation. On a phone a trip card in Mine, or a
+    calendar band there, opens the Trip home too, without the tab bar; Back returns to Mine on the tab it
+    came from, and the Calendar card opens Mine on its Calendar tab at the trip's month. The heading is the trip's title as the Trips cards show it, so two identical trips
+    read `Trip to Sydney · 1` and `· 2`. A back button named "Back to trips" returns to the Trips page on the tab
+    the trip was opened from. The menu next to the title reuses the Trips page's Rename and Delete; Delete
+    returns to Trips, where the existing Undo notice restores the trip and its chats. A trip deleted
+    while its page is open, from any list, also returns to Trips. One line of tags, a labelled list, shows
+    the brief's destination, dates (or the number of days when the dates do not read as a range), travellers
+    and budget in the trip's currency, and leaves out any that is empty. Under the tags, `TripHomeChats`
+    lists the trip's chats under a "Chats" heading, newest first by last update (chats saved in the same
+    millisecond list the one started last first), each row a button with
+    the chat title and its date in the interface language. Choosing a row opens that chat in the
+    conversation view with the trip's latest saved plan: when the chat's own snapshot is older than the trip's,
+    the trip's plan is shown and kept, so opening an older chat never downgrades the trip, and only an edit
+    changes it. Below the list a box named "New chat" and a "Start chat" button start a new chat on
+    the trip: the chat keeps the trip's plan, becomes the active chat, and carries any typed text into the
+    composer without sending it. A trip with no chats shows only the box, and an empty box still starts a
+    chat; an empty box reuses the trip's untouched empty chat instead of storing another. Starting a chat while the assistant answers on another chat stops that answer, as opening any
+    chat does. Three entry cards sit under the chats (`TripHomeCards`): Itinerary with the number of
+    scheduled stops, which selects the trip and opens the conversation view with the Trip panel on its
+    itinerary; Calendar, which opens the Trips page on the Calendar tab at the month the trip starts, even
+    for a past trip; and Preferences with the number of preferences set on the trip, which selects the trip
+    and opens the Preferences panel. A count of zero is left out, the cards read the trip's own saved plan
+    and draft rather than the open conversation, and there is no card for Ideas, Bookings, Media or Receipts.
+    The cards stack in one column below 640 px. The page keeps a main column and an optional side column. The side column holds the trip map (`TripHomeMap`): the existing `TripMapCanvas` fed by
+    the stops of the trip whose page is open, not of the active conversation, so its markers and its
+    controls are the workspace map's and it adds none; its region is named "Trip map" (行程地图). Two
+    columns show from 821 px up; at 820 px and below the map stacks under the content, 60% of the
+    viewport tall up to 420 px, giving header, tags, content, map in one column on a phone. A trip whose
+    places cannot be found keeps the map's own notice instead of markers. The [Trip home Agent Note](../.agents/notes/implemented/feature/2026-10-28-trip-home-shell.md)
+    records why; `trip-home-shell`, `trip-home-chats`, `trip-home-cards`, `trip-home-map`, `trip-home-older-chat` and
+    `trip-home-walkthrough` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for

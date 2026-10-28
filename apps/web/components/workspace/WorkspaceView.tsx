@@ -20,6 +20,12 @@ import { SidebarResizer } from "./SidebarResizer";
 import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
+import { TripHome } from "./TripHome";
+import { TripHomeCards } from "./TripHomeCards";
+import { conversationTitle, tripConversations } from "@/lib/workspace/catalog";
+import { TripHomeChats } from "./TripHomeChats";
+import { TripHomeMap } from "./TripHomeMap";
+import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
@@ -71,6 +77,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   } = session;
   const {
     page,
+    homeTripId,
     mobileView,
     preferencesOpen,
     tripOpen,
@@ -190,24 +197,47 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onNewChat={swap(session.newChat)}
       onNewTrip={swap(session.newTrip)}
       onOpenChat={swap(session.selectConversation)}
-      onOpenTrip={swap(session.selectTrip)}
+      onOpenTrip={openHome}
       onRenameChat={history.rename}
       onDeleteChat={history.delete}
       onRenameTrip={history.renameTrip}
-      onDeleteTrip={history.deleteTrip}
+      onDeleteTrip={deleteTrip}
       deletedTrip={history.deletedTrip}
       searchRef={searchRef}
     />
   );
   const [tripsTab, setTripsTab] = useState<TripsTab>("trips");
+  const [calendarTripId, setCalendarTripId] = useState<string>();
   const showTrips = () => {
     setTripsTab("trips");
+    setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
   const showCalendar = () => {
     setTripsTab("calendar");
+    setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
+  const openCalendarAt = (id: string) => {
+    setTripsTab("calendar");
+    setCalendarTripId(id);
+    viewTransition(layout.showTrips);
+  };
+
+  const openHome = (id: string) => {
+    setCalendarTripId(undefined);
+    viewTransition(() => layout.openHome(id));
+  };
+  const homeTrip =
+    page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
+  const leaveHome = useRef(layout.showTrips);
+  leaveHome.current = layout.showTrips;
+  const homeMissing = page === "home" && !homeTrip;
+  useEffect(() => {
+    if (homeMissing) leaveHome.current();
+  }, [homeMissing]);
+  const deleteTrip = history.deleteTrip;
+  const sidebarPage = page === "home" ? "trips" : page;
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
@@ -269,7 +299,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       <WorkspaceSidebar
         collapsible={false}
         collapsed={sidebarCollapsed}
-        page={page}
+        page={sidebarPage}
         chatsOpen={false}
         chatCount={catalog.conversations.length}
         tripCount={catalog.trips.length}
@@ -386,7 +416,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         <WorkspaceSidebar
           onToggleCollapsed={layout.toggleSidebar}
           collapsed={sidebarCollapsed}
-          page={page}
+          page={sidebarPage}
           chatsOpen={chatsOpen}
           chatCount={catalog.conversations.length}
           tripCount={catalog.trips.length}
@@ -416,23 +446,69 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       {!narrow && !sidebarCollapsed && (
         <SidebarResizer width={sidebarWidth} onChange={layout.resizeSidebar} />
       )}
-      {page === "trips" ? (
+      {page !== "workspace" ? (
         <div className="workspace-main">
-          {narrow && (
+          {narrow && !phone && (
             <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
           )}
           <main className="workspace-shell workspace-shell--trips">
-            <TripsPage
-              tab={tripsTab}
-              onTab={setTripsTab}
-              trips={catalog.trips}
-              activeTripId={blank ? undefined : catalog.activeTripId}
-              onOpenTrip={swap(session.selectTrip)}
-              onNewTrip={swap(session.newTrip)}
-              onRenameTrip={history.renameTrip}
-              onDeleteTrip={history.deleteTrip}
-              deletedTrip={history.deletedTrip}
-            />
+            {homeTrip ? (
+              <TripHome
+                title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
+                  homeTrip.id,
+                )!}
+                tags={tripTags(homeTrip, locale, settings.displayCurrency, t)}
+                onBack={() => viewTransition(layout.showTrips)}
+                onRename={() => history.renameTrip(homeTrip.id)}
+                onDelete={() => deleteTrip(homeTrip.id)}
+                aside={
+                  <TripHomeMap
+                    plan={homeTrip.snapshot.plan}
+                    mode={dataMode.mode}
+                    providers={dataMode.providers}
+                  />
+                }
+              >
+                <TripHomeChats
+                  chats={tripConversations(catalog, homeTrip.id).map((item) => ({
+                    id: item.id,
+                    title: conversationTitle(item, locale),
+                    updatedAt: item.updatedAt,
+                  }))}
+                  onOpen={swap(session.selectConversation)}
+                  onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
+                />
+                <TripHomeCards
+                  trip={homeTrip}
+                  onItinerary={() =>
+                    viewTransition(() => {
+                      session.selectTrip(homeTrip.id);
+                      openTrip();
+                    })
+                  }
+                  onCalendar={() => openCalendarAt(homeTrip.id)}
+                  onPreferences={() =>
+                    viewTransition(() => {
+                      session.selectTrip(homeTrip.id);
+                      openPreferences();
+                    })
+                  }
+                />
+              </TripHome>
+            ) : (
+              <TripsPage
+                tab={tripsTab}
+                onTab={setTripsTab}
+                focusTripId={calendarTripId}
+                trips={catalog.trips}
+                activeTripId={blank ? undefined : catalog.activeTripId}
+                onOpenTrip={openHome}
+                onNewTrip={swap(session.newTrip)}
+                onRenameTrip={history.renameTrip}
+                onDeleteTrip={deleteTrip}
+                deletedTrip={history.deletedTrip}
+              />
+            )}
             {navOpen && (
               <button
                 type="button"
@@ -721,7 +797,12 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 </div>
                 {phone && (
                   <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
-                    <PhoneMine model={model} />
+                    <PhoneMine
+                      model={model}
+                      tripsTab={tripsTab}
+                      onTripsTab={setTripsTab}
+                      calendarTripId={calendarTripId}
+                    />
                   </div>
                 )}
                 {backdrop.value && (

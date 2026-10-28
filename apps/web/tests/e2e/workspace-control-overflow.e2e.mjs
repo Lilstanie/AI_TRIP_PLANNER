@@ -2,6 +2,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { openMockWorkspace, planSuggestedTrip, installSeededItinerary } from "./trip-setup.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const key = JSON.parse(
   readFileSync("apps/web/lib/workspace/catalog.ts", "utf8").match(
@@ -120,7 +121,7 @@ try {
     await page.setViewportSize({ width: 1440, height: 1000 });
     await page.locator(".phone-tabbar").waitFor({ state: "hidden" });
     if (await page.locator(".trips-page").isVisible())
-      await page.locator(".trip-card").first().click();
+      await openTripWorkspace(page, page.locator(".trip-card").first());
     const close = page.getByRole("button", { name: "Close your trip", exact: true });
     if (await close.isVisible()) await close.click();
     if (zh) await page.getByRole("button", { name: "Switch language to 简体中文" }).click();

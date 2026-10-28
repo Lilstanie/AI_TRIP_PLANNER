@@ -164,11 +164,15 @@ try {
         .getByRole("tablist", { name: "Workspace sections" })
         .getByRole("tab", { name: "Chat", exact: true })
         .getAttribute("aria-selected")) === "true";
-    const tripSelected = async () =>
+    const homeShown = async () =>
       (await page
-        .getByRole("tablist", { name: "Workspace sections" })
-        .getByRole("tab", { name: "Trip", exact: true })
-        .getAttribute("aria-selected")) === "true";
+        .locator(".trip-home")
+        .getByRole("heading", { name: /Sydney/, level: 1 })
+        .count()) === 1;
+    const backFromHome = async () => {
+      await page.locator(".trip-home").getByRole("button", { name: "Back to trips" }).click();
+      await mine.waitFor();
+    };
     const search = mine.getByRole("searchbox", { name: "Search chats and trips" });
     check(
       await mine.getByText("Sydney ideas", { exact: true }).isVisible(),
@@ -271,8 +275,8 @@ try {
       .getByRole("button", { name: /^Trip to Sydney:/ })
       .first()
       .click();
-    check(await tripSelected(), `${width}: calendar trip opens Trip`);
-    await selectMine();
+    check(await homeShown(), `${width}: calendar trip opens the Trip home`);
+    await backFromHome();
     await mine.getByRole("tab", { name: "Calendar", exact: true }).click();
     const activeCalendar = mine.getByRole("grid");
     await mine.getByRole("button", { name: "Today", exact: true }).click();
@@ -286,26 +290,8 @@ try {
     await tripCard.focus();
     await page.keyboard.press("Enter");
     await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(resolve)));
-    check(await tripSelected(), `${width}: keyboard trip activation opens Trip`);
-    const focusAfterTrip = await page.evaluate(() => {
-      const title = document.querySelector(".phone-topbar__title-button");
-      return {
-        focused: title === document.activeElement,
-        visibleFocus: title?.matches(":focus-visible"),
-        title: title?.getAttribute("aria-label"),
-        active:
-          document.activeElement?.getAttribute("aria-label") ?? document.activeElement?.tagName,
-      };
-    });
-    check(
-      focusAfterTrip.focused &&
-        focusAfterTrip.visibleFocus &&
-        focusAfterTrip.title?.includes("Sydney"),
-      `${width}: keyboard trip activation focuses its named title control (${JSON.stringify(focusAfterTrip)})`,
-    );
-    if (width === 390) {
-      await page.screenshot({ path: `${OUT}/${width}-trip-title-focus.png` });
-    }
+    check(await homeShown(), `${width}: keyboard trip activation opens the Trip home`);
+    await backFromHome();
     await selectMine();
     await mine.locator('.history-item__open[title="Sydney ideas"]').click();
     check(await chatSelected(), `${width}: selecting chat opens Chat`);
@@ -392,13 +378,18 @@ try {
     .getByRole("button", { name: "Map", exact: true })
     .click();
   await tabletPage.getByRole("button", { name: "Open navigation" }).click();
-  await tabletPage.locator(".drawer .history-item--trip .history-item__open").first().click();
+  await tabletPage
+    .locator(".drawer .history-item:not(.history-item--trip)")
+    .filter({ hasText: "Trip to" })
+    .locator(".history-item__open")
+    .first()
+    .click();
   check(
     (await tabletPage
       .getByRole("group", { name: "Workspace view" })
       .getByRole("button", { name: "Map", exact: true })
       .getAttribute("aria-pressed")) === "true",
-    "800: selecting a trip preserves the tablet Map view",
+    "800: selecting a chat preserves the tablet Map view",
   );
   await tabletPage.screenshot({ path: `${OUT}/800-trip-retains-map.png` });
 

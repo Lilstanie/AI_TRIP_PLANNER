@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -282,7 +283,7 @@ async function openTrip(browser, { name, width, height, language }) {
   const copy = COPY[language];
   if (phone) {
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
   }
   const panel = page.locator(".trip-workspace, .workspace-drawer--trip, #phone-panel-trip").first();
@@ -302,7 +303,7 @@ async function openDesktopTrip(page, language) {
       .getByRole("button", { name: language === "zh" ? /^行程/ : /^Trips/ })
       .first()
       .click();
-    await page.locator(".trips-page .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".trips-page .trip-card").first());
   }
   await open.waitFor({ timeout: 30_000 });
   if ((await open.getAttribute("aria-expanded")) !== "true") await open.click();
@@ -405,7 +406,7 @@ async function walkthrough(browser, scenario) {
   await page.reload({ waitUntil: "domcontentloaded" });
   if (width(scenario) < 700) {
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
   }
   if (width(scenario) >= 700) await openDesktopTrip(page, scenario.language);

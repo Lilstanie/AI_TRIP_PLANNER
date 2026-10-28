@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3018";
@@ -232,7 +233,7 @@ try {
     await page.locator(".workspace-app").waitFor();
     await page.getByRole("tab", { name: /^Mine/ }).click();
     const mine = page.locator(".phone-mine");
-    await mine.locator(".trip-card").first().click();
+    await openTripWorkspace(page, mine.locator(".trip-card").first());
     await tripTab.click();
   };
   const openTripNamed = async (title) => {
@@ -244,7 +245,7 @@ try {
         (titles, target) => titles.findIndex((item) => item.textContent?.trim() === target),
         title,
       );
-    await cards.nth(index).click();
+    await openTripWorkspace(page, cards.nth(index));
     await tripTab.click();
   };
   await page.goto(BASE);
@@ -468,7 +469,7 @@ try {
   }
   await page.getByRole("tab", { name: /^Mine/ }).click();
   const tripCards = page.locator(".phone-mine .trip-card");
-  await tripCards.filter({ hasText: "Sydney alternate" }).click();
+  await openTripWorkspace(page, tripCards.filter({ hasText: "Sydney alternate" }));
   await page.waitForFunction(
     () =>
       JSON.parse(localStorage.getItem("trip-workspace-catalog-v3")).activeTripId !==

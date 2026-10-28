@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve("output/playwright/trip-display-currency");
@@ -296,8 +297,11 @@ try {
       const texts = (await list.allTextContents()).map((text) => text.replace(/\s+/g, " "));
       await page.screenshot({ path: `${out}/${width}-trips-${texts.length}.png`, fullPage: true });
       const current = page.locator(".trip-card[aria-current=true]");
-      await ((await current.count()) ? current : list).first().click();
-      if (phone) await selectTab("Chat");
+      const target = ((await current.count()) ? current : list).first();
+      if (phone) {
+        await openTripWorkspace(page, target);
+        await selectTab("Chat");
+      } else await target.click();
       return texts;
     };
     const openChat = async (titlePrefix) => {

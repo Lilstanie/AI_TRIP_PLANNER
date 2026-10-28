@@ -12,6 +12,9 @@ import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   conversationTitle,
+  latestSnapshot,
+  tripConversations,
+  upsertCurrent,
   searchCatalog,
   updateCatalog,
   upsertConversationDraft,
@@ -31,7 +34,7 @@ import {
   type SessionEvent,
   type SessionState,
 } from "@/lib/workspace/session";
-import { useDataMode } from "@/lib/workspace/data-mode";
+import { mapProviderOptions, useDataMode } from "@/lib/workspace/data-mode";
 import { defaultSettings, draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
 import { useInterfaceLocale } from "../account/LocaleProvider";
@@ -104,13 +107,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
   const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
+  const mapProvider = mapProviderOptions(dataMode.mode, dataMode.providers);
   const tripPlaces = useTripPlaces(
     plan,
     dataMode.mode,
     locale,
-    dataMode.providers?.webMapsProvider === "osm" ||
-      (dataMode.mode === "mock" && dataMode.providers?.mockGoogleUnavailable),
-    dataMode.providers?.webMapsProvider !== "google",
+    mapProvider.forceOsm,
+    mapProvider.allowFallback,
   );
   const { itinerary } = tripPlaces;
   const { day: mapDay, selectDay: setMapDay } = useTripDay(
@@ -263,9 +266,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   function selectConversation(id: string) {
     const conversation = catalog.conversations.find((item) => item.id === id);
     if (!conversation) return;
-    const source =
-      conversation.snapshot ??
-      catalog.trips.find((item) => item.id === conversation.tripId)?.snapshot;
+    const source = latestSnapshot(catalog, conversation);
     if (!source) freshTripId.current = crypto.randomUUID();
     open({
       ...(source
@@ -306,7 +307,42 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     layout({ type: "trip-opened" });
   }
 
-  function startBlankChat(base?: WorkspaceCatalog, kind: "chat" | "trip" = "chat") {
+  function startTripChat(tripId: string, text: string) {
+    const trip = catalog.trips.find((item) => item.id === tripId);
+    if (!trip) return;
+    const untouched = text
+      ? undefined
+      : tripConversations(catalog, tripId).find(
+          (item) => !item.messages.length && !item.input.trim() && !item.ask,
+        );
+    if (untouched) {
+      selectConversation(untouched.id);
+      return;
+    }
+    const id = crypto.randomUUID();
+    const snapshot = {
+      ...trip.snapshot,
+      id,
+      savedAt: new Date().toISOString(),
+      messages: [],
+      input: text,
+      ask: undefined,
+    };
+    open(snapshot);
+    activeConversation.current = `conversation:${id}`;
+    setCatalog((current) => upsertCurrent(current, snapshot));
+    layout({ type: "chat-started" });
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLInputElement>(".composer textarea")
+        ?.focus({ preventScroll: true }),
+    );
+  }
+  function startBlankChat(
+    base?: WorkspaceCatalog,
+    kind: "chat" | "trip" = "chat",
+    navigate = true,
+  ) {
     const defaults = draftDefaults(settings);
     const id =
       reusableBlankConversation(base ?? catalog, defaults)?.id ??
@@ -324,6 +360,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       }),
     );
 
+    if (!navigate) return;
     layout({ type: "chat-started", fact: kind === "trip" ? "where" : undefined });
     if (kind === "trip") return;
     requestAnimationFrame(() =>
@@ -392,6 +429,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const linked = catalog.conversations.filter((item) => item.tripId === id);
     const next: WorkspaceCatalog = {
       ...catalog,
+      activeTripId: catalog.activeTripId === id ? undefined : catalog.activeTripId,
       trips: catalog.trips.filter((item) => item.id !== id),
       conversations: catalog.conversations.map((item) => {
         if (item.tripId !== id) return item;
@@ -399,7 +437,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         return { ...rest, updatedAt: new Date().toISOString() };
       }),
     };
-    if (catalog.activeTripId === id) startBlankChat(next);
+    if (catalog.activeTripId === id) startBlankChat(next, "chat", surface.page !== "home");
     else setCatalog(next);
     setDeletedTrip({ trip, linked, name: tripName(trip, t) });
   }
@@ -446,6 +484,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       closeDrawer: () => layout({ type: "close-drawer" }),
       toggleChats: () => layout({ type: "toggle-chats" }),
       showTrips: () => layout({ type: "show-trips" }),
+      openHome: (tripId: string) => layout({ type: "open-home", tripId }),
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
       showChatView: (view: ChatView) => layout({ type: "show-chat-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
@@ -524,6 +563,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       selectTrip,
       selectConversation,
       newChat: () => startBlankChat(),
+      newTripChat: startTripChat,
 
       newTrip: () => startBlankChat(undefined, "trip"),
     },
@@ -532,6 +572,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       phone,
       narrow,
       page: surface.page,
+      homeTripId: surface.tripId,
       mobileView,
       chatView: surface.chatView ?? "conversation",
       dialog,

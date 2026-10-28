@@ -495,3 +495,159 @@
 .trip-undo {
   margin-block: var(--space-2);
 }
+
+.trip-home {
+  display: flex;
+  min-height: 100%;
+}
+.trip-home__main {
+  flex: 1 1 0;
+  min-width: 0;
+  max-width: 860px;
+  margin-inline: auto;
+  padding: 40px var(--space-5) 64px;
+}
+.trip-home__aside {
+  flex: 0 0 40%;
+  min-width: 0;
+}
+.trip-home[data-aside] {
+  height: 100%;
+}
+.trip-home[data-aside] .trip-home__main {
+  overflow-y: auto;
+}
+.trip-home__aside .trip-map-canvas {
+  border-inline-start: 1px solid var(--border);
+}
+.trip-home__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.trip-home__back {
+  display: inline-grid;
+  flex: none;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  min-height: 36px !important;
+  padding: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  color: var(--text);
+}
+.trip-home__back-icon {
+  display: inline-grid;
+  transform: rotate(180deg);
+}
+.trip-home__title {
+  flex: 1 1 auto;
+  min-width: 0;
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  overflow-wrap: anywhere;
+}
+.trip-home__menu {
+  flex: none;
+}
+.trip-home__menu .history-item__menu-wrap {
+  position: relative;
+  inset: auto;
+}
+.trip-home__menu .history-item__more {
+  opacity: 1;
+}
+.trip-home__tags {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin: var(--space-3) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-home__tags li {
+  padding: 4px var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  overflow-wrap: anywhere;
+}
+
+.trip-home-cards {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: var(--space-3);
+  margin: var(--space-5) 0 0;
+  padding: 0;
+  list-style: none;
+}
+.trip-home-card {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: var(--space-1);
+  width: 100%;
+  min-height: 72px;
+  padding: var(--space-3) var(--space-4) !important;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-lg) !important;
+  background: var(--surface) !important;
+  color: var(--text);
+  text-align: left;
+  transition:
+    box-shadow var(--transition),
+    transform var(--transition);
+}
+.trip-home-card:hover {
+  box-shadow: var(--shadow-md);
+  transform: translateY(-2px);
+}
+.trip-home-card__label {
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.trip-home-card__count {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+@media (max-width: 640px) {
+  .trip-home-cards {
+    grid-template-columns: minmax(0, 1fr);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-home-card {
+    transition: none;
+  }
+  .trip-home-card:hover {
+    transform: none;
+  }
+}
+
+@media (max-width: 820px) {
+  .trip-home[data-aside] {
+    flex-direction: column;
+    height: auto;
+  }
+  .trip-home[data-aside] .trip-home__main {
+    flex: none;
+    width: 100%;
+    overflow-y: visible;
+    padding-bottom: var(--space-5);
+  }
+  .trip-home__aside {
+    flex: none;
+    height: min(60vh, 420px);
+    margin: 0 var(--space-4) var(--space-5);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+    touch-action: pan-y pinch-zoom;
+  }
+  .trip-home__aside .trip-map-canvas {
+    border-inline-start: 0;
+  }
+}

@@ -2,6 +2,7 @@ import { setPhoneLanguage } from "./phone-settings.mjs";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const require = createRequire(import.meta.url);
 const { chromium } = require(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -336,11 +337,13 @@ async function run(browser, size) {
   await select(page, "Trip");
   for (const destination of ["Sydney", "Melbourne", "Sydney"]) {
     await select(page, "Mine");
-    await page
-      .locator(".trip-card")
-      .filter({ hasText: `Trip to ${destination}` })
-      .first()
-      .click();
+    await openTripWorkspace(
+      page,
+      page
+        .locator(".trip-card")
+        .filter({ hasText: `Trip to ${destination}` })
+        .first(),
+    );
     await settle(page);
     check(
       (await page.locator(".phone-tabbar__dot").count()) === 0,
@@ -445,11 +448,14 @@ async function run(browser, size) {
     );
   }
   await select(page, "Mine");
-  await page.locator(".trip-card").filter({ hasText: "Trip to Melbourne" }).first().click();
+  await openTripWorkspace(
+    page,
+    page.locator(".trip-card").filter({ hasText: "Trip to Melbourne" }).first(),
+  );
   await settle(page);
   check(
-    (await tab(page, "Trip").getAttribute("aria-selected")) === "true",
-    `${prefix}: Mine reopens the saved Trip after refresh`,
+    (await tab(page, "Chat").getAttribute("aria-selected")) === "true",
+    `${prefix}: Mine reopens the saved trip's chat after refresh`,
   );
 
   const title = page.locator(".phone-topbar__title-button");

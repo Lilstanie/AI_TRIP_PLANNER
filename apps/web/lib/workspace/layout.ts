@@ -11,7 +11,8 @@ export type Drawer = "trip" | "nav" | "chats";
 export type Media = { phone: boolean; narrow: boolean };
 
 export type Surface = {
-  page: "workspace" | "trips";
+  page: "workspace" | "trips" | "home";
+  tripId?: string;
   view: MobileView;
   chatView?: ChatView;
   drawer?: Drawer;
@@ -35,6 +36,7 @@ export type LayoutEvent =
   | { type: "open-dialog"; dialog: DialogKind }
   | { type: "close-dialog" }
   | { type: "show-trips" }
+  | { type: "open-home"; tripId: string }
   | { type: "select-view"; view: MobileView }
   | { type: "show-chat-view"; view: ChatView }
   | { type: "chat-opened" }
@@ -47,8 +49,19 @@ type Panel = Pick<Surface, "drawer" | "sheet" | "fact">;
 const strip = (surface: Surface): Surface =>
   Object.fromEntries(Object.entries(surface).filter(([, value]) => value !== undefined)) as Surface;
 
-const only = (surface: Surface, panel: Panel & Partial<Pick<Surface, "page" | "view">>) =>
-  strip({ page: surface.page, view: surface.view, dialog: surface.dialog, ...panel });
+const only = (
+  surface: Surface,
+  panel: Panel & Partial<Pick<Surface, "page" | "view" | "tripId">>,
+) => {
+  const page = panel.page ?? surface.page;
+  return strip({
+    view: surface.view,
+    dialog: surface.dialog,
+    ...panel,
+    page,
+    tripId: page === "home" ? (panel.tripId ?? surface.tripId) : undefined,
+  });
+};
 const without = (surface: Surface, key: keyof Panel | "dialog"): Surface =>
   strip({ ...surface, [key]: undefined });
 
@@ -100,21 +113,24 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
       return media.phone
         ? only(surface, { page: "workspace", view: "mine" })
         : only(surface, { page: "trips" });
+    case "open-home":
+      return only(surface, { page: "home", tripId: event.tripId });
     case "select-view":
       if (!media.phone && event.view === "trip")
         return layout(surface, { type: "open-trip" }, media);
       if (!media.phone && event.view === "mine")
         return layout(surface, { type: "show-trips" }, media);
       if (!media.phone && event.view === "trajectory")
-        return { ...surface, page: "workspace", view: "chat" };
-      return { ...surface, page: "workspace", view: event.view };
+        return strip({ ...surface, tripId: undefined, page: "workspace", view: "chat" });
+      return strip({ ...surface, tripId: undefined, page: "workspace", view: event.view });
     case "show-chat-view":
-      return {
+      return strip({
         ...(surface.drawer === "trip" ? without(surface, "drawer") : surface),
+        tripId: undefined,
         page: "workspace",
         view: media.phone ? surface.view : "chat",
         chatView: event.view,
-      };
+      });
     case "chat-opened":
     case "trip-opened":
       return strip({
@@ -143,7 +159,11 @@ function cross(surface: Surface, from: Media, to: Media): Surface {
     if (next.view === "trip")
       next = { ...next, view: "chat", ...(next.fact ? {} : { drawer: "trip" }) };
     else if (next.view === "trajectory") next = { ...next, view: "chat" };
-    else if (next.view === "mine") next = { ...without(next, "fact"), page: "trips", view: "chat" };
+    else if (next.view === "mine")
+      next =
+        next.page === "home"
+          ? { ...next, view: "chat" }
+          : { ...without(next, "fact"), page: "trips", view: "chat" };
   }
 
   if (next.drawer === "nav" && (!to.narrow || to.phone)) next = without(next, "drawer");

@@ -3,24 +3,27 @@ import { GearIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
 import { DataModeToggle } from "./DataModeToggle";
 import { ChatsPanel } from "./ChatsPanel";
-import { TripsPage } from "./TripsPage";
+import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import type { WorkspaceModel } from "./useWorkspace";
 
-export function PhoneMine({ model }: { model: WorkspaceModel }) {
+export function PhoneMine({
+  model,
+  tripsTab,
+  onTripsTab,
+  calendarTripId,
+}: {
+  model: WorkspaceModel;
+  tripsTab: TripsTab;
+  onTripsTab(tab: TripsTab): void;
+  calendarTripId?: string;
+}) {
   const { t } = useLocale();
   const { session, history } = model;
   const { dataMode, busy } = session;
   const visibleTrips = new Set(history.trips.map((trip) => trip.id));
 
-  const { newChat, newTrip, selectTrip } = session;
-  const openTrip = (id: string) => {
-    selectTrip(id);
-    requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLButtonElement>(".phone-topbar__title-button")
-        ?.focus({ preventScroll: true }),
-    );
-  };
+  const { newChat, newTrip } = session;
+  const openTrip = model.layout.openHome;
 
   return (
     <div className="phone-mine">
@@ -44,6 +47,10 @@ export function PhoneMine({ model }: { model: WorkspaceModel }) {
             <p className="history-empty">{t("No matching trips.")}</p>
           ) : (
             <TripsPage
+              key={calendarTripId ?? ""}
+              tab={tripsTab}
+              onTab={onTripsTab}
+              focusTripId={calendarTripId}
               embedded
               trips={history.catalog.trips.filter((trip) => visibleTrips.has(trip.id))}
               allTrips={history.catalog.trips}

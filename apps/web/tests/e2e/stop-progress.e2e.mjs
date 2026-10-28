@@ -3,6 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { openMockWorkspace, planSuggestedTrip, installSeededItinerary } from "./trip-setup.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const key = JSON.parse(
@@ -108,7 +109,7 @@ try {
           .locator(".sidebar-nav")
           .getByRole("button", { name: /^Trips/ })
           .click();
-      await page.locator(".trip-card").first().click();
+      await openTripWorkspace(page, page.locator(".trip-card").first());
       if (width === 390) await page.getByRole("tab", { name: /^Trip/ }).click();
       else await page.getByRole("button", { name: "Open your trip", exact: true }).click();
       if (state === "planned")
@@ -169,7 +170,7 @@ try {
   await page.reload();
   await page.waitForLoadState("networkidle");
   await page.locator(".sidebar-nav").getByRole("button", { name: /^行程/ }).click();
-  await page.locator(".trip-card").first().click();
+  await openTripWorkspace(page, page.locator(".trip-card").first());
   await page.getByRole("button", { name: "打开你的行程", exact: true }).click();
   await row.getByText(/^(待游览|已游览|已跳过)$/).waitFor({ state: "hidden" });
   results.push({ invalidSavedProgress: "planned" });

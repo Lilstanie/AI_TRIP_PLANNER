@@ -3,6 +3,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { placeFor } from "./trip-setup.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const out = resolve(
   process.env.E2E_OUTPUT_DIR ?? "output/playwright/trip-review-recovery",
@@ -242,11 +243,10 @@ try {
         const destination = title.startsWith("Melbourne") ? "Melbourne" : "Sydney";
         if (page.viewportSize().width <= 520) {
           await page.getByRole("tab", { name: "Mine", exact: true }).click();
-          await page
-            .locator(".phone-mine .trip-card")
-            .filter({ hasText: destination })
-            .first()
-            .click();
+          await openTripWorkspace(
+            page,
+            page.locator(".phone-mine .trip-card").filter({ hasText: destination }).first(),
+          );
           const tripTab = page.getByRole("tab", { name: "Trip", exact: true });
           if (await tripTab.count()) await tripTab.click();
         } else {
@@ -254,11 +254,10 @@ try {
             await page.getByRole("button", { name: "Open navigation", exact: true }).click();
           }
           await page.getByRole("button", { name: /^Trips/ }).click();
-          await page
-            .locator(".trips-page .trip-card")
-            .filter({ hasText: destination })
-            .first()
-            .click();
+          await openTripWorkspace(
+            page,
+            page.locator(".trips-page .trip-card").filter({ hasText: destination }).first(),
+          );
           const openTrip = page.getByRole("button", { name: "Open your trip", exact: true });
           if ((await openTrip.getAttribute("aria-expanded")) !== "true") await openTrip.click();
         }
