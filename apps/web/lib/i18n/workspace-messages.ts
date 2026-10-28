@@ -864,6 +864,13 @@ export const WORKSPACE_ZH = {
   "{stop}: day {fromDay} → day {toDay}, {before} → {after}":
     "{stop}：第 {fromDay} 天 → 第 {toDay} 天，{before} → {after}",
   " · place changed; price unverified": " · 地点已更改；价格未核实",
+  "Edit title": "编辑标题",
+  "Add note": "添加备注",
+  "Edit note": "编辑备注",
+  "Day title": "日标题",
+  "Day note": "日备注",
+  "Day {day} title updated.": "已更新第 {day} 天的标题。",
+  "Day {day} note updated.": "已更新第 {day} 天的备注。",
   "Day {v0} actions": "第 {v0} 天的操作",
   "Itinerary actions": "行程操作",
   "Add day before": "在前面加一天",

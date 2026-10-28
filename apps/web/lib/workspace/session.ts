@@ -7,6 +7,7 @@ import type {
   PartialTripBrief,
   TripPlan,
 } from "@trip/shared";
+import { keepDayNotes } from "@/lib/trip/day-actions";
 import { validSelectedStop } from "./browsing";
 import { errorNotice, type Notice } from "@/lib/i18n/notice";
 import type { RouteResult } from "@/lib/integrations/google";
@@ -252,7 +253,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
 
         replacedChange: state.timelineChanges && state.plan ? true : undefined,
         timelineChanges: undefined,
-        plan: identifyActivities(event.plan),
+        plan: keepDayNotes(identifyActivities(event.plan), state.plan),
         draft: draftFor(event.plan.brief),
         selectedActivity:
           state.plan?.tripId === event.plan.tripId

@@ -2,9 +2,9 @@
 
 Written before the code (#750, spec #743). Each line is a way the feature could fail. The agreed seam is the real Trip workspace in a browser at 1440x1500 with a mouse and at 390x844 with touch, a saved fixture Trip with one stay and the saved plan in local storage. It covers what the traveller sees and the saved plan.
 
-## Left out on purpose
+## Stored on the plan
 
-- Edit title and Add note are not built. The plan has no field for a day title or a day note (`TripSection` and `TripPlan` in `packages/shared/src/plan.ts` carry none, and the days are only derived from `brief.dates`), so storing them changes the protected `packages/shared/src`. The script asserts the two items are absent so the omission is visible, not silent.
+- Joey approved a `packages/shared` change: an optional `dayNotes` map on `TripPlan`, keyed by day number, holding a title and a note. Older saved plans without it no longer parse, or a malformed key or an over-long title or note is accepted.
 
 ## Day menu
 
@@ -24,6 +24,22 @@ Written before the code (#750, spec #743). Each line is a way the feature could 
 - A day action shows no Undo, or Undo restores the stops but not the dates, the stay or the day numbers.
 - A day action works while the assistant is running or another edit is being checked.
 - After a day action the selected day points past the last day, or the Day strip and the map disagree.
+
+## Day title and note
+
+- Edit title and Add note are missing from the day menu, or still absent once the plan can store them.
+- Saving opens a dialog or a sheet or page instead of a small form in place, or needs a second confirmation.
+- Escape in the form saves instead of cancelling.
+- Saving an empty or blank title or note leaves an empty entry in the saved plan instead of removing it.
+- A title or note longer than the limit is saved or silently cut without the form saying so.
+- The saved title or note is not shown on the day, or shows on another day.
+- The note item still says Add note once a note exists.
+- Undo after saving restores the text but not the plan, or has no Undo.
+- Add day before or after, or Remove day, leaves titles and notes on the old day numbers, or keeps the note of a removed day.
+- Clear day removes the title or note of the day.
+- A title or note does not survive a reload.
+- A title or note is lost when the assistant replans and returns a plan without them.
+- Replacing the plan counts as having no direct edits, so a plan with only a note is replaced without the usual warning.
 
 ## Day map
 
