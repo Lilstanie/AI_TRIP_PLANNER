@@ -39,4 +39,4 @@ entry cards, map) had no page to live on.
 - The Trip home is not restored after a reload; the app opens on the active conversation as today.
 - Trips with no plan cannot exist in the catalog, since every stored trip carries a validated brief, so the
   "title and menu only" state is reached only through empty tags.
-- Until the chat list lands on the Trip home, a phone reaches a trip's conversation from the chat rows in Mine.
+- A phone reaches a trip's conversation from the chat rows on the Trip home, or from the chat rows in Mine.

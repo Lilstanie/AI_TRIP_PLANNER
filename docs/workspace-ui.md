@@ -70,16 +70,20 @@ now. Implementation history and browser acceptance for each phase are in the
   - **Trip home** is a page of its own between the Trips page and the conversation. Choosing a trip card,
     a trip band on the calendar or a trip in the Chats search opens it (`layout` page `home`, carrying the
     trip id); opening a chat from Chats still opens the conversation. On a phone a trip card in Mine, or a
-    calendar band there, opens the Trip home too, without the tab bar; Back returns to Mine. The heading is the trip's title as the Trips cards show it, so two identical trips
+    calendar band there, opens the Trip home too, without the tab bar; Back returns to Mine on the tab it
+    came from, and the Calendar card opens Mine on its Calendar tab at the trip's month. The heading is the trip's title as the Trips cards show it, so two identical trips
     read `Trip to Sydney · 1` and `· 2`. A back button named "Back to trips" returns to the Trips page on the tab
     the trip was opened from. The menu next to the title reuses the Trips page's Rename and Delete; Delete
     returns to Trips, where the existing Undo notice restores the trip and its chats. A trip deleted
     while its page is open, from any list, also returns to Trips. One line of tags, a labelled list, shows
     the brief's destination, dates (or the number of days when the dates do not read as a range), travellers
     and budget in the trip's currency, and leaves out any that is empty. Under the tags, `TripHomeChats`
-    lists the trip's chats under a "Chats" heading, newest first by last update, each row a button with
+    lists the trip's chats under a "Chats" heading, newest first by last update (chats saved in the same
+    millisecond list the one started last first), each row a button with
     the chat title and its date in the interface language. Choosing a row opens that chat in the
-    conversation view. Below the list a box named "New chat" and a "Start chat" button start a new chat on
+    conversation view with the trip's latest saved plan: when the chat's own snapshot is older than the trip's,
+    the trip's plan is shown and kept, so opening an older chat never downgrades the trip, and only an edit
+    changes it. Below the list a box named "New chat" and a "Start chat" button start a new chat on
     the trip: the chat keeps the trip's plan, becomes the active chat, and carries any typed text into the
     composer without sending it. A trip with no chats shows only the box, and an empty box still starts a
     chat. Starting a chat while the assistant answers on another chat stops that answer, as opening any
@@ -95,7 +99,8 @@ now. Implementation history and browser acceptance for each phase are in the
     columns show from 821 px up; at 820 px and below the map stacks under the content, 60% of the
     viewport tall up to 420 px, giving header, tags, content, map in one column on a phone. A trip whose
     places cannot be found keeps the map's own notice instead of markers. The [Trip home Agent Note](../.agents/notes/implemented/feature/2026-10-28-trip-home-shell.md)
-    records why; `trip-home-shell`, `trip-home-chats` and `trip-home-map` are its E2Es.
+    records why; `trip-home-shell`, `trip-home-chats`, `trip-home-cards`, `trip-home-map`, `trip-home-older-chat` and
+    `trip-home-walkthrough` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for

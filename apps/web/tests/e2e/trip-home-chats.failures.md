@@ -12,6 +12,7 @@ Written before the code (#767, spec #765). Each line is a way the change could f
 - The box creates a second trip, loses the trip's plan, or opens a blank chat with no plan.
 - Submitting an empty box does nothing or throws; submitting text drops the text instead of carrying it into the composer.
 - Starting a chat twice leaves duplicate rows with identical times in the wrong order.
+- Two chats of the trip saved in the same millisecond share one timestamp, and the list shows the older one first because the sort has no tie-break.
 - A chat deleted while the page is open stays in the list, or deleting the last chat leaves the page broken instead of only the box.
 - A chat renamed from the Chats panel keeps the old title in the list.
 - A new chat is started while the assistant is still answering on another chat: the answer lands in the new chat, the other chat loses its messages, or the page throws.

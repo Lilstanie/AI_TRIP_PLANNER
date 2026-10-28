@@ -180,6 +180,24 @@ function tripFrom(snapshot: Snapshot, conversationId?: string): TripRecord {
   };
 }
 
+export function latestSnapshot(
+  catalog: WorkspaceCatalog,
+  conversation: ConversationRecord,
+): Snapshot | undefined {
+  const own = conversation.snapshot;
+  const trip = catalog.trips.find((item) => item.id === conversation.tripId);
+  if (!trip) return own;
+  if (!own) return trip.snapshot;
+  return Date.parse(trip.snapshot.savedAt) > Date.parse(own.savedAt) ? trip.snapshot : own;
+}
+
+export function tripConversations(catalog: WorkspaceCatalog, tripId: string): ConversationRecord[] {
+  return catalog.conversations
+    .filter((item) => item.tripId === tripId)
+    .reverse()
+    .sort((a, b) => Date.parse(b.updatedAt) - Date.parse(a.updatedAt));
+}
+
 export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): WorkspaceCatalog {
   const snapshots = [current, ...saved].filter((item): item is Snapshot => item !== undefined);
   const catalog: WorkspaceCatalog = {
@@ -511,9 +529,10 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
       result.messages = conversation.messages;
       result.input = conversation.input;
       result.ask = conversation.ask;
-      if (conversation.ask && conversation.snapshot) {
-        result.plan = conversation.snapshot.plan;
-        result.previousTotal = conversation.snapshot.previousTotal;
+      const source = conversation.ask ? latestSnapshot(catalog, conversation) : undefined;
+      if (source) {
+        result.plan = source.plan;
+        result.previousTotal = source.previousTotal;
       }
       result.draft = conversation.draft ?? blankDraft();
     } else {
