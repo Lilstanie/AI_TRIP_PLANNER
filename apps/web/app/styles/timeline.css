@@ -95,6 +95,20 @@ button.day-strip__day[aria-selected="true"] {
   color: var(--text-dim);
   font-weight: 400;
 }
+.timeline-day__title .timeline-day__name {
+  color: var(--text);
+  font-weight: 600;
+}
+.timeline-day__title .timeline-day__name::before {
+  content: "· ";
+  color: var(--text-dim);
+}
+.timeline-day__note {
+  margin: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  white-space: pre-wrap;
+}
 .timeline-day__staying,
 .timeline-day__tip {
   display: flex;

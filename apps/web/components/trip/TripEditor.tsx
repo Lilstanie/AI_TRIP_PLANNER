@@ -15,7 +15,15 @@ import {
   type DayAction,
 } from "@/lib/trip/day-actions";
 import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
-import { CloseIcon, MapIcon, MinusIcon, PlusIcon, SuitcaseIcon } from "../ui/icons";
+import {
+  CloseIcon,
+  ComposeIcon,
+  MapIcon,
+  MinusIcon,
+  PencilIcon,
+  PlusIcon,
+  SuitcaseIcon,
+} from "../ui/icons";
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { FlowStayIcon } from "../ui/flow-icons";
@@ -28,6 +36,7 @@ import { TimelineStop } from "./timeline/TimelineStop";
 import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits } from "./timeline/useTimelineEdits";
 import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
+import { DayNoteForm } from "./timeline/DayNoteForm";
 import { TripChatShortcut } from "./timeline/TripChatShortcut";
 import { TripTips } from "./TripTips";
 import { useTripDay } from "./useTripDay";
@@ -246,9 +255,25 @@ export function TripEditor({
       );
     }
   };
+  const [editingDay, setEditingDay] = useState<"title" | "note" | undefined>(undefined);
+  useEffect(() => setEditingDay(undefined), [day]);
+  const dayEntry = plan.dayNotes?.[String(day)];
   const dayMenu = (): ActionMenuItem[] => [
     {
+      label: t("Edit title"),
+      icon: <PencilIcon />,
+      disabled: locked,
+      onSelect: () => setEditingDay("title"),
+    },
+    {
+      label: t(dayEntry?.note ? "Edit note" : "Add note"),
+      icon: <ComposeIcon />,
+      disabled: locked,
+      onSelect: () => setEditingDay("note"),
+    },
+    {
       label: t("Add day before"),
+      separated: true,
       icon: <PlusIcon />,
       disabled: locked,
       onSelect: () =>
@@ -575,6 +600,7 @@ export function TripEditor({
         <div className="timeline-day__head">
           <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
             {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
+            {dayEntry?.title && <span className="timeline-day__name">{dayEntry.title}</span>}
           </h3>
           {onShowMap && (
             <button
@@ -589,6 +615,27 @@ export function TripEditor({
           )}
           <ActionMenu label={t("Day {v0} actions", { v0: day })} items={dayMenu()} />
         </div>
+        {editingDay && (
+          <DayNoteForm
+            key={`${day}-${editingDay}`}
+            mode={editingDay}
+            value={(editingDay === "title" ? dayEntry?.title : dayEntry?.note) ?? ""}
+            phone={phone}
+            onCancel={() => setEditingDay(undefined)}
+            onSubmit={(text) =>
+              runDay(
+                editingDay === "title"
+                  ? { kind: "title", day, title: text }
+                  : { kind: "note", day, note: text },
+                editingDay === "title"
+                  ? { key: "Day {day} title updated.", params: { day } }
+                  : { key: "Day {day} note updated.", params: { day } },
+                () => setEditingDay(undefined),
+              )
+            }
+          />
+        )}
+        {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
         <TripChatShortcut day={day} onSend={(message) => onSend?.(message)} />
         {staying && (
           <p className="timeline-day__staying">

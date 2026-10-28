@@ -518,6 +518,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       estTotal,
       overrunPct,
       sections,
+      ...(options.mention?.plan.dayNotes ? { dayNotes: options.mention.plan.dayNotes } : {}),
       conflicts: state.conflicts,
     };
     return { plan: TripPlanSchema.parse(plan) };

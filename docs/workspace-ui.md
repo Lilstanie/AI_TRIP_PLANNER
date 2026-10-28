@@ -974,8 +974,8 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
   `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
 - **Day menu and itinerary menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-day-menus.md)).
-  Each day has a menu named "Day {n} actions" next to its title: Add day before, Add day after, Clear day and
-  Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
+  Each day has a menu named "Day {n} actions" next to its title: Edit title, Add note (Edit note once a note
+  exists), Add day before, Add day after, Clear day and Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
   brings the map forward). The itinerary has a menu named "Itinerary actions" beside the Show distances
   switch: Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
   revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
@@ -983,8 +983,12 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   later stops, stays and flights move with it; a stay that spans the new day gains a night and its cost
   and text follow. Remove day trims the same way, and is refused with a notice when the day holds a
   flight or would take a stay's last night; it is disabled on the only day. Clear day is disabled on an
-  empty day. Edit title and Add note are not built: the plan has no field for a day title or note, so
-  they wait for a `packages/shared` change. Logic is in `lib/trip/day-actions.ts`; verify with
+  empty day and keeps the day's title and note. Edit title and Add note open a small form under the day
+  heading (a modal popover on a phone) and save at once with the usual Undo; the title is up to 80
+  characters and shows after the date, the note is up to 500 and shows under the heading, and saving
+  blank removes it. They are stored in the optional `dayNotes` map on the plan, keyed by day number; Add
+  day and Remove day move the keys with their days, Remove day drops the removed day's entry, and a plan
+  the assistant returns without `dayNotes` keeps the browser's notes for the days it still has. Logic is in `lib/trip/day-actions.ts`; verify with
   `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
 - **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
   Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every

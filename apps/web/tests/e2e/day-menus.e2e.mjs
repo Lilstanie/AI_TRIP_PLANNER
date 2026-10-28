@@ -619,7 +619,9 @@ try {
       });
     });
     replanned = await savedPlan();
+    const tripToggle = page.locator(".trip-trigger");
     if (phone) await page.getByRole("tab", { name: "Chat", exact: true }).click();
+    else if ((await tripToggle.getAttribute("aria-expanded")) === "true") await tripToggle.click();
     const composer = page.getByRole("textbox", { name: "Message AI Trip Planner", exact: true });
     await composer.fill("Plan this again");
     await composer.press("Enter");
@@ -632,6 +634,8 @@ try {
     );
     await page.unroute("**/api/chat");
     if (phone) await page.getByRole("tab", { name: "Trip", exact: true }).click();
+    else if ((await tripToggle.getAttribute("aria-expanded")) !== "true") await tripToggle.click();
+    await page.locator("section.trip-editor").waitFor();
 
     for (const target of [4, 3]) {
       await selectDay(target);
@@ -689,6 +693,7 @@ try {
       { tabs: await dayTabs().count(), saved: beforeReload.brief.dates },
     );
 
+    await selectDay(3);
     check(
       (await dayPanelText()).includes("Harbour day") &&
         (await dayPanelText()).includes("Bring sunscreen"),
@@ -717,9 +722,10 @@ try {
       await page.getByRole("button", { name: zhDay, exact: true }).click();
       const zhItems = await page.getByRole("menuitem").allTextContents();
       check(
-        ["编辑标题", "编辑备注", "在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every(
-          (label) => zhItems.includes(label),
-        ),
+        ["编辑标题", "在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every((label) =>
+          zhItems.includes(label),
+        ) &&
+          (zhItems.includes("添加备注") || zhItems.includes("编辑备注")),
         `the day menu items read in Chinese at ${tag}`,
         zhItems,
       );

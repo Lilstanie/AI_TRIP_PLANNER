@@ -12,12 +12,28 @@ import { dayCount } from "./timeline";
 
 export type DayAction =
   | { kind: "insert"; at: number }
+  | { kind: "title"; day: number; title: string }
+  | { kind: "note"; day: number; note: string }
   | { kind: "clear"; day: number }
   | { kind: "remove"; day: number }
   | { kind: "ideas" }
   | { kind: "removeAll" };
 
+export const TITLE_MAX = 80;
+export const NOTE_MAX = 500;
 const DAY_MS = 86_400_000;
+const setNotes = (plan: TripPlan, notes: NonNullable<TripPlan["dayNotes"]>) => {
+  if (Object.keys(notes).length) plan.dayNotes = notes;
+  else delete plan.dayNotes;
+};
+const renumberNotes = (plan: TripPlan, to: (day: number) => number | undefined) => {
+  const moved: NonNullable<TripPlan["dayNotes"]> = {};
+  for (const [key, entry] of Object.entries(plan.dayNotes ?? {})) {
+    const day = to(Number(key));
+    if (day !== undefined) moved[String(day)] = entry;
+  }
+  setNotes(plan, moved);
+};
 const shift = (date: string, by: number) =>
   new Date(Date.parse(`${date}T00:00:00Z`) + by * DAY_MS).toISOString().slice(0, 10);
 const between = (from: string, to: string) =>
@@ -51,6 +67,23 @@ export function applyDayAction(
   const itinerary = next.sections.find((section) => section.id === "itinerary")?.proposal;
 
   switch (action.kind) {
+    case "title":
+    case "note": {
+      if (!Number.isInteger(action.day) || action.day < 1 || action.day > days)
+        throw new NoticeError({ key: "That day is not part of this trip." });
+      const field = action.kind === "title" ? "title" : "note";
+      const text = (action.kind === "title" ? action.title : action.note)
+        .trim()
+        .slice(0, field === "title" ? TITLE_MAX : NOTE_MAX);
+      const entry = { ...next.dayNotes?.[String(action.day)] };
+      if (text) entry[field] = text;
+      else delete entry[field];
+      const notes = { ...next.dayNotes };
+      if (entry.title || entry.note) notes[String(action.day)] = entry;
+      else delete notes[String(action.day)];
+      setNotes(next, notes);
+      break;
+    }
     case "clear": {
       if (!itinerary || !scheduledOn(plan, action.day))
         throw new NoticeError({
@@ -176,6 +209,7 @@ function insertDay(plan: TripPlan, at: number, days: number, currency: Currency)
   for (const section of plan.sections)
     for (const item of section.proposal?.items ?? [])
       if (item.day !== undefined && item.day >= at) item.day += 1;
+  renumberNotes(plan, (existing) => (existing >= at ? existing + 1 : existing));
   realign(plan, end);
 }
 
@@ -206,5 +240,17 @@ function removeDay(plan: TripPlan, day: number, days: number, currency: Currency
     proposal.items = proposal.items.filter((item) => item.selectionId || item.day !== day);
     for (const item of proposal.items) if (item.day !== undefined && item.day > day) item.day -= 1;
   }
+  renumberNotes(plan, (existing) =>
+    existing === day ? undefined : existing > day ? existing - 1 : existing,
+  );
   realign(plan, end);
+}
+
+export function keepDayNotes(next: TripPlan, previous: TripPlan | undefined): TripPlan {
+  if (next.dayNotes || previous?.tripId !== next.tripId || !previous.dayNotes) return next;
+  const days = dayCount(next);
+  const kept = Object.fromEntries(
+    Object.entries(previous.dayNotes).filter(([key]) => Number(key) <= days),
+  );
+  return Object.keys(kept).length ? { ...next, dayNotes: kept } : next;
 }
