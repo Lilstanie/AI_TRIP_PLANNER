@@ -232,7 +232,7 @@ Use `review-trip-planner` for repository-specific risks. The global `code-review
 and the added-comment gate. Its references describe the CLI, explicit file scope,
 justified exceptions and standalone acceptance evidence. The independent
 [Comment policy workflow](../.github/workflows/comment-policy.yml) invokes the same checker on PRs
-and main pushes. PR scope covers merge-base to head; push scope covers the previous tip to head.
+and main pushes. Run it locally with `pnpm check:comments` after committing: it checks the merge base with `origin/main` to `HEAD`. PR scope covers merge-base to head; push scope covers the previous tip to head.
 Only changed JS/TS paths are selected, preserving unchanged comments across detected renames.
 No supported paths explicitly skip; missing history, invalid configuration and checker errors fail.
 The versioned exact exception list is reviewed with the code; matching text does not approve its

@@ -188,7 +188,7 @@ manifest 链接的页面。
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) 负责审查交接材料和新增注释检查。
 其参考文档说明 CLI、显式文件范围、有理由的例外，以及独立验收的证据。
-独立的 [Comment policy workflow](../.github/workflows/comment-policy.yml) 在 PR 和 main 推送时调用同一检查器。
+独立的 [Comment policy workflow](../.github/workflows/comment-policy.yml) 在 PR 和 main 推送时调用同一检查器。提交后可在本地运行 `pnpm check:comments`，它检查 `origin/main` 的合并基点到 `HEAD`。
 PR 检查 merge-base 到 head；推送检查上一个分支 tip 到 head。
 仅选择改动的 JS/TS 路径，检测到重命名时保留未变的注释。
 没有适用路径时明确跳过；历史缺失、配置无效和检查器错误均失败。
