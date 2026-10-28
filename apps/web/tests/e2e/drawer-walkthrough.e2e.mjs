@@ -441,8 +441,8 @@ async function walk(browser, { width, lang }) {
     `${run}: no stop shows a "Use this place" or "Confirm" box`,
   );
 
-  runSummary.measures.placeConfirmedTags =
-    lang === "en" ? allStops.filter((stop) => stop.tags.includes("Place confirmed")).length : null;
+  runSummary.measures.untaggedStops =
+    lang === "en" ? allStops.filter((stop) => stop.tags.length === 0).length : null;
   await dayTab(page, 1).click();
   await settle(page, 400);
   await shot("01-planned");

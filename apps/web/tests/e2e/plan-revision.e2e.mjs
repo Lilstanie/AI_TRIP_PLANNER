@@ -304,10 +304,11 @@ async function main() {
         `2: the held stop is saved again for the edited plan (version ${editVersion ?? "?"}; saves ${JSON.stringify(stub.saves.map((s) => [s.stop, s.baseVersion]))})`,
       );
       check(
-        (await trip(page)
-          .locator(".timeline-tag")
-          .filter({ hasText: "Place confirmed" })
-          .count()) === DAY_ONE.length,
+        (await trip(page).locator(".timeline-stop").count()) === DAY_ONE.length &&
+          (await trip(page)
+            .locator(".timeline-tag")
+            .filter({ hasText: /Place not saved yet|Saving place…/ })
+            .count()) === 0,
         "2: every stop of day 1 has its place saved at the end",
       );
       check(

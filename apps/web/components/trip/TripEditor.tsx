@@ -727,11 +727,6 @@ export function TripEditor({
             <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>
           )}
         </>
-        {daily.length > 1 && (
-          <p className="timeline-day__tip">
-            {t("Drag a stop to reorder the day, or select it to edit.")}
-          </p>
-        )}
       </div>
 
       <div className="timeline-add-stop">
