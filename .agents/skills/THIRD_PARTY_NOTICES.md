@@ -101,3 +101,10 @@ contract, pnpm package scope and validation. The seven reference files are copie
 that the four updated at the current commit carry the repository's Prettier formatting.
 Copyright (c) 2026 Jakub Antalik; the complete MIT licence is preserved in
 [libraries-dev/LICENSE](libraries-dev/LICENSE).
+
+## Matt Pocock skills
+
+`ask-matt`, `grill-with-docs`, `to-spec`, `to-tickets`, `implement-spec`, `tdd`, `pr` and `retro` are adapted from
+[mattpocock/skills](https://github.com/mattpocock/skills) (v1.3.0; `ask-matt` from v1.3.1). Each entrypoint is the
+account copy installed for this project, with its description, where needed, rewritten so it states when to use the skill
+("Use when the user explicitly asks (/name) ..."), which `pnpm verify:docs` requires. Instructions are otherwise unchanged.
