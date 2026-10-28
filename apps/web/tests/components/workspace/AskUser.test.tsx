@@ -98,7 +98,11 @@ describe("Structured questions in the workspace", () => {
     render(<Workspace initialPlan={plan} />);
     sendMessage("make it calmer");
     await screen.findByRole("heading", { name: "How busy should each day be?" });
-    fireEvent.click(screen.getByRole("button", { name: "New chat" }));
+    fireEvent.click(
+      within(document.querySelector<HTMLElement>(".workspace-sidebar")!).getByRole("button", {
+        name: "New trip",
+      }),
+    );
     await waitFor(() => expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy());
     expect(screen.queryByRole("heading", { name: "How busy should each day be?" })).toBeNull();
   });

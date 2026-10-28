@@ -52,7 +52,7 @@ try {
   await search.fill("Sydney Opera House");
   await search.press("Enter");
   await stop.getByRole("button", { name: "Use Sydney Opera House" }).click();
-  await stop.getByText("Place confirmed").waitFor();
+  await stop.getByRole("searchbox").waitFor({ state: "hidden" });
   await stop.getByRole("button", { name: /^Actions for / }).click();
   const item = timeline.getByRole("menuitem", { name: "Open in Maps", exact: true });
   const shown = await item.waitFor({ timeout: 5000 }).then(

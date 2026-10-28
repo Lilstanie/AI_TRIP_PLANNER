@@ -10,7 +10,7 @@ now. Implementation history and browser acceptance for each phase are in the
 
 | Area              | Content                                                                                                                                                                                                                                                                                                       | Implementation                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, New trip, Chats (with a New chat plus), Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                        | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                               | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                   | `ChatsPanel`, `TripCover`                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                            | `TripsPage`, `TripCover`                                                                                                |
 | Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                   | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
@@ -30,14 +30,15 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - The sidebar holds only navigation: New trip, Chats with counts and a plus that starts a new chat,
+  - The sidebar holds only navigation: New trip, Chats with a count,
     Trips with a count, and Calendar, in outline line icons in the text colour that fill in for the
     open panel or page, which also gets a heavier label, a quiet background and `aria-current`. New trip
     runs the same action as the Your trips page button and opens the Where editor on a blank trip. Calendar
     opens the Your trips page on its Calendar tab and is the current entry there; Trips is current on
     the Trips tab, and the page tabs and the sidebar share one selection. Collapsed, they are labelled
-    icon buttons with tooltips, and the Chats plus is its own icon button named New chat. The
-    [sidebar entries Agent Note](../.agents/notes/implemented/feature/2026-10-27-sidebar-entries.md) records why.
+    icon buttons with tooltips. New trip is the one way to start a conversation from the sidebar;
+    the [sidebar entries Agent Note](../.agents/notes/implemented/feature/2026-10-27-sidebar-entries.md)
+    and the [no Chats plus Agent Note](../.agents/notes/implemented/simplification/2026-10-28-sidebar-without-chats-plus.md) record why.
   - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
     glass region at the sidebar's right edge that springs and fades in over the workspace in 380 ms
     (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
@@ -84,7 +85,7 @@ now. Implementation history and browser acceptance for each phase are in the
     trip is replanned from chat or the page reloads. Delete removes the trip at once and keeps its
     chats, without their plan; a status line offers Undo, which brings the trip back with its name and
     chat links. Deleting the open trip starts a blank chat.
-  - On narrow screens the navigation drawer shows the sidebar, with New chat in place of the Chats row,
+  - On narrow screens the navigation drawer shows the sidebar without a Chats row,
     and the panel's content (search, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
@@ -832,7 +833,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Visit progress.** Every stop has one state: Planned (the default for existing trips), Visited or
   Skipped. Its menu changes the state, and Undo restores the previous plan. The label is saved with the
   stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
-  booking and cost, including the plan total; it does not select the next stop.
+  booking and cost, including the plan total; it does not select the next stop. Only Visited and
+  Skipped show a tag on the row; Planned shows none.
+- **Quiet stop rows.** A stop row shows its time, name, one short line and the price or "Price
+  unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
+  that need action stay visible through the Open item badge and the conflict list under the row. The
+  time cell, the flight, stay and transfer icons and the idea icon have no fill or ring; the time
+  still changes colour on hover and while its popover is open, and keeps its focus ring. A day ends
+  on its Add button with no helper sentence. Verify with
+  `pnpm --filter @trip/web e2e quiet-stop-rows` (1440 px, 390 px and Chinese).
 - **Stop menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-stop-menu-popovers.md)).
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Adjust schedule, Edit details, Add a comment,
