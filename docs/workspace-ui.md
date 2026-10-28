@@ -10,7 +10,7 @@ now. Implementation history and browser acceptance for each phase are in the
 
 | Area              | Content                                                                                                                                                                                                                                                                                                       | Implementation                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, New trip, Chats (with a New chat plus), Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                        | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                               | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                   | `ChatsPanel`, `TripCover`                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                            | `TripsPage`, `TripCover`                                                                                                |
 | Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                   | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
@@ -30,14 +30,15 @@ now. Implementation history and browser acceptance for each phase are in the
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - The sidebar holds only navigation: New trip, Chats with counts and a plus that starts a new chat,
+  - The sidebar holds only navigation: New trip, Chats with a count,
     Trips with a count, and Calendar, in outline line icons in the text colour that fill in for the
     open panel or page, which also gets a heavier label, a quiet background and `aria-current`. New trip
     runs the same action as the Your trips page button and opens the Where editor on a blank trip. Calendar
     opens the Your trips page on its Calendar tab and is the current entry there; Trips is current on
     the Trips tab, and the page tabs and the sidebar share one selection. Collapsed, they are labelled
-    icon buttons with tooltips, and the Chats plus is its own icon button named New chat. The
-    [sidebar entries Agent Note](../.agents/notes/implemented/feature/2026-10-27-sidebar-entries.md) records why.
+    icon buttons with tooltips. New trip is the one way to start a conversation from the sidebar;
+    the [sidebar entries Agent Note](../.agents/notes/implemented/feature/2026-10-27-sidebar-entries.md)
+    and the [no Chats plus Agent Note](../.agents/notes/implemented/simplification/2026-10-28-sidebar-without-chats-plus.md) record why.
   - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
     glass region at the sidebar's right edge that springs and fades in over the workspace in 380 ms
     (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
@@ -84,7 +85,7 @@ now. Implementation history and browser acceptance for each phase are in the
     trip is replanned from chat or the page reloads. Delete removes the trip at once and keeps its
     chats, without their plan; a status line offers Undo, which brings the trip back with its name and
     chat links. Deleting the open trip starts a blank chat.
-  - On narrow screens the navigation drawer shows the sidebar, with New chat in place of the Chats row,
+  - On narrow screens the navigation drawer shows the sidebar without a Chats row,
     and the panel's content (search, Trips and Chats) under Trips.
   - The logo is `apps/web/public/brand/ai-trip-planner-logo.svg`, referenced by URL. Its alt text is
     empty next to the product name and “AI Trip Planner” when shown alone.
@@ -629,33 +630,25 @@ records why.
 
 The Trip header shows the destination, localized short date range and traveller count.
 
-When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
-zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
-and uses the caution colour; those missing costs remain listed beneath the estimate.
-When the estimate is below budget but costs remain unpriced, the status says “Known estimate
-within budget · unpriced costs not counted” and uses the caution colour. The missing costs remain
-listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
-The budget card also breaks the known estimate into accommodation, transport, meals and activities.
-Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Restaurant suggestions are excluded from the dining breakdown; a
-scheduled restaurant is counted once as an itinerary Stop. Unpriced counts include all categories
-and an unquoted transport estimate, so the total can exceed the activity count. Transport without a quoted amount or any priced item,
-and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
-keeping its unpriced count. Published zero fares remain zero; older nonzero
-transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
-and at-budget or below-budget statuses say “unpriced costs not counted”. Over-budget warnings remain.
-The known category amounts add up to the displayed
-known estimate. At narrow drawer widths each row wraps its amount under the
-category name instead of overflowing.
-The budget summary starts collapsed and keeps the known estimate, budget limit,
-currency and any unpriced count visible. Expanding it shows each priced item,
-including explicit zero prices and “Price unknown” rows. A count badge next to the trip title
+The budget is one summary line: the known total over the budget limit, the unpriced count and one
+status wording, with a progress bar under it. The estimated total appears once. The status says
+“At budget”, “Within budget” or “Over budget”; when the known estimate equals or stays below the budget
+but costs remain unpriced it says “unpriced costs not counted” (or “unpriced stops not counted” at
+exactly the budget without missing transport) and uses the caution colour. The status wraps within the
+panel at narrow widths. Tapping the line expands one row per category (accommodation, transport, meals,
+activities) with its known total; the rows have no provider text, item names or notes, and the details
+stay on the stop or booking row. A category with no known cost shows “Not costed” instead of a zero.
+Restaurant suggestions are excluded from the meals count; a scheduled restaurant is counted once as an
+itinerary Stop. The unpriced count includes all categories and an unquoted transport estimate, so it can
+exceed the activity count. Published zero fares remain zero. The category amounts add up to the known
+total. The summary starts collapsed and is at least 44 px tall on a phone.
+A count badge next to the trip title
 (top bar on desktop and tablet, phone top bar on phone) lists open items: scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
 there are none. Tapping it opens a glass
 popover; selecting a row takes the traveller to its stop and day and closes the popover, as do Esc
-and an outside click. Unpriced items are not open items and stay in the budget’s “Not included” note.
+and an outside click. Unpriced items are not open items and stay counted on the budget line.
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
 
@@ -932,8 +925,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
 - **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll. Verify with `pnpm --filter @trip/web e2e trip-initial-scroll` (1280×800, 1440×1000 and 390×844).
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
-  budget card lists their count and missing costs, avoiding the impression that the total covers
-  every cost.
+  budget line shows their count, avoiding the impression that the total covers every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
   trip-wide stop number, the same as on the map and in the Trip timeline; an unlocated stop shows
   none. Drag and drop names a position as shown;
@@ -1329,8 +1321,7 @@ the account section explains that everything stays in this browser.
     amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
     places, grouping thousands from four digits up (`JPY 230`, `AUD 12.50`, `KRW 1,400`), and never
     converts it; `delta()` signs a
-    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
-    "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
+    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); the money display has no budget-gap sentence.
     Agent Lab uses the same module with fixed AUD and whole dollars (`A$3,960`, `labMoney` in
     `apps/web/lib/agent-lab/money.ts`). The sentence sent to the planner is not a display amount:
     `plannerAud()` writes it in English AUD with cents whatever the language or currency. The web

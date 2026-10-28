@@ -49,36 +49,26 @@ try {
     const card = page.locator(".trip-panel__budget-summary");
     await card.waitFor();
     await card.locator("summary").click();
+    const line = plain(await card.locator("summary").innerText());
     const rows = (await card.locator(".trip-panel__budget-breakdown > li").allInnerTexts()).map(
       plain,
     );
-    const notes = (await card.locator(".trip__budget-note").allInnerTexts()).map(plain);
     await page.screenshot({ path: `${OUT}/${locale}.png`, fullPage: true });
-    seen[locale] = { rows, notes };
+    seen[locale] = { line, rows };
 
-    const rowCount = zh ? /(\d+) 项未定价/ : /(\d+) unpriced/;
-    const [meals, activities] = [zh ? "餐饮" : "Meals", zh ? "活动" : "Activities"].map(
-      (label) => rows.find((row) => row.startsWith(label)) ?? "",
-    );
-    const transport = rows.find((row) => row.startsWith(zh ? "交通" : "Transport")) ?? "";
-    const transportUnpriced = count(transport, rowCount);
-    const transportWithoutEstimate =
-      transportUnpriced === 0 && /Not costed|未计价/.test(transport) ? 1 : 0;
-    const noteStops = notes.map((note) => count(note, /[(（](\d+)/)).find(Boolean) ?? 0;
+    const unpriced = count(line, zh ? /(\d+) 项未定价/ : /(\d+) unpriced/);
+    const notCosted = rows.filter((row) => /Not costed|未计价/.test(row)).length;
+    const meals = rows.find((row) => row.startsWith(zh ? "餐饮" : "Meals")) ?? "";
     check(meals, `${locale}: the Meals row is shown`);
     check(
-      count(meals, rowCount) === 0,
-      `${locale}: restaurant ideas are not counted as unpriced meals (${meals})`,
+      rows.every((row) => !/unpriced|未定价/.test(row)),
+      `${locale}: category rows carry no unpriced count`,
+      rows,
     );
     check(
-      count(activities, rowCount) + transportUnpriced + transportWithoutEstimate === noteStops,
-      `${locale}: activity and transport category counts match the Not included note (${count(activities, rowCount)} + ${transportUnpriced + transportWithoutEstimate} vs ${noteStops})`,
-    );
-    const rowTotal =
-      rows.reduce((sum, row) => sum + count(row, rowCount), 0) + transportWithoutEstimate;
-    check(
-      rowTotal === noteStops,
-      `${locale}: every unpriced count in the rows is explained by the notes (${rowTotal} vs ${noteStops})`,
+      unpriced >= notCosted && (unpriced > 0 || notCosted === 0),
+      `${locale}: the budget line counts at least one unpriced item per category without a cost (${unpriced} vs ${notCosted})`,
+      line,
     );
     check(errors.length === 0, `${locale}: no page errors`);
     await context.close();

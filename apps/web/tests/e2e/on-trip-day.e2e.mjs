@@ -330,30 +330,12 @@ try {
     (await budget.locator(":scope > summary .budget-status--caution").count()) === 1,
     "exact budget with unpriced stops uses the caution class",
   );
+  check(
+    /\b2 unpriced\b/.test(await budget.locator(":scope > summary").innerText()),
+    "the budget line shows the two unpriced items",
+    await budget.locator(":scope > summary").innerText(),
+  );
   await budget.locator(":scope > summary").click();
-  check(
-    (await budget.getByText("The known estimate equals your budget.", { exact: true }).count()) ===
-      1,
-    "exact budget retains its explanation",
-  );
-  const unpricedCaution = budget
-    .locator(".trip__budget-note")
-    .filter({ hasText: "costs for stops without a published price" });
-  check(
-    (await unpricedCaution.count()) === 1 &&
-      /Not included: costs for stops without a published price \(2\)\./.test(
-        await unpricedCaution.evaluate((node) => node.textContent ?? ""),
-      ),
-    "unpriced-stop detail and existing class remain present",
-    await unpricedCaution.evaluate((node) => node.textContent),
-  );
-  check(
-    (await budget
-      .locator(".trip__budget-note")
-      .filter({ hasText: "transport without a price" })
-      .count()) === 1,
-    "unpriced transport remains disclosed separately",
-  );
   await budget.locator(":scope > summary").click();
   await trip.getByRole("tab", { name: /^Day 2\b/ }).click();
   check(

@@ -343,7 +343,7 @@ try {
   const summary = budget.locator("summary");
   check(
     /JPY\s*54,000/.test(await summary.innerText()),
-    "compact summary shows known estimate in display currency",
+    "the budget line shows the known estimate in display currency",
     await summary.innerText(),
   );
   check(
@@ -359,21 +359,18 @@ try {
   check(!(await budget.evaluate((node) => node.open)), "item breakdown starts collapsed");
   await budget.locator("summary").click();
   check(
-    (await budget.getByText("Free garden", { exact: true }).count()) > 0,
-    "breakdown distinguishes a known zero item",
-  );
-  check(
-    (await budget.getByText("Unpriced museum", { exact: true }).count()) > 0,
-    "breakdown discloses an unknown item without a zero amount",
+    (await budget.getByText("Free garden", { exact: true }).count()) === 0 &&
+      (await budget.getByText("Unpriced museum", { exact: true }).count()) === 0,
+    "the budget lists categories, not individual items",
   );
   check(
     (await budget.getByText("JPY 20,000", { exact: true }).count()) > 0,
-    "selected stay uses nightly rate times rooms and nights",
+    "the accommodation row totals the selected stay: nightly rate times rooms and nights",
     await budget.innerText(),
   );
   check(
     (await budget.getByText("JPY 4,000", { exact: true }).count()) > 0,
-    "selected flight fare is counted once for the whole group",
+    "the transport row counts the selected flight fare once for the whole group",
     await budget.innerText(),
   );
   check(
@@ -428,11 +425,8 @@ try {
     rows,
   );
   check(
-    (await page
-      .locator(".trip-panel__budget-summary")
-      .getByText(/Not included/)
-      .count()) > 0 || /4 unpriced/.test(await summary.innerText()),
-    "unpriced items stay in the budget's not-included note",
+    /4 unpriced/.test(await summary.innerText()),
+    "unpriced items stay counted on the budget line",
   );
   const classes = await popover.getAttribute("class");
   check(

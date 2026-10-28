@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import { moneyDisplay, plannerAud } from "@/lib/money";
-import { translate } from "@/lib/i18n/locale";
 
 const plain = (text: string) => text.replace(/ /g, " ");
 const aud = moneyDisplay({ currency: "AUD", locale: "en" });
@@ -81,53 +80,6 @@ describe("delta: a signed difference", () => {
     const jpy = moneyDisplay({ currency: "JPY", locale: "zh" });
     expect(plain(jpy.delta(-30))).toBe("−JPY 3,000");
     expect(plain(jpy.delta(0.004))).toBe("JPY 0");
-  });
-});
-
-describe("budgetGap: under or over budget", () => {
-  it("reports an overrun as a positive amount over the budget", () => {
-    const gap = aud.budgetGap(250, 200)!;
-    expect(gap.direction).toBe("over");
-    expect(plain(translate("en", gap.key, gap.params))).toBe(
-      "AUD 50.00 over the AUD 200.00 budget",
-    );
-  });
-
-  it("reports room left as under the budget, including an exact match", () => {
-    const under = aud.budgetGap(150, 200)!;
-    expect(under.direction).toBe("under");
-    expect(plain(translate("en", under.key, under.params))).toBe(
-      "AUD 50.00 under the AUD 200.00 budget",
-    );
-    const exact = aud.budgetGap(200, 200)!;
-    expect(exact.direction).toBe("under");
-    expect(plain(exact.params.amount)).toBe("AUD 0.00");
-  });
-
-  it("reads in Chinese with the same amounts", () => {
-    const zh = moneyDisplay({ currency: "AUD", locale: "zh" });
-    const gap = zh.budgetGap(250, 200)!;
-    expect(plain(translate("zh", gap.key, gap.params))).toBe(
-      "超出预算 AUD 50.00（预算 AUD 200.00）",
-    );
-  });
-
-  it("shows the source budget as stated", () => {
-    const cny = moneyDisplay({ currency: "CNY", locale: "en" });
-    const gap = cny.budgetGap(1260, 1050, { amount: 4999, currency: "CNY" })!;
-    expect(gap.direction).toBe("over");
-    expect(plain(gap.params.amount)).toBe("CNY 1,000.00");
-    expect(plain(gap.params.budget)).toBe("CNY 4,999.00");
-  });
-
-  it.each([
-    [200, undefined],
-    [200, 0],
-    [200, Number.NaN],
-    [Number.NaN, 200],
-    [-1, 200],
-  ])("has no gap for estimate %s and budget %s", (estimate, budget) => {
-    expect(aud.budgetGap(estimate, budget)).toBeUndefined();
   });
 });
 

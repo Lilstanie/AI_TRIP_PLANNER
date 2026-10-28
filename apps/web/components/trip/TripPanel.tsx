@@ -18,7 +18,7 @@ export type TripPanelProps = {
 };
 
 export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
-  const { t, locale, money, budgetGap, notice: localizeNotice } = useLocale();
+  const { t, locale, money, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
   const [exportMessage, setExportMessage] = useState("");
   const [budgetOpen, setBudgetOpen] = useState(false);
@@ -39,15 +39,34 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
     Number.isFinite(plan.budgetTotal) && plan.budgetTotal > 0 ? plan.budgetTotal : undefined;
   const pct =
     budget && estimated !== undefined ? Math.min(100, Math.round((estimated / budget) * 100)) : 0;
-  const gap =
-    estimated === undefined ? undefined : budgetGap(estimated, budget, plan.brief.budgetSource);
+  const hasLimit = budget !== undefined && estimated !== undefined;
   const atBudget = budget !== undefined && estimated === budget;
-  const over = gap?.direction === "over";
+  const over = hasLimit && estimated > budget;
   const budgetBreakdown = deriveBudgetCategories(plan);
   const unpriced = countUnpricedCosts(budgetBreakdown);
   const transport = budgetBreakdown.find((category) => category.id === "transport");
   const transportMissing = !!transport && (transport.notCosted || transport.unpriced > 0);
-  const unpricedCaution = unpriced > 0 && (atBudget || gap?.direction === "under");
+  const unpricedCaution = unpriced > 0 && hasLimit && !over;
+  const statusTone = !hasLimit
+    ? "unavailable"
+    : over
+      ? "over"
+      : unpricedCaution
+        ? "caution"
+        : "within";
+  const statusText = !hasLimit
+    ? t("Budget not set")
+    : over
+      ? t("Over budget")
+      : atBudget
+        ? transportMissing
+          ? t("At budget · unpriced costs not counted")
+          : unpriced > 0
+            ? t("At budget · unpriced stops not counted")
+            : t("At budget")
+        : unpricedCaution
+          ? t("Known estimate within budget · unpriced costs not counted")
+          : t("Within budget");
   const budgetConflicts = placeConflicts(plan).budget;
   const [start, end] = plan.brief.dates;
   const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
@@ -100,118 +119,37 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
               budgetManuallyChanged.current = true;
             }}
           >
-            <span className="trip-panel__budget-title">{t("Trip budget")}</span>
-            <span className="trip-panel__budget-compact">
-              <span>
-                <span>{t("Estimated total")}</span>
+            <span className="sr-only">{t("Trip budget")}</span>
+            <span className="trip-panel__budget-line">
+              <span className="trip__budget">
                 <strong>
                   {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
                 </strong>
+                {budget !== undefined && <span>/ {money(budget, plan.brief.budgetSource)}</span>}
               </span>
-              <span>
-                <span>{t("Budget limit")}</span>
-                <strong>
-                  {budget === undefined
-                    ? t("Budget not set")
-                    : money(budget, plan.brief.budgetSource)}
-                </strong>
-              </span>
-              {(unpriced > 0 || transportMissing) && (
+              {unpriced > 0 && (
                 <span className="trip-panel__budget-unknown">
                   {t("{count} unpriced", { count: unpriced })}
                 </span>
               )}
-              <span
-                className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : unpricedCaution ? "caution" : "within"}`}
-              >
-                {!gap
-                  ? t("Budget not set")
-                  : over
-                    ? t("Over budget")
-                    : atBudget
-                      ? transportMissing
-                        ? t("At budget · unpriced costs not counted")
-                        : unpriced > 0
-                          ? t("At budget · unpriced stops not counted")
-                          : t("At budget")
-                      : unpricedCaution
-                        ? t("Known estimate within budget · unpriced costs not counted")
-                        : t("Within budget")}
-              </span>
+              <span className={`budget-status budget-status--${statusTone}`}>{statusText}</span>
+            </span>
+            <span
+              className={`bar${over ? " bar--over" : ""}`}
+              role="progressbar"
+              aria-label={t("Budget used")}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={pct}
+            >
+              <span style={{ width: `${pct}%` }} />
             </span>
           </summary>
-          <div className="trip__budget-head">
-            <div className="trip__budget">
-              <span>{t("Estimated total")}</span>
-              <strong>
-                {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
-              </strong>
-            </div>
-            <span
-              className={`budget-status budget-status--${!gap ? "unavailable" : over ? "over" : unpricedCaution ? "caution" : "within"}`}
-            >
-              {!gap
-                ? t("Budget not set")
-                : over
-                  ? t("Over budget")
-                  : atBudget
-                    ? transportMissing
-                      ? t("At budget · unpriced costs not counted")
-                      : unpriced > 0
-                        ? t("At budget · unpriced stops not counted")
-                        : t("At budget")
-                    : unpricedCaution
-                      ? t("Known estimate within budget · unpriced costs not counted")
-                      : t("Within budget")}
-            </span>
-          </div>
-          <div
-            className={`bar${over ? " bar--over" : ""}`}
-            role="progressbar"
-            aria-label={t("Budget used")}
-            aria-valuemin={0}
-            aria-valuemax={100}
-            aria-valuenow={pct}
-          >
-            <span style={{ width: `${pct}%` }} />
-          </div>
-          <p className={`trip__budget-delta${over ? " trip__budget-delta--over" : ""}`}>
-            {atBudget
-              ? t("The known estimate equals your budget.")
-              : gap
-                ? t(gap.key, gap.params)
-                : t("Budget not set")}
-          </p>
           <ul className="trip-panel__budget-breakdown" aria-label={t("Budget breakdown")}>
             {budgetBreakdown.map((category) => (
               <li key={category.id}>
-                <div className="trip-panel__budget-category">
-                  <span>{t(category.label)}</span>
-                  <span>
-                    {category.notCosted ? (
-                      <strong>{t("Not costed")}</strong>
-                    ) : (
-                      <>
-                        <strong>{money(category.amount)}</strong> · {t("Estimated")}
-                      </>
-                    )}
-                    {category.unpriced > 0 && (
-                      <> · {t("{count} unpriced", { count: category.unpriced })}</>
-                    )}
-                  </span>
-                </div>
-                {category.items.length > 0 && (
-                  <ul aria-label={t("{category} items", { category: t(category.label) })}>
-                    {category.items.map((item) => (
-                      <li key={item.id}>
-                        <span>{item.label}</span>
-                        <span>
-                          {item.amount === undefined ? t("Price unknown") : money(item.amount)}
-                        </span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
+                <span>{t(category.label)}</span>
+                <strong>{category.notCosted ? t("Not costed") : money(category.amount)}</strong>
               </li>
             ))}
           </ul>
@@ -221,16 +159,6 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
                 <li key={index}>{localizeNotice(notice)}</li>
               ))}
             </ul>
-          )}
-          {unpriced > 0 && (
-            <p className="trip__budget-note">
-              {t("Not included: costs for stops without a published price ({count}).", {
-                count: unpriced,
-              })}
-            </p>
-          )}
-          {transportMissing && (
-            <p className="trip__budget-note">{t("Not included: transport without a price.")}</p>
           )}
         </details>
         <CurrencyNotice />

@@ -1,6 +1,6 @@
 import { fromAud, type Currency, type TripBrief } from "@trip/shared";
 
-import { intlLocale, type AppLocale, type MessageKey } from "./i18n/locale";
+import { intlLocale, type AppLocale } from "./i18n/locale";
 
 export type Money = {
   money(aud: number, source?: SourceBudget): string;
@@ -8,25 +8,9 @@ export type Money = {
   fare(fare: { amount: number; currency: string }): string;
 
   delta(aud: number): string;
-
-  budgetGap(
-    estimate: number,
-    budget: number | undefined,
-    source?: SourceBudget,
-  ): BudgetGap | undefined;
 };
 
 export type SourceBudget = NonNullable<TripBrief["budgetSource"]>;
-
-export type BudgetGap = {
-  direction: "under" | "over";
-  key: Extract<
-    MessageKey,
-    "{amount} over the {budget} budget" | "{amount} under the {budget} budget"
-  >;
-
-  params: { amount: string; budget: string };
-};
 
 export function currencyDigits(currency: string): number {
   try {
@@ -106,15 +90,5 @@ export function moneyDisplay({
     money,
     fare: (value) => fare(value, locale),
     delta: (aud) => format(signedFormat, fromAud(aud, currency)),
-    budgetGap(estimate, budget, source) {
-      if (!Number.isFinite(estimate) || estimate < 0) return undefined;
-      if (budget === undefined || !Number.isFinite(budget) || budget <= 0) return undefined;
-      const over = estimate > budget;
-      return {
-        direction: over ? "over" : "under",
-        key: over ? "{amount} over the {budget} budget" : "{amount} under the {budget} budget",
-        params: { amount: money(Math.abs(budget - estimate)), budget: money(budget, source) },
-      };
-    },
   };
 }
