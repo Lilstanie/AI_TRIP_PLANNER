@@ -3,10 +3,9 @@
   top: 0;
   z-index: 4;
   box-sizing: border-box;
-  width: 100%;
-  height: var(--dsh-trajectory-toolbar-height);
-  border-bottom: 0.5px solid var(--dsw-alias-border-l2);
-  background: var(--dsw-alias-bg-layer-1);
+  flex: none;
+  margin: var(--space-2) var(--space-2) 0;
+  border-radius: var(--radius-lg);
 }
 
 .inner {
@@ -15,7 +14,7 @@
   box-sizing: border-box;
   width: 100%;
   height: 100%;
-  padding: 0 6px;
+  padding: 5px 6px;
   gap: 8px;
 }
 
@@ -35,7 +34,7 @@
   gap: 4px;
   border: 0;
   border-radius: var(--dsw-radius-sm);
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   background: transparent;
   cursor: pointer;
   font: var(--dsw-font-xxs-12);
@@ -52,7 +51,7 @@
 }
 
 .actionIcon {
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   font: 14px/14px var(--ds-font-family-code);
 }
 
@@ -65,14 +64,14 @@
   margin-left: auto;
   padding: 0 6px;
   gap: 4px;
-  border: 0.5px solid var(--dsw-alias-border-l4);
-  border-radius: var(--dsw-radius-sm);
-  color: var(--dsw-alias-label-caption);
-  background: var(--dsw-alias-bg-layer-2);
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  color: var(--dsw-alias-label-secondary);
+  background: var(--fill-hover);
 }
 
 .search:hover {
-  border-color: var(--dsw-alias-label-caption);
+  border-color: var(--dsw-alias-border-l4);
 }
 
 .search:focus-within {
@@ -96,7 +95,7 @@
 }
 
 .searchInput::placeholder {
-  color: var(--dsw-alias-label-caption);
+  color: var(--dsw-alias-label-secondary);
 }
 
 .searchInput::-webkit-search-cancel-button {
@@ -114,7 +113,7 @@
 
 .hitCount {
   min-width: 28px;
-  color: var(--dsw-alias-label-caption);
+  color: var(--dsw-alias-label-secondary);
   font: var(--dsw-font-xxs-12);
   text-align: right;
 }
@@ -128,7 +127,7 @@
   padding: 0;
   border: 0;
   border-radius: var(--dsw-radius-sm);
-  color: var(--dsw-alias-label-tertiary);
+  color: var(--dsw-alias-label-secondary);
   background: transparent;
   cursor: pointer;
 }
@@ -144,22 +143,22 @@
 }
 
 .action {
-  height: 26px;
+  height: 28px;
   min-height: 0 !important;
-  padding: 0 8px !important;
-  border-radius: 6px !important;
+  padding: 0 10px !important;
+  border-radius: 8px !important;
 }
 
 .search {
-  height: 26px;
+  height: 28px;
 }
 
 .hitStep {
   width: 22px;
-  height: 22px;
+  height: 24px;
   min-height: 0 !important;
   padding: 0 !important;
-  border-radius: 6px !important;
+  border-radius: 8px !important;
   background: transparent !important;
 }
 
@@ -189,7 +188,6 @@
 [data-trajectory-phone] .search {
   flex: 1 1 150px;
   height: 44px;
-  border-width: 0;
   margin-left: 0;
   padding: 0 12px;
 }

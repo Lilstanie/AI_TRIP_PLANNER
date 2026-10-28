@@ -97,7 +97,8 @@ export const TrajectoryTab = memo(function TrajectoryTab({
     <div className="trajectory-tab">
       {!empty && (
         <div
-          className={css.modebar}
+          className={`${css.modebar} glass-float`}
+          data-trajectory-modebar=""
           data-phone={phone || undefined}
           role="group"
           aria-label={tt("view.aria")}
