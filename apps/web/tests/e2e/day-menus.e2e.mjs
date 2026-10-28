@@ -269,6 +269,14 @@ try {
       Object.fromEntries(
         itemsOf(p, "itinerary").map((item) => [item.location, item.day ?? "idea"]),
       );
+    const savedDraft = () =>
+      page.evaluate((id) => {
+        const stored = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+        const found =
+          stored?.trips?.find((trip) => trip.id === stored.activeTripId) ??
+          stored?.trips?.find((trip) => trip.id === id);
+        return found?.snapshot?.draft;
+      }, tripId);
     const stayOf = (p) => p?.sections?.find((s) => s.id === "accommodation")?.proposal?.stays?.[0];
     const dayTabs = () => page.locator(".day-strip__day");
     const selectedDay = () =>
@@ -393,7 +401,31 @@ try {
       (await page.locator(".day-strip__day").nth(1).textContent()).includes("Free day"),
       `the new day reads as a free day at ${tag}`,
     );
+    await waitUntil(async () => (await savedDraft())?.end === "2030-10-05", 6000);
+    const grownDraft = await savedDraft();
+    check(
+      grownDraft?.start === "2030-10-01" && grownDraft.end === "2030-10-05",
+      `the Brief draft follows the dates after Add day after at ${tag}`,
+      grownDraft,
+    );
     await undoRestores("Add day after");
+    await waitUntil(async () => (await savedDraft())?.end === "2030-10-04", 6000);
+    check(
+      (await savedDraft())?.end === "2030-10-04",
+      `the Brief draft follows the dates back after Undo at ${tag}`,
+      await savedDraft(),
+    );
+
+    await selectDay(4);
+    await onDay(4, "Add day after");
+    await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
+    check(
+      await waitUntil(async () => (await selectedDay()) === "5", 4000),
+      `Add day after the last day opens the new day at ${tag}`,
+      await selectedDay(),
+    );
+    await undoRestores("Add day after the last day");
+    await selectDay(1);
 
     await onDay(1, "Add day before");
     ok = await waitPlan((p) => p.brief.dates[0] === "2030-09-30");

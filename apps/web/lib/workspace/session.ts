@@ -177,6 +177,14 @@ export function mergeRoutes(kept: RouteResult[], fresh: RouteResult[]): RouteRes
   return [...byPair.values()];
 }
 
+function sameDates(previous: TripPlan | undefined, next: TripPlan): boolean {
+  return (
+    !previous ||
+    (previous.brief.dates[0] === next.brief.dates[0] &&
+      previous.brief.dates[1] === next.brief.dates[1])
+  );
+}
+
 export function session(state: SessionState, event: SessionEvent): SessionState {
   switch (event.kind) {
     case "started":
@@ -226,6 +234,9 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         ...state,
         previousTotal: state.plan?.estTotal,
         plan: event.plan,
+        draft: sameDates(state.plan, event.plan)
+          ? state.draft
+          : { ...state.draft, start: event.plan.brief.dates[0], end: event.plan.brief.dates[1] },
         selectedActivity: validSelectedStop(event.plan, state.selectedActivity),
         estimateChange: undefined,
       };

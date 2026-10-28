@@ -61,6 +61,8 @@ Written before the code (#750, spec #743). Each line is a way the feature could 
 - The saved plan does not change after a day action, or changes only in memory and is lost on reload.
 - A day action does not land as one plan revision (the edit version does not move by one), so replanning would not build on it.
 - Undo does not restore the exact saved plan from before the action.
+- After a day action that changes the dates, the Brief draft keeps the old start and end, so the next replan from the Brief drops the added day.
+- Add day after the last day leaves the view on the old last day.
 
 ## Labels
 
