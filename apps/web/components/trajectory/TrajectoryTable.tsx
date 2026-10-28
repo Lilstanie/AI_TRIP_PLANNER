@@ -1273,7 +1273,7 @@ export function TrajectoryTable({
       {(selectedStepInfo !== undefined ||
         (selected !== undefined && selectedState !== undefined)) && (
         <aside
-          className={css.details}
+          className={`${css.details} glass-float--raised`}
           aria-label={t("details.event")}
           style={detailsWidth === null ? undefined : { width: detailsWidth }}
         >
