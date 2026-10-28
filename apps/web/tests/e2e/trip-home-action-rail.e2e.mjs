@@ -249,6 +249,48 @@ try {
     "the centre lists every Chat linked to the Trip",
     chatNames,
   );
+  const suggestion = home(page).getByRole("region", { name: "Trip suggestion" });
+  check(
+    (await suggestion.count()) === 1 &&
+      (await suggestion.innerText()).includes("2 unscheduled ideas") &&
+      (await suggestion.innerText()).includes("Sydney"),
+    "the suggestion reflects the current Plan",
+  );
+  await suggestion.getByRole("button", { name: "Ask AI", exact: true }).click();
+  await page.locator(".composer textarea").waitFor();
+  const suggestedInput = await page.locator(".composer textarea").inputValue();
+  check(
+    suggestedInput.includes("2 unscheduled ideas") && suggestedInput.includes("Sydney"),
+    "choosing a suggestion carries a Plan-aware prompt into a linked Chat",
+    suggestedInput,
+  );
+  await page.getByRole("button", { name: "Back to trip home" }).click();
+  await suggestion.getByRole("button", { name: "Dismiss", exact: true }).click();
+  check(
+    (await home(page).getByRole("region", { name: "Trip suggestion" }).count()) === 0,
+    "a suggestion can be dismissed",
+  );
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".workspace-app").waitFor();
+  await openHome(page);
+  check(
+    (await home(page).getByRole("region", { name: "Trip suggestion" }).count()) === 0,
+    "suggestion dismissal survives reload",
+  );
+  await page.evaluate(() => {
+    const key = "trip-workspace-catalog-v3";
+    const value = JSON.parse(localStorage.getItem(key));
+    value.trips[0].snapshot.plan.round += 1;
+    value.trips[0].snapshot.plan.sections[0].proposal.items[0].detail = "Updated guided tour";
+    localStorage.setItem(key, JSON.stringify(value));
+  });
+  await page.reload({ waitUntil: "domcontentloaded" });
+  await page.locator(".workspace-app").waitFor();
+  await openHome(page);
+  check(
+    (await home(page).getByRole("region", { name: "Trip suggestion" }).count()) === 1,
+    "a changed Plan makes the suggestion eligible again",
+  );
 
   await chats(page)
     .getByRole("button", { name: /Family plan/ })
@@ -355,7 +397,7 @@ try {
   const linked = after.conversations.filter((item) => item.tripId === "trip:sydney-action-rail");
   check(
     after.conversations.length === before.conversations.length + 1 &&
-      linked.length === 3 &&
+      linked.length === 4 &&
       after.trips.length === before.trips.length &&
       after.trips[0].conversationIds.includes(after.activeConversationId),
     "the new Chat is stored under the same Trip",
@@ -376,6 +418,7 @@ try {
   const phoneOrder = await phone.page.evaluate(() => {
     const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect().top;
     return {
+      suggestion: rect(".trip-home-suggestion"),
       actions: rect(".trip-home__actions"),
       chats: rect(".trip-home__main .trip-home-chats"),
       map: rect(".trip-home__map"),
@@ -383,10 +426,11 @@ try {
     };
   });
   check(
-    phoneOrder.actions < phoneOrder.chats &&
+    phoneOrder.suggestion < phoneOrder.actions &&
+      phoneOrder.actions < phoneOrder.chats &&
       phoneOrder.chats < phoneOrder.map &&
       phoneOrder.map < phoneOrder.composer,
-    "phone order is actions, Chats, map and composer",
+    "phone order is suggestion, actions, Chats, map and composer",
     phoneOrder,
   );
   await action(phone.page, /^Itinerary/).click();

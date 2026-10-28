@@ -883,6 +883,16 @@ export const WORKSPACE_ZH = {
   "Back to trip home": "返回行程主页",
   Bookings: "预订",
   "No bookings yet.": "还没有预订。",
+  "Trip suggestion": "行程建议",
+  Dismiss: "忽略",
+  "{count} unscheduled ideas in {destination}. Want help placing them?":
+    "{destination}还有 {count} 个未安排的备选地点。需要我帮你安排吗？",
+  "Review the {count} unscheduled ideas in my current {destination} plan and suggest where they fit.":
+    "查看我当前{destination}行程中的 {count} 个未安排备选地点，并结合现有计划建议如何安排。",
+  "Your {days}-day {destination} plan is ready. Want a fresh suggestion?":
+    "你的{destination} {days} 天行程已准备好。需要一条新的建议吗？",
+  "Suggest one improvement for my current {days}-day {destination} plan, taking the existing itinerary into account.":
+    "结合现有行程，为我的{destination} {days} 天计划提出一项改进建议。",
   "{count} day": "{count} 天",
   "{count} days": "{count} 天",
 } as const;

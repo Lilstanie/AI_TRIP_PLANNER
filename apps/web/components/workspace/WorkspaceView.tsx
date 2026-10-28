@@ -24,6 +24,7 @@ import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
 import { conversationTitle, tripConversations } from "@/lib/workspace/catalog";
 import { TripHomeChats, TripHomeComposer } from "./TripHomeChats";
+import { TripHomeSuggestion } from "./TripHomeSuggestion";
 import { TripHomeMap } from "./TripHomeMap";
 import { TripHomeActionDrawer } from "./TripHomeActionDrawer";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
@@ -538,6 +539,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       plan={homeTrip.snapshot.plan}
                       draft={homeTrip.snapshot.draft}
                       onOpen={openHomeAction}
+                    />
+                  ) : undefined
+                }
+                suggestion={
+                  !homeChatId && homeTrip.snapshot.plan ? (
+                    <TripHomeSuggestion
+                      tripId={homeTrip.id}
+                      plan={homeTrip.snapshot.plan}
+                      onChoose={(text) => startHomeChat(homeTrip.id, text)}
                     />
                   ) : undefined
                 }

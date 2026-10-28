@@ -5,6 +5,37 @@
   min-height: 0;
   margin-top: var(--space-4);
 }
+.trip-home-suggestion {
+  margin-top: var(--space-5);
+  padding-block: var(--space-3);
+  border-block: 1px solid var(--border);
+}
+.trip-home-suggestion p {
+  margin: 0;
+  font-size: var(--font-size-title);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+}
+.trip-home-suggestion__actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  margin-top: var(--space-3);
+}
+.trip-home-suggestion__actions button {
+  min-height: 40px;
+  padding: var(--space-2) var(--space-4);
+  background: var(--accent-bg);
+  color: var(--accent);
+}
+.trip-home-suggestion__actions .trip-home-suggestion__dismiss {
+  background: var(--fill-hover);
+  color: var(--text-dim);
+}
+.trip-home-suggestion__dismiss .icon {
+  width: 16px;
+  height: 16px;
+}
 .trip-home-chat__back {
   align-self: flex-start;
   min-height: 40px;

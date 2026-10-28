@@ -21,6 +21,8 @@ The E2E journey must fail when any of these user-visible outcomes regress:
 17. Phone layout puts the composer before the action rail or creates horizontal overflow.
 18. English or Chinese labels, keyboard use, reduced motion, or a narrow viewport break the journey.
 19. Browser console or page errors occur during the journey.
+20. A suggestion ignores the current Plan, opens an unlinked Chat, or loses its prompt.
+21. Suggestion dismissal does not survive reload, affects another Trip, or survives a changed Plan.
 
 The repeatable evidence is `trip-home-action-rail.e2e.mjs`, which seeds local fixture data and writes
 screenshots plus `summary.json` under `output/playwright/trip-home-action-rail/`.

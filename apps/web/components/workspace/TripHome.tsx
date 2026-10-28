@@ -11,6 +11,7 @@ export function TripHome({
   onRename,
   onDelete,
   children,
+  suggestion,
   actions,
   map,
   composer,
@@ -22,6 +23,7 @@ export function TripHome({
   onRename(): void;
   onDelete(): void;
   children?: ReactNode;
+  suggestion?: ReactNode;
   actions?: ReactNode;
   map?: ReactNode;
   composer?: ReactNode;
@@ -54,6 +56,7 @@ export function TripHome({
             ))}
           </ul>
         )}
+        {suggestion}
         {phone && actions}
         {children}
         {phone && map}
