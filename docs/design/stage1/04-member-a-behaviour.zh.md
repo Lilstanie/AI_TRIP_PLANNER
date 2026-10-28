@@ -8,11 +8,11 @@
 
 一次规划回合会发起三次 LLM 调用。每一次都有对应的确定性路径，在模型不可用或返回无效输出时接管：
 
-| LLM 调用 | 它决定什么 | 确定性把关 |
-| --- | --- | --- |
+| LLM 调用                            | 它决定什么                 | 确定性把关                                                                                                |
+| ----------------------------------- | -------------------------- | --------------------------------------------------------------------------------------------------------- |
 | 行程摘要抽取（`update_trip_brief`） | 这条消息陈述了哪些出行事实 | `BriefPatchSchema` → `applyBriefPatch` → `TripBrief` Zod 校验。旅行者没有陈述的事实会被报为缺失，不作推断 |
-| Supervisor 委派 | 调用哪些专家、给出什么目标 | 固定的专家注册表。行程专家始终会被委派，supervisor 失败时回退为派发全部五个 |
-| 撰写回复 | 旅行者读到的文字 | 没有配置模型时，由 `fallbackReplyFor(plan)` 从计划本身写出 |
+| Supervisor 委派                     | 调用哪些专家、给出什么目标 | 固定的专家注册表。行程专家始终会被委派，supervisor 失败时回退为派发全部五个                               |
+| 撰写回复                            | 旅行者读到的文字           | 没有配置模型时，由 `fallbackReplyFor(plan)` 从计划本身写出                                                |
 
 计划不由模型生成。`build_plan` 由已校验的提案组装而成。
 
@@ -20,7 +20,7 @@
 
 ## 4.1 活动图：Generate Itinerary（UC-A1）
 
-五条泳道对应五个参与者。第 2 轮和第 3 轮会重新进入 *Detect conflicts*。
+五条泳道对应五个参与者。第 2 轮和第 3 轮会重新进入 _Detect conflicts_。
 渲染图：[`stage1-member-a-activity.svg`](../diagrams/stage1-member-a-activity.svg)。
 
 ```mermaid
@@ -162,17 +162,17 @@ stateDiagram-v2
   end note
 ```
 
-| 状态 | 旅行者看到什么 | 进入 / 退出行为 |
-| --- | --- | --- |
-| Intake、Extracting | "thinking" | 消息会并到 `known` 上，因此追问时无需重复此前已给的事实。 |
-| NeedsInfo | 聊天里的提问 | 此时还没有计划。`IncompleteBriefError` 指明缺了哪些字段，必填事实不取默认值。 |
-| Asking | 2–4 个可点选项 | 每回合最多问一次，问完之后不再运行其他工具。 |
-| Dispatching | 每个子代理一行进度 | 由 supervisor 决定哪些专家运行。行程专家始终运行。 |
-| Detecting | "checking budget and schedules" | 由成员 C 的 `detectConflicts` 给出修订请求。 |
-| Revising | "revising affected sections" | 只重跑被定向的那些代理，各自带上上一轮的提案。 |
-| Stalled | — | 丢弃该轮，保留此前的提案。 |
-| Built | 区块为 `draft` 或 `needs_you` | 计划由已校验的提案组装而成。 |
-| Failed | 指名失败专家的错误 | 不返回残缺的计划。 |
+| 状态               | 旅行者看到什么                  | 进入 / 退出行为                                                               |
+| ------------------ | ------------------------------- | ----------------------------------------------------------------------------- |
+| Intake、Extracting | "thinking"                      | 消息会并到 `known` 上，因此追问时无需重复此前已给的事实。                     |
+| NeedsInfo          | 聊天里的提问                    | 此时还没有计划。`IncompleteBriefError` 指明缺了哪些字段，必填事实不取默认值。 |
+| Asking             | 2–4 个可点选项                  | 每回合最多问一次，问完之后不再运行其他工具。                                  |
+| Dispatching        | 每个子代理一行进度              | 由 supervisor 决定哪些专家运行。行程专家始终运行。                            |
+| Detecting          | "checking budget and schedules" | 由成员 C 的 `detectConflicts` 给出修订请求。                                  |
+| Revising           | "revising affected sections"    | 只重跑被定向的那些代理，各自带上上一轮的提案。                                |
+| Stalled            | —                               | 丢弃该轮，保留此前的提案。                                                    |
+| Built              | 区块为 `draft` 或 `needs_you`   | 计划由已校验的提案组装而成。                                                  |
+| Failed             | 指名失败专家的错误              | 不返回残缺的计划。                                                            |
 
 <a id="44-how-this-behaviour-is-measured"></a>
 

@@ -19,6 +19,7 @@ Written before the code (#762, spec #755). Each line is a way the change could f
 - A tip with no full stop is dropped, emptied or shown with an added full stop.
 - Packing items still render as a bulleted list rather than one comma-separated line.
 - An item whose detail is blank but has packing is dropped.
+- The dated weather lines (one per city and day) are cut to the first line; they are evidence, so the weather tip is shown whole.
 - Item order changes, so the first five are no longer the first five saved.
 
 ## Newly planned trip

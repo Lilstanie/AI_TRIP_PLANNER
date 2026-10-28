@@ -59,13 +59,13 @@ classDiagram
   BookingAdapter ..> SerpApiError : catches, falls back
 ```
 
-| 关系 | 类型 | 理由 |
-| --- | --- | --- |
+| 关系                               | 类型 | 理由                                                                                                                 |
+| ---------------------------------- | ---- | -------------------------------------------------------------------------------------------------------------------- |
 | `Error <\|-- IncompleteBriefError` | 泛化 | “信息还不够规划”是一种非计划结果，而不是崩溃；API 路由按类型捕获它，并流式发送一个带有已理解字段的 `needs_info` 帧。 |
-| `Error <\|-- AskUserError` | 泛化 | 带 1–4 个具体选项的澄清问题，以 `ask_user` 流式发送。 |
-| `Error <\|-- SerpApiError` | 泛化 | 带类型化 `reason`（配额、无结果等）的数据提供方故障，使预订适配器可以回退到 Google Places 估算并标注数据来源信息。 |
+| `Error <\|-- AskUserError`         | 泛化 | 带 1–4 个具体选项的澄清问题，以 `ask_user` 流式发送。                                                                |
+| `Error <\|-- SerpApiError`         | 泛化 | 带类型化 `reason`（配额、无结果等）的数据提供方故障，使预订适配器可以回退到 Google Places 估算并标注数据来源信息。   |
 
-*设计说明。* 继承 `Error` 让 `runTripChat` 可以从 LangGraph 或 LangChain 调用栈深处提前结束这一轮，也让路由处理器用 `instanceof` 而不是字符串匹配来区分结果。
+_设计说明。_ 继承 `Error` 让 `runTripChat` 可以从 LangGraph 或 LangChain 调用栈深处提前结束这一轮，也让路由处理器用 `instanceof` 而不是字符串匹配来区分结果。
 
 <a id="32-object-diagram"></a>
 
@@ -148,7 +148,7 @@ classDiagram
   req ..> brief : tripId
 ```
 
-读图方法：两人合住一间房（⌈2 / 2⌉ = 1）。首选是 *standard*，即评分 ≥ 8 且可免费取消的最便宜候选，费用为 1 × 4 × 380 = AUD 1,520。底价是 *saver*，4 × 220 = AUD 880。总价 AUD 2,940，比 AUD 2,300 的预算超出 AUD 640（27.83%）。超支按各区段可削减的空间分摊（交通 200、住宿 640、餐饮 240，共 1,080），因此住宿被要求节省 640 × 640 / 1,080 = AUD 379.26。第 2 轮中它的分配额为 AUD 1,140.74。预算修订会选最便宜的合格候选，也就是 *saver*（AUD 880）：免费取消不是已确认的偏好，所以 *saver* 仍然合格。如果旅行者要求免费取消，*saver* 会被筛掉，改选 *economy*（AUD 960）。
+读图方法：两人合住一间房（⌈2 / 2⌉ = 1）。首选是 _standard_，即评分 ≥ 8 且可免费取消的最便宜候选，费用为 1 × 4 × 380 = AUD 1,520。底价是 _saver_，4 × 220 = AUD 880。总价 AUD 2,940，比 AUD 2,300 的预算超出 AUD 640（27.83%）。超支按各区段可削减的空间分摊（交通 200、住宿 640、餐饮 240，共 1,080），因此住宿被要求节省 640 × 640 / 1,080 = AUD 379.26。第 2 轮中它的分配额为 AUD 1,140.74。预算修订会选最便宜的合格候选，也就是 _saver_（AUD 880）：免费取消不是已确认的偏好，所以 _saver_ 仍然合格。如果旅行者要求免费取消，_saver_ 会被筛掉，改选 _economy_（AUD 960）。
 
 <a id="33-collaboration-collaboration-negotiate-trip-plan"></a>
 
@@ -181,15 +181,15 @@ flowchart LR
   style NTP stroke-dasharray: 6 4
 ```
 
-| 角色 | 扮演者（`main` 中） | 在协作中的职责 |
-| --- | --- | --- |
-| coordinator | LangGraph 工作流加 supervisor agent | 决定何时派发、检测、修订和停止。 |
-| board | `board.ts` | 安排阶段顺序（交通 → 住宿 → 日程和餐饮），并计算各自的分配额。 |
-| firstStage | Transport（还有没有预算份额的 Destination guide） | 不等待任何人就开始规划。 |
-| dependent | Accommodation、Itinerary、Dining | 等待前面的阶段，并在自己的分配额内规划。 |
-| judge | `detectConflicts` 和 `rollUpCost`（成员 C） | 把提案转换成定向的 `RevisionRequest`。 |
-| reviser | 任何带 `supportsRevision` 的 specialist | 从上一版提案出发，只修订自己的区段。 |
-| evidence | `ToolGateway`（地图、预订、天气） | 提供有依据的地点、价格和天气预报。 |
+| 角色        | 扮演者（`main` 中）                               | 在协作中的职责                                                 |
+| ----------- | ------------------------------------------------- | -------------------------------------------------------------- |
+| coordinator | LangGraph 工作流加 supervisor agent               | 决定何时派发、检测、修订和停止。                               |
+| board       | `board.ts`                                        | 安排阶段顺序（交通 → 住宿 → 日程和餐饮），并计算各自的分配额。 |
+| firstStage  | Transport（还有没有预算份额的 Destination guide） | 不等待任何人就开始规划。                                       |
+| dependent   | Accommodation、Itinerary、Dining                  | 等待前面的阶段，并在自己的分配额内规划。                       |
+| judge       | `detectConflicts` 和 `rollUpCost`（成员 C）       | 把提案转换成定向的 `RevisionRequest`。                         |
+| reviser     | 任何带 `supportsRevision` 的 specialist           | 从上一版提案出发，只修订自己的区段。                           |
+| evidence    | `ToolGateway`（地图、预订、天气）                 | 提供有依据的地点、价格和天气预报。                             |
 
 <a id="34-structured-class-tripplanningworkflow"></a>
 
@@ -234,10 +234,10 @@ flowchart LR
   intake --> pModel
 ```
 
-| 元素 | 类型 | 说明 |
-| --- | --- | --- |
+| 元素                            | 类型     | 说明                                                                       |
+| ------------------------------- | -------- | -------------------------------------------------------------------------- |
 | `chatIn`, `planOut`, `progress` | 提供端口 | 输入 `POST /api/chat` 请求；输出 NDJSON 进度帧和最终的 `{ reply, plan }`。 |
-| `tools`, `mem`, `model` | 需要端口 | 通过 `OrchestratorOptions` 和 `AgentContext` 注入；测试传入替身。 |
-| `supervisor [0..1]` | 部件 | 未配置模型时不存在；此时图以确定性方式派发。 |
-| `specialists [5]` | 部件 | Itinerary、Transport、Accommodation、Destination guide、Dining。 |
-| `policy`, `budget` | 部件 | 成员 C 的 `detectConflicts`、`rollUpCost` 和 `minimumCost`。 |
+| `tools`, `mem`, `model`         | 需要端口 | 通过 `OrchestratorOptions` 和 `AgentContext` 注入；测试传入替身。          |
+| `supervisor [0..1]`             | 部件     | 未配置模型时不存在；此时图以确定性方式派发。                               |
+| `specialists [5]`               | 部件     | Itinerary、Transport、Accommodation、Destination guide、Dining。           |
+| `policy`, `budget`              | 部件     | 成员 C 的 `detectConflicts`、`rollUpCost` 和 `minimumCost`。               |

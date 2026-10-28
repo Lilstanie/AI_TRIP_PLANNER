@@ -289,11 +289,9 @@ async function planDestinationGuide(
       {
         kind: "weather-packing",
         detail: scoped(
-          firstSentence(
-            weatherEvidence.length
-              ? weatherText(weatherEvidence, ctx.replyLanguage)
-              : draft.weather,
-          ),
+          weatherEvidence.length
+            ? weatherText(weatherEvidence, ctx.replyLanguage)
+            : firstSentence(draft.weather),
         ),
         packing,
       },

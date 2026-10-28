@@ -70,7 +70,9 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
             <p className="trip-tips__kind">
               {KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]!) : item.kind}
             </p>
-            {item.detail.trim() ? <p>{firstSentence(item.detail)}</p> : null}
+            {item.detail.trim() ? (
+              <p>{item.kind === "weather-packing" ? item.detail : firstSentence(item.detail)}</p>
+            ) : null}
             {packingLine(item.packing, "") ? (
               <p className="trip-tips__packing">{packingLine(item.packing, separator)}</p>
             ) : null}

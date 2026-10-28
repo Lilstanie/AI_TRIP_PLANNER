@@ -26,4 +26,4 @@ See the pull request body for the commands run and results.
 
 ## Notes for the next person
 
-Weather text for several cities now shows only the first city's sentence in the tip.
+Dated weather lines from provider evidence are kept whole and are exempt from the one-sentence rule.
