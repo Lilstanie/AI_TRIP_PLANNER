@@ -406,6 +406,17 @@ each tab, Undo after each change, Leg distances and Directions. Screenshots and
 pnpm --filter @trip/web e2e itinerary-walkthrough --prod
 ```
 
+`apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` runs the whole quiet itinerary panel of spec #755 on one saved
+Trip at desktop, phone and in Chinese: budget line, ideas chip, days and folded Travel tips in that order, the
+budget expand and collapse, Ask AI in the stop and day menus, quiet rows with no fills, tags or helper
+sentence, no Show distances, the chip as drop target with Undo, no plus beside Chats, Conversation and
+Trajectory with the Trip panel open, and the restyled Trajectory. Screenshots and `result.json` land in
+`output/playwright/quiet-walkthrough/after/`.
+
+```bash
+pnpm --filter @trip/web e2e quiet-walkthrough --prod
+```
+
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
 swapped. Four scenarios need no model (the choice arrives on the brief) and one does (the traveller

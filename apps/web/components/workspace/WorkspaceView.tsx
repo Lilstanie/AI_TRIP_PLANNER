@@ -214,6 +214,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const sendFromTrip = (message: string) => {
     if (!session.send(message)) return;
+    layout.selectView("chat");
     layout.showChatView("conversation");
   };
 
