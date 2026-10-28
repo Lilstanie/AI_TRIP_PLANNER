@@ -280,6 +280,12 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 pnpm --filter @trip/web e2e itinerary-walkthrough --prod
 ```
 
+`apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` 在同一个已保存行程上，于桌面、手机和中文下完整运行规格 #755 的安静行程面板：按预算行、备选地点标签、各天、折叠的旅行提示的顺序排列，预算展开与折叠，Stop 和日菜单中的“询问 AI”，没有填充、标签和提示句的安静行，没有“显示距离”，标签作为放置目标并可撤销，聊天旁没有加号，打开行程面板时切换对话和轨迹，以及重新设计的轨迹。截图和 `result.json` 写入 `output/playwright/quiet-walkthrough/after/`。
+
+```bash
+pnpm --filter @trip/web e2e quiet-walkthrough --prod
+```
+
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 
 ```bash
