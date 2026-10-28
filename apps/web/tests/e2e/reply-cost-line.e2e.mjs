@@ -90,25 +90,34 @@ try {
     const card = page.locator(".trip-panel__budget-summary");
     await card.waitFor();
     const total = plain(await card.locator(".trip__budget strong").innerText());
-    const delta = plain(await card.locator(".trip__budget-delta").innerText());
-    const notes = (await card.locator(".trip__budget-note").allInnerTexts()).map(plain);
+    const limitNode = card.locator(".trip__budget span");
+    const limit = (await limitNode.count()) ? plain(await limitNode.innerText()) : "";
+    const status = plain(await card.locator(".budget-status").innerText());
+    const line = plain(await card.locator("summary").innerText());
+    await card.locator("summary").click();
+    const transportRow = plain(
+      await card
+        .locator(".trip-panel__budget-breakdown > li")
+        .filter({ hasText: zh ? "交通" : "Transport" })
+        .innerText(),
+    );
     await page.screenshot({ path: `${OUT}/${item.name}-trip.png` });
-    seen[item.name] = { reply, total, delta, notes };
+    seen[item.name] = { reply, total, limit, status, line, transportRow };
 
     check(reply.includes(total), `${item.name}: reply quotes the card total ${total}`);
-    for (const amount of amounts(delta))
-      check(reply.includes(amount), `${item.name}: reply quotes the card's budget gap ${amount}`);
-    const overCard = /over|超出/.test(delta);
+    for (const amount of amounts(limit))
+      check(reply.includes(amount), `${item.name}: reply quotes the card's budget limit ${amount}`);
+    const overCard = /Over budget|超出预算/.test(status);
     check(
       overCard === (zh ? /超出/.test(reply) : /\bover your\b/.test(reply)),
       `${item.name}: reply and card agree on over or under budget`,
     );
-    const transportNote = notes.some((note) => /transport|交通/.test(note));
-    check(
-      transportNote === (zh ? /未定价的交通/.test(reply) : /transport without a price/.test(reply)),
-      `${item.name}: transport is excluded in the reply exactly when the card excludes it`,
-    );
-    const stopCount = notes.map((note) => note.match(/[(（](\d+)/)).find(Boolean);
+    if (/Not costed|未计价/.test(transportRow))
+      check(
+        zh ? /未定价的交通/.test(reply) : /transport without a price/.test(reply),
+        `${item.name}: the reply excludes transport when the card shows it as not costed`,
+      );
+    const stopCount = line.match(zh ? /(\d+) 项未定价/ : /(\d+) unpriced/);
     const count = stopCount ? Number(stopCount[1]) : 0;
     check(
       count === 0

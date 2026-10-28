@@ -630,33 +630,25 @@ records why.
 
 The Trip header shows the destination, localized short date range and traveller count.
 
-When the known estimate equals the budget, the budget panel says “At budget” instead of reporting
-zero under budget. If itinerary stops remain unpriced, the status adds “unpriced stops not counted”
-and uses the caution colour; those missing costs remain listed beneath the estimate.
-When the estimate is below budget but costs remain unpriced, the status says “Known estimate
-within budget · unpriced costs not counted” and uses the caution colour. The missing costs remain
-listed beneath the estimate. Status text wraps within the budget panel at narrow drawer widths.
-The budget card also breaks the known estimate into accommodation, transport, meals and activities.
-Each amount is labelled as an estimate; proposal items without prices are counted as unpriced beside
-their category and are not added to the total. Restaurant suggestions are excluded from the dining breakdown; a
-scheduled restaurant is counted once as an itinerary Stop. Unpriced counts include all categories
-and an unquoted transport estimate, so the total can exceed the activity count. Transport without a quoted amount or any priced item,
-and any other category whose items are all unpriced, shows “Not costed” instead of a zero estimate,
-keeping its unpriced count. Published zero fares remain zero; older nonzero
-transport estimates remain visible. Missing transport prices are disclosed below the breakdown,
-and at-budget or below-budget statuses say “unpriced costs not counted”. Over-budget warnings remain.
-The known category amounts add up to the displayed
-known estimate. At narrow drawer widths each row wraps its amount under the
-category name instead of overflowing.
-The budget summary starts collapsed and keeps the known estimate, budget limit,
-currency and any unpriced count visible. Expanding it shows each priced item,
-including explicit zero prices and “Price unknown” rows. A count badge next to the trip title
+The budget is one summary line: the known total over the budget limit, the unpriced count and one
+status wording, with a progress bar under it. The estimated total appears once. The status says
+“At budget”, “Within budget” or “Over budget”; when the known estimate equals or stays below the budget
+but costs remain unpriced it says “unpriced costs not counted” (or “unpriced stops not counted” at
+exactly the budget without missing transport) and uses the caution colour. The status wraps within the
+panel at narrow widths. Tapping the line expands one row per category (accommodation, transport, meals,
+activities) with its known total; the rows have no provider text, item names or notes, and the details
+stay on the stop or booking row. A category with no known cost shows “Not costed” instead of a zero.
+Restaurant suggestions are excluded from the meals count; a scheduled restaurant is counted once as an
+itinerary Stop. The unpriced count includes all categories and an unquoted transport estimate, so it can
+exceed the activity count. Published zero fares remain zero. The category amounts add up to the known
+total. The summary starts collapsed and is at least 44 px tall on a phone.
+A count badge next to the trip title
 (top bar on desktop and tablet, phone top bar on phone) lists open items: scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
 there are none. Tapping it opens a glass
 popover; selecting a row takes the traveller to its stop and day and closes the popover, as do Esc
-and an outside click. Unpriced items are not open items and stay in the budget’s “Not included” note.
+and an outside click. Unpriced items are not open items and stay counted on the budget line.
 Names of removed surfaces below appear only to explain their removal; nothing in this section
 describes current behaviour except the absences.
 
@@ -925,8 +917,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
 - **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll. Verify with `pnpm --filter @trip/web e2e trip-initial-scroll` (1280×800, 1440×1000 and 390×844).
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
-  budget card lists their count and missing costs, avoiding the impression that the total covers
-  every cost.
+  budget line shows their count, avoiding the impression that the total covers every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
   trip-wide stop number, the same as on the map and in the Trip timeline; an unlocated stop shows
   none. Drag and drop names a position as shown;
@@ -1322,8 +1313,7 @@ the account section explains that everything stays in this browser.
     amount; `fare()` keeps a provider-native fare in its own currency with that currency's decimal
     places, grouping thousands from four digits up (`JPY 230`, `AUD 12.50`, `KRW 1,400`), and never
     converts it; `delta()` signs a
-    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); `budgetGap()` gives the one
-    "{amount} under/over the {budget} budget" sentence the trip panel and edit preview share.
+    difference (`+AUD 12.00`, `−AUD 30.00`, no sign on zero); the money display has no budget-gap sentence.
     Agent Lab uses the same module with fixed AUD and whole dollars (`A$3,960`, `labMoney` in
     `apps/web/lib/agent-lab/money.ts`). The sentence sent to the planner is not a display amount:
     `plannerAud()` writes it in English AUD with cents whatever the language or currency. The web

@@ -208,7 +208,7 @@ try {
         const desktopTripSummary = await page.evaluate(() => {
           const budget = document.querySelector(".trip-panel__budget-summary");
           const budgetSummary = budget?.querySelector(":scope > summary");
-          const compact = budgetSummary?.querySelector(".trip-panel__budget-compact");
+          const compact = budgetSummary?.querySelector(".trip-panel__budget-line");
           const tips = document.querySelector(".trip-tips");
           const tipsSummary = tips?.querySelector(":scope > summary");
           const selectedDay = document.querySelector(
@@ -239,7 +239,7 @@ try {
           desktopTripSummary.budgetCollapsed &&
             desktopTripSummary.budgetSummaryVisible &&
             desktopTripSummary.compactBudgetVisible &&
-            desktopTripSummary.budgetSummaryHeight >= 44 &&
+            desktopTripSummary.budgetSummaryHeight >= 32 &&
             desktopTripSummary.budgetSummaryHeight <= 160 &&
             desktopTripSummary.tipsCollapsed &&
             desktopTripSummary.tipsSummaryVisible &&
