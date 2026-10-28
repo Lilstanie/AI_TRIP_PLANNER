@@ -277,7 +277,7 @@ Who 中的五项计数，包括保存行程后重新打开的情况。
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
-`destination` 是可选字段；查找城市本身时省略它。`kind` 也是可选字段（`stays`、`restaurants`、`experiences` 或 `events`）；路由会为它附加一个查询词（`apps/web/lib/trip/add-filters.ts`），使结果属于该类别。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
+`destination` 是可选字段；查找城市本身时省略它。`kind` 也是可选字段（`stays`、`restaurants`、`experiences` 或 `events`）；路由会为它附加一个查询词（`apps/web/lib/trip/add-filters.ts`），使结果属于该类别；合并后的查询超过 200 个字符时，保持原文不变。响应为 `{ "places": GooglePlace[], "source": "google" | "osm" }`。
 工作区只发送保存的地点名称、明确的活动位置或本身就是地点名称的标题
 （`apps/web/lib/map/place-query.ts`），绝不发送描述性的活动文本。
 错误：400 表示输入无效，429 表示 Google 限流，502 表示其他上游失败，503 表示所选服务不可用或仅 Google 模式未配置密钥，

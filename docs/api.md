@@ -325,7 +325,7 @@ Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map-provider/` (Goog
 { "text": "To-ji Temple", "destination": "Kyoto" }
 ```
 
-`destination` is optional; omit it to look up a city itself. `kind` is optional (`stays`, `restaurants`, `experiences` or `events`); the route appends a query word for it (`apps/web/lib/trip/add-filters.ts`) so the results are of that kind. The response is
+`destination` is optional; omit it to look up a city itself. `kind` is optional (`stays`, `restaurants`, `experiences` or `events`); the route appends a query word for it (`apps/web/lib/trip/add-filters.ts`) so the results are of that kind, and leaves the text as sent when the combined query would pass 200 characters. The response is
 `{ "places": GooglePlace[], "source": "google" | "osm" }`. The workspace only sends saved place names, explicit activity locations
 or titles that are themselves place names (`apps/web/lib/map/place-query.ts`), never descriptive activity
 text. Errors: 400 invalid input, 429 Google rate limit, 502 other upstream failures, 503 when the selected provider is unavailable or Google-only mode has no key, each with a

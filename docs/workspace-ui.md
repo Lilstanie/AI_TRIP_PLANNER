@@ -870,9 +870,10 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Search, Ideas (day only), Saved and Custom, a Keep open checkbox and Close. Search takes a place name,
   starts near the trip destination and has the filters Places, Stays, Restaurants, Experiences and
   Events; a filter sends its kind to `/api/places/search`, which adds a query word, and narrows the
-  results by their place type. Ideas lists unscheduled places and schedules the chosen one on the day.
+  results by their place type (amusement parks count as Experiences, a place with no type shows under
+  every filter, and a filter that hides every returned place shows "No places found"). Ideas lists unscheduled places and schedules the chosen one on the day.
   Saved lists the places saved on the account's other trips (`lib/trip/saved-places.ts`), once each.
-  Custom takes a name, an optional start time (day only; the end is an hour later) and a note. Choosing a
+  Custom takes a name, an optional start time (day only, 22:59 at the latest; the end is an hour later) and a note. Choosing a
   place adds it to the day, or to Ideas when the panel was opened from Ideas, at once; a result with
   coordinates keeps its saved map match, and one without is matched by the automatic place save or
   shows its search box when that fails. There is no preview, Day or time form or confirm step. A place
@@ -980,7 +981,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   switch: Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
   revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
   moves a day earlier and every booked date stays put, anywhere else the end date moves a day later and
-  later stops, stays and flights move with it; a stay that spans the new day gains a night and its cost
+  later stops, stays and flights move with it, the Brief form's dates follow the plan, and Add day after the last day opens the new day; a stay that spans the new day gains a night and its cost
   and text follow. Remove day trims the same way, and is refused with a notice when the day holds a
   flight or would take a stay's last night; it is disabled on the only day. Clear day is disabled on an
   empty day and keeps the day's title and note. Edit title and Add note open a small form under the day
@@ -988,11 +989,11 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   characters and shows after the date, the note is up to 500 and shows under the heading, and saving
   blank removes it. They are stored in the optional `dayNotes` map on the plan, keyed by day number; Add
   day and Remove day move the keys with their days, Remove day drops the removed day's entry, and a plan
-  the assistant returns without `dayNotes` keeps the browser's notes for the days it still has. Logic is in `lib/trip/day-actions.ts`; verify with
+  the assistant returns without `dayNotes` keeps the browser's notes for the days it still has, and a revision for a mentioned specialist drops notes beyond the days the plan now has. Logic is in `lib/trip/day-actions.ts`; verify with
   `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
 - **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
   Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every
-  tab in the day strip is a drop target that marks itself with an outline: dropping a Stop there
+  tab in the day strip is a drop target (only where it is visible: the part of a tab scrolled out of the strip takes no drop) that marks itself with an outline: dropping a Stop there
   appends it to that day (an empty day included), and holding a dragged Stop over a tab for 600 ms
   opens that day so the insertion line can choose any position in it. A Stop dropped on a day is one
   `move` edit, a Stop dropped on Ideas is one `idea` edit that parks it last, and an Idea (pressed
