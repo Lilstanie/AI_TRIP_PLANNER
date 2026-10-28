@@ -36,6 +36,7 @@ export function TripsPage({
   allTrips = trips,
   tab: controlledTab,
   onTab,
+  focusTripId,
 }: {
   trips: TripRecord[];
   allTrips?: TripRecord[];
@@ -48,6 +49,7 @@ export function TripsPage({
   embedded?: boolean;
   tab?: Tab;
   onTab?(tab: Tab): void;
+  focusTripId?: string;
 }) {
   const { t, locale } = useLocale();
   const [ownTab, setOwnTab] = useState<Tab>("trips");
@@ -130,6 +132,7 @@ export function TripsPage({
               allTrips={allTrips}
               onOpenTrip={onOpenTrip}
               compact={embedded}
+              focusTripId={focusTripId}
             />
           )}
         </div>
@@ -223,25 +226,32 @@ function TripCalendar({
   allTrips,
   onOpenTrip,
   compact = false,
+  focusTripId,
 }: {
   trips: TripRecord[];
   allTrips: TripRecord[];
   compact?: boolean;
+  focusTripId?: string;
   onOpenTrip(id: string): void;
 }) {
   const { t, locale } = useLocale();
   const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
 
+  const [focusStart] = useState(() => {
+    const dates = trips.find((trip) => trip.id === focusTripId)?.snapshot.plan.brief.dates;
+    return dates ? utc(dates[0]) : undefined;
+  });
   const [cursor, setCursor] = useState(() => {
     const today = todayUtc();
     const next = trips
       .map((trip) => trip.snapshot.plan.brief.dates)
       .filter(([, end]) => utc(end) >= today)
       .sort((a, b) => utc(a[0]) - utc(b[0]))[0];
-    const date = new Date(next ? Math.max(utc(next[0]), today) : today);
+    const date = new Date(focusStart ?? (next ? Math.max(utc(next[0]), today) : today));
     return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
   });
   const [activeTime, setActiveTime] = useState(() => {
+    if (focusStart !== undefined) return focusStart;
     const today = todayUtc();
     const date = new Date(today);
     return date.getUTCFullYear() === cursor.year && date.getUTCMonth() === cursor.month
