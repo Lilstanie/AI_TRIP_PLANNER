@@ -6,6 +6,9 @@
 
 Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行为。各阶段的实现历史和浏览器验收记录见[会话日志](../.agents/session-logs/README.md)。
 
+已确认、但尚未实现的 Trip home 动作区改动见
+[Trip home 动作栏](design/trip-home-actions.zh.md)。本页继续描述当前行为。
+
 <a id="layout"></a>
 
 ## 布局

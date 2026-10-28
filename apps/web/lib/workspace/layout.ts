@@ -6,7 +6,18 @@ export type MobileView = "chat" | "map" | "trip" | "trajectory" | "mine";
 export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
 export type DialogKind = "settings";
 
-export type Drawer = "trip" | "nav" | "chats";
+export const TRIP_ACTIONS = [
+  "itinerary",
+  "ideas",
+  "bookings",
+  "preferences",
+  "calendar",
+] as const;
+export type TripAction = (typeof TRIP_ACTIONS)[number];
+export const isTripAction = (value: unknown): value is TripAction =>
+  TRIP_ACTIONS.includes(value as TripAction);
+
+export type Drawer = "trip" | "nav" | "chats" | TripAction;
 
 export type Media = { phone: boolean; narrow: boolean };
 
@@ -27,6 +38,8 @@ export type LayoutEvent =
   | { type: "open-nav" }
   | { type: "toggle-chats" }
   | { type: "close-drawer" }
+  | { type: "open-trip-action"; action: TripAction }
+  | { type: "close-trip-action" }
   | { type: "open-fact"; fact: FactKey }
   | { type: "close-fact" }
   | { type: "open-sheet" }
@@ -93,6 +106,16 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
         : only(surface, { drawer: "chats" });
     case "close-drawer":
       return without(surface, "drawer");
+    case "open-trip-action":
+      return strip({
+        view: surface.view,
+        dialog: surface.dialog,
+        page: "home",
+        tripId: surface.tripId,
+        drawer: event.action,
+      });
+    case "close-trip-action":
+      return isTripAction(surface.drawer) ? without(surface, "drawer") : surface;
     case "open-fact":
       return only(without(surface, "dialog"), { page: "workspace", fact: event.fact });
     case "close-fact":
@@ -114,7 +137,12 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
         ? only(surface, { page: "workspace", view: "mine" })
         : only(surface, { page: "trips" });
     case "open-home":
-      return only(surface, { page: "home", tripId: event.tripId });
+      return strip({
+        view: surface.view,
+        dialog: surface.dialog,
+        page: "home",
+        tripId: event.tripId,
+      });
     case "select-view":
       if (!media.phone && event.view === "trip")
         return layout(surface, { type: "open-trip" }, media);

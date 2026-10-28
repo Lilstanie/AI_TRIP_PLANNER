@@ -23,8 +23,9 @@ import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
 import { conversationTitle, tripConversations } from "@/lib/workspace/catalog";
-import { TripHomeChats } from "./TripHomeChats";
+import { TripHomeChats, TripHomeComposer } from "./TripHomeChats";
 import { TripHomeMap } from "./TripHomeMap";
+import { TripHomeActionDrawer } from "./TripHomeActionDrawer";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -48,12 +49,15 @@ import { usePhoneTripUpdates } from "./usePhoneTripUpdates";
 import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
+import type { TripAction } from "@/lib/workspace/layout";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
+  const [homeChatId, setHomeChatId] = useState<string>();
+  const homeActionTarget = useRef<HTMLElement>(null);
   const {
     plan,
     draft,
@@ -86,6 +90,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     chatShare,
     chatsOpen,
     navOpen,
+    tripAction,
     narrow,
     phone,
     drawerOpen,
@@ -101,6 +106,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     openNav,
     closeDrawer,
     toggleChats,
+    openTripAction,
+    closeTripAction,
     edit,
   } = layout;
   const { catalog, saveState, syncStatus, storageError } = history;
@@ -209,24 +216,31 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const [tripsTab, setTripsTab] = useState<TripsTab>("trips");
   const [calendarTripId, setCalendarTripId] = useState<string>();
   const showTrips = () => {
+    setHomeChatId(undefined);
     setTripsTab("trips");
     setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
   const showCalendar = () => {
+    setHomeChatId(undefined);
     setTripsTab("calendar");
     setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
   const openCalendarAt = (id: string) => {
+    setHomeChatId(undefined);
     setTripsTab("calendar");
     setCalendarTripId(id);
     viewTransition(layout.showTrips);
   };
 
   const openHome = (id: string) => {
+    setHomeChatId(undefined);
     setCalendarTripId(undefined);
-    viewTransition(() => layout.openHome(id));
+    viewTransition(() => {
+      session.previewTrip(id);
+      layout.openHome(id);
+    });
   };
   const homeTrip =
     page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
@@ -236,8 +250,37 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   useEffect(() => {
     if (homeMissing) leaveHome.current();
   }, [homeMissing]);
+  useEffect(() => {
+    if (!homeChatId) return;
+    const conversation = catalog.conversations.find((item) => item.id === homeChatId);
+    if (!conversation || conversation.tripId !== homeTripId) setHomeChatId(undefined);
+  }, [catalog.conversations, homeChatId, homeTripId]);
   const deleteTrip = history.deleteTrip;
   const sidebarPage = page === "home" ? "trips" : page;
+
+  const openHomeChat = (id: string) => {
+    if (session.openTripConversation(id)) setHomeChatId(id);
+  };
+  const startHomeChat = (tripId: string, text: string) => {
+    const id = session.startHomeTripChat(tripId, text);
+    if (id) setHomeChatId(id);
+  };
+  const backToHome = (tripId: string) => {
+    setHomeChatId(undefined);
+    session.previewTrip(tripId);
+  };
+  const openHomeAction = (action: TripAction, trigger: HTMLButtonElement) => {
+    homeActionTarget.current = trigger;
+    viewTransition(() => openTripAction(action));
+  };
+  const closeHomeAction = () => {
+    closeTripAction();
+    requestAnimationFrame(() => homeActionTarget.current?.focus({ preventScroll: true }));
+  };
+  const chooseHomeDay = (day: number) => {
+    layout.pickMapDay(day);
+    openTripAction("itinerary");
+  };
 
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
@@ -284,6 +327,40 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           hidden: mobileView !== view,
         }
       : {};
+  const chatPanel = (inTripHome: boolean) => (
+    <ChatPanel
+      key={history.catalog.activeConversationId ?? "conversation"}
+      plan={plan}
+      draft={draft}
+      messages={messages}
+      input={input}
+      onInput={session.type}
+      busy={busy}
+      locked={editPending}
+      activity={activity}
+      error={error}
+      onCancel={session.cancel}
+      onSend={session.send}
+      onResend={session.resend}
+      {...(!inTripHome && phone ? { onOpenTrip: () => selectView("trip") } : {})}
+      ask={ask}
+      onAnswer={session.answer}
+      onAskProgress={session.updateAskProgress}
+      onDismissAsk={session.dismissAsk}
+      onEdit={edit}
+      phone={phone}
+      showTabs={false}
+      blankUntouched={untouched}
+      conversationId={history.catalog.activeConversationId}
+      view={layout.chatView}
+      onViewChange={layout.showChatView}
+      onAttachFiles={composerAttachments.addFiles}
+      attachments={composerAttachments.attachments}
+      onRemoveAttachment={composerAttachments.removeAttachment}
+      canAttach={composerAttachments.canAttach}
+      attachNotices={composerAttachments.notices}
+    />
+  );
 
   const navDrawer = narrow && !phone && (
     <Drawer
@@ -723,37 +800,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             ) : (
               <>
                 <div className="workspace-panel workspace-panel--chat" {...phonePanel("chat")}>
-                  <ChatPanel
-                    plan={plan}
-                    draft={draft}
-                    messages={messages}
-                    input={input}
-                    onInput={session.type}
-                    busy={busy}
-                    locked={editPending}
-                    activity={activity}
-                    error={error}
-                    onCancel={session.cancel}
-                    onSend={session.send}
-                    onResend={session.resend}
-                    {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
-                    ask={ask}
-                    onAnswer={session.answer}
-                    onAskProgress={session.updateAskProgress}
-                    onDismissAsk={session.dismissAsk}
-                    onEdit={edit}
-                    phone={phone}
-                    showTabs={false}
-                    blankUntouched={untouched}
-                    conversationId={history.catalog.activeConversationId}
-                    view={layout.chatView}
-                    onViewChange={layout.showChatView}
-                    onAttachFiles={composerAttachments.addFiles}
-                    attachments={composerAttachments.attachments}
-                    onRemoveAttachment={composerAttachments.removeAttachment}
-                    canAttach={composerAttachments.canAttach}
-                    attachNotices={composerAttachments.notices}
-                  />
+                  {chatPanel(false)}
                 </div>
                 {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
                 <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>

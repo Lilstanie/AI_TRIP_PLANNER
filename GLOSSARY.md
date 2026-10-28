@@ -30,7 +30,7 @@ _Avoid_: nickname, alias, persona
 
 **Plan**:
 The assembled result of a brief: one costed section per specialist.
-_Avoid_: itinerary (that is one section), trip (the saved plan in the workspace)
+_Avoid_: itinerary (that is one section), trip (that is the saved journey)
 
 **Planning loop**:
 The cycle that dispatches the specialists, checks the plan for conflicts, optionally revises, and assembles the plan.
@@ -66,6 +66,14 @@ _Avoid_: quality score
 
 ## Trip
 
+**Trip**:
+A saved journey whose Brief and current Plan may be discussed in one or more Chats.
+_Avoid_: Plan, itinerary, Chat
+
+**Trip preferences**:
+The preferences the traveller states for one Trip, kept with its Brief.
+_Avoid_: travel profile (that is the account default), long-term memory
+
 **Stop**:
 A place in the itinerary that is scheduled on a day. Only stops are counted, numbered and drawn on the map.
 _Avoid_: activity (in prose), item, point
@@ -94,6 +102,10 @@ _Avoid_: plan order, sort order
 A flight or stay the specialist found and priced but did not pick, which the traveller can take instead.
 _Avoid_: candidate, option, other choice
 
+**Booking**:
+A flight, stay or itinerary item the traveller marked as booked.
+_Avoid_: Idea, Alternative
+
 **Leg**:
 The journey from one stop to the next on the same day, with its own travel mode and time.
 _Avoid_: connection, transfer, hop
@@ -103,6 +115,18 @@ Travel between cities: from the departure city to the first destination (the arr
 _Avoid_: leg (that is within one day), transfer, airport run
 
 ## Workspace
+
+**Chat**:
+One planning conversation between the traveller and the Agent Team, with its messages, draft, input, Plan snapshot and Trajectory. A Chat is linked to a Trip when planning creates or updates that Trip.
+_Avoid_: session, thread
+
+**Trip home**:
+The overview of one Trip, joining its Brief details, Chats, plan actions and map.
+_Avoid_: Trips page (that lists every Trip), itinerary
+
+**Trip chat**:
+A Chat linked to a Trip. A Trip may have many Trip chats, all working from the Trip's latest Plan.
+_Avoid_: Trip, Plan version
 
 **Account**:
 One signed-in identity whose chats, trips, settings and long-term memory follow it to any device.

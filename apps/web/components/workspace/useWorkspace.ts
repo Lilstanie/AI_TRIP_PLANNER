@@ -27,6 +27,7 @@ import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-ide
 import { seed, type MobileView } from "./workspace-helpers";
 import type { ChatView } from "../chat/ChatViewTabs";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
+import { isTripAction } from "@/lib/workspace/layout";
 import {
   idleSession,
   session as nextSession,
@@ -263,9 +264,9 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     }).money(item.snapshot.plan.estTotal)}`,
     active: !blank && item.id === catalog.activeTripId,
   }));
-  function selectConversation(id: string) {
+  function loadConversation(id: string) {
     const conversation = catalog.conversations.find((item) => item.id === id);
-    if (!conversation) return;
+    if (!conversation) return false;
     const source = latestSnapshot(catalog, conversation);
     if (!source) freshTripId.current = crypto.randomUUID();
     open({
@@ -286,11 +287,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       if (!conversation.tripId) delete next.activeTripId;
       return next;
     });
+    return true;
+  }
+  function selectConversation(id: string) {
+    if (!loadConversation(id)) return;
     layout({ type: "chat-opened" });
   }
-  function selectTrip(id: string) {
+  function loadTrip(id: string) {
     const trip = catalog.trips.find((item) => item.id === id);
-    if (!trip) return;
+    if (!trip) return false;
     const conversationId = trip.conversationIds.at(-1);
     const conversation = catalog.conversations.find((item) => item.id === conversationId);
     open({
@@ -304,20 +309,25 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         ...(conversation ? { activeConversationId: conversation.id } : {}),
       }),
     );
+    return true;
+  }
+  function selectTrip(id: string) {
+    if (!loadTrip(id)) return;
     layout({ type: "trip-opened" });
   }
 
-  function startTripChat(tripId: string, text: string) {
+  function startTripChat(tripId: string, text: string, navigate = true) {
     const trip = catalog.trips.find((item) => item.id === tripId);
-    if (!trip) return;
+    if (!trip) return undefined;
     const untouched = text
       ? undefined
       : tripConversations(catalog, tripId).find(
           (item) => !item.messages.length && !item.input.trim() && !item.ask,
         );
     if (untouched) {
-      selectConversation(untouched.id);
-      return;
+      if (navigate) selectConversation(untouched.id);
+      else loadConversation(untouched.id);
+      return untouched.id;
     }
     const id = crypto.randomUUID();
     const snapshot = {
@@ -331,12 +341,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     open(snapshot);
     activeConversation.current = `conversation:${id}`;
     setCatalog((current) => upsertCurrent(current, snapshot));
-    layout({ type: "chat-started" });
+    if (navigate) layout({ type: "chat-started" });
     requestAnimationFrame(() =>
       document
         .querySelector<HTMLInputElement>(".composer textarea")
         ?.focus({ preventScroll: true }),
     );
+    return `conversation:${id}`;
   }
   function startBlankChat(
     base?: WorkspaceCatalog,
@@ -485,6 +496,9 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       toggleChats: () => layout({ type: "toggle-chats" }),
       showTrips: () => layout({ type: "show-trips" }),
       openHome: (tripId: string) => layout({ type: "open-home", tripId }),
+      openTripAction: (action: import("@/lib/workspace/layout").TripAction) =>
+        layout({ type: "open-trip-action", action }),
+      closeTripAction: () => layout({ type: "close-trip-action" }),
       selectView: (view: MobileView) => layout({ type: "select-view", view }),
       showChatView: (view: ChatView) => layout({ type: "show-chat-view", view }),
       openFactsSheet: () => layout({ type: "open-sheet" }),
@@ -562,8 +576,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       },
       selectTrip,
       selectConversation,
+      openTripConversation: (id: string) => loadConversation(id),
+      previewTrip: (id: string) => loadTrip(id),
       newChat: () => startBlankChat(),
       newTripChat: startTripChat,
+      startHomeTripChat: (tripId: string, text: string) => startTripChat(tripId, text, false),
 
       newTrip: () => startBlankChat(undefined, "trip"),
     },
@@ -582,6 +599,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       navOpen,
       chatsOpen: surface.drawer === "chats",
 
+      tripAction: surface.page === "home" && isTripAction(surface.drawer) ? surface.drawer : undefined,
       drawerOpen: tripOpen || navOpen,
       sidebarCollapsed,
       sidebarWidth,

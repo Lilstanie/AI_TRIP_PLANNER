@@ -879,4 +879,11 @@ export const WORKSPACE_ZH = {
   "Day {day} has a flight, so it cannot be removed.": "第 {day} 天有航班，无法删除。",
   "That day holds the last night of a stay.": "这一天是住宿的最后一晚。",
   "That change would leave the trip dates or stays invalid.": "此更改会使行程日期或住宿无效。",
+  "Trip actions": "行程操作",
+  "Back to trip home": "返回行程主页",
+  Bookings: "预订",
+  Booked: "已预订",
+  "No bookings yet.": "还没有预订。",
+  "{count} day": "{count} 天",
+  "{count} days": "{count} 天",
 } as const;

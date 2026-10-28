@@ -1,0 +1,108 @@
+# Trip home action rail
+
+English | [中文](trip-home-actions.zh.md)
+
+Status: agreed, not implemented.
+
+This design extends the current [Trip home](../workspace-ui.md#layout). That page still lists the
+Trip's chats and uses its own saved Plan. The new work moves the five plan actions into a right rail
+and opens each action without leaving Trip home.
+
+## Layout
+
+On desktop, selecting a Trip opens Trip home with a centred main column and a right rail.
+
+| Area       | Content                                                                                                      |
+| ---------- | ------------------------------------------------------------------------------------------------------------ |
+| Main       | Trip title and facts, a contextual AI suggestion, every Chat linked to this Trip, and a composer            |
+| Right rail | Five action cards followed by the embedded Trip map                                                          |
+| Overlay    | A right-side drawer for the chosen action; it covers the right rail and leaves the main column visible       |
+
+The centre can grow from the dashboard into a conversation while the right rail stays in place.
+When a conversation is open, the existing adjustable chat/map split remains available between the
+centre and the right rail. Returning from the conversation restores Trip home.
+
+## Chats and suggestions
+
+- Trip home lists every Chat whose `tripId` is the open Trip. One Trip can have any number of Chats.
+- Choosing a Chat replaces the dashboard in the centre with that conversation. The action cards and
+  map remain on the right, and Back returns to Trip home.
+- Sending from the Trip home composer creates a new Chat linked to the Trip, carries the message
+  into that Chat and opens it.
+- A suggestion is generated from the open Trip's current Plan. Choosing a suggestion sends its
+  prompt through the same new-or-current Chat flow.
+- Dismissing a suggestion remembers that choice for the Trip until the Plan changes. A new Plan
+  makes suggestions eligible to appear again.
+
+## Actions
+
+The action cards appear in this order. Each card opens a Trip action drawer and includes a count
+when it has one.
+
+| Action            | Drawer content                                                                                                            | Interaction                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Itinerary         | The Trip's current complete plan and day timeline                                                                         | Choosing a day focuses that day on the map                           |
+| Ideas             | Unscheduled activities and restaurant suggestions                                                                         | An item can be scheduled through the existing itinerary editing flow |
+| Bookings          | Flights, stays and other itinerary items marked as booked                                                                 | Booked items remain grouped independently of their itinerary order   |
+| Trip preferences  | The existing preference editor for this Trip                                                                              | Changes use the existing save and replan behavior                    |
+| Calendar          | A redesigned, read-only calendar for this Trip only; its date cells highlight trip days and stop, flight and stay activity | Choosing a day opens Itinerary at that day and focuses the map       |
+
+Media is intentionally absent until the product has a real media model. The drawer set does not add
+Receipts.
+
+## Drawer behavior
+
+- On desktop, the drawer slides in from the right, covers the action cards and map, and leaves the
+  chat or Trip home main column visible.
+- On a phone, the same drawer fills the screen and slides in from the right.
+- A close button, Escape and a press outside the drawer all close it and return focus to the action
+  card that opened it.
+- Opening another action replaces the current drawer. Settings and existing nested editors keep
+  their current precedence.
+- Only one Trip action drawer is open at a time.
+- The drawer is a labelled dialog with a visible heading. Its content remains keyboard reachable
+  and does not create a second page history entry.
+
+## Phone layout
+
+Trip home becomes one column in this order:
+
+1. Title and facts.
+2. Contextual suggestion.
+3. Five action cards.
+4. Chats.
+5. Trip map.
+6. Composer.
+
+The main page keeps a single scroll region, and the composer remains reachable at the end of the
+column. An action drawer uses the full screen and the same close and focus rules as desktop.
+
+## Boundaries
+
+- This design keeps the existing Trip home entry points, title, facts, Rename and Delete menu,
+  latest-Plan rule and links between multiple Chats.
+- It replaces the current action cards that navigate to the conversation Trip panel, the global
+  Calendar page or the Preferences editor.
+- It adds Ideas and Bookings views without adding new data concepts.
+- It does not turn Trip home into a stored page that is restored after reload.
+- It does not add Media or Receipts.
+
+## Acceptance
+
+The implementation is complete when browser E2E covers:
+
+- A Trip with at least two Chats lists both Chats and opens the chosen one.
+- Sending from the Trip home starts a new Chat linked to the same Trip.
+- Each of the five action cards opens its drawer without leaving Trip home.
+- The desktop drawer leaves the main column visible; the phone drawer fills the screen.
+- Close, Escape and outside press restore focus to the opening card.
+- Choosing a day in Calendar opens Itinerary at that day and focuses the map.
+- Suggestions send a prompt into a linked Chat, and dismissal survives reload until the Plan
+  changes.
+- Desktop, tablet and phone layouts pass in English and Chinese without horizontal overflow.
+
+## Sources
+
+The repository owner supplied the current Trip home and Mindtrip reference screenshots and approved
+the design decisions on 2026-10-29. No Mindtrip code, copy or assets are reused. The decision record
+is [Trip home actions stay in place](../../.agents/notes/proposed/feature/2026-10-29-trip-home-actions.md).

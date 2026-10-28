@@ -15,10 +15,14 @@ export function TripHomeMap({
   plan,
   mode,
   providers,
+  focusedDay,
+  focusRequest,
 }: {
   plan: TripPlan;
   mode?: DataMode;
   providers?: DataModeProviders;
+  focusedDay?: number;
+  focusRequest?: number;
 }) {
   const { locale } = useLocale();
   const provider = mapProviderOptions(mode, providers);
@@ -26,6 +30,7 @@ export function TripHomeMap({
   const userLocation = useUserLocation();
   const [selected, setSelected] = useState<string>();
   return (
+    <section className="trip-home__map" data-day={focusedDay}>
     <TripMapCanvas
       destination={plan.brief.destination}
       viewKey={`${plan.tripId}|${plan.brief.destination}`}
@@ -33,8 +38,11 @@ export function TripHomeMap({
       selectedActivity={selected}
       onSelectActivity={setSelected}
       routes={[]}
+      focusedDay={focusedDay}
+      focusRequest={focusRequest}
       showPhotos={mode === "live" && !!providers?.maps}
       userLocation={userLocation}
     />
+    </section>
   );
 }

@@ -6,6 +6,10 @@ The web app (`apps/web`) is a single-user planning workspace. This document desc
 now. Implementation history and browser acceptance for each phase are in the
 [session logs](../.agents/session-logs/README.md).
 
+An agreed but not yet implemented change to the Trip home action area is specified in
+[Trip home action rail](design/trip-home-actions.md). This page continues to describe current
+behavior.
+
 ## Layout
 
 | Area              | Content                                                                                                                                                                                                                                                                                                                                    | Implementation                                                                                                          |

@@ -11,7 +11,10 @@ export function TripHome({
   onRename,
   onDelete,
   children,
-  aside,
+  actions,
+  map,
+  composer,
+  phone,
 }: {
   title: string;
   tags: readonly string[];
@@ -19,11 +22,14 @@ export function TripHome({
   onRename(): void;
   onDelete(): void;
   children?: ReactNode;
-  aside?: ReactNode;
+  actions?: ReactNode;
+  map?: ReactNode;
+  composer?: ReactNode;
+  phone: boolean;
 }) {
   const { t } = useLocale();
   return (
-    <div className="trip-home" data-aside={aside ? "true" : undefined}>
+    <div className="trip-home" data-aside={map ? "true" : undefined}>
       <div className="trip-home__main">
         <header className="trip-home__head">
           <button
@@ -48,9 +54,17 @@ export function TripHome({
             ))}
           </ul>
         )}
+        {phone && actions}
         {children}
+        {phone && map}
+        {composer}
       </div>
-      {aside && <aside className="trip-home__aside">{aside}</aside>}
+      {!phone && map && (
+        <aside className="trip-home__aside">
+          {actions}
+          {map}
+        </aside>
+      )}
     </div>
   );
 }
