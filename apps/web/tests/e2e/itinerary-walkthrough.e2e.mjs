@@ -439,9 +439,10 @@ try {
       const pick = (cards) => (again ? cards.last() : cards.first());
       if (phone) {
         await page.getByRole("tab", { name: T.mine }).click();
-        await pick(
-          page.locator(".phone-mine .trip-card").filter({ hasNotText: "Zzzland" }),
-        ).click();
+        await openTripWorkspace(
+          page,
+          pick(page.locator(".phone-mine .trip-card").filter({ hasNotText: "Zzzland" })),
+        );
         const tripTab = page.getByRole("tab", { name: T.tripTab });
         if (await tripTab.count()) await tripTab.click();
       } else {

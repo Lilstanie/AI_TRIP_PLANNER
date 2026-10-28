@@ -114,7 +114,7 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
         ? only(surface, { page: "workspace", view: "mine" })
         : only(surface, { page: "trips" });
     case "open-home":
-      return media.phone ? surface : only(surface, { page: "home", tripId: event.tripId });
+      return only(surface, { page: "home", tripId: event.tripId });
     case "select-view":
       if (!media.phone && event.view === "trip")
         return layout(surface, { type: "open-trip" }, media);
@@ -148,9 +148,7 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
 function cross(surface: Surface, from: Media, to: Media): Surface {
   let next = surface;
   if (!from.phone && to.phone) {
-    if (next.page === "home")
-      next = strip({ ...next, page: "workspace", view: "mine", tripId: undefined });
-    else if (next.page === "trips") next = { ...next, page: "workspace", view: "mine" };
+    if (next.page === "trips") next = { ...next, page: "workspace", view: "mine" };
     else if (next.drawer === "trip") next = { ...next, view: "trip" };
     next = without(next, "drawer");
   }
@@ -160,7 +158,8 @@ function cross(surface: Surface, from: Media, to: Media): Surface {
     if (next.view === "trip")
       next = { ...next, view: "chat", ...(next.fact ? {} : { drawer: "trip" }) };
     else if (next.view === "trajectory") next = { ...next, view: "chat" };
-    else if (next.view === "mine") next = { ...without(next, "fact"), page: "trips", view: "chat" };
+    else if (next.view === "mine" && next.page !== "home")
+      next = { ...without(next, "fact"), page: "trips", view: "chat" };
   }
 
   if (next.drawer === "nav" && (!to.narrow || to.phone)) next = without(next, "drawer");

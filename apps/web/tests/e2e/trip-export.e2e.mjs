@@ -152,7 +152,10 @@ try {
     await page.locator(".workspace-app").waitFor();
     if (width <= 520) {
       await page.getByRole("tab", { name: "Mine", exact: true }).click();
-      await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first().click();
+      await openTripWorkspace(
+        page,
+        page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first(),
+      );
       const tab = page.getByRole("tab", { name: "Trip", exact: true });
       if (await tab.count()) await tab.click();
     } else {

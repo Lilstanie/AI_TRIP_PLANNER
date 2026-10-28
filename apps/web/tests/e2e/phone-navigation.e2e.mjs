@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
 const OUT = resolve("output/playwright/phone-navigation");
@@ -142,7 +143,7 @@ try {
       await page.locator(".phone-tabbar").waitFor();
       await page.waitForTimeout(400);
       await page.addStyleTag({ content: "nextjs-portal {display:none!important}" });
-      await page.locator(".phone-mine .trip-card").first().click();
+      await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
       await page.locator("#phone-tab-trip").waitFor();
       await page.locator("#phone-tab-mine").click();
       const label = `${language}-${width}`;

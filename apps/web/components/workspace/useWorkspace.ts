@@ -31,7 +31,7 @@ import {
   type SessionEvent,
   type SessionState,
 } from "@/lib/workspace/session";
-import { useDataMode } from "@/lib/workspace/data-mode";
+import { mapProviderOptions, useDataMode } from "@/lib/workspace/data-mode";
 import { defaultSettings, draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
 import { useInterfaceLocale } from "../account/LocaleProvider";
@@ -104,13 +104,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
   const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
+  const mapProvider = mapProviderOptions(dataMode.mode, dataMode.providers);
   const tripPlaces = useTripPlaces(
     plan,
     dataMode.mode,
     locale,
-    dataMode.providers?.webMapsProvider === "osm" ||
-      (dataMode.mode === "mock" && dataMode.providers?.mockGoogleUnavailable),
-    dataMode.providers?.webMapsProvider !== "google",
+    mapProvider.forceOsm,
+    mapProvider.allowFallback,
   );
   const { itinerary } = tripPlaces;
   const { day: mapDay, selectDay: setMapDay } = useTripDay(

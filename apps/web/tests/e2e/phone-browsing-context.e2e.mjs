@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const OUT = resolve(
   "output/playwright/phone-browsing-context",
@@ -203,7 +204,10 @@ try {
       const tripSelected = async (n) => (await tripDay(n).getAttribute("aria-selected")) === "true";
       const mapSelected = async (n) => (await mapDay(n).getAttribute("aria-pressed")) === "true";
       const expandMap = async () => page.locator(".phone-map-sheet__handle").press("End");
-      await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).click();
+      await openTripWorkspace(
+        page,
+        page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }),
+      );
       await tab("Map").click();
       await expandMap();
       await mapDay(2).click();
@@ -271,7 +275,10 @@ try {
       );
       const openTrip = async (name) => {
         await tab("Mine").click();
-        await page.locator(".phone-mine .trip-card").filter({ hasText: name }).click();
+        await openTripWorkspace(
+          page,
+          page.locator(".phone-mine .trip-card").filter({ hasText: name }),
+        );
         check(
           (await tab("Trip").getAttribute("aria-selected")) === "true",
           `${prefix}: saved ${name} opens directly in Trip`,

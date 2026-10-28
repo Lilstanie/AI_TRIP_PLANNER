@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 import { seedTrip } from "./phone-map-seed.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -238,7 +239,7 @@ try {
           await page.screenshot({ path: `${OUT}/${stage}-trajectory.png` });
         } else {
           await tabs.getByRole("tab", { name: copy.mine }).click();
-          await page.locator(".phone-mine .trip-card").first().click();
+          await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
           await tabs.getByRole("tab", { name: /^(Trip|行程)/ }).click();
           await page
             .getByRole("tab", { name: /^(Day 2|第 2 天)/ })

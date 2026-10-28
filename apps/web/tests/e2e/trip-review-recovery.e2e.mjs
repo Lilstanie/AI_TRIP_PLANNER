@@ -243,11 +243,10 @@ try {
         const destination = title.startsWith("Melbourne") ? "Melbourne" : "Sydney";
         if (page.viewportSize().width <= 520) {
           await page.getByRole("tab", { name: "Mine", exact: true }).click();
-          await page
-            .locator(".phone-mine .trip-card")
-            .filter({ hasText: destination })
-            .first()
-            .click();
+          await openTripWorkspace(
+            page,
+            page.locator(".phone-mine .trip-card").filter({ hasText: destination }).first(),
+          );
           const tripTab = page.getByRole("tab", { name: "Trip", exact: true });
           if (await tripTab.count()) await tripTab.click();
         } else {

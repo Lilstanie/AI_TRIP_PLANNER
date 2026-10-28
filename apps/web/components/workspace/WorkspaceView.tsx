@@ -21,6 +21,7 @@ import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
+import { TripHomeMap } from "./TripHomeMap";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -212,8 +213,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     viewTransition(layout.showTrips);
   };
 
-  const openHome = (id: string) =>
-    phone ? swap(session.selectTrip)(id) : viewTransition(() => layout.openHome(id));
+  const openHome = (id: string) => viewTransition(() => layout.openHome(id));
   const homeTrip =
     page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
   useEffect(() => {
@@ -434,7 +434,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       )}
       {page !== "workspace" ? (
         <div className="workspace-main">
-          {narrow && (
+          {narrow && !phone && (
             <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
           )}
           <main className="workspace-shell workspace-shell--trips">
@@ -447,6 +447,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onBack={() => viewTransition(layout.showTrips)}
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}
+                aside={
+                  <TripHomeMap
+                    plan={homeTrip.snapshot.plan}
+                    mode={dataMode.mode}
+                    providers={dataMode.providers}
+                  />
+                }
               />
             ) : (
               <TripsPage
