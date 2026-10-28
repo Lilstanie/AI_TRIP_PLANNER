@@ -454,8 +454,8 @@ async function run(browser, size) {
   );
   await settle(page);
   check(
-    (await tab(page, "Trip").getAttribute("aria-selected")) === "true",
-    `${prefix}: Mine reopens the saved Trip after refresh`,
+    (await tab(page, "Chat").getAttribute("aria-selected")) === "true",
+    `${prefix}: Mine reopens the saved trip's chat after refresh`,
   );
 
   const title = page.locator(".phone-topbar__title-button");

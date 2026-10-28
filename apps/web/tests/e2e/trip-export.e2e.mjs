@@ -156,8 +156,7 @@ try {
         page,
         page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first(),
       );
-      const tab = page.getByRole("tab", { name: "Trip", exact: true });
-      if (await tab.count()) await tab.click();
+      await page.getByRole("tab", { name: "Trip", exact: true }).click();
     } else {
       await page.getByRole("button", { name: /^Trips/ }).click();
       await openTripWorkspace(

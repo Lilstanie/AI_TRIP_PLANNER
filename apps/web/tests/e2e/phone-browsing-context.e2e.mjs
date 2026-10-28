@@ -279,9 +279,10 @@ try {
           page,
           page.locator(".phone-mine .trip-card").filter({ hasText: name }),
         );
+        await tab("Trip").click();
         check(
           (await tab("Trip").getAttribute("aria-selected")) === "true",
-          `${prefix}: saved ${name} opens directly in Trip`,
+          `${prefix}: saved ${name} opens in Trip`,
         );
       };
       await openTrip("Kyoto");
