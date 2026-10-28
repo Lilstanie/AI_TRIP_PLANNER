@@ -21,7 +21,7 @@ The walkthrough exposed that `ask-ai-menus` failed at 390px after the Trajectory
 
 ## Validation
 
-See the final report of the delivery run; commands are listed there with results.
+`pnpm --filter @trip/web e2e quiet-walkthrough --prod`, `ask-ai-menus` and `trajectory-with-trip-open` pass; `pnpm verify:protected|docs|pairs|e2e-selectors|e2e-artifacts`, `pnpm check:comments` and check-ui-copy pass; lint, typecheck and prettier results are in the delivery report.
 
 ## Notes for the next person
 

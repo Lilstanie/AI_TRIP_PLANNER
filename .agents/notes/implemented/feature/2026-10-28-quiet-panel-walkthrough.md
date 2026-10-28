@@ -25,3 +25,12 @@ the chat view, so on a phone Ask AI sent its request and left the traveller on t
 ## Alternatives considered
 
 - Make `show-chat-view` always select the chat on a phone: it would also pull a team jump off the Trip view.
+
+## Consequences
+
+- One run fails when any ticket of spec #755 regresses against another.
+- Ask AI from the Trip panel always shows the chat; after an edit it still asks before replacing the edited plan.
+
+## Sources
+
+- Issue #764, spec #755.
