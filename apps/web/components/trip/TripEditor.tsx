@@ -478,7 +478,6 @@ export function TripEditor({
       <p className="sr-only" role="status">
         {announcement ? localizeNotice(announcement) : ""}
       </p>
-      <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
       {today !== undefined && day !== today && (
         <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
           {t("Return to today")}
@@ -704,6 +703,7 @@ export function TripEditor({
         </button>
       </div>
       {adding === "day" && panel({ kind: "day", day })}
+      <TripTips key={plan.tripId} plan={plan} onTrip={today !== undefined} />
     </section>
   );
 }

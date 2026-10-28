@@ -195,7 +195,7 @@ try {
         (await tips.locator(".trip-tips__packing").innerText()).includes(
           language === "zh" ? "防水外套" : "Waterproof jacket",
         ),
-        `${width}-${language}: weather-grounded packing renders as a list`,
+        `${width}-${language}: weather-grounded packing renders as a line`,
       );
       await tips.scrollIntoViewIfNeeded();
       await page.screenshot({ path: resolve(OUT, `${width}-${language}.png`), fullPage: true });

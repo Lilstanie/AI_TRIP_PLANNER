@@ -230,7 +230,7 @@ button.day-strip__day[aria-selected="true"] {
 }
 
 .trip-tips {
-  margin: 0 0 var(--space-3);
+  margin: var(--space-3) 0 0;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
   border-radius: var(--radius-sm);
@@ -790,12 +790,6 @@ html.is-reordering .timeline[data-empty] {
   min-height: 44px !important;
 }
 
-.trip-tips__packing {
-  padding-inline-start: var(--space-4);
-  list-style: disc;
-  font-size: var(--font-size-meta);
-}
-
 .trip-editor__toolbar {
   display: flex;
   align-items: center;
@@ -909,4 +903,8 @@ html.is-reordering .timeline[data-empty] {
 .add-panel .stop-editor__search input {
   flex: 1 1 0;
   min-width: 0;
+}
+
+.trip-tips__packing {
+  color: var(--text-dim);
 }
