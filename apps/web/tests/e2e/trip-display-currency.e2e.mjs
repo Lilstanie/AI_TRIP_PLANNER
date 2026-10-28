@@ -261,7 +261,7 @@ try {
           (await page.locator(".trip-panel").first().innerText()).match(
             /\b(?:AUD|CNY|USD|JPY)[\s\u00a0][\d,]+(?:\.\d+)?/g,
           ) ?? [],
-        budgetLine: (await page.locator(".trip__budget-delta").textContent()).trim(),
+        budgetLine: (await page.locator(".trip__budget").textContent()).trim(),
       };
     };
     const field = async () => {

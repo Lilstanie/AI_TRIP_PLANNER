@@ -229,10 +229,6 @@ async function transportCases() {
         });
         const text = await row.innerText();
         const unknown = language === "en" ? "Not costed" : "未计价";
-        const excluded =
-          language === "en"
-            ? "Not included: transport without a price."
-            : "未计入：尚未定价的交通费用。";
         check(
           scenario.unknown
             ? text.includes(unknown) && !text.includes("0.00")
@@ -242,8 +238,8 @@ async function transportCases() {
         );
         const missing = Boolean(scenario.unknown || scenario.missing);
         check(
-          (await card.innerText()).includes(excluded) === missing,
-          `${tag}: missing transport is disclosed`,
+          /unpriced|未定价/.test(await card.locator("summary").innerText()) === missing,
+          `${tag}: missing transport is counted on the budget line`,
         );
         const status = await card.locator(".budget-status").first().innerText();
         check(
@@ -325,14 +321,13 @@ try {
     { categoryRows, estimateValues, total: plan.estTotal },
   );
   check(
-    rows.some((row) => /estimated/i.test(row)),
-    "category amounts are identified as estimates",
+    rows.every((row) => !/estimated|unpriced/i.test(row)),
+    "category rows carry a name and a total only",
     rows,
   );
   check(
-    rows.some((row) => /unpriced|not priced/i.test(row)),
-    "unpriced activity is disclosed without an invented amount",
-    rows,
+    /1 unpriced/.test(await budget.locator("summary").innerText()),
+    "unpriced activity is counted on the budget line without an invented amount",
   );
   await page.screenshot({ path: `${OUT}/budget-breakdown.png`, fullPage: true });
   await page.getByRole("button", { name: "Open navigation" }).click();
@@ -351,9 +346,10 @@ try {
   const zhRows = await zhBreakdown.locator(":scope > li").allInnerTexts();
   check(
     ["住宿", "交通", "餐饮", "活动"].every((label) => zhRows.some((row) => row.includes(label))) &&
-      zhRows.every((row) => row.includes("估算")) &&
-      zhRows.some((row) => row.includes("1 项未定价")),
-    "Chinese breakdown labels and estimate/unpriced markers are translated",
+      (await page.locator(".trip-panel__budget-summary > summary").innerText()).includes(
+        "1 项未定价",
+      ),
+    "Chinese breakdown labels and the unpriced count are translated",
     zhRows,
   );
   await page.screenshot({ path: `${OUT}/budget-breakdown-zh.png`, fullPage: true });
