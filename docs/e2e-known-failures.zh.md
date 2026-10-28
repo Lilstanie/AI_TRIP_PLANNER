@@ -35,17 +35,8 @@
 
 | 脚本                            | 检查日期   |
 | ------------------------------- | ---------- |
-| `activities-not-costed`         | 2026-10-28 |
-| `trip-ui-triage`                | 2026-10-28 |
-| `budget-source-replacement`     | 2026-10-28 |
-| `trip-display-currency`         | 2026-10-28 |
-| `display-currency`              | 2026-10-28 |
 | `reply-cost-line`               | 2026-10-28 |
-| `workspace-control-overflow`    | 2026-10-28 |
-| `workspace-chinese`             | 2026-10-28 |
-| `stop-progress`                 | 2026-10-28 |
 | `open-in-maps`                  | 2026-10-28 |
-| `settings`                      | 2026-10-28 |
 | `workspace-performance`         | 2026-10-28 |
 | `trajectory-timeline`           | 2026-10-28 |
 | `cross-day-drag`                | 2026-10-28 |
@@ -93,6 +84,16 @@
 
 - `trajectory-tab` 的“轨迹 Tab 上到达的回复在返回对话时可见”在 `main` `629cf2a` 上就已失败（2026-10-27，#740）：Tab 按钮移到了工作区顶栏，顶栏直接设置聊天视图，聊天面板因此从未记录信息流的滚动位置，新回复留在可视区域之下（1440 下差 365 px）。面板现在无论由谁切换视图，都会自行记录信息流的滚动位置和上次显示的消息。
   `phone-map-empty-hint` 已按 #737 的决定检查 1440 下空地图区域隐藏；六次运行中失败一次，原因是 `locator.evaluate` 读取的节点已被水合替换（返回空字符串），现改为读取当前节点。`sidebar-entries` 属于侧栏相关票据，在集成分支上通过；两者均无需条目。
+
+- `activities-not-costed`、`trip-ui-triage`、`budget-source-replacement`、`trip-display-currency`、
+  `display-currency`、`workspace-control-overflow`、`workspace-chinese`、`stop-progress` 和 `settings`
+  在未修改的 `main`（2026-10-28）上就已失败，因为它们操作的控件已被更平静的工作区（#740）、渐进显示的空工作区
+  和行程主页（#765）移动或移除。它们现在按当前前提运行：界面语言在设置中切换（`setPhoneLanguage`、
+  `setDesktopLanguage`）；桌面上行程视图会盖住对话，脚本在输入前切回“对话”标签或收起行程开关（`aria-expanded`）；
+  打开行程会进入行程主页，因此走 `openTripWorkspace`；空白行程没有预算芯片，预算改在第一条消息里说明，
+  空白行程的币种从存储的目录读取；站点通过点击其行打开，而不是“编辑详情”；手机把换算金额提示显示在工作区提示区，
+  而不是行程面板；中文消息得到中文回复，预算回复检查因此接受中文；未定价文案为 “unpriced costs not counted”。
+  分别用 `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod` 运行。
 
 <a id="not-failures"></a>
 

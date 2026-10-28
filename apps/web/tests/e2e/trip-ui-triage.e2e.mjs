@@ -108,13 +108,13 @@ const catalogFor = (plan, id, title) => {
 const browser = await chromium.launch({ channel: process.env.CHANNEL });
 const openChats = async (page, width) => {
   if (width <= 520) {
-    await page.locator('.phone-tabbar [role="tab"]').nth(3).click();
-  } else if (width <= 1000) {
-    const drawer = page.locator(".workspace-drawer--nav");
-    if (!(await drawer.isVisible())) await page.locator("button[aria-haspopup='dialog']").click();
-  } else {
-    await page.locator(".sidebar-nav .sidebar-nav__item").first().click();
+    await page.getByRole("tab", { name: /^(Mine|我的)/ }).click();
+    return;
   }
+  if (width <= 1000)
+    await page.getByRole("button", { name: /^(Open navigation|打开导航)/ }).click();
+  const chats = page.getByRole("button", { name: /^(Chats|聊天)/ });
+  if ((await chats.getAttribute("aria-expanded")) !== "true") await chats.click();
 };
 const openTrip = async (page, width) => {
   if (width <= 520) await page.locator('.phone-tabbar [role="tab"]').nth(2).click();
@@ -219,7 +219,7 @@ try {
   const budgetSummary = await budgetPage.locator(".trip-panel__budget-summary").innerText();
   const budgetStatus = await budgetPage.locator(".budget-status").innerText();
   check(
-    budgetStatus === "At budget · unpriced stops not counted",
+    budgetStatus === "At budget · unpriced costs not counted",
     "#435 exact estimate reports unpriced admissions in its status",
     budgetStatus,
   );
@@ -266,7 +266,7 @@ try {
   await headroomPage.locator(".budget-status").waitFor();
   const headroomStatus = await headroomPage.locator(".budget-status").innerText();
   check(
-    headroomStatus === "Known estimate within budget · unpriced stops not counted",
+    headroomStatus === "Known estimate within budget · unpriced costs not counted",
     "#435 one-dollar headroom with unpriced admissions is qualified",
     headroomStatus,
   );
@@ -307,7 +307,7 @@ try {
   await ampleHeadroomPage.locator(".budget-status").waitFor();
   const ampleHeadroomStatus = await ampleHeadroomPage.locator(".budget-status").innerText();
   check(
-    ampleHeadroomStatus === "Known estimate within budget · unpriced stops not counted",
+    ampleHeadroomStatus === "Known estimate within budget · unpriced costs not counted",
     "#435 unpriced admissions with more than 5% headroom still trigger a caution",
     ampleHeadroomStatus,
   );
@@ -366,12 +366,18 @@ try {
         await p.locator(".workspace-app").waitFor();
         await openChats(p, width);
         const expectedRange = await p.evaluate(
-          ([start, end, lang]) =>
-            new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-AU", {
+          ([start, end, lang]) => {
+            const formatter = new Intl.DateTimeFormat(lang === "zh" ? "zh-CN" : "en-AU", {
               day: "numeric",
               month: "short",
               timeZone: "UTC",
-            }).formatRange(new Date(`${start}T00:00:00Z`), new Date(`${end}T00:00:00Z`)),
+            });
+            const first = new Date(`${start}T00:00:00Z`);
+            const last = new Date(`${end}T00:00:00Z`);
+            return lang === "zh"
+              ? `${formatter.format(first)} – ${formatter.format(last)}`
+              : formatter.formatRange(first, last);
+          },
           [savedPlan.brief.dates[0], savedPlan.brief.dates[1], lang],
         );
         const generatedTitle = `${savedPlan.brief.destination} · ${expectedRange}`;
@@ -408,7 +414,7 @@ try {
           .locator(".trip-tips__packing")
           .first()
           .evaluate((n) => ({
-            line: n.tagName === "P" && n.textContent.includes(", "),
+            line: n.tagName === "P" && /, |，|、/.test(n.textContent),
             size: getComputedStyle(n).fontSize,
             paragraph: getComputedStyle(n.parentElement.querySelector("p")).fontSize,
           }));
@@ -468,8 +474,8 @@ try {
         else {
           await p.keyboard.press("Escape");
           await p
-            .locator(".sidebar-nav button")
-            .filter({ hasText: lang === "zh" ? "行程" : "Trips" })
+            .locator(".sidebar-nav")
+            .getByRole("button", { name: lang === "zh" ? /^行程/ : /^Trips/ })
             .click();
         }
         await p.locator(".trip-card__meta").first().waitFor();

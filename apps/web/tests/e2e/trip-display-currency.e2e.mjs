@@ -232,6 +232,8 @@ try {
     const composer = page.getByRole("textbox", { name: "Message AI Trip Planner" });
     const send = async (text) => {
       if (phone) await selectTab("Chat");
+      else if (!(await composer.isVisible()))
+        await page.getByRole("tab", { name: "Conversation", exact: true }).click();
 
       const backdrop = page.locator(".workspace-drawer-backdrop");
       if (await backdrop.isVisible()) await backdrop.click({ force: true });
@@ -264,6 +266,19 @@ try {
           ) ?? [],
         budgetLine: (await page.locator(".trip__budget").textContent()).trim(),
       };
+    };
+    const blankTripCurrency = async () => {
+      const active = await page.evaluate(() => {
+        const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+        const conversation = catalog?.conversations?.find(
+          (item) => item.id === catalog.activeConversationId,
+        );
+        return (
+          conversation?.snapshot?.plan?.brief?.displayCurrency ??
+          conversation?.draft?.displayCurrency
+        );
+      });
+      return active ?? (await settingsCurrency());
     };
     const field = async () => {
       if (phone) {
@@ -298,10 +313,8 @@ try {
       await page.screenshot({ path: `${out}/${width}-trips-${texts.length}.png`, fullPage: true });
       const current = page.locator(".trip-card[aria-current=true]");
       const target = ((await current.count()) ? current : list).first();
-      if (phone) {
-        await openTripWorkspace(page, target);
-        await selectTab("Chat");
-      } else await target.click();
+      await openTripWorkspace(page, target);
+      if (phone) await selectTab("Chat");
       return texts;
     };
     const openChat = async (titlePrefix) => {
@@ -336,6 +349,8 @@ try {
 
     const thinkingText = async () => {
       if (phone) await selectTab("Chat");
+      else if (!(await composer.isVisible()))
+        await page.getByRole("tab", { name: "Conversation", exact: true }).click();
 
       const backdrop = page.locator(".workspace-drawer-backdrop");
       if (await backdrop.isVisible()) await backdrop.click({ force: true });
@@ -459,9 +474,15 @@ try {
     await page.screenshot({ path: `${out}/${width}-aud.png`, fullPage: true });
 
     await newTrip();
-    check((await field()) === "CNY", tag("a new trip starts in the Settings currency (CNY)"));
+    check(
+      (await blankTripCurrency()) === "CNY",
+      tag("a new trip starts in the Settings currency (CNY)"),
+    );
     await send("用日元给我算");
-    check((await field()) === "JPY", tag("a currency named alone sets the blank trip's currency"));
+    check(
+      (await blankTripCurrency()) === "JPY",
+      tag("a currency named alone sets the blank trip's currency"),
+    );
     check(
       (await settingsCurrency()) === "CNY",
       tag("Settings unchanged by a currency named alone"),
@@ -543,15 +564,17 @@ try {
     check(
       has(tightReply, "CNY") &&
         !has(tightReply, "AUD") &&
-        /raise the budget to at least CNY [\d,]+/.test(tightReply),
+        /(raise the budget to at least|把预算提高到至少) CNY [\d,]+/.test(tightReply),
       tag(`the impossible-budget reply names the shortfall in CNY (${tightReply.slice(0, 200)})`),
     );
     check(
-      /above your CNY 300(\.00)? budget/.test(tightReply),
+      /(above your CNY 300(\.00)? budget|超出预算 CNY [\d,.]+（预算 CNY 300(\.00)?）)/.test(
+        tightReply,
+      ),
       tag("the reply quotes the 300 CNY budget as the traveller said it"),
     );
     check(
-      /(estimate|approximate)/i.test(tightReply),
+      /(estimate|approximate|固定汇率)/i.test(tightReply),
       tag("generated text marks converted amounts as estimates"),
     );
     check((await settingsCurrency()) === "AUD", tag("Settings stays AUD after a tight CNY trip"));

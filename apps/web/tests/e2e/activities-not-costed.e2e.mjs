@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { setPhoneLanguage } from "./phone-settings.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -72,7 +73,7 @@ try {
     const copy = COPY[language];
     if (language === "zh") {
       await page.locator(".phone-tabbar").getByRole("tab", { name: /^Mine/ }).click();
-      await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+      await setPhoneLanguage(page, "zh");
     }
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
     const card = page.locator("#phone-panel-trip .trip-budget");

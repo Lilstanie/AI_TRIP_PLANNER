@@ -3,7 +3,7 @@ import { mkdirSync, readFileSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 import { openMockWorkspace, planSuggestedTrip, installSeededItinerary } from "./trip-setup.mjs";
-import { openTripWorkspace } from "./support/e2e-helpers.mjs";
+import { openTripWorkspace, setDesktopLanguage } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const key = JSON.parse(
@@ -142,8 +142,8 @@ try {
   await page.getByRole("button", { name: "Undo", exact: true }).click();
   await keyboardRow.getByText("Visited", { exact: true }).waitFor({ state: "hidden" });
   results.push({ keyboardActivation: true, undo: true });
-  await page.getByRole("button", { name: "Close your trip", exact: true }).click();
-  await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
+  await page.getByRole("button", { name: "Open your trip", exact: true, expanded: true }).click();
+  await setDesktopLanguage(page, "zh");
   await page.getByRole("button", { name: "打开你的行程", exact: true }).click();
   const row = page.locator(".timeline-stop").filter({ hasText: "Museum visit" }).first();
   assert.equal(await row.getByText(/^(待游览|已游览|已跳过)$/).count(), 0);
