@@ -83,8 +83,13 @@ now. Implementation history and browser acceptance for each phase are in the
     the trip: the chat keeps the trip's plan, becomes the active chat, and carries any typed text into the
     composer without sending it. A trip with no chats shows only the box, and an empty box still starts a
     chat. Starting a chat while the assistant answers on another chat stops that answer, as opening any
-    chat does. The page keeps a main column and an optional side column, so later sections (entry cards,
-    the map) slot in without changing the shell. The [Trip home Agent Note](../.agents/notes/implemented/feature/2026-10-28-trip-home-shell.md)
+    chat does. Three entry cards sit under the chats (`TripHomeCards`): Itinerary with the number of
+    scheduled stops, which selects the trip and opens the conversation view with the Trip panel on its
+    itinerary; Calendar, which opens the Trips page on the Calendar tab at the month the trip starts, even
+    for a past trip; and Preferences with the number of preferences set on the trip, which selects the trip
+    and opens the Preferences panel. A count of zero is left out, the cards read the trip's own saved plan
+    and draft rather than the open conversation, and there is no card for Ideas, Bookings, Media or Receipts.
+    The cards stack in one column below 640 px; a phone does not reach the Trip home. The page keeps a main column and an optional side column, so later sections (the map) slot in without changing the shell. The [Trip home Agent Note](../.agents/notes/implemented/feature/2026-10-28-trip-home-shell.md)
     records why; `trip-home-shell` and `trip-home-chats` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.

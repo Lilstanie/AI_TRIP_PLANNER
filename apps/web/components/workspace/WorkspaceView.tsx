@@ -21,6 +21,7 @@ import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
+import { TripHomeCards } from "./TripHomeCards";
 import { conversationTitle } from "@/lib/workspace/catalog";
 import { TripHomeChats } from "./TripHomeChats";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
@@ -205,17 +206,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     />
   );
   const [tripsTab, setTripsTab] = useState<TripsTab>("trips");
+  const [calendarTripId, setCalendarTripId] = useState<string>();
   const showTrips = () => {
     setTripsTab("trips");
+    setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
   const showCalendar = () => {
     setTripsTab("calendar");
+    setCalendarTripId(undefined);
+    viewTransition(layout.showTrips);
+  };
+  const openCalendarAt = (id: string) => {
+    setTripsTab("calendar");
+    setCalendarTripId(id);
     viewTransition(layout.showTrips);
   };
 
-  const openHome = (id: string) =>
-    phone ? swap(session.selectTrip)(id) : viewTransition(() => layout.openHome(id));
+  const openHome = (id: string) => {
+    setCalendarTripId(undefined);
+    if (phone) swap(session.selectTrip)(id);
+    else viewTransition(() => layout.openHome(id));
+  };
   const homeTrip =
     page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
   useEffect(() => {
@@ -462,11 +474,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   onOpen={swap(session.selectConversation)}
                   onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
                 />
+                <TripHomeCards
+                  trip={homeTrip}
+                  onItinerary={() =>
+                    viewTransition(() => {
+                      session.selectTrip(homeTrip.id);
+                      openTrip();
+                    })
+                  }
+                  onCalendar={() => openCalendarAt(homeTrip.id)}
+                  onPreferences={() =>
+                    viewTransition(() => {
+                      session.selectTrip(homeTrip.id);
+                      openPreferences();
+                    })
+                  }
+                />
               </TripHome>
             ) : (
               <TripsPage
                 tab={tripsTab}
                 onTab={setTripsTab}
+                focusTripId={calendarTripId}
                 trips={catalog.trips}
                 activeTripId={blank ? undefined : catalog.activeTripId}
                 onOpenTrip={openHome}
