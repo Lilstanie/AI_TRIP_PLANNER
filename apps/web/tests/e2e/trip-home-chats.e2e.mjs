@@ -327,7 +327,7 @@ try {
   await openHome(page, /^Trip to Hobart/);
   check(
     (await list(page).count()) === 0 &&
-      (await home(page).getByRole("heading", { level: 2 }).count()) === 0 &&
+      (await page.locator(".trip-home__main").getByRole("heading", { level: 2 }).count()) === 0 &&
       (await box(page).count()) === 1 &&
       (await start(page).count()) === 1,
     "a trip with no chats shows only the box",

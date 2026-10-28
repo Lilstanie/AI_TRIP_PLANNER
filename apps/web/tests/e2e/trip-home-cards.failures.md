@@ -34,7 +34,7 @@ Written before the code (#768, spec #765). Each line is a way the change could f
 - A card has no accessible name, or its name omits the count.
 - The Chinese interface leaves a card label or count in English.
 - The cards repeat text the layout already shows, such as helper copy under the labels.
-- A phone still reaches the Trip home, which the shell keeps for a later ticket, and shows cards there.
+- On a phone the Trip home shows the cards side by side instead of stacked, or Itinerary does not open the Trip tab.
 - The page throws, or the browser console logs an error, on any of these paths.
 
 Run `DATA_MODE=mock pnpm --filter @trip/web e2e trip-home-cards --prod`. The browser catalog holds a Sydney trip

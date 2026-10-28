@@ -8,7 +8,6 @@ export const EXAMPLE_CHIP_SELECTOR = ".chat-empty__suggestions button";
 
 export async function openTripWorkspace(page, card) {
   await card.click();
-  if (page.viewportSize().width <= 520) return;
   await page.locator(".trip-home").waitFor();
   await page.locator(".trip-home-chats__row").first().click();
 }
