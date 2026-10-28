@@ -22,6 +22,8 @@ import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
+import { conversationTitle } from "@/lib/workspace/catalog";
+import { TripHomeChats } from "./TripHomeChats";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -460,6 +462,18 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}
               >
+                <TripHomeChats
+                  chats={catalog.conversations
+                    .filter((item) => item.tripId === homeTrip.id)
+                    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                    .map((item) => ({
+                      id: item.id,
+                      title: conversationTitle(item, locale),
+                      updatedAt: item.updatedAt,
+                    }))}
+                  onOpen={swap(session.selectConversation)}
+                  onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
+                />
                 <TripHomeCards
                   trip={homeTrip}
                   onItinerary={() =>

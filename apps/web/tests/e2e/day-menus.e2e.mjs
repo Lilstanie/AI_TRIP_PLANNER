@@ -151,7 +151,7 @@ try {
         (item) => item.day === 1 || item.day === undefined,
       );
     }
-    const conversationId = `menus-conversation-${viewport.width}${viewport.oneDay ? "-one" : ""}`;
+    const conversationId = `conversation:menus-conversation-${viewport.width}${viewport.oneDay ? "-one" : ""}`;
     const snapshot = {
       version: 4,
       id: conversationId,
