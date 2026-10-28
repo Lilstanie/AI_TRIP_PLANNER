@@ -21,6 +21,8 @@ import { SplitResizer } from "./SplitResizer";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
+import { conversationTitle } from "@/lib/workspace/catalog";
+import { TripHomeChats } from "./TripHomeChats";
 import { TripHomeMap } from "./TripHomeMap";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
@@ -454,7 +456,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     providers={dataMode.providers}
                   />
                 }
-              />
+              >
+                <TripHomeChats
+                  chats={catalog.conversations
+                    .filter((item) => item.tripId === homeTrip.id)
+                    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
+                    .map((item) => ({
+                      id: item.id,
+                      title: conversationTitle(item, locale),
+                      updatedAt: item.updatedAt,
+                    }))}
+                  onOpen={swap(session.selectConversation)}
+                  onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
+                />
+              </TripHome>
             ) : (
               <TripsPage
                 tab={tripsTab}

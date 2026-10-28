@@ -12,6 +12,7 @@ import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   conversationTitle,
+  upsertCurrent,
   searchCatalog,
   updateCatalog,
   upsertConversationDraft,
@@ -306,6 +307,28 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     layout({ type: "trip-opened" });
   }
 
+  function startTripChat(tripId: string, text: string) {
+    const trip = catalog.trips.find((item) => item.id === tripId);
+    if (!trip) return;
+    const id = crypto.randomUUID();
+    const snapshot = {
+      ...trip.snapshot,
+      id,
+      savedAt: new Date().toISOString(),
+      messages: [],
+      input: text,
+      ask: undefined,
+    };
+    open(snapshot);
+    activeConversation.current = `conversation:${id}`;
+    setCatalog((current) => upsertCurrent(current, snapshot));
+    layout({ type: "chat-started" });
+    requestAnimationFrame(() =>
+      document
+        .querySelector<HTMLInputElement>(".composer textarea")
+        ?.focus({ preventScroll: true }),
+    );
+  }
   function startBlankChat(base?: WorkspaceCatalog, kind: "chat" | "trip" = "chat") {
     const defaults = draftDefaults(settings);
     const id =
@@ -526,6 +549,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       selectTrip,
       selectConversation,
       newChat: () => startBlankChat(),
+      newTripChat: startTripChat,
 
       newTrip: () => startBlankChat(undefined, "trip"),
     },

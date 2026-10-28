@@ -861,7 +861,8 @@ describe("Workspace navigation", () => {
     fireEvent.click(page().getByRole("button", { name: /^Trip to Sydney/ }));
     expect(card.isConnected).toBe(false);
     expect(screen.queryByRole("heading", { name: "Your trips" })).toBeNull();
-    expect(screen.getByRole("heading", { name: "Sydney" })).toBeTruthy();
+    expect(screen.getByRole("heading", { level: 1, name: "Trip to Sydney" })).toBeTruthy();
+    expect(screen.getByRole("button", { name: "Back to trips" })).toBeTruthy();
   });
 
   it("moves the chat and map divider by keyboard, remembers it and resets on double-click", async () => {
