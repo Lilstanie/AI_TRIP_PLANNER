@@ -332,15 +332,15 @@ try {
     await menuOf("Day 1 actions").click();
     const dayItems = await page.getByRole("menuitem").allTextContents();
     check(
-      ["Add day before", "Add day after", "Clear day", "Remove day"].every((label) =>
-        dayItems.includes(label),
-      ),
-      `the day menu lists Add day before, Add day after, Clear day and Remove day at ${tag}`,
-      dayItems,
-    );
-    check(
-      !dayItems.includes("Edit title") && !dayItems.includes("Add note"),
-      `Edit title and Add note stay out until the plan can store them at ${tag}`,
+      [
+        "Edit title",
+        "Add note",
+        "Add day before",
+        "Add day after",
+        "Clear day",
+        "Remove day",
+      ].every((label) => dayItems.includes(label)),
+      `the day menu lists Edit title, Add note, Add day before, Add day after, Clear day and Remove day at ${tag}`,
       dayItems,
     );
     await page.keyboard.press("Escape");
@@ -500,6 +500,139 @@ try {
     check(dialogs.length === 0, `no action asked for confirmation at ${tag}`, dialogs);
     await undoRestores("Remove all scheduled events");
 
+    const notesOf = async () => (await savedPlan()).dayNotes;
+    const form = (name) => page.getByRole("textbox", { name, exact: true });
+    const saveForm = () => page.getByRole("button", { name: "Save", exact: true }).click();
+    const dayPanelText = () => page.locator(".timeline-day").first().innerText();
+
+    await selectDay(2);
+    await choose("Day 2 actions", "Edit title");
+    await form("Day title").fill("   ");
+    await saveForm();
+    await sleep(500);
+    check(
+      (await notesOf()) === undefined && normalised(await savedPlan()) === normalised(original),
+      `saving a blank title stores nothing at ${tag}`,
+    );
+    await choose("Day 2 actions", "Edit title");
+    await form("Day title").fill("x".repeat(120));
+    check(
+      (await form("Day title").inputValue()).length === 80,
+      `the title field stops at 80 characters at ${tag}`,
+    );
+    await form("Day title").fill("Typed then cancelled");
+    await page.keyboard.press("Escape");
+    await sleep(400);
+    check(
+      (await form("Day title").count()) === 0 && (await notesOf()) === undefined,
+      `Escape closes the title form without saving at ${tag}`,
+    );
+    await choose("Day 2 actions", "Edit title");
+    await form("Day title").fill("Harbour day");
+    await saveForm();
+    ok = await waitPlan((p) => p.dayNotes?.["2"]?.title === "Harbour day");
+    check(
+      ok && (await dayPanelText()).includes("Harbour day") && dialogs.length === 0,
+      `Edit title saves at once and shows on the day at ${tag}`,
+      await notesOf(),
+    );
+    await undoRestores("Edit title");
+    await onDay(2, "Edit title");
+    await form("Day title").fill("Harbour day");
+    await saveForm();
+    await waitPlan((p) => p.dayNotes?.["2"]?.title === "Harbour day");
+
+    await menuOf("Day 2 actions").click();
+    check(
+      (await page.getByRole("menuitem", { name: "Add note", exact: true }).count()) === 1,
+      `the note item reads Add note while the day has no note at ${tag}`,
+    );
+    await page.getByRole("menuitem", { name: "Add note", exact: true }).click();
+    await form("Day note").fill("Bring sunscreen");
+    await saveForm();
+    ok = await waitPlan((p) => p.dayNotes?.["2"]?.note === "Bring sunscreen");
+    now = await savedPlan();
+    check(
+      ok &&
+        now.dayNotes["2"].title === "Harbour day" &&
+        (await dayPanelText()).includes("Bring sunscreen") &&
+        Object.keys(now.dayNotes).join() === "2",
+      `Add note stores the note beside the title and shows it on the day at ${tag}`,
+      now.dayNotes,
+    );
+    await menuOf("Day 2 actions").click();
+    check(
+      (await page.getByRole("menuitem", { name: "Edit note", exact: true }).count()) === 1,
+      `the note item reads Edit note once the day has a note at ${tag}`,
+    );
+    await page.keyboard.press("Escape");
+    await page.screenshot({ path: resolve(out, `day-note-${viewport.width}.png`), fullPage: true });
+
+    const withNotes = await savedPlan();
+    await onDay(2, "Add day before");
+    await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
+    now = await savedPlan();
+    check(
+      Object.keys(now.dayNotes).join() === "3" && now.dayNotes["3"].note === "Bring sunscreen",
+      `Add day before Day 2 moves the title and note to Day 3 at ${tag}`,
+      now.dayNotes,
+    );
+    await undoButton().click();
+    await waitPlan((p) => Object.keys(p.dayNotes ?? {}).join() === "2");
+
+    await onDay(1, "Remove day");
+    await waitPlan((p) => p.brief.dates[1] === "2030-10-03");
+    now = await savedPlan();
+    check(
+      Object.keys(now.dayNotes).join() === "1",
+      `Remove day before it moves the title and note one day earlier at ${tag}`,
+      now.dayNotes,
+    );
+    await undoButton().click();
+    await waitPlan((p) => Object.keys(p.dayNotes ?? {}).join() === "2");
+
+    await onDay(2, "Clear day");
+    await waitPlan((p) => placement(p).Elm === undefined);
+    check(
+      Object.keys((await notesOf()) ?? {}).join() === "2",
+      `Clear day keeps the title and note at ${tag}`,
+    );
+    await undoButton().click();
+    await waitPlan((p) => placement(p).Elm === 2);
+
+    await onDay(2, "Remove day");
+    await waitPlan((p) => p.brief.dates[1] === "2030-10-03");
+    check(
+      (await notesOf()) === undefined,
+      `Remove day drops that day's title and note at ${tag}`,
+      await notesOf(),
+    );
+    await undoButton().click();
+    await waitPlan((p) => normalised(p) === normalised(withNotes));
+
+    let replanned;
+    await page.route("**/api/chat", (route) => {
+      const { dayNotes: _dropped, ...bare } = replanned;
+      return route.fulfill({
+        contentType: "application/x-ndjson",
+        body: `${JSON.stringify({ type: "complete", response: { reply: "Replanned.", plan: bare } })}\n`,
+      });
+    });
+    replanned = await savedPlan();
+    if (phone) await page.getByRole("tab", { name: "Chat", exact: true }).click();
+    const composer = page.getByRole("textbox", { name: "Message AI Trip Planner", exact: true });
+    await composer.fill("Plan this again");
+    await composer.press("Enter");
+    await page.getByText("Replanned.").first().waitFor({ timeout: 10_000 });
+    now = await savedPlan();
+    check(
+      now.dayNotes?.["2"]?.title === "Harbour day" && now.dayNotes["2"].note === "Bring sunscreen",
+      `the title and note survive the assistant replanning at ${tag}`,
+      now.dayNotes,
+    );
+    await page.unroute("**/api/chat");
+    if (phone) await page.getByRole("tab", { name: "Trip", exact: true }).click();
+
     for (const target of [4, 3]) {
       await selectDay(target);
       await onDay(target, "Remove day");
@@ -549,10 +682,18 @@ try {
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await openTrip(true);
+    await selectDay(2);
     check(
       (await dayTabs().count()) === 3 && beforeReload.brief.dates[1] === "2030-10-03",
       `a day action survives a reload at ${tag}`,
       { tabs: await dayTabs().count(), saved: beforeReload.brief.dates },
+    );
+
+    check(
+      (await dayPanelText()).includes("Harbour day") &&
+        (await dayPanelText()).includes("Bring sunscreen"),
+      `the title and note survive a reload at ${tag}`,
+      await notesOf(),
     );
 
     await page.evaluate(() => sessionStorage.setItem("lang", "zh"));
@@ -576,8 +717,8 @@ try {
       await page.getByRole("button", { name: zhDay, exact: true }).click();
       const zhItems = await page.getByRole("menuitem").allTextContents();
       check(
-        ["在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every((label) =>
-          zhItems.includes(label),
+        ["编辑标题", "编辑备注", "在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every(
+          (label) => zhItems.includes(label),
         ),
         `the day menu items read in Chinese at ${tag}`,
         zhItems,
