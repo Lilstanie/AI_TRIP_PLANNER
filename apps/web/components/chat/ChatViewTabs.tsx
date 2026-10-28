@@ -1,7 +1,9 @@
 "use client";
 import { useLocale } from "../account/LocaleProvider";
 
-export type ChatView = "conversation" | "trajectory";
+import type { ChatView } from "@/lib/workspace/layout";
+
+export type { ChatView };
 
 export function ChatViewTabs({
   view,

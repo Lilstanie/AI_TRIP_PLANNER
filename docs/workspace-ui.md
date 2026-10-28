@@ -539,6 +539,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Trajectory tab
 
+The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
+
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,
