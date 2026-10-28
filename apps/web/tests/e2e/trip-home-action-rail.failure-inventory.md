@@ -24,5 +24,10 @@ The E2E journey must fail when any of these user-visible outcomes regress:
 20. A suggestion ignores the current Plan, opens an unlinked Chat, or loses its prompt.
 21. Suggestion dismissal does not survive reload, affects another Trip, or survives a changed Plan.
 
+22. Returning from a newer Chat reloads the Trip's older snapshot, so action drawers lose updates.
+23. A desktop split handle changes its value without changing the actual Chat/map widths.
+24. The test measures a newly mounted suggestion before its stored dismissal state is ready.
+25. A reload's pending blank-Chat persistence is mistaken for a Trip-entry mutation.
+
 The repeatable evidence is `trip-home-action-rail.e2e.mjs`, which seeds local fixture data and writes
 screenshots plus `summary.json` under `output/playwright/trip-home-action-rail/`.

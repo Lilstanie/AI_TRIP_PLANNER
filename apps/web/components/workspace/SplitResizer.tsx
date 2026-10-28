@@ -26,7 +26,7 @@ export function SplitResizer({
 
   const current = (handle: HTMLElement) => {
     const shell = handle.parentElement;
-    const chat = shell?.querySelector(".workspace-panel--chat");
+    const chat = shell?.querySelector(".workspace-panel--chat, .trip-home__main");
     const width = shell?.getBoundingClientRect().width ?? 0;
     return (
       share ?? (width ? (chat?.getBoundingClientRect().width ?? 0) / width : CHAT_SHARE.default)

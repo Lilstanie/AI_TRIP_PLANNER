@@ -19,7 +19,7 @@ content in both languages; commands, examples and identifiers stay unchanged.
 | [Roadmap](roadmap.md)                                            | Current product direction and scope                                   |
 | [Team workflow](team-workflow.md)                                | Ownership, branches and reviews                                       |
 | [Design rules](design/ui-guidelines.md)                          | Layout, tokens, glass, motion and accessibility                       |
-| [Trip home action rail](design/trip-home-actions.md)             | Agreed Trip home actions and drawer behavior, not yet implemented     |
+| [Trip home action rail](design/trip-home-actions.md)             | Trip home actions, linked Chats and drawer behavior                   |
 | [Thinking UI](design/dsh-thinking-ui.md)                         | Planning transcript reference and behavior                            |
 | [Class diagrams](design/class-diagram.md)                        | Domain and runtime relationships                                      |
 | [Stage 1 design model](design/stage1/README.md)                  | ELEC5620 Stage 1 report models and where each marking item is covered |

@@ -3,6 +3,9 @@
 Status: implemented
 Owner: spec #765, ticket #770
 
+Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) replaces the
+three navigation cards with five in-place actions and keeps Chat selection inside Trip home.
+
 ## Problem
 
 Opening a trip dropped the traveller into one chat. Spec #765 added a Trip home in four tickets (#766 to

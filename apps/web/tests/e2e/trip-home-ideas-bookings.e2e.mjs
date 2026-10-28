@@ -250,7 +250,7 @@ let browser;
 let current;
 let currentErrors = [];
 
-async function open(language) {
+async function open(language, fixture = catalog) {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: "reduce",
@@ -275,7 +275,7 @@ async function open(language) {
         }),
       );
     },
-    { catalog, language },
+    { catalog: fixture, language },
   );
   const page = await context.newPage();
   const errors = [];
@@ -284,6 +284,15 @@ async function open(language) {
   current = page;
   currentErrors = errors;
   await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
+  await page.route("**/api/trip/preview-edit", (route) =>
+    route.fulfill({
+      json: {
+        blockerNotices: [{ key: "This schedule conflicts with an existing stop." }],
+        blockers: [],
+        routes: [],
+      },
+    }),
+  );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
@@ -308,6 +317,8 @@ try {
   await action(page, /^Ideas/).click();
   const ideas = dialog(page, "Ideas");
   await ideas.waitFor();
+  await ideas.getByText("Surry Hills bakery", { exact: true }).waitFor();
+  await ideas.getByText("Sydney fish restaurant", { exact: true }).waitFor();
   check(
     (await ideas.getByText("Surry Hills bakery", { exact: true }).count()) === 1 &&
       (await ideas.getByText("Sydney fish restaurant", { exact: true }).count()) === 1 &&
@@ -320,22 +331,49 @@ try {
     name: "Schedule Surry Hills bakery on Day 2",
     exact: true,
   });
+  await schedule.waitFor();
   check((await schedule.count()) === 1, "each idea exposes the established day scheduling control");
-  if (await schedule.count()) {
-    await schedule.click();
-    await ideas.getByText("Surry Hills bakery", { exact: true }).waitFor({ state: "detached" });
-    const stored = await page.evaluate(() =>
-      JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null"),
+  await schedule.click();
+  await ideas.getByRole("alert").waitFor();
+  const stored = await page.evaluate(() =>
+    JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null"),
+  );
+  const saved = stored.trips[0].snapshot.plan.sections
+    .find((section) => section.id === "itinerary")
+    .proposal.items.find((item) => item.id === "bakery");
+  check(
+    saved?.day === undefined &&
+      (await ideas.getByRole("alert").innerText()).includes(
+        "This schedule conflicts with an existing stop.",
+      ),
+    "a refused Idea schedule shows the established editor error without changing the Trip",
+    { saved, alert: await ideas.getByRole("alert").innerText() },
+  );
+  await page.unroute("**/api/trip/preview-edit");
+  await schedule.click();
+  await ideas.getByText("Surry Hills bakery", { exact: true }).waitFor({ state: "hidden" });
+  const undo = ideas.getByRole("button", { name: "Undo last change", exact: true });
+  await undo.waitFor();
+  await page.waitForFunction(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+    return (
+      catalog?.trips[0].snapshot.plan.sections
+        .find((section) => section.id === "itinerary")
+        .proposal.items.find((item) => item.id === "bakery")?.day === 2
     );
-    const saved = stored.trips[0].snapshot.plan.sections
-      .find((section) => section.id === "itinerary")
-      .proposal.items.find((item) => item.id === "bakery");
-    check(
-      saved?.day === 2 && saved?.startTime === "11:00" && saved?.endTime === "13:00",
-      "scheduling updates this Trip through the existing Plan editor",
-      saved,
+  });
+  check(true, "an accepted Idea schedule persists on the chosen day and offers Undo");
+  await undo.click();
+  await schedule.waitFor();
+  await page.waitForFunction(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null");
+    return (
+      catalog?.trips[0].snapshot.plan.sections
+        .find((section) => section.id === "itinerary")
+        .proposal.items.find((item) => item.id === "bakery")?.day === undefined
     );
-  }
+  });
+  check(true, "Undo returns the scheduled item to Ideas and persists the restored Plan");
   check((await page.locator(".trip-home").count()) === 1, "scheduling stays on Trip home");
   await page.screenshot({ path: `${OUT}/ideas-1440-en.png` });
 
@@ -369,17 +407,21 @@ try {
   await desktop.context.close();
 
   const chinese = await open("zh");
-  await action(chinese.page, /^Ideas/).click();
-  const chineseIdeas = dialog(chinese.page, "Ideas");
+  await action(chinese.page, /^备选地点/).click();
+  const chineseIdeas = dialog(chinese.page, "备选地点");
+  await chineseIdeas
+    .getByRole("button", { name: "将 Surry Hills bakery 安排到第 2 天", exact: true })
+    .waitFor();
   check(
     (await chineseIdeas
       .getByRole("button", { name: "将 Surry Hills bakery 安排到第 2 天", exact: true })
       .count()) === 1,
     "Chinese Ideas exposes a translated scheduling control",
   );
-  await action(chinese.page, /^Bookings/).focus();
+  await action(chinese.page, /^预订/).focus();
   await chinese.page.keyboard.press("Enter");
-  const chineseBookings = dialog(chinese.page, "Bookings");
+  const chineseBookings = dialog(chinese.page, "预订");
+  await chineseBookings.getByRole("region", { name: "活动", exact: true }).waitFor();
   check(
     (await chineseBookings.getByRole("region", { name: "活动", exact: true }).count()) === 1 &&
       (await chineseBookings.getByRole("region", { name: "航班", exact: true }).count()) === 1 &&
@@ -392,6 +434,32 @@ try {
     chinese.errors,
   );
   await chinese.context.close();
+
+  const singleCatalog = structuredClone(catalog);
+  for (const record of [...singleCatalog.trips, ...singleCatalog.conversations]) {
+    const plan = record.snapshot?.plan;
+    if (!plan) continue;
+    plan.sections = plan.sections.filter((section) => section.id === "itinerary");
+    for (const section of plan.sections)
+      section.proposal.items = section.proposal.items.filter(
+        (item) => item.day !== undefined || item.id === "bakery",
+      );
+  }
+  const single = await open("en", singleCatalog);
+  await single.page.unroute("**/api/trip/preview-edit");
+  await action(single.page, /^Ideas/).click();
+  const singleIdeas = dialog(single.page, "Ideas");
+  const singleSchedule = singleIdeas.getByRole("button", {
+    name: "Schedule Surry Hills bakery on Day 2",
+    exact: true,
+  });
+  await singleSchedule.click();
+  await singleIdeas.getByText("No ideas yet.", { exact: true }).waitFor();
+  await singleIdeas.getByRole("button", { name: "Undo last change", exact: true }).click();
+  await singleSchedule.waitFor();
+  check(true, "scheduling the final Idea keeps Undo available in the empty state");
+  check(single.errors.length === 0, "final Idea journey has no browser errors", single.errors);
+  await single.context.close();
 } catch (error) {
   check(false, "journey completes", { error: String(error), pageErrors: currentErrors });
   await current?.screenshot({ path: `${OUT}/failure.png` }).catch(() => {});

@@ -155,6 +155,7 @@ export function useWorkspaceStorage({
 
   function flushSave() {
     pendingSave.current?.();
+    return catalogRef.current;
   }
 
   return {

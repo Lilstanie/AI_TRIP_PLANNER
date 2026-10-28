@@ -16,3 +16,5 @@ The browser journey must fail when any of these outcomes regress:
 The repeatable evidence is `trip-home-ideas-bookings.e2e.mjs`. It uses a local catalog fixture and
 writes screenshots plus `summary.json` under `output/playwright/trip-home-ideas-bookings/`. It
 proves browser behavior with fixture data, not live-provider or physical-device behavior.
+
+Scheduling must retain visible refusal errors, persist an accepted day, and offer Undo that returns the item to Ideas.

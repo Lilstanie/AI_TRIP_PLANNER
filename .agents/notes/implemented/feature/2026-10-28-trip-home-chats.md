@@ -3,6 +3,9 @@
 Status: implemented
 Owner: spec #765, ticket #767
 
+Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) keeps Chat
+selection inside Trip home instead of navigating to the global conversation workspace.
+
 ## Problem
 
 With the Trip home shell in place, a trip's chats were reachable only from the Chats panel, and nothing on

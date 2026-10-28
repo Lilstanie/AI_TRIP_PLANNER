@@ -20,16 +20,6 @@ export function TripHomeCards({
   const itinerary = buildItinerary(plan, () => undefined);
   const stops = itinerary.stopCount;
   const ideas = itinerary.ideas().length;
-  const bookings =
-    itinerary
-      .days()
-      .flatMap((day) => itinerary.stopsOn(day))
-      .filter((stop) => stop.activity.booked).length +
-    plan.sections.reduce(
-      (count, section) =>
-        count + (section.proposal?.items.filter((item) => item.booked).length ?? 0),
-      0,
-    );
   const preferences = draftPreferences(draft).length;
   const cards = [
     {

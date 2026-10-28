@@ -265,9 +265,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     active: !blank && item.id === catalog.activeTripId,
   }));
   function loadConversation(id: string) {
-    const conversation = catalog.conversations.find((item) => item.id === id);
+    const savedCatalog = flushSave();
+    const conversation = savedCatalog.conversations.find((item) => item.id === id);
     if (!conversation) return false;
-    const source = latestSnapshot(catalog, conversation);
+    const source = latestSnapshot(savedCatalog, conversation);
     if (!source) freshTripId.current = crypto.randomUUID();
     open({
       ...(source
@@ -294,10 +295,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     layout({ type: "chat-opened" });
   }
   function loadTrip(id: string) {
-    const trip = catalog.trips.find((item) => item.id === id);
+    const savedCatalog = flushSave();
+    const trip = savedCatalog.trips.find((item) => item.id === id);
     if (!trip) return false;
     const conversationId = trip.conversationIds.at(-1);
-    const conversation = catalog.conversations.find((item) => item.id === conversationId);
+    const conversation = savedCatalog.conversations.find((item) => item.id === conversationId);
     open({
       ...trip.snapshot,
       ...(conversation ? { messages: conversation.messages, input: conversation.input } : {}),
@@ -317,11 +319,12 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   }
 
   function startTripChat(tripId: string, text: string, navigate = true) {
-    const trip = catalog.trips.find((item) => item.id === tripId);
+    const savedCatalog = flushSave();
+    const trip = savedCatalog.trips.find((item) => item.id === tripId);
     if (!trip) return undefined;
     const untouched = text
       ? undefined
-      : tripConversations(catalog, tripId).find(
+      : tripConversations(savedCatalog, tripId).find(
           (item) => !item.messages.length && !item.input.trim() && !item.ask,
         );
     if (untouched) {

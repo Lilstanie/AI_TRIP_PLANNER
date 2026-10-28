@@ -234,6 +234,11 @@ try {
     }
     const asset = assets[request.url];
     if (!asset) {
+      if (request.url === "/favicon.ico") {
+        response.statusCode = 204;
+        response.end();
+        return;
+      }
       response.statusCode = 404;
       response.end();
       return;

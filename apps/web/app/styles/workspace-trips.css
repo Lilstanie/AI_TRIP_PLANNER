@@ -137,8 +137,14 @@
 }
 
 .workspace-shell--trips {
+  --trip-home-aside: 40%;
   display: block;
   overflow: auto;
+}
+@media (min-width: 821px) {
+  .workspace-shell--trips:has(.trip-home) {
+    overflow: clip;
+  }
 }
 .trips-page {
   min-height: 100%;
@@ -497,9 +503,16 @@
 }
 
 .trip-home {
-  --trip-home-aside: 40%;
   display: flex;
   min-height: 100%;
+}
+.workspace-shell--trips[data-home-chat] {
+  --trip-home-aside: calc((1 - var(--chat-share, 0.56)) * 100%);
+}
+.workspace-shell--trips[data-home-chat] .trip-home__main {
+  flex-basis: calc(var(--chat-share, 0.56) * 100%);
+  max-width: none;
+  margin-inline: 0;
 }
 .trip-home__main {
   flex: 1 1 0;
@@ -557,6 +570,13 @@
   padding: 0 !important;
   border-radius: var(--radius-pill) !important;
   color: var(--text);
+}
+@media (max-width: 520px) {
+  .trip-home__back {
+    width: 44px;
+    height: 44px;
+    min-height: 44px !important;
+  }
 }
 .trip-home__back-icon {
   display: inline-grid;

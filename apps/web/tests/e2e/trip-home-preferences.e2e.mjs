@@ -119,6 +119,8 @@ try {
     });
     await context.addInitScript(
       ({ catalog, settings }) => {
+        if (localStorage.getItem("trip-home-preferences-seeded")) return;
+        localStorage.setItem("trip-home-preferences-seeded", "1");
         localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
         localStorage.setItem("trip.settings.v1", JSON.stringify(settings));
       },
@@ -165,15 +167,12 @@ try {
       name: zh ? "重新规划行程" : "Replan trip",
       exact: true,
     });
+    await save.waitFor();
+    await replan.waitFor();
     check(
       (await save.count()) === 1 && (await replan.count()) === 1,
       `${language}: Save and Replan are available`,
     );
-    if (!(await save.count())) {
-      await page.screenshot({ path: `${OUT}/red-${language}.png` });
-      await context.close();
-      continue;
-    }
     await preferenceInput(page, zh).fill(preference);
     await preferenceInput(page, zh).press("Enter");
     check(

@@ -2,7 +2,7 @@
 
 English | [中文](trip-home-actions.zh.md)
 
-Status: agreed, not implemented.
+Status: implemented.
 
 This design extends the current [Trip home](../workspace-ui.md#layout). That page still lists the
 Trip's chats and uses its own saved Plan. The new work moves the five plan actions into a right rail
@@ -12,11 +12,11 @@ and opens each action without leaving Trip home.
 
 On desktop, selecting a Trip opens Trip home with a centred main column and a right rail.
 
-| Area       | Content                                                                                                      |
-| ---------- | ------------------------------------------------------------------------------------------------------------ |
-| Main       | Trip title and facts, a contextual AI suggestion, every Chat linked to this Trip, and a composer            |
-| Right rail | Five action cards followed by the embedded Trip map                                                          |
-| Overlay    | A right-side drawer for the chosen action; it covers the right rail and leaves the main column visible       |
+| Area       | Content                                                                                                |
+| ---------- | ------------------------------------------------------------------------------------------------------ |
+| Main       | Trip title and facts, a contextual AI suggestion, every Chat linked to this Trip, and a composer       |
+| Right rail | Five action cards followed by the embedded Trip map                                                    |
+| Overlay    | A right-side drawer for the chosen action; it covers the right rail and leaves the main column visible |
 
 The centre can grow from the dashboard into a conversation while the right rail stays in place.
 When a conversation is open, the existing adjustable chat/map split remains available between the
@@ -39,13 +39,13 @@ centre and the right rail. Returning from the conversation restores Trip home.
 The action cards appear in this order. Each card opens a Trip action drawer and includes a count
 when it has one.
 
-| Action            | Drawer content                                                                                                            | Interaction                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Itinerary         | The Trip's current complete plan and day timeline                                                                         | Choosing a day focuses that day on the map                           |
-| Ideas             | Unscheduled activities and restaurant suggestions                                                                         | An item can be scheduled through the existing itinerary editing flow |
-| Bookings          | Flights, stays and other itinerary items marked as booked                                                                 | Booked items remain grouped independently of their itinerary order   |
-| Trip preferences  | The existing preference editor for this Trip                                                                              | Changes use the existing save and replan behavior                    |
-| Calendar          | A redesigned, read-only calendar for this Trip only; its date cells highlight trip days and stop, flight and stay activity | Choosing a day opens Itinerary at that day and focuses the map       |
+| Action           | Drawer content                                                                                                             | Interaction                                                          |
+| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
+| Itinerary        | The Trip's current complete plan and day timeline                                                                          | Choosing a day focuses that day on the map                           |
+| Ideas            | Unscheduled activities and restaurant suggestions                                                                          | An item can be scheduled through the existing itinerary editing flow |
+| Bookings         | Flights, stays and other itinerary items marked as booked                                                                  | Booked items remain grouped independently of their itinerary order   |
+| Trip preferences | The existing preference editor for this Trip                                                                               | Changes use the existing save and replan behavior                    |
+| Calendar         | A redesigned, read-only calendar for this Trip only; its date cells highlight trip days and stop, flight and stay activity | Choosing a day opens Itinerary at that day and focuses the map       |
 
 Media is intentionally absent until the product has a real media model. The drawer set does not add
 Receipts.
@@ -105,4 +105,4 @@ The implementation is complete when browser E2E covers:
 
 The repository owner supplied the current Trip home and Mindtrip reference screenshots and approved
 the design decisions on 2026-10-29. No Mindtrip code, copy or assets are reused. The decision record
-is [Trip home actions stay in place](../../.agents/notes/proposed/feature/2026-10-29-trip-home-actions.md).
+is [Trip home actions stay in place](../../.agents/notes/implemented/feature/2026-10-29-trip-home-actions.md).

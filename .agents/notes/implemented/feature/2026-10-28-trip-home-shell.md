@@ -3,6 +3,9 @@
 Status: implemented
 Owner: spec #765, ticket #766
 
+Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) replaces the
+three navigation cards with five in-place actions.
+
 ## Problem
 
 Choosing a trip on the Trips page dropped the traveller straight into one chat with the Trip panel and

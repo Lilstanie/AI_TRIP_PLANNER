@@ -129,6 +129,16 @@ function categoryLabel(category: Activity["category"], locale: AppLocale) {
   return translate(locale, "Stay");
 }
 
+function CategoryIcon({ category, size }: { category: Activity["category"]; size: number }) {
+  const Icon =
+    category === "stop"
+      ? FlowAttractionIcon
+      : category === "flight"
+        ? FlowFlightIcon
+        : FlowStayIcon;
+  return <Icon size={size} />;
+}
+
 export function TripHomeCalendar({
   plan,
   onSelectDay,
@@ -162,13 +172,7 @@ export function TripHomeCalendar({
       <div className="trip-home-calendar__legend" aria-label={translate(locale, "Trip details")}>
         {(["stop", "flight", "stay"] as const).map((category) => (
           <span data-category={category} key={category}>
-            {category === "stop" ? (
-              <FlowAttractionIcon size={14} />
-            ) : category === "flight" ? (
-              <FlowFlightIcon size={14} />
-            ) : (
-              <FlowStayIcon size={14} />
-            )}
+            <CategoryIcon category={category} size={14} />
             {categoryLabel(category, locale)}
           </span>
         ))}
@@ -223,13 +227,7 @@ export function TripHomeCalendar({
                           data-category={entry.category}
                           key={`${entry.category}-${entryIndex}`}
                         >
-                          {entry.category === "stop" ? (
-                            <FlowAttractionIcon size={12} />
-                          ) : entry.category === "flight" ? (
-                            <FlowFlightIcon size={12} />
-                          ) : (
-                            <FlowStayIcon size={12} />
-                          )}
+                          <CategoryIcon category={entry.category} size={12} />
                           <span>{entry.label}</span>
                         </span>
                       ))}

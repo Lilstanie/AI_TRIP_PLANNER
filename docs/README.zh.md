@@ -20,7 +20,7 @@
 | [路线图](roadmap.zh.md)                                       | 当前产品方向与范围                              |
 | [团队工作流](team-workflow.zh.md)                             | 分工、分支与审查                                |
 | [设计规范](design/ui-guidelines.zh.md)                        | 布局、tokens、玻璃材质、动效与无障碍            |
-| [Trip home 动作栏](design/trip-home-actions.zh.md)            | 已确认、尚未实现的 Trip home 动作与抽屉行为     |
+| [Trip home 动作栏](design/trip-home-actions.zh.md)            | Trip home 动作、关联 Chat 与抽屉行为            |
 | [思考过程界面](design/dsh-thinking-ui.zh.md)                  | 规划过程记录的参考与行为                        |
 | [类图](design/class-diagram.zh.md)                            | 领域对象与运行时关系                            |
 | [Stage 1 设计模型](design/stage1/README.zh.md)                | ELEC5620 Stage 1 报告模型，以及每个评分项的位置 |

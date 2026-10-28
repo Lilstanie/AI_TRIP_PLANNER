@@ -188,7 +188,7 @@ const LABELS = {
     calendarTab: "Calendar",
     tripsTab: "Trips",
     details: "Trip details",
-    sections: "Trip sections",
+    sections: "Trip actions",
     map: "Trip map",
     list: "Chats",
     box: "New chat",
@@ -197,8 +197,8 @@ const LABELS = {
     delete: "Delete",
     undo: "Undo",
     itinerary: /^Itinerary(\s+2 stops)?$/,
-    preferences: /^Preferences(\s+3 preferences)?$/,
-    calendar: /^Calendar$/,
+    preferences: /^Trip preferences(\s+3 preferences)?$/,
+    calendar: /^Calendar/,
     tripTab: /^Trip( updated)?$/,
     travellers: "2 travellers",
     traveller: "1 traveller",
@@ -212,7 +212,7 @@ const LABELS = {
     calendarTab: "日历",
     tripsTab: "行程",
     details: "行程信息",
-    sections: "行程板块",
+    sections: "行程操作",
     map: "行程地图",
     list: "聊天",
     box: "新聊天",
@@ -222,7 +222,7 @@ const LABELS = {
     undo: "撤销",
     itinerary: /^行程概览(\s+2 站点)?$/,
     preferences: /^旅行偏好(\s+3 项偏好)?$/,
-    calendar: /^日历$/,
+    calendar: /^日历/,
     tripTab: /^行程(已更新)?$/,
     travellers: "2 位旅客",
     traveller: "1 位旅客",
@@ -308,7 +308,8 @@ async function walk(profile) {
     (await rows.locator(".trip-home-chats__name").allInnerTexts()).map((text) => text.trim());
   const sectionCard = (name) => cardsList.getByRole("button", { name });
   const leaveHome = async () => {
-    if (phone && (await home.count())) await home.getByRole("button", { name: L.back }).click();
+    if (phone && (await home.count()))
+      await home.getByRole("button", { name: L.back, exact: true }).click();
   };
   const goTrips = async () => {
     await leaveHome();
@@ -372,13 +373,13 @@ async function walk(profile) {
     text.replace(/\s+/g, " ").trim(),
   );
   check(
-    labels.length === 3 &&
+    labels.length === 5 &&
       L.itinerary.test(labels[0]) &&
-      L.calendar.test(labels[1]) &&
-      L.preferences.test(labels[2]) &&
+      L.calendar.test(labels[4]) &&
+      L.preferences.test(labels[3]) &&
       /2/.test(labels[0]) &&
-      /3/.test(labels[2]),
-    "three cards show the stop and preference counts",
+      /3/.test(labels[3]),
+    "five action cards show the stop and preference counts",
     labels,
   );
   check(
@@ -394,7 +395,7 @@ async function walk(profile) {
   check((await overflow()) <= 0, "the page does not scroll sideways", await overflow());
   await shot("home");
 
-  await home.getByRole("button", { name: L.back }).click();
+  await home.getByRole("button", { name: L.back, exact: true }).click();
   check(await tripsPageShown(), "the back button returns to the Trips page");
 
   const calendarTab = tripsTabs.getByRole("tab", { name: L.calendarTab, exact: true });
@@ -411,7 +412,7 @@ async function walk(profile) {
       "a calendar band opens the Trip home of that trip",
       melbourneTags,
     );
-    await home.getByRole("button", { name: L.back }).click();
+    await home.getByRole("button", { name: L.back, exact: true }).click();
     check(
       (await tripsPageShown()) && (await calendarTab.getAttribute("aria-selected")) === "true",
       "back from a trip opened on the calendar returns to the Calendar tab",
@@ -455,7 +456,7 @@ async function walk(profile) {
   await page.waitForTimeout(1200);
   const afterOlder = await stored(page);
   check(
-    (await home.count()) === 0 &&
+    (await home.count()) === 1 &&
       itemsOf(afterOlder.trips.find((trip) => trip.id === sydney.trip.id).snapshot) === 2,
     "a chat row opens that chat and the older chat does not downgrade the trip's plan",
     itemsOf(afterOlder.trips.find((trip) => trip.id === sydney.trip.id).snapshot),
@@ -482,31 +483,22 @@ async function walk(profile) {
   );
 
   await sectionCard(L.itinerary).click();
-  if (phone) {
-    await page.getByRole("tab", { name: L.tripTab }).waitFor();
-    await page.locator(".timeline-stop").first().waitFor();
-    check(
-      (await page.getByRole("tab", { name: L.tripTab }).getAttribute("aria-selected")) === "true" &&
-        (await page.locator(".timeline-stop").count()) === 2,
-      "Itinerary opens the Trip panel with the card's two stops",
-      await page.locator(".timeline-stop").count(),
-    );
-  } else {
-    await page.locator(".trip-workspace").waitFor();
-    const count = await page.locator("#trip-trigger-count").innerText();
-    check(
-      (await page.locator(".trip-trigger").getAttribute("aria-expanded")) === "true" &&
-        /^2\b/.test(count.trim()),
-      "Itinerary opens the Trip panel with the card's two stops",
-      count,
-    );
-  }
+  const itineraryDialog = page.getByRole("dialog");
+  await itineraryDialog.waitFor();
+  await itineraryDialog.locator(".trip-home-action__list li").first().waitFor();
+  check(
+    (await itineraryDialog.locator(".trip-home-action__list li").count()) === 2 &&
+      (await home.count()) === 1,
+    "Itinerary opens in place with the card's two stops",
+  );
   await shot("itinerary");
+  await page.keyboard.press("Escape");
 
   await goHome(/Sydney/);
   await sectionCard(L.preferences).click();
   const dialog = page.getByRole("dialog");
   await dialog.waitFor();
+  await dialog.getByText("Quiet mornings", { exact: true }).waitFor();
   const dialogText = await dialog.innerText();
   check(
     ["Quiet mornings", "Vegetarian", "No long drives"].every((item) => dialogText.includes(item)),
@@ -518,13 +510,16 @@ async function walk(profile) {
 
   await goHome(/Sydney/);
   await sectionCard(L.calendar).click();
-  await tripsPageShown();
+  const calendarDialog = page.getByRole("dialog");
+  await calendarDialog.waitFor();
+  await calendarDialog.locator(".trip-home-calendar").waitFor();
   check(
-    (await calendarTab.getAttribute("aria-selected")) === "true" &&
-      (await page.locator(".trip-calendar__trip[aria-label*='Sydney']").count()) >= 1,
-    "Calendar opens the calendar tab on the trip's month",
+    (await calendarDialog.locator(".trip-home-calendar").count()) === 1 &&
+      (await home.count()) === 1,
+    "Calendar opens only this Trip in place",
   );
   await shot("calendar");
+  await page.keyboard.press("Escape");
 
   await goHome(/Sydney/);
   page.once("dialog", (dialog) => dialog.accept("Harbour holiday"));
@@ -532,7 +527,7 @@ async function walk(profile) {
   await page.getByRole("menuitem", { name: L.rename }).click();
   await page.getByRole("heading", { name: "Harbour holiday", level: 1 }).waitFor();
   const renamed = (await stored(page)).trips.find((trip) => trip.id === sydney.trip.id);
-  await home.getByRole("button", { name: L.back }).click();
+  await home.getByRole("button", { name: L.back, exact: true }).click();
   await tripsPageShown();
   check(
     renamed?.title === "Harbour holiday" &&
@@ -551,10 +546,11 @@ async function walk(profile) {
     /Hobart/.test(await heading.innerText()) &&
       (await home.getByRole("list", { name: L.list }).count()) === 0 &&
       (await home.getByRole("textbox", { name: L.box }).count()) === 1 &&
-      emptyLabels.length === 3 &&
-      emptyLabels.every((text) => !/\d/.test(text)) &&
+      emptyLabels.length === 5 &&
+      emptyLabels.slice(0, 4).every((text) => !/\d/.test(text)) &&
+      /3/.test(emptyLabels[4]) &&
       (await markers().count()) === 0,
-    "a trip with no stops, preferences or chats shows the cards without counts, no list, no markers and the box",
+    "an empty Trip shows five actions, only the Calendar day count, no Chats or markers, and the composer",
     emptyLabels,
   );
   check((await overflow()) <= 0, "the empty trip does not scroll sideways");

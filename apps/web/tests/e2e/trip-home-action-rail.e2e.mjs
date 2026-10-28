@@ -103,6 +103,12 @@ const snapshotFor = (id, message) => ({
     ],
   },
 });
+const newerSnapshot = snapshotFor("sydney-family", "Family plan marker");
+newerSnapshot.savedAt = "2026-10-29T01:00:00Z";
+newerSnapshot.draft.preferences = ["Late breakfast"];
+newerSnapshot.plan.sections[0].proposal.items = items.map((item) =>
+  item.id === "opera" ? { ...item, location: "Newer chat Opera House" } : item,
+);
 const conversations = [
   {
     id: "conversation:sydney-food",
@@ -122,7 +128,7 @@ const conversations = [
     tripId: "trip:sydney-action-rail",
     messages: [{ role: "user", text: "Family plan marker" }],
     input: "",
-    snapshot: snapshotFor("sydney-family", "Family plan marker"),
+    snapshot: newerSnapshot,
   },
 ];
 const catalog = {
@@ -164,14 +170,26 @@ let browser;
 let current;
 let currentErrors = [];
 
-async function open(language, viewport, phone = false) {
-  const context = await browser.newContext({
+async function restoredBlank(page) {
+  await page.waitForFunction((key) => {
+    const value = JSON.parse(localStorage.getItem(key) ?? "null");
+    return (
+      value &&
+      !value.activeTripId &&
+      value.conversations.some((chat) => chat.id === value.activeConversationId && !chat.tripId)
+    );
+  }, "trip-workspace-catalog-v3");
+}
+
+async function open(language, viewport, phone = false, createContext) {
+  const options = {
     viewport,
     reducedMotion: "reduce",
     locale: language === "zh" ? "zh-CN" : "en-AU",
     timezoneId: "Australia/Sydney",
     ...(phone ? { hasTouch: true, isMobile: true } : {}),
-  });
+  };
+  const context = await (createContext ? createContext(options) : browser.newContext(options));
   await context.addInitScript(
     ({ catalog, settings }) => {
       if (localStorage.getItem("action-rail-seeded")) return;
@@ -188,6 +206,7 @@ async function open(language, viewport, phone = false) {
   await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
+  await restoredBlank(page);
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   current = page;
   currentErrors = errors;
@@ -203,14 +222,42 @@ const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null"));
 
 async function openHome(page, language = "en") {
+  let before;
   const mine = page.getByRole("tab", { name: /^(Mine|我的)$/ });
   if (await mine.isVisible()) {
     await mine.click();
+    before = await stored(page);
     await page.locator(".phone-mine .trip-card").first().click();
   } else {
     await page
       .locator(".sidebar-nav")
       .getByRole("button", { name: language === "zh" ? /^行程/ : /^Trips/ })
+      .click();
+    before = await stored(page);
+    await page.locator(".trip-cards .trip-card").first().click();
+  }
+  await home(page).waitFor();
+  const after = await stored(page);
+  check(
+    !before ||
+      (after.activeConversationId === before.activeConversationId &&
+        after.activeTripId === before.activeTripId),
+    "opening Trip home preserves the stored active Chat and Trip",
+  );
+}
+
+async function openResponsiveHome(page, width) {
+  if (width <= 520) {
+    await page.getByRole("tab", { name: "Mine" }).click();
+    await page.locator(".phone-mine .trip-card").first().click();
+  } else if (width <= 1000) {
+    await page.getByRole("button", { name: "Open navigation" }).click();
+    await page.getByRole("button", { name: /^Trips/ }).click();
+    await page.locator(".trip-cards .trip-card").first().click();
+  } else {
+    await page
+      .locator(".sidebar-nav")
+      .getByRole("button", { name: /^Trips/ })
       .click();
     await page.locator(".trip-cards .trip-card").first().click();
   }
@@ -272,6 +319,8 @@ try {
   );
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
+  await restoredBlank(page);
+  await page.locator(".save-state--saved").waitFor();
   await openHome(page);
   check(
     (await home(page).getByRole("region", { name: "Trip suggestion" }).count()) === 0,
@@ -286,7 +335,9 @@ try {
   });
   await page.reload({ waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
+  await restoredBlank(page);
   await openHome(page);
+  await suggestion.waitFor();
   check(
     (await home(page).getByRole("region", { name: "Trip suggestion" }).count()) === 1,
     "a changed Plan makes the suggestion eligible again",
@@ -296,12 +347,70 @@ try {
     .getByRole("button", { name: /Family plan/ })
     .click();
   await page.getByText("Family plan marker", { exact: true }).waitFor();
+  await action(page, /^Itinerary/).click();
+  await dialog(page, "Itinerary").waitFor();
+  const newerPlanText = await dialog(page, "Itinerary").innerText();
+  check(
+    (await dialog(page, "Itinerary")
+      .getByText("Newer chat Opera House", { exact: true })
+      .count()) === 1 &&
+      (await dialog(page, "Itinerary").getByText("Sydney Opera House", { exact: true }).count()) ===
+        0,
+    "Trip actions display the selected Chat's newer Plan snapshot",
+    newerPlanText,
+  );
+  await page.keyboard.press("Escape");
+  await action(page, /^Trip preferences/).click();
+  await dialog(page, "Trip preferences").waitFor();
+  const newerDraftText = await dialog(page, "Trip preferences").innerText();
+  check(
+    (await dialog(page, "Trip preferences")
+      .getByText("Late breakfast", { exact: true })
+      .count()) === 1 &&
+      (await dialog(page, "Trip preferences")
+        .getByText("Quiet mornings", { exact: true })
+        .count()) === 0,
+    "Trip preferences edit the same newer Chat snapshot",
+    newerDraftText,
+  );
+  await page.keyboard.press("Escape");
+  const resizer = page.getByRole("separator", { name: "Resize chat and map" });
+  await resizer.focus();
+  const shareBefore = await resizer.getAttribute("aria-valuenow");
+  await page.keyboard.press("ArrowRight");
+  check(
+    (await resizer.getAttribute("aria-valuenow")) !== shareBefore,
+    "an open Trip Chat retains the adjustable chat and map split",
+  );
   check(
     (await home(page).count()) === 1 &&
       (await actions(page).isVisible()) &&
       (await page.getByRole("button", { name: "Back to trip home" }).isVisible()),
     "opening a Trip Chat keeps Trip home and the action rail in place",
   );
+  await page.keyboard.press("End");
+  await action(page, /^Itinerary/).click();
+  await dialog(page, "Itinerary").waitFor();
+  const resized = await page.evaluate(() => {
+    const rail = document.querySelector(".trip-home__aside").getBoundingClientRect();
+    const drawer = document.querySelector(".trip-home-action-surface").getBoundingClientRect();
+    return {
+      railLeft: rail.left,
+      drawerLeft: drawer.left,
+      railWidth: rail.width,
+      drawerWidth: drawer.width,
+    };
+  });
+  check(
+    Math.abs(resized.drawerLeft - resized.railLeft) <= 20 &&
+      resized.drawerWidth <= resized.railWidth,
+    "the action drawer follows the rail at the maximum Chat split",
+    resized,
+  );
+  await page.keyboard.press("Escape");
+  await resizer.focus();
+  await page.keyboard.press("Home");
+  await page.keyboard.press("ArrowRight");
   await page.screenshot({ path: `${OUT}/chat-with-rail-1440-en.png` });
   await page.getByRole("button", { name: "Back to trip home" }).click();
   await chats(page).waitFor();
@@ -310,15 +419,27 @@ try {
   const itinerary = dialog(page, "Itinerary");
   await itinerary.waitFor();
   await itinerary.getByRole("heading", { name: /16 Nov/ }).waitFor();
+  await itinerary.getByRole("button", { name: /Day 3 .*16 Nov/ }).click();
+  check(
+    (await itinerary.locator('[data-day="3"][data-selected]').count()) === 1 &&
+      (await page.locator(".trip-home__map").getAttribute("data-day")) === "3",
+    "choosing an Itinerary day selects it and focuses the map",
+  );
   const boxes = await page.evaluate(() => {
     const main = document.querySelector(".trip-home__main").getBoundingClientRect();
     const drawer = document.querySelector(".trip-home-action-surface").getBoundingClientRect();
-    return { mainLeft: main.left, mainRight: main.right, drawerLeft: drawer.left };
+    const rail = document.querySelector(".trip-home__aside").getBoundingClientRect();
+    return {
+      mainLeft: main.left,
+      mainRight: main.right,
+      drawerLeft: drawer.left,
+      railLeft: rail.left,
+    };
   });
   check(
     boxes.drawerLeft > boxes.mainLeft &&
-      boxes.drawerLeft < boxes.mainRight &&
-      (await itinerary.getByText("Sydney Opera House", { exact: true }).count()) === 1,
+      Math.abs(boxes.drawerLeft - boxes.railLeft) <= 20 &&
+      (await itinerary.getByText("Newer chat Opera House", { exact: true }).count()) === 1,
     "desktop Itinerary drawer covers the rail and leaves the main column visible",
     boxes,
   );
@@ -352,7 +473,7 @@ try {
   await bookings.waitFor();
   check(
     (await dialog(page, "Ideas").count()) === 0 &&
-      (await bookings.getByText("Sydney Opera House", { exact: true }).count()) === 1,
+      (await bookings.getByText("Newer chat Opera House", { exact: true }).count()) === 1,
     "a second action replaces the first drawer and Bookings lists booked activities",
   );
   await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
@@ -366,8 +487,7 @@ try {
   const preferences = dialog(page, "Trip preferences");
   await preferences.waitFor();
   check(
-    (await preferences.getByText("Quiet mornings", { exact: true }).count()) >= 1 &&
-      (await preferences.getByText("Seafood", { exact: true }).count()) >= 1,
+    (await preferences.getByText("Late breakfast", { exact: true }).count()) === 1,
     "Trip preferences surface belongs to this Trip",
   );
   await preferences.getByRole("button", { name: /Close/ }).click();
@@ -375,9 +495,10 @@ try {
   await action(page, "Calendar").click();
   const calendar = dialog(page, "Calendar");
   await calendar.waitFor();
+  await calendar.getByText("Newer chat Opera House", { exact: true }).waitFor();
   check(
     /November\s+2030/.test(await calendar.innerText()) &&
-      (await calendar.getByText("Sydney Opera House", { exact: true }).count()) >= 1,
+      (await calendar.getByText("Newer chat Opera House", { exact: true }).count()) >= 1,
     "Calendar is a read-only view of this Trip's month and activity",
   );
   await calendar.getByRole("button", { name: /16 Nov/i }).click();
@@ -388,10 +509,13 @@ try {
     (await dialog(page, "Calendar").count()) === 0,
     "choosing a calendar date replaces Calendar with Itinerary",
   );
+  const selectedItineraryDay = dialog(page, "Itinerary").locator('[data-day="3"][data-selected]');
+  await selectedItineraryDay.waitFor({ state: "visible" });
+  await selectedItineraryDay.getByRole("heading", { name: /16 Nov/ }).waitFor({ state: "visible" });
+  check(true, "choosing a calendar date exposes the matching Itinerary day");
   check(
-    (await dialog(page, "Itinerary").getByRole("heading", { name: /16 Nov/ }).count()) ===
-      1,
-    "choosing a calendar date exposes the matching Itinerary day",
+    (await dialog(page, "Itinerary").locator('[data-day="3"][data-selected]').count()) === 1,
+    "Calendar selection marks the corresponding Itinerary day",
   );
   await page.keyboard.press("Escape");
 
@@ -430,9 +554,107 @@ try {
   );
   await desktop.context.close();
 
+  for (const width of [375, 520, 521, 1000, 1001]) {
+    const responsive = await open("en", { width, height: width <= 520 ? 844 : 900 }, width <= 520);
+    await openResponsiveHome(responsive.page, width);
+    await action(responsive.page, "Calendar").click();
+    const responsiveCalendar = dialog(responsive.page, "Calendar");
+    await responsiveCalendar.waitFor();
+    const responsiveDate = responsiveCalendar.getByRole("button", { name: /16 Nov/i });
+    await responsiveDate.waitFor({ state: "visible" });
+    check(
+      (await noOverflow(responsive.page)) <= 0 && (await responsiveDate.isVisible()),
+      `integrated Calendar remains usable at ${width}px`,
+    );
+    await responsiveDate.click();
+    await dialog(responsive.page, "Itinerary").waitFor();
+    await dialog(responsive.page, "Itinerary")
+      .locator('[data-day="3"][data-selected]')
+      .waitFor({ state: "visible" });
+    check(
+      (await responsive.page.locator(".trip-home__map").getAttribute("data-day")) === "3" &&
+        (await noOverflow(responsive.page)) <= 0,
+      `Calendar to Itinerary and map works at ${width}px`,
+    );
+    await responsive.page.keyboard.press("Escape");
+    check(
+      (await action(responsive.page, "Calendar").evaluate(
+        (node) => node === document.activeElement,
+      )) === true,
+      `closing a responsive drawer restores focus at ${width}px`,
+    );
+    await responsive.page.screenshot({ path: `${OUT}/itinerary-${width}-en.png` });
+    check(responsive.errors.length === 0, `${width}px journey has no browser errors`);
+    await responsive.context.close();
+  }
+
+  if (process.env.CHANNEL === "chrome") {
+    const zoomed = await open("en", { width: 1440, height: 1000 }, false, (options) =>
+      chromium.launchPersistentContext("", {
+        ...options,
+        channel: "chrome",
+        headless: true,
+      }),
+    );
+    const zoomSettings = await zoomed.context.newPage();
+    await zoomSettings.goto("chrome://settings/appearance");
+    const zoomLevel = zoomSettings.locator("#zoomLevel");
+    await zoomLevel.waitFor({ state: "visible", timeout: 15_000 });
+    await zoomed.page.bringToFront();
+    await openHome(zoomed.page);
+    for (const zoom of [125, 150]) {
+      await zoomLevel.selectOption({ label: `${zoom}%` });
+      await zoomed.page.waitForFunction((ratio) => devicePixelRatio >= ratio, zoom / 100);
+      await action(zoomed.page, "Calendar").click();
+      await dialog(zoomed.page, "Calendar").waitFor();
+      check(
+        (await zoomed.page.evaluate(() => devicePixelRatio)) >= zoom / 100 &&
+          (await noOverflow(zoomed.page)) <= 0,
+        `${zoom}% actual Chrome zoom keeps Calendar reachable without overflow`,
+      );
+      await zoomed.page.keyboard.press("Escape");
+    }
+    check(zoomed.errors.length === 0, "actual Chrome zoom journey has no browser errors");
+    await zoomed.context.close();
+  }
+
   const phone = await open("en", { width: 390, height: 844 }, true);
   await phone.page.locator(".phone-tabbar").waitFor();
   await openHome(phone.page);
+  await home(phone.page).getByRole("region", { name: "Trip suggestion" }).waitFor();
+  check(
+    (await home(phone.page).getByRole("region", { name: "Trip suggestion" }).count()) === 1,
+    "phone Trip suggestion is mounted before measuring the reading order",
+    await phone.page.evaluate(() => ({
+      home: document.querySelector(".trip-home")?.innerText,
+      dismissals: localStorage.getItem("trip-home-suggestion-dismissals-v1"),
+    })),
+  );
+  const phoneTargets = await phone.page.evaluate(() =>
+    [...document.querySelectorAll(".trip-home-suggestion__actions button, .trip-home__back")].map(
+      (node) => {
+        const box = node.getBoundingClientRect();
+        return { width: box.width, height: box.height };
+      },
+    ),
+  );
+  check(
+    phoneTargets.every((box) => box.width >= 44 && box.height >= 44),
+    "phone suggestion actions and Back meet the 44px touch target",
+    phoneTargets,
+  );
+  await chats(phone.page)
+    .getByRole("button", { name: /Family plan/ })
+    .click();
+  const chatBack = phone.page.getByRole("button", { name: "Back to trip home" });
+  const chatBackBox = await chatBack.boundingBox();
+  check(
+    chatBackBox && chatBackBox.width >= 44 && chatBackBox.height >= 44,
+    "phone Chat Back meets the 44px touch target",
+    chatBackBox,
+  );
+  await chatBack.click();
+  await home(phone.page).getByRole("region", { name: "Trip suggestion" }).waitFor();
   const phoneOrder = await phone.page.evaluate(() => {
     const rect = (selector) => document.querySelector(selector)?.getBoundingClientRect().top;
     return {

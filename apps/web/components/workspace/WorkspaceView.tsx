@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs } from "../chat/ChatViewTabs";
@@ -22,7 +22,7 @@ import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
-import { conversationTitle, tripConversations } from "@/lib/workspace/catalog";
+import { conversationTitle, latestSnapshot, tripConversations } from "@/lib/workspace/catalog";
 import { TripHomeChats, TripHomeComposer } from "./TripHomeChats";
 import { TripHomeSuggestion } from "./TripHomeSuggestion";
 import { TripHomeMap } from "./TripHomeMap";
@@ -51,6 +51,8 @@ import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import type { TripAction } from "@/lib/workspace/layout";
+import { useTimelineEdits } from "../trip/timeline/useTimelineEdits";
+import { itineraryActivities } from "@/lib/workspace";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
@@ -140,9 +142,22 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     document.title = [plan.brief.destination, dates, "AI Trip Planner"].filter(Boolean).join(" · ");
   }, [blank, locale, page, plan]);
 
-  const undo = useTripUndo(plan);
+  const homeTrip =
+    page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
+  const homeConversation = homeChatId
+    ? catalog.conversations.find(
+        (conversation) => conversation.id === homeChatId && conversation.tripId === homeTripId,
+      )
+    : undefined;
+  const homeSnapshot = homeTrip
+    ? catalog.activeTripId === homeTrip.id && plan?.tripId === homeTrip.snapshot.plan.tripId
+      ? { plan, draft }
+      : (homeConversation && latestSnapshot(catalog, homeConversation)) || homeTrip.snapshot
+    : undefined;
+  const homePlan = homeSnapshot?.plan;
+  const undo = useTripUndo(page === "home" ? homePlan : plan);
   const revisions = usePlanRevision({
-    plan,
+    plan: page === "home" ? homePlan : plan,
     held: busy || editPending,
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
@@ -155,6 +170,18 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
 
   const legs = useLegRoutes({ plan, revisions, onRoutes: session.showRoutes });
+  const { previewTrip } = session;
+  const homeEdits = useTimelineEdits({
+    plan: homePlan ?? plan!,
+    dataMode: dataMode.mode,
+    activities: useMemo(() => itineraryActivities(homePlan), [homePlan]),
+    revisions,
+    undo,
+    onPending: session.trackEdit,
+    onRoutesChange: session.showRoutes,
+    onLegApplied: legs.noteLeg,
+    onTimelineChange: session.setTimelineChanged,
+  });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
   const chatsPanel = useRef<HTMLDivElement>(null);
@@ -232,12 +259,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     setHomeChatId(undefined);
     setCalendarTripId(undefined);
     viewTransition(() => {
-      session.previewTrip(id);
       layout.openHome(id);
     });
   };
-  const homeTrip =
-    page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
   const leaveHome = useRef(layout.showTrips);
   leaveHome.current = layout.showTrips;
   const homeMissing = page === "home" && !homeTrip;
@@ -259,13 +283,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     const id = session.startHomeTripChat(tripId, text);
     if (id) setHomeChatId(id);
   };
-  const backToHome = (tripId: string) => {
+  const backToHome = () => {
     setHomeChatId(undefined);
-    session.previewTrip(tripId);
   };
   const openHomeAction = (action: TripAction, trigger: HTMLButtonElement) => {
     homeActionTarget.current = trigger;
-    viewTransition(() => openTripAction(action));
+    viewTransition(() => {
+      if (homeTrip && catalog.activeTripId !== homeTrip.id) previewTrip(homeTrip.id);
+      openTripAction(action);
+    });
   };
   const closeHomeAction = () => {
     closeTripAction();
@@ -275,7 +301,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     layout.focusMapDay(day);
     openTripAction("itinerary");
   };
-
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
@@ -293,8 +318,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   useEffect(() => {
     if (!phone || plan || mobileView !== "trip") return;
-    selectView("chat");
-  }, [phone, plan, mobileView]);
+    layout.selectView("chat");
+  }, [phone, plan, mobileView, layout]);
 
   const teamTurn = latestTurn(activity, busy, messages);
   const profileDefaults = draftDefaults(settings);
@@ -522,7 +547,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           {narrow && !phone && (
             <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
           )}
-          <main className="workspace-shell workspace-shell--trips">
+          <main
+            className="workspace-shell workspace-shell--trips"
+            style={
+              !narrow && homeChatId && chatShare !== undefined
+                ? ({ "--chat-share": String(chatShare) } as CSSProperties)
+                : undefined
+            }
+            data-home-chat={homeChatId ? "open" : undefined}
+          >
             {homeTrip ? (
               <TripHome
                 phone={phone}
@@ -534,27 +567,27 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}
                 actions={
-                  homeTrip.snapshot.plan ? (
+                  homePlan ? (
                     <TripHomeCards
-                      plan={homeTrip.snapshot.plan}
-                      draft={homeTrip.snapshot.draft}
+                      plan={homePlan}
+                      draft={homeSnapshot!.draft}
                       onOpen={openHomeAction}
                     />
                   ) : undefined
                 }
                 suggestion={
-                  !homeChatId && homeTrip.snapshot.plan ? (
+                  !homeChatId && homePlan ? (
                     <TripHomeSuggestion
                       tripId={homeTrip.id}
-                      plan={homeTrip.snapshot.plan}
+                      plan={homePlan}
                       onChoose={(text) => startHomeChat(homeTrip.id, text)}
                     />
                   ) : undefined
                 }
                 map={
-                  homeTrip.snapshot.plan ? (
+                  homePlan ? (
                     <TripHomeMap
-                      plan={homeTrip.snapshot.plan}
+                      plan={homePlan}
                       mode={dataMode.mode}
                       providers={dataMode.providers}
                       focusedDay={layout.mapDay}
@@ -570,11 +603,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               >
                 {homeChatId && plan ? (
                   <section className="trip-home-chat" aria-label={t("Chat")}>
-                    <button
-                      type="button"
-                      className="trip-home-chat__back"
-                      onClick={() => backToHome(homeTrip.id)}
-                    >
+                    <button type="button" className="trip-home-chat__back" onClick={backToHome}>
                       {t("Back to trip home")}
                     </button>
                     {chatPanel(true)}
@@ -617,7 +646,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               />
             )}
             {navDrawer}
-            {homeTrip?.snapshot.plan && (
+            {!narrow && homeChatId && (
+              <SplitResizer share={chatShare} onChange={layout.resizeChat} />
+            )}
+            {homePlan && (
               <>
                 {tripAction && (
                   <button
@@ -630,9 +662,28 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 )}
                 <TripHomeActionDrawer
                   action={tripAction}
-                  plan={homeTrip.snapshot.plan}
-                  draft={homeTrip.snapshot.draft}
-                  onDraft={session.saveFacts}
+                  plan={homePlan!}
+                  draft={homeSnapshot!.draft}
+                  selectedDay={layout.mapDay}
+                  busy={busy || editPending || homeEdits.busy}
+                  errors={errors}
+                  editErrors={homeEdits.errors}
+                  showEditNotice={!!homeEdits.undo}
+                  onUndo={() => {
+                    if (homeEdits.undo)
+                      void homeEdits.edit(homeEdits.undo).then((done) => {
+                        if (done) undo.clear();
+                      });
+                  }}
+                  onSave={session.saveFacts}
+                  onReplan={session.planWith}
+                  onSchedule={(idea, day) =>
+                    idea.id
+                      ? homeEdits.edit({ kind: "schedule", id: idea.id, day }, (_, next) =>
+                          undo.record(next, { operation: { kind: "idea", id: idea.id! } }),
+                        )
+                      : false
+                  }
                   onClose={closeHomeAction}
                   onSelectDay={chooseHomeDay}
                   returnFocus={homeActionTarget}

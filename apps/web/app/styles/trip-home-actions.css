@@ -23,7 +23,8 @@
   margin-top: var(--space-3);
 }
 .trip-home-suggestion__actions button {
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px;
   padding: var(--space-2) var(--space-4);
   background: var(--accent-bg);
   color: var(--accent);
@@ -38,7 +39,8 @@
 }
 .trip-home-chat__back {
   align-self: flex-start;
-  min-height: 40px;
+  min-width: 44px;
+  min-height: 44px !important;
   margin-bottom: var(--space-2);
   padding: 0 !important;
   background: transparent !important;
@@ -58,9 +60,9 @@
   border-radius: 0 !important;
   background: transparent !important;
 }
-.trip-home-action-surface {
+.drawer.trip-home-action-surface {
   z-index: 40;
-  width: var(--trip-home-aside, 40%);
+  width: calc(var(--trip-home-aside, 40%) - 2 * var(--float-gap));
 }
 .trip-home-action {
   padding: var(--space-4) var(--space-5);
@@ -73,6 +75,14 @@
 .trip-home-action__day h3 {
   margin: 0 0 var(--space-3);
   font-size: var(--font-size-title);
+}
+.trip-home-action__day h3 button {
+  min-height: 44px;
+  padding: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  text-align: start;
 }
 .trip-home-action__list {
   display: grid;
@@ -104,7 +114,7 @@
   color: var(--text-dim);
 }
 @media (max-width: 520px) {
-  .trip-home-action-surface {
+  .drawer.trip-home-action-surface {
     position: fixed;
     inset: 0 !important;
     width: 100%;
@@ -116,5 +126,10 @@
   }
   .trip-home-chat > .chat {
     min-height: min(620px, 75vh);
+  }
+}
+@media (prefers-reduced-motion: reduce) {
+  .workspace-shell--trips .drawer.trip-home-action-surface {
+    transition: none;
   }
 }

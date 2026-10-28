@@ -6,5 +6,7 @@
 @import "./workspace-trips.css";
 @import "./trip-home-chats.css";
 @import "./trip-home-actions.css";
+@import "./trip-home-calendar.css";
+@import "./trip-home-ideas-bookings.css";
 @import "./workspace-responsive.css";
 @import "./trip-workspace.css";

@@ -1,7 +1,7 @@
 # Agent Note: Trip home actions stay in place
 
-Status: proposed
-Owner: repository owner (@HeadmasterEggy)
+Status: implemented
+Owner: spec #774, tickets #775–#779
 
 ## Problem
 
@@ -12,10 +12,10 @@ Mindtrip arrangement: the selected Trip stays in context, its Chats occupy the c
 actions sit above a map on the right. Calendar is the clearest failure in the current flow because
 replacing the page with the global calendar gives the traveller no obvious return.
 
-This proposal extends the [Trip home page](../../implemented/feature/2026-10-28-trip-home-page.md)
-rather than replacing its entry points, Plan ownership or Chat links.
+This change extends the [Trip home page](2026-10-28-trip-home-page.md) rather than replacing its
+entry points, Plan ownership or Chat links.
 
-## Proposal
+## Decision
 
 - Keep Trip home as page `home` with the Trip's title, facts, Rename and Delete menu, map and all
   Chats linked by `tripId`. Do not choose one Chat merely to open the Trip.
@@ -38,6 +38,10 @@ rather than replacing its entry points, Plan ownership or Chat links.
   Trip and opens it.
 - Suggestions come from the current Plan. Choosing one sends it into a linked Chat. Dismissal is
   remembered for the Trip until the Plan changes.
+- Trip actions, preferences and scheduling read and update the same latest Plan snapshot as the
+  selected Chat. Choosing a Chat does not navigate to the global conversation workspace.
+- The existing itinerary editing flow owns scheduling feedback and Undo. The desktop conversation
+  retains its adjustable chat/map split.
 - At phone width, order the page as title and facts, suggestion, five actions, Chats, map and
   composer. Keep one page scroll region.
 
@@ -56,7 +60,7 @@ The complete interaction and acceptance specification is
 - **Use the global Trips calendar inside the drawer.** It shows unrelated Trips, while this action
   is about the open Trip's days and itinerary.
 
-## Acceptance criteria
+## Consequences
 
 - A Trip with two Chats shows both, opens the selected Chat in the centre, and restores Trip home
   on Back.
@@ -69,23 +73,15 @@ The complete interaction and acceptance specification is
 - Suggestions send into a linked Chat and stay dismissed across reload until the Plan changes.
 - Fixture E2E covers desktop, tablet and phone in English and Chinese, keyboard use, zoom and no
   horizontal overflow.
-
-## Risks
-
-- The main column, five cards and map can compete for width at tablet sizes; the phone order and
-  breakpoint crossings need explicit layout tests.
-- Reusing TripPanel, Ideas, BookingRow and preference editors inside drawers can duplicate state or
-  update paths. They should share the existing plan and draft owners.
-- Calendar-to-Itinerary switching needs deterministic day and stop focus without leaving a stale
-  drawer or losing keyboard position.
-- The existing `layout` reducer supports one drawer kind but not these five actions; adding them
-  without extending that owner would repeat the earlier competing-open-panel defect.
+- Browser viewports and fixture providers do not establish physical-device or live-provider behavior.
+- Trip home and its open drawer still are not restored after a full page reload.
 
 ## Sources
 
 - The repository owner supplied screenshots of the current Trip home and a Mindtrip Trip page and
   approved the design on 2026-10-29.
-- [Trip home page](../../implemented/feature/2026-10-28-trip-home-page.md)
-- [Trip home page shell](../../implemented/feature/2026-10-28-trip-home-shell.md)
-- [Trip home lists the trip's chats](../../implemented/feature/2026-10-28-trip-home-chats.md)
+- [Trip home page](2026-10-28-trip-home-page.md)
+- [Trip home page shell](2026-10-28-trip-home-shell.md)
+- [Trip home lists the trip's chats](2026-10-28-trip-home-chats.md)
 - [Session log](../../../session-logs/2026-10-29-trip-home-action-rail.md)
+- [Implementation session log](../../../session-logs/2026-10-29-trip-home-workspace.md)

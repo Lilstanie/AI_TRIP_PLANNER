@@ -171,7 +171,7 @@ const openHome = async (page, name) => {
 const cardLabel = async (page) =>
   (
     await home(page)
-      .getByRole("list", { name: /^Trip sections$/ })
+      .getByRole("list", { name: /^Trip actions$/ })
       .getByRole("button")
       .first()
       .innerText()
@@ -219,13 +219,18 @@ try {
     "the opened chat carries the trip's latest plan",
     stopsOf(chatSnapshot(opened, sydney.conversation.id)),
   );
-  const trigger = page.locator(".trip-trigger");
-  if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
-  const timeline = page.getByRole("region", { name: "Trip timeline" });
-  await timeline.waitFor();
-  const names = await timeline.locator(".timeline-stop__name").allInnerTexts();
-  check(names.length === 2, "the Trip panel of the opened chat shows the trip's two stops", names);
+  await home(page)
+    .getByRole("list", { name: "Trip actions" })
+    .getByRole("button", { name: /^Itinerary/ })
+    .click();
+  const itinerary = page.getByRole("dialog", { name: "Itinerary", exact: true });
+  await itinerary.waitFor();
+  check(
+    (await itinerary.locator(".trip-home-action__list li").count()) === 2,
+    "the opened Chat's Itinerary drawer shows the Trip's two stops",
+  );
   await page.screenshot({ path: `${OUT}/older-chat-panel-1440-en.png` });
+  await page.keyboard.press("Escape");
   await openHome(page, /^Trip to Sydney/);
   check(
     /^Itinerary 2 stops$/.test(await cardLabel(page)),
@@ -233,7 +238,17 @@ try {
     await cardLabel(page),
   );
 
-  await home(page).getByRole("button", { name: "Sydney chat" }).click();
+  await page
+    .locator(".sidebar-nav")
+    .getByRole("button", { name: /^Chats/ })
+    .click();
+  await page
+    .locator(".history-item:not(.history-item--trip)")
+    .getByRole("button", { name: /Sydney chat/ })
+    .first()
+    .click();
+  const trigger = page.locator(".trip-trigger");
+  const timeline = page.getByRole("region", { name: "Trip timeline" });
   if ((await trigger.getAttribute("aria-expanded")) !== "true") await trigger.click();
   await timeline.waitFor();
   await timeline

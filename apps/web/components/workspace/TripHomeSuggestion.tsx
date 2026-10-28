@@ -5,11 +5,16 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { CloseIcon } from "@/components/ui/icons";
 import { buildItinerary } from "@/lib/trip/itinerary";
 import { dayCount } from "@/lib/trip/timeline";
+import { translate, type AppLocale } from "@/lib/i18n/locale";
 
 export const TRIP_SUGGESTION_DISMISSALS_KEY = "trip-home-suggestion-dismissals-v1";
 
-export function tripSuggestion(plan: TripPlan): { text: string; prompt: string } {
-  const { t } = useLocale();
+export function tripSuggestion(
+  plan: TripPlan,
+  locale: AppLocale,
+): { text: string; prompt: string } {
+  const t = (text: Parameters<typeof translate>[1], params?: Record<string, string | number>) =>
+    translate(locale, text, params);
   const ideas = buildItinerary(plan, () => undefined).ideas().length;
   if (ideas)
     return {
@@ -44,8 +49,8 @@ export function TripHomeSuggestion({
   plan: TripPlan;
   onChoose(prompt: string): void;
 }) {
-  const { t } = useLocale();
-  const suggestion = tripSuggestion(plan);
+  const { t, locale } = useLocale();
+  const suggestion = tripSuggestion(plan, locale);
   const planKey = JSON.stringify(plan);
   const [dismissed, setDismissed] = useState(false);
   const [ready, setReady] = useState(false);

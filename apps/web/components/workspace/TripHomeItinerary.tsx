@@ -5,7 +5,15 @@ import { buildItinerary } from "@/lib/trip/itinerary";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import { useLocale } from "../account/LocaleProvider";
 
-export function TripHomeItinerary({ plan, selectedDay }: { plan: TripPlan; selectedDay?: number }) {
+export function TripHomeItinerary({
+  plan,
+  selectedDay,
+  onSelectDay,
+}: {
+  plan: TripPlan;
+  selectedDay?: number;
+  onSelectDay(day: number): void;
+}) {
   const { locale, t } = useLocale();
   const itinerary = buildItinerary(plan, () => undefined);
   const selected = useRef<HTMLElement>(null);
@@ -19,13 +27,21 @@ export function TripHomeItinerary({ plan, selectedDay }: { plan: TripPlan; selec
         return (
           <section
             className="trip-home-action__day"
+            data-day={day}
             data-selected={selectedDay === day || undefined}
             ref={selectedDay === day ? selected : undefined}
             key={day}
             aria-label={dayLabel(plan, day, locale)}
           >
             <h3>
-              {t("Day {v0}", { v0: day })} · {dayLabel(plan, day, locale)}
+              <button
+                type="button"
+                aria-pressed={selectedDay === day}
+                aria-label={`${t("Day {v0}", { v0: day })} · ${dayLabel(plan, day, locale)}`}
+                onClick={() => onSelectDay(day)}
+              >
+                {t("Day {v0}", { v0: day })} · {dayLabel(plan, day, locale)}
+              </button>
             </h3>
             {stops.length ? (
               <ol className="trip-home-action__list">

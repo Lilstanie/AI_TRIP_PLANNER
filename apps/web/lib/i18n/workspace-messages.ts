@@ -884,7 +884,6 @@ export const WORKSPACE_ZH = {
   Bookings: "预订",
   "No bookings yet.": "还没有预订。",
   "Trip suggestion": "行程建议",
-  Dismiss: "忽略",
   "{count} unscheduled ideas in {destination}. Want help placing them?":
     "{destination}还有 {count} 个未安排的备选地点。需要我帮你安排吗？",
   "Review the {count} unscheduled ideas in my current {destination} plan and suggest where they fit.":

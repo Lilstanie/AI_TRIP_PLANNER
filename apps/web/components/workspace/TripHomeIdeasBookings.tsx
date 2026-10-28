@@ -13,6 +13,7 @@ import { buildItinerary } from "@/lib/trip/itinerary";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
+import type { Notice } from "@/lib/i18n/notice";
 
 const titleOf = (item: ProposalItem) => item.location ?? item.detail;
 
@@ -32,23 +33,22 @@ export function TripHomeIdeas({
   plan,
   onSchedule,
   disabled = false,
+  errors,
+  showNotice,
+  onUndo,
 }: {
   plan: TripPlan;
   onSchedule(idea: ProposalItem, day: number): boolean | Promise<boolean>;
   disabled?: boolean;
+  errors: Notice[];
+  showNotice: boolean;
+  onUndo(): void;
 }) {
-  const { t, locale } = useLocale();
+  const { t, locale, notice: localizeNotice } = useLocale();
   const [busy, setBusy] = useState(false);
   const restaurants = restaurantSuggestions(plan);
   const restaurantIds = new Set(restaurants.map((item) => item.id));
   const ideas = [...buildItinerary(plan, () => undefined).ideas(), ...restaurants];
-
-  if (!ideas.length)
-    return (
-      <div className="trip-home-action trip-home-ideas-bookings">
-        <p className="trip-home-action__empty">{t("No ideas yet.")}</p>
-      </div>
-    );
 
   const schedule = async (idea: ProposalItem, day: number) => {
     setBusy(true);
@@ -61,6 +61,22 @@ export function TripHomeIdeas({
 
   return (
     <div className="trip-home-action trip-home-ideas-bookings">
+      {!!errors.length && (
+        <ul className="timeline-status timeline-status--error" role="alert">
+          {errors.map((error, index) => (
+            <li key={index}>{localizeNotice(error)}</li>
+          ))}
+        </ul>
+      )}
+      {showNotice && (
+        <div className="timeline-undo" role="status">
+          <span>{t("Change applied.")}</span>
+          <button type="button" disabled={disabled} onClick={onUndo}>
+            {t("Undo last change")}
+          </button>
+        </div>
+      )}
+      {!ideas.length && <p className="trip-home-action__empty">{t("No ideas yet.")}</p>}
       <ul className="trip-home-ideas-bookings__ideas" aria-label={t("Unscheduled suggestions")}>
         {ideas.map((idea, index) => {
           const title = titleOf(idea);
