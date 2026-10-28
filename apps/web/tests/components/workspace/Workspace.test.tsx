@@ -77,7 +77,11 @@ const chatsPanel = () => document.getElementById("chats-panel")!;
 const chatMenu = () => screen.getByRole("button", { name: /^Actions for (?!Trip to )/ });
 const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
 
-const newChatButton = () => within(sidebar()).getByRole("button", { name: "New chat" });
+const newChatButton = () => within(sidebar()).getByRole("button", { name: "New trip" });
+const startBlank = () => {
+  fireEvent.click(newChatButton());
+  fireEvent.keyDown(window, { key: "Escape" });
+};
 const withPlaceRequests = (...responses: (Response | ((init?: RequestInit) => Response))[]) => {
   let next = 0;
   return vi.fn((input: RequestInfo | URL, init?: RequestInit) => {
@@ -175,7 +179,7 @@ describe("Workspace interactions", () => {
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "left over from Sydney" },
     });
-    fireEvent.click(newChatButton());
+    startBlank();
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
     const map = document.querySelector<HTMLElement>(".workspace-panel--map")!;
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
@@ -192,7 +196,7 @@ describe("Workspace interactions", () => {
       const active = catalog.conversations.find(
         (conversation) => conversation.id === catalog.activeConversationId,
       );
-      expect(active?.title).toBe("New chat");
+      expect(active?.title).toBe("New trip");
       expect(active?.tripId).toBeUndefined();
       expect(active?.messages).toEqual([]);
       expect(catalog.activeTripId).toBeUndefined();
@@ -208,7 +212,7 @@ describe("Workspace interactions", () => {
     );
 
     fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
-    expect(within(sidebar()).getByRole("button", { name: "New chat" })).toBeTruthy();
+    expect(within(sidebar()).getByRole("button", { name: "New trip" })).toBeTruthy();
     fireEvent.click(within(sidebar()).getByRole("button", { name: "New trip" }));
     expect(chatsPanel().classList.contains("is-open")).toBe(false);
     const where = await screen.findByRole("dialog", { name: "Where" });
@@ -241,13 +245,13 @@ describe("Workspace interactions", () => {
       ).toBe(""),
     );
     fireEvent.keyDown(window, { key: "Escape" });
-    fireEvent.click(newChatButton());
+    startBlank();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations.filter((item) => !item.tripId)).toHaveLength(1);
       expect(
         catalog.conversations.find((item) => item.id === catalog.activeConversationId)?.title,
-      ).toBe("New chat");
+      ).toBe("New trip");
     });
     expect(screen.queryByRole("dialog", { name: "Where" })).toBeNull();
   });
@@ -269,7 +273,7 @@ describe("Workspace interactions", () => {
       within(nav).getByRole("button", { name: "Close navigation" }),
     );
 
-    expect(within(nav).getAllByRole("button", { name: "New chat" })[0]).toBeTruthy();
+    expect(within(nav).getAllByRole("button", { name: "New trip" })[0]).toBeTruthy();
     fireEvent.click(within(nav).getByRole("button", { name: "New trip" }));
     await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("true"));
     expect(await screen.findByRole("dialog", { name: "Where" })).toBeTruthy();
@@ -287,7 +291,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
-      const empty = catalog.conversations.filter((item) => item.title === "New chat");
+      const empty = catalog.conversations.filter((item) => item.title === "New trip");
       expect(empty).toHaveLength(1);
 
       expect(catalog.activeConversationId).toBe(empty[0]!.id);
@@ -300,12 +304,12 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(newChatButton());
+    startBlank();
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations).toHaveLength(2),
     );
     const deleted = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
-    fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for New trip" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
 
     await waitFor(() => {
@@ -320,18 +324,18 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(newChatButton());
-    fireEvent.click(newChatButton());
+    startBlank();
+    startBlank();
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations).toHaveLength(2),
     );
     view.unmount();
     render(<Workspace />);
-    fireEvent.click(newChatButton());
+    startBlank();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
-      expect(catalog.conversations.filter((item) => item.title === "New chat")).toHaveLength(1);
+      expect(catalog.conversations.filter((item) => item.title === "New trip")).toHaveLength(1);
     });
   });
   it("keeps the user's name when New chat reuses a renamed empty conversation", async () => {
@@ -340,9 +344,9 @@ describe("Workspace interactions", () => {
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
-    fireEvent.click(newChatButton());
+    startBlank();
     const prompt = vi.spyOn(window, "prompt").mockReturnValue("Later ideas");
-    fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for New trip" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
     prompt.mockRestore();
     await waitFor(() =>
@@ -350,12 +354,12 @@ describe("Workspace interactions", () => {
         parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations.map((item) => item.title),
       ).toContain("Later ideas"),
     );
-    fireEvent.click(newChatButton());
+    startBlank();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
       expect(catalog.conversations.map((item) => item.title)).toContain("Later ideas");
-      expect(catalog.conversations.filter((item) => item.title === "New chat")).toHaveLength(0);
+      expect(catalog.conversations.filter((item) => item.title === "New trip")).toHaveLength(0);
     });
   });
   it("keeps rename and delete behind a per-conversation overflow menu", async () => {
@@ -441,7 +445,7 @@ describe("Workspace interactions", () => {
   it("saves a blank conversation's form and input and restores it after reload", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
     const view = render(<Workspace initialPlan={plan} />);
-    fireEvent.click(newChatButton());
+    startBlank();
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "reveal brief" },
     });
@@ -496,7 +500,7 @@ describe("Workspace interactions", () => {
     const fetcher = withPlaceRequests(completeFor("Lisbon"));
     vi.stubGlobal("fetch", fetcher);
     render(<Workspace initialPlan={plan} />);
-    fireEvent.click(newChatButton());
+    startBlank();
     fireEvent.change(screen.getByLabelText("Message AI Trip Planner"), {
       target: { value: "Lisbon, 2026-11-02 to 2026-11-06, 2 people, budget $2400" },
     });
@@ -538,7 +542,7 @@ describe("Workspace interactions", () => {
       string,
       RequestInit,
     ];
-    fireEvent.click(newChatButton());
+    startBlank();
     expect(call[1].signal!.aborted).toBe(true);
     await act(async () => {
       finish(complete("Tokyo"));

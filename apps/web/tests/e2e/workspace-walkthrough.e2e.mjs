@@ -359,7 +359,7 @@ try {
           await expectGlass(page, "team capsule", ".team-trigger", theme);
           await shot(page, "empty-workspace");
           const nav = page.locator(".sidebar-nav");
-          for (const name of ["New trip", "Chats", "New chat", "Trips", "Calendar"])
+          for (const name of ["New trip", "Chats", "Trips", "Calendar"])
             check(
               (await nav.getByRole("button", { name: new RegExp(`^${name}`) }).count()) === 1,
               `sidebar has ${name}`,
@@ -367,14 +367,6 @@ try {
           await nav.getByRole("button", { name: /^Calendar/ }).click();
           await page.getByRole("tab", { name: "Calendar", selected: true }).waitFor();
           await shot(page, "sidebar-calendar");
-          await nav.getByRole("button", { name: /^New chat/ }).click();
-          await page.locator(".composer textarea").waitFor();
-          check(
-            await page
-              .locator(".composer textarea")
-              .evaluate((node) => document.activeElement === node),
-            "sidebar plus starts a chat with the composer focused",
-          );
           await nav.getByRole("button", { name: /^New trip/ }).click();
           await page.getByRole("dialog").first().waitFor();
           await shot(page, "sidebar-new-trip");

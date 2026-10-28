@@ -276,7 +276,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         onTrips={showTrips}
         onCalendar={showCalendar}
         onNewTrip={swap(session.newTrip)}
-        onNewChat={swap(session.newChat)}
         tripsView={tripsTab}
         onSettings={openSettings}
         saveState={saveState}
@@ -396,7 +395,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           onTrips={showTrips}
           onCalendar={showCalendar}
           onNewTrip={swap(session.newTrip)}
-          onNewChat={swap(session.newChat)}
           tripsView={tripsTab}
           onSettings={openSettings}
           saveState={saveState}

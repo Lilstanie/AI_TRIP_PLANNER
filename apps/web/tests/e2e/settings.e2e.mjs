@@ -186,7 +186,11 @@ async function run(browser, { width, height, tag }) {
       await chats.click();
       await settle(page);
     }
-    await page.getByRole("button", { name: "New chat" }).first().click();
+    if (width <= 520) await page.getByRole("button", { name: "New chat" }).first().click();
+    else {
+      await page.getByRole("button", { name: "New trip" }).first().click();
+      await page.keyboard.press("Escape");
+    }
     await settle(page, 700);
   };
   await newChat();
@@ -223,7 +227,10 @@ async function run(browser, { width, height, tag }) {
       JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}").conversations?.length ??
       0,
   );
-  check(after === before, `${tag}: repeated New chat reuses the blank chat (${before} → ${after})`);
+  check(
+    after === before,
+    `${tag}: repeated new conversation reuses the blank chat (${before} → ${after})`,
+  );
 
   await page.reload();
   await page.waitForSelector(".workspace-app");
