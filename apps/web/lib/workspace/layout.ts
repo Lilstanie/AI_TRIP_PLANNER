@@ -121,15 +121,16 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
       if (!media.phone && event.view === "mine")
         return layout(surface, { type: "show-trips" }, media);
       if (!media.phone && event.view === "trajectory")
-        return { ...surface, page: "workspace", view: "chat" };
-      return { ...surface, page: "workspace", view: event.view };
+        return strip({ ...surface, tripId: undefined, page: "workspace", view: "chat" });
+      return strip({ ...surface, tripId: undefined, page: "workspace", view: event.view });
     case "show-chat-view":
-      return {
+      return strip({
         ...(surface.drawer === "trip" ? without(surface, "drawer") : surface),
+        tripId: undefined,
         page: "workspace",
         view: media.phone ? surface.view : "chat",
         chatView: event.view,
-      };
+      });
     case "chat-opened":
     case "trip-opened":
       return strip({
@@ -158,8 +159,11 @@ function cross(surface: Surface, from: Media, to: Media): Surface {
     if (next.view === "trip")
       next = { ...next, view: "chat", ...(next.fact ? {} : { drawer: "trip" }) };
     else if (next.view === "trajectory") next = { ...next, view: "chat" };
-    else if (next.view === "mine" && next.page !== "home")
-      next = { ...without(next, "fact"), page: "trips", view: "chat" };
+    else if (next.view === "mine")
+      next =
+        next.page === "home"
+          ? { ...next, view: "chat" }
+          : { ...without(next, "fact"), page: "trips", view: "chat" };
   }
 
   if (next.drawer === "nav" && (!to.narrow || to.phone)) next = without(next, "drawer");

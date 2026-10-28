@@ -92,6 +92,23 @@ export function useWorkspaceStorage({
             ask,
             previousTotal,
           } satisfies Snapshot;
+          const saved = catalogRef.current.conversations.find(
+            (item) => item.id === conversationId,
+          )?.snapshot;
+          const unchanged =
+            saved !== undefined &&
+            JSON.stringify([saved.plan, saved.draft, saved.messages, saved.input, saved.ask]) ===
+              JSON.stringify([plan, draft, messages, input, ask]) &&
+            saved.previousTotal === previousTotal &&
+            JSON.stringify(
+              catalogRef.current.trips.find((item) => item.id === `trip:${plan.tripId}`)?.snapshot
+                .plan,
+            ) === JSON.stringify(plan) &&
+            catalogRef.current.activeConversationId === conversationId;
+          if (unchanged) {
+            setSaveState("saved");
+            return;
+          }
           nextCatalog = upsertCurrent(catalogRef.current, current, messages);
           localStorage.setItem(CURRENT_KEY, JSON.stringify(current));
         }

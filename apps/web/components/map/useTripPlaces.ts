@@ -100,8 +100,10 @@ export function useTripPlaces(
         if (controller.signal.aborted) throw cause;
         throw new LookupError(true);
       }
-      const json = await response.json().catch(() => ({}));
-      if (controller.signal.aborted) throw new DOMException("Aborted", "AbortError");
+      const json = await response.json().catch((cause: unknown) => {
+        if (cause instanceof DOMException && cause.name === "AbortError") throw cause;
+        return {};
+      });
       if (response.status === 429 || response.status >= 500) throw new LookupError(true);
       if (!response.ok) throw new LookupError(false);
       return json;
