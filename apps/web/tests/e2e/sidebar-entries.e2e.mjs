@@ -15,9 +15,8 @@ const labels = {
     calendar: "Calendar",
     trips: "Trips",
     chats: "Chats",
-    newChat: "New chat",
   },
-  zh: { newTrip: "新行程", calendar: "日历", trips: "行程", chats: "聊天", newChat: "新聊天" },
+  zh: { newTrip: "新行程", calendar: "日历", trips: "行程", chats: "聊天" },
 };
 const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -44,7 +43,7 @@ try {
         await page.locator(".sidebar-toggle").click();
         await page.locator(".workspace-sidebar.is-collapsed").waitFor();
       }
-      for (const name of [text.newTrip, text.chats, text.newChat, text.trips, text.calendar])
+      for (const name of [text.newTrip, text.chats, text.trips, text.calendar])
         check(
           (await entry(name).count()) === 1,
           `${tag}: ${name} entry present with accessible name`,
@@ -57,13 +56,12 @@ try {
       const position = (name) => order.findIndex((label) => label.startsWith(name));
       check(
         position(text.newTrip) < position(text.chats) &&
-          position(text.chats) < position(text.newChat) &&
-          position(text.newChat) < position(text.trips) &&
+          position(text.chats) < position(text.trips) &&
           position(text.trips) < position(text.calendar),
         `${tag}: keyboard order ${JSON.stringify(order)}`,
       );
       if (collapsed) {
-        for (const name of [text.newTrip, text.newChat, text.calendar]) {
+        for (const name of [text.newTrip, text.calendar]) {
           const tooltip = await entry(name).getAttribute("data-tooltip");
           check(tooltip === name, `${tag}: ${name} tooltip ${tooltip}`);
           check((await entry(name).locator("svg").count()) === 1, `${tag}: ${name} shows an icon`);
@@ -101,19 +99,6 @@ try {
       check(
         (await page.getByRole("tab", { selected: true }).textContent()) === text.trips,
         `${tag}: Trips entry opens the trips view`,
-      );
-
-      await entry(text.newChat).click();
-      await page.locator(".composer textarea").waitFor();
-      check(
-        (await page.locator(".chats-panel.is-open").count()) === 0,
-        `${tag}: New chat plus does not open the Chats panel`,
-      );
-      check(
-        await page
-          .locator(".composer textarea")
-          .evaluate((node) => document.activeElement === node),
-        `${tag}: New chat plus starts a chat with the composer focused`,
       );
 
       await entry(text.calendar).click();

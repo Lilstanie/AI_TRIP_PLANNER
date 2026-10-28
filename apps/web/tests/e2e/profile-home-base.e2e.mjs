@@ -49,19 +49,11 @@ try {
   );
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page
-    .locator(".sidebar-nav, .chats-panel__section-head")
-    .getByRole("button", { name: "New chat" })
-    .click();
-  await page.keyboard.press("Escape");
-  await page
-    .getByRole("button", { name: /^Where/ })
-    .first()
-    .click();
+  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip" }).click();
   const origin = await page.locator("#fact-origin").inputValue();
   check(
     origin === "Perth, Australia",
-    "New chat Where editor starts from the profile location",
+    "New trip Where editor starts from the profile location",
     origin,
   );
   await page.screenshot({ path: `${out}/where.png` });
