@@ -5,7 +5,10 @@
 [English](04-member-e-behaviour.md) | 中文
 
 这些模型源自[需求](01-requirements.zh.md#member-e-ah-e1)中的 **AH-E1 / R-E1–R-E6** 和[用例](02-use-cases.zh.md#uc-e1-edit-itinerary-timeline--map)中的
-**UC-E1 Edit Itinerary (Timeline / Map)**。聊天协调者可以更新行程简报或重新规划，但没有编辑工具；时间线和地图的编辑路径从预览到本地应用全程是确定性的。
+**UC-E1 Edit Itinerary (Timeline / Map)**。时间线和地图编辑是确定性的：浏览器立即应用被接受且仍然有效的结果，
+并提供撤销。没有 Apply/Cancel 审核检查点。聊天协调员可以更新行程需求或重新规划，但没有 `EditRequest` 工具。
+[即时编辑决策](../../../.agents/notes/implemented/feature/2026-10-08-immediate-timeline-edits.md)和
+[行程编辑决策](../../../.agents/notes/implemented/feature/2026-10-27-itinerary-interaction.md)说明这些控制规则。
 
 <a id="41-activity-diagram-edit-itinerary-uc-e1"></a>
 
@@ -19,28 +22,28 @@ flowchart TB
 
   subgraph T["Traveller"]
     how
-    pick["Move, retime or swap a stop on Timeline / Map"]
-    choose{"Apply or cancel?"}
+    pick["Move, retime, remove or schedule a stop"]
+    undo{"Undo the last applied edit?"}
     chat["Ask for a change in chat"]
   end
 
   subgraph W["Web workspace (browser)"]
     send["POST EditRequest: plan, baseVersion, operation"]
-    show["Show preview: differences, routes, blockers"]
     blocked{"Any blockers?"}
-    fresh{"preview.baseVersion = current editVersion?"}
-    apply["Apply previewed plan, keep one undo step, save locally"]
-    stale["Drop preview: the trip changed"]
+    fresh{"Current plan and tab revision still match?"}
+    apply["Apply accepted plan immediately, save locally, offer Undo"]
+    restore["Restore item snapshot, or send checked timeline undo"]
+    stale["Discard stale result; keep current plan"]
     err["Show error; plan unchanged"]
   end
 
-  subgraph P["Preview route (deterministic)"]
+  subgraph P["Deterministic edit route"]
     check{"Schema, version, IDs and segment rules pass?"}
-    retime["Re-time affected days: route time + 15 min buffer"]
-    recompute["Recompute conflicts, cost roll-up, price flags; editVersion + 1"]
+    retime["Route and re-time affected days with 15 min buffer"]
+    recompute["Recompute conflicts, costs and price flags; editVersion + 1"]
   end
 
-  subgraph G["Google Maps / Places"]
+  subgraph G["Maps / Routes / Places"]
     maps["Place details, time zone, route duration"]
   end
 
@@ -52,23 +55,24 @@ flowchart TB
   check -- no --> err --> stop(((●)))
   check -- yes --> retime
   retime <--> maps
-  retime --> recompute --> show --> blocked
-  blocked -- yes --> err
-  blocked -- no --> choose
-  choose -- cancel --> stop
-  choose -- apply --> fresh
+  retime --> recompute --> fresh
   fresh -- no --> stale --> stop
-  fresh -- yes --> apply --> stop
+  fresh -- yes --> blocked
+  blocked -- yes --> err
+  blocked -- no --> apply --> undo
+  undo -- no --> stop
+  undo -- yes --> restore --> stop
   chat --> replan --> stop
   style start fill:#14213D,stroke:#14213D
   style stop fill:#FFFFFF,stroke:#14213D
 ```
 
-活动图把当前的聊天路径和已实现的时间线/地图编辑路径分开。聊天协调者可以更新行程简报或重新规划，但不会生成 `EditRequest`。编辑路径从预览到本地应用全程是确定性的。
+浏览器在应用服务器响应前检查当前计划和标签页版本。阻断项会使计划保持不变；被接受的编辑直接应用，
+无需旅行者再次决定。撤销操作仅在该编辑后的计划仍然有效时可用。
 
-<a id="42-sequence-diagram-timelinemap-edit-with-preview-and-version-check-uc-e1"></a>
+<a id="42-sequence-diagram-timelinemap-edit-with-version-check-and-undo-uc-e1"></a>
 
-## 4.2 时序图：带预览和版本检查的时间线/地图编辑（UC-E1）
+## 4.2 时序图：带版本检查和撤销的时间线/地图编辑（UC-E1）
 
 ```mermaid
 sequenceDiagram
@@ -76,48 +80,52 @@ sequenceDiagram
   actor T as Traveller
   participant W as Web workspace
   participant P as /api/trip/preview-edit
-  participant G as Google Maps / Places
+  participant G as Maps / Routes / Places
   participant CC as Chat coordinator (LLM)
 
-  T->>W: Move, retime or swap a stop
-  W->>P: EditRequest (plan, baseVersion, operation, mode)
-  P->>P: Parse schema, check editVersion = baseVersion, IDs, segment
-  alt Invalid or stale
-    P-->>W: 400 with reason
+  T->>W: Move, retime, remove or schedule a stop
+  W->>P: EditRequest (plan, baseVersion, operation)
+  P->>P: Check schema, editVersion, IDs and segment rules
+  alt Invalid or stale request
+    P-->>W: Error with reason
     W-->>T: Error, plan unchanged
   else Valid
-    loop Each stop on an affected day
-      P->>G: placeDetails, timeZone, route(previous, current)
-      G-->>P: Duration or error
-      P->>P: Start no earlier than route + 15 min, or record a blocker
+    loop Affected route legs
+      P->>G: Place details, time zone and route duration
+      G-->>P: Evidence or unavailable result
+      P->>P: Re-time with route + 15 min or record blocker
     end
-    P->>P: detectConflicts, rollUpCost, price flags, editVersion = base + 1
-    P-->>W: Preview: plan, differences, routes, blockers
-    W-->>T: Show preview
-    alt Blockers present
-      Note over T,W: Apply is disabled
-      T->>W: Cancel
-    else Traveller cancels
-      T->>W: Cancel
-      W->>W: Drop preview
-    else Traveller applies
-      T->>W: Apply
-      W->>W: Compare preview.baseVersion with current editVersion
-      alt Plan changed meanwhile
-        W-->>T: The trip changed, make the change again
-      else Same version
-        W->>W: Keep undo step, save new plan locally
-        W-->>T: Updated Timeline / Map
+    P->>P: Recompute conflicts, costs, price flags and editVersion
+    P-->>W: Checked plan, differences, routes and blockers
+    alt Current plan or tab revision changed
+      W->>W: Discard answer; keep current plan
+    else Blockers present
+      W-->>T: Show blockers; keep current plan
+    else Accepted and current
+      W->>W: Keep undo step, apply immediately, save locally
+      W-->>T: Updated Timeline / Map and Undo action
+      opt Traveller chooses Undo
+        alt Remove, idea, schedule or local item edit
+          W->>W: Restore the previous item-edit plan locally
+        else Timeline time, place, drag or leg edit
+          W->>P: Undo operation with saved scheduled activities
+          P-->>W: Revalidated result
+          W->>W: Apply only if accepted and still current
+        end
       end
     end
   end
 
-  Note over T,CC: Chat is a separate path
+  Note over T,CC: Chat is a separate path, with no EditRequest tool
   T->>CC: Chat message
-  CC-->>T: Updated brief or a replan (UC-A1), never an EditRequest
+  CC-->>W: Updated brief or replacement plan
+  W->>W: A replacement plan clears the previous Undo
 ```
 
-时序图展示已实现的时间线/地图路径，并把聊天标为另一条协调者路径。关键控制点是浏览器端比较 `preview.baseVersion` 与当前计划版本；保存只在本地进行，没有服务端的原子提交。
+API 名称 `preview-edit` 表示确定性检查，不表示面向用户的预览页面。撤销状态由浏览器保存。
+对于 remove、idea、schedule 和本地条目编辑，条目撤销会恢复先前计划；时间线撤销则通过编辑路由
+重新校验保存的已安排活动。聊天返回的替换计划会清除这两种撤销。浏览器存储是本地持久化边界，
+这里不声称存在服务器端原子提交。
 
 <a id="43-state-machine-timelinemap-edit-lifecycle-uc-e1"></a>
 
@@ -126,30 +134,31 @@ sequenceDiagram
 ```mermaid
 stateDiagram-v2
   [*] --> Requested : traveller edits a stop
-  Requested --> Previewing : POST EditRequest
-  state Previewing {
-    Validating --> Routing : [schema, version, IDs, segment ok]
-    Routing --> Recomputing : affected days re-timed
+  Requested --> Checking : POST EditRequest
+  state Checking {
+    Validating --> Routing : schema, version, IDs and segment valid
+    Routing --> Recomputing : route and re-time affected days
   }
-  Validating --> Rejected : [invalid or stale] / 400 with reason
-  Previewing --> Shown : preview returned
-  Shown --> Blocked : [blockers present] / apply disabled
-  Shown --> Ready : [no blockers]
-  Blocked --> Cancelled : cancel
-  Ready --> Cancelled : cancel
-  Ready --> Stale : apply [preview.baseVersion ≠ editVersion]
-  Ready --> Applied : apply [versions match] / save locally, keep undo
-  Shown --> Stale : new plan arrives (chat, restore)
+  Checking --> Rejected : invalid input, failure or blockers
+  Checking --> Stale : current plan or tab revision changed
+  Checking --> Applied : accepted and current / apply immediately and save
+  Applied --> UndoAvailable : retain one undo step
+  UndoAvailable --> ItemRestored : item Undo / restore previous plan locally
+  UndoAvailable --> Checking : timeline Undo / revalidate saved activities
+  UndoAvailable --> Replaced : chat or restore replaces this plan / clear Undo
   Rejected --> [*]
-  Cancelled --> [*]
   Stale --> [*]
-  Applied --> [*]
+  ItemRestored --> [*]
+  Replaced --> [*]
 
-  note right of Previewing
+  note right of Checking
     Deterministic code only.
-    The chat LLM has no edit tool
-    and never enters this machine.
+    No Apply/Cancel review state.
+    The chat LLM has no edit tool.
   end note
 ```
 
-状态机描述已实现的时间线/地图编辑生命周期。它不包含聊天解析，因为当前聊天协调者没有编辑工具。预览路由拒绝的请求进入 `Rejected`。带阻断项的预览只能取消。旅行者应用预览时，若 `baseVersion` 仍与计划一致则进入 `Applied`，若计划在此期间已变化则进入 `Stale`；应用后的计划随后保存在本地。
+被接受的结果从检查状态直接进入已应用状态，并保留一个撤销步骤。被拒绝或过期的结果不会覆盖当前计划。
+后台地点保存和路线检查会保留撤销，以及它们产生的无关更新。导航时该步骤随所属旅行保留，不会显示在其他
+旅行上。聊天或恢复操作替换计划时会清除该步骤；重新加载会清除所有内存中的步骤。
+聊天解释以及替换手动更改前的确认仍然位于此确定性状态机之外。

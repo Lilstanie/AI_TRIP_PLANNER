@@ -240,34 +240,35 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 | **Goal**                               | Change a scheduled activity while preserving a valid, explainable and current trip plan.                                                                              |
 | **Trigger**                            | The traveller selects or drags a stop in the timeline/map, changes its time/place, requests a route check, or chooses undo.                                           |
 | **Preconditions**                      | A `TripPlan` is open; it has an itinerary proposal; activities have unique IDs and complete schedule data; the client holds the current `editVersion`.                |
-| **Postconditions (success)**           | The validated preview is applied to client state and autosaved in browser storage; routes, conflicts, costs and edit issues are shown.                                |
-| **Postconditions (blocked / failure)** | The current client plan remains unchanged and the preview reports an invalid operation, unavailable route, unverified price or stale preview.                         |
+| **Postconditions (success)**           | An accepted, current edit applies immediately and is autosaved in browser storage; routes, conflicts, costs, edit issues and Undo are shown.                          |
+| **Postconditions (blocked / failure)** | The current client plan remains unchanged when the deterministic check refuses the edit or the response is stale.                                                     |
 
 **Main success scenario**
 
 1. The traveller selects a stop in the timeline or map, changes its time/place, requests a route check, or chooses undo.
 2. The workspace identifies the activity by stable ID and builds a typed `EditRequest`.
-3. The workspace sends the plan, `baseVersion`, operation and route mode to `/api/trip/preview-edit`.
+3. The workspace sends the plan, `baseVersion` and operation to `/api/trip/preview-edit`.
 4. The deterministic editor parses the request, checks plan identity and rejects a stale `baseVersion`.
 5. The editor applies the operation to a copy and checks day, time, ID and destination-segment rules.
 6. For affected days, Maps / Routes is queried for travel time between consecutive places.
 7. The editor recomputes route blockers, conflicts, section costs, total cost and budget status.
 8. A changed place receives a `price_unverified` issue; route verification does not currently clear that price issue.
-9. The workspace shows a preview with differences, route results, blockers and budget consequences.
-10. The client compares `preview.baseVersion` with the current plan version, then applies the plan to React state and autosaves it to localStorage.
+9. The workspace receives the checked plan, differences, route results and blockers. A refused result leaves the plan unchanged and displays its blockers.
+10. The client checks the captured plan and tab revision, applies an accepted current result to React state immediately, autosaves it to localStorage and offers Undo. There is no Apply/Cancel review step.
 
 **Extensions**
 
 - _Chat path_: the coordinator may update the trip brief, replan, answer a question, or return the existing plan. It does not create an `EditRequest` for this use case.
-- 4a. _Stale plan at preview time_: return "Start from the current plan"; keep the current client plan unchanged.
+- 4a. _Stale base version_: return "Start from the current plan"; keep the current client plan unchanged.
 - 5a. _Move crosses destination accommodation segments_: reject the move because the destination stay would no longer match the itinerary.
 - 6a. _End time is not after start time, the day is outside the trip, or IDs are not unique_: return a blocker and do not apply.
-- 7a. _A place is missing_: ask the traveller to confirm/search for the place before checking routes.
-- 7b. _The route provider fails_: show `route_unavailable`; preserve the preview but do not claim the route is valid.
+- 7a. _A place is missing_: try automatic map matching and offer search if it fails. Route-dependent edits wait for confirmed places.
+- 7b. _The route provider fails_: show `route_unavailable`; a route-dependent edit may be refused, while an accepted outage result keeps the notice without inventing a travel time.
 - 8a. _The edit causes a schedule or budget conflict_: show the conflict and mark the affected section `needs_you`.
 - 9a. _A place change affects cost_: show `price_unverified`; the current verify operation rechecks routes but does not implement separate price clearance.
-- 11a. _The traveller cancels the preview_: discard the preview and keep the old plan.
-- 12a. _Undo is requested_: restore the saved activity snapshot, rerun validation and create another plan version.
+- 10a. _The plan changes while the request is pending_: discard the stale result and keep the current plan.
+- 10b. _Undo is requested_: time, place, drag and leg undo revalidates saved scheduled activities through the edit route. Remove, idea, schedule and local item undo restore the previous plan in the browser, retaining unrelated background place and route updates.
+- 10c. _The edited plan is replaced by chat or restore_: clear its old undo state. Navigation retains one undo step per trip; switching trips never exposes another trip's step. Reload clears these in-memory steps.
 
 **LLM versus deterministic control**
 
