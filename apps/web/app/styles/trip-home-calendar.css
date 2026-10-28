@@ -1,0 +1,171 @@
+.trip-home-calendar {
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  color: var(--text);
+}
+.trip-home-calendar__month + .trip-home-calendar__month {
+  margin-top: var(--space-5);
+  padding-top: var(--space-4);
+  border-top: 1px solid var(--border);
+}
+.trip-home-calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  margin-bottom: var(--space-4);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.trip-home-calendar__legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.trip-home-calendar__legend [data-category="stop"] {
+  color: var(--accent);
+}
+.trip-home-calendar__month h3 {
+  margin: 0 0 var(--space-3);
+  font-size: var(--font-size-title);
+  font-weight: 600;
+  line-height: var(--line-height-title);
+}
+.trip-home-calendar__weekdays,
+.trip-home-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.trip-home-calendar__weekdays {
+  margin-bottom: var(--space-1);
+}
+.trip-home-calendar__weekdays span {
+  padding: var(--space-1);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  text-align: center;
+}
+.trip-home-calendar__grid {
+  gap: var(--space-1);
+}
+.trip-home-calendar__day,
+.trip-home-calendar__blank {
+  min-width: 0;
+  min-height: 92px;
+}
+.trip-home-calendar__day {
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  gap: var(--space-1);
+  padding: var(--space-1) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius) !important;
+  background: var(--surface) !important;
+  color: var(--text);
+  text-align: left;
+  transition:
+    background var(--transition),
+    border-color var(--transition);
+}
+.trip-home-calendar__day:hover {
+  background: var(--fill-hover) !important;
+}
+.trip-home-calendar__day:focus-visible {
+  position: relative;
+  z-index: 1;
+  border-color: var(--accent) !important;
+}
+.trip-home-calendar__day[aria-pressed="true"] {
+  border-color: var(--accent) !important;
+  background: var(--accent-bg) !important;
+}
+.trip-home-calendar__date {
+  align-self: flex-end;
+  display: grid;
+  width: 26px;
+  height: 26px;
+  place-items: center;
+  border-radius: var(--radius-pill);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.trip-home-calendar__day[aria-pressed="true"] .trip-home-calendar__date {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.trip-home-calendar__events {
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.trip-home-calendar__event {
+  display: flex;
+  align-items: flex-start;
+  gap: var(--space-1);
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  line-height: 1.35;
+}
+.trip-home-calendar__event .flow-icon {
+  flex: 0 0 12px;
+  margin-top: 1px;
+}
+.trip-home-calendar__event > span {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.trip-home-calendar__event[data-category="stop"] {
+  color: var(--accent);
+}
+.trip-home-calendar__event[data-category="flight"] {
+  color: var(--text);
+}
+.trip-home-calendar__event[data-category="stay"] {
+  color: var(--text-dim);
+}
+@media (max-width: 520px) {
+  .trip-home-calendar {
+    padding: var(--space-3) var(--space-3) var(--space-4);
+  }
+  .trip-home-calendar__grid {
+    gap: 2px;
+  }
+  .trip-home-calendar__day,
+  .trip-home-calendar__blank {
+    min-height: 64px;
+  }
+  .trip-home-calendar__day {
+    gap: 2px;
+    padding: var(--space-1) !important;
+    border-radius: var(--radius-sm) !important;
+  }
+  .trip-home-calendar__date {
+    align-self: center;
+    width: 24px;
+    height: 24px;
+  }
+  .trip-home-calendar__event {
+    justify-content: center;
+  }
+  .trip-home-calendar__event .flow-icon {
+    flex-basis: 14px;
+    width: 14px;
+    height: 14px;
+  }
+  .trip-home-calendar__event > span {
+    display: none;
+  }
+}
+@media (forced-colors: active) {
+  .trip-home-calendar__day[aria-pressed="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+}
