@@ -313,11 +313,10 @@ try {
 
     if (phone) {
       await page.getByRole("tab", { name: /^(Mine|我的)$/ }).click();
-      await page
-        .locator(".phone-mine .trip-card")
-        .filter({ hasNotText: "Zzzland" })
-        .first()
-        .click();
+      await openTripWorkspace(
+        page,
+        page.locator(".phone-mine .trip-card").filter({ hasNotText: "Zzzland" }).first(),
+      );
       const tripTab = page.getByRole("tab", { name: /^(Trip|行程)$/ });
       if (await tripTab.count()) await tripTab.click();
     } else {

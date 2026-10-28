@@ -15,11 +15,11 @@ entry cards, map) had no page to live on.
   surface gains `page: "home"` with a `tripId`; `open-home` sets it and `show-trips` leaves it. It reads the
   trip record only, so storage and `packages/shared` are unchanged.
 - The Trips page remains the list. A trip card, a calendar band and a trip in the Chats search open the Trip
-  home; a chat opened from Chats opens the conversation as before. Phone keeps opening the conversation until
-  the phone ticket of the spec.
+  home; a chat opened from Chats opens the conversation as before. Phone opens the Trip home too since ticket #769
+  (no tab bar; Back returns to Mine), with the map stacked under the content.
 - The shell is `TripHome`: a header (back button, title heading, the Trips page's Rename and Delete menu), one
   list of tags built by `tripTags` from the brief with empty values dropped, then `children` for the main
-  column and an optional `aside` column. Later tickets pass sections as children and the map as `aside`.
+  column and an optional `aside` column. Later tickets pass sections as children; the map is `TripHomeMap` in `aside`, fed by the opened trip's plan so it never changes the active conversation.
 - Three entry cards (`TripHomeCards`, ticket #768) fill the main column: Itinerary and Preferences select the
   trip with `selectTrip`, which loads the trip's own snapshot rather than a chat's, then open the Trip panel
   or the Preferences panel; Calendar opens the Trips page calendar at the trip's start month. Counts come from
@@ -39,3 +39,4 @@ entry cards, map) had no page to live on.
 - The Trip home is not restored after a reload; the app opens on the active conversation as today.
 - Trips with no plan cannot exist in the catalog, since every stored trip carries a validated brief, so the
   "title and menu only" state is reached only through empty tags.
+- Until the chat list lands on the Trip home, a phone reaches a trip's conversation from the chat rows in Mine.

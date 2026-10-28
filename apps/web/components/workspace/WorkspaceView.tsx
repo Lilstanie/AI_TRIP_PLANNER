@@ -24,6 +24,7 @@ import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
 import { conversationTitle } from "@/lib/workspace/catalog";
 import { TripHomeChats } from "./TripHomeChats";
+import { TripHomeMap } from "./TripHomeMap";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -225,8 +226,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const openHome = (id: string) => {
     setCalendarTripId(undefined);
-    if (phone) swap(session.selectTrip)(id);
-    else viewTransition(() => layout.openHome(id));
+    viewTransition(() => layout.openHome(id));
   };
   const homeTrip =
     page === "home" ? catalog.trips.find((trip) => trip.id === homeTripId) : undefined;
@@ -448,7 +448,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       )}
       {page !== "workspace" ? (
         <div className="workspace-main">
-          {narrow && (
+          {narrow && !phone && (
             <header className="workspace-topbar workspace-topbar--trips">{menuButton}</header>
           )}
           <main className="workspace-shell workspace-shell--trips">
@@ -461,6 +461,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onBack={() => viewTransition(layout.showTrips)}
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}
+                aside={
+                  <TripHomeMap
+                    plan={homeTrip.snapshot.plan}
+                    mode={dataMode.mode}
+                    providers={dataMode.providers}
+                  />
+                }
               >
                 <TripHomeChats
                   chats={catalog.conversations

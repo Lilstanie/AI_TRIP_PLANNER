@@ -244,7 +244,10 @@ try {
       const pick = (cards) => (again ? cards.last() : cards.first());
       if (phone) {
         await page.getByRole("tab", { name: /^(Mine|我的)$/ }).click();
-        await pick(page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" })).click();
+        await openTripWorkspace(
+          page,
+          pick(page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" })),
+        );
         const tripTab = page.getByRole("tab", { name: /^(Trip|行程)$/ });
         if (await tripTab.count()) await tripTab.click();
       } else {

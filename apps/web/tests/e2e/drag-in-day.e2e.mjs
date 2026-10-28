@@ -186,7 +186,10 @@ try {
 
     if (phone) {
       await page.getByRole("tab", { name: "Mine", exact: true }).click();
-      await page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first().click();
+      await openTripWorkspace(
+        page,
+        page.locator(".phone-mine .trip-card").filter({ hasText: "Sydney" }).first(),
+      );
       const tripTab = page.getByRole("tab", { name: "Trip", exact: true });
       if (await tripTab.count()) await tripTab.click();
     } else {

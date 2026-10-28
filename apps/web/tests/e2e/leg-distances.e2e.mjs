@@ -283,7 +283,7 @@ async function openTrip(browser, { name, width, height, language }) {
   const copy = COPY[language];
   if (phone) {
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
   }
   const panel = page.locator(".trip-workspace, .workspace-drawer--trip, #phone-panel-trip").first();
@@ -406,7 +406,7 @@ async function walkthrough(browser, scenario) {
   await page.reload({ waitUntil: "domcontentloaded" });
   if (width(scenario) < 700) {
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
   }
   if (width(scenario) >= 700) await openDesktopTrip(page, scenario.language);

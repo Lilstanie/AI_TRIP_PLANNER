@@ -73,6 +73,15 @@ export function useDataMode(preferred?: DataMode) {
   return { mode, providers, choose, liveAvailable, liveBlock };
 }
 
+export function mapProviderOptions(mode: DataMode | undefined, providers?: DataModeProviders) {
+  return {
+    forceOsm:
+      providers?.webMapsProvider === "osm" ||
+      (mode === "mock" && !!providers?.mockGoogleUnavailable),
+    allowFallback: providers?.webMapsProvider !== "google",
+  };
+}
+
 export function dataModeHeaders(mode: DataMode | undefined): Record<string, string> {
   return mode ? { "x-trip-data-mode": mode } : {};
 }

@@ -399,13 +399,24 @@ try {
     .getByRole("tab", { name: "Mine", exact: true })
     .click();
   await phone.page.locator(".trip-card").filter({ hasText: "Sydney" }).first().click();
-  await phone.page.waitForTimeout(500);
+  await home(phone.page).waitFor();
+  const phoneCards = await phone.page
+    .locator(".trip-home-card")
+    .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().left));
   check(
-    (await home(phone.page).count()) === 0 &&
-      (await phone.page.locator(".trip-home-cards").count()) === 0,
-    "on a phone a trip still opens its conversation and shows no cards",
+    phoneCards.length === 3 && new Set(phoneCards.map(Math.round)).size === 1,
+    "on a phone the Trip home shows the three cards stacked in one column",
+    phoneCards,
   );
   await phone.page.screenshot({ path: `${OUT}/phone-390-en.png` });
+  await card(phone.page, /^Itinerary/).click();
+  check(
+    (await phone.page
+      .getByRole("tablist", { name: "Workspace sections" })
+      .getByRole("tab", { name: "Trip", exact: true })
+      .getAttribute("aria-selected")) === "true",
+    "on a phone Itinerary opens the Trip tab",
+  );
   await phone.context.close();
 
   const stacked = await open("en", { width: 600, height: 900 });

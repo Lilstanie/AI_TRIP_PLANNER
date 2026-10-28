@@ -3,6 +3,7 @@ import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
 import { seedTrip, sydney } from "./phone-map-seed.mjs";
+import { openTripWorkspace } from "./support/e2e-helpers.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -280,7 +281,7 @@ try {
       seed: seedTrip(),
     });
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
+    await openTripWorkspace(page, page.locator(".phone-mine .trip-card").first());
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.map }).click();
     const sheet = page.locator(".phone-map-sheet");
     await sheet.waitFor();
