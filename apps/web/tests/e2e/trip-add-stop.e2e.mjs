@@ -483,7 +483,7 @@ try {
       "the added Stop survives reopening the Trip",
     );
 
-    await page.getByRole("button", { name: "Add to Ideas", exact: true }).click();
+    await page.getByRole("button", { name: /^Add to Day \d+$/ }).click();
     await page.getByRole("tab", { name: "Custom", exact: true }).click();
     await page.getByRole("textbox", { name: "Name", exact: true }).fill("Manual Unlocated Place");
     await page.getByRole("button", { name: "Add", exact: true }).click();
@@ -495,25 +495,34 @@ try {
       ),
     );
     await waitForPlanLocation("Manual Unlocated Place");
-    const ideaPlan = await page.evaluate(() => {
-      const key = Object.keys(localStorage).find((item) =>
-        item.startsWith("trip-workspace-catalog"),
-      );
-      const catalog = key ? JSON.parse(localStorage.getItem(key) ?? "null") : null;
-      const trip =
-        catalog?.trips?.find((item) => item.id === catalog.activeTripId) ?? catalog?.trips?.[0];
-      return (
-        trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal?.items ??
-        []
-      );
-    });
+    await page.getByRole("button", { name: /^Actions for Manual Unlocated Place, / }).click();
+    await page.getByRole("menuitem", { name: "Move to ideas", exact: true }).click();
+    const readIdeaPlan = () =>
+      page.evaluate(() => {
+        const key = Object.keys(localStorage).find((item) =>
+          item.startsWith("trip-workspace-catalog"),
+        );
+        const catalog = key ? JSON.parse(localStorage.getItem(key) ?? "null") : null;
+        const trip =
+          catalog?.trips?.find((item) => item.id === catalog.activeTripId) ?? catalog?.trips?.[0];
+        return (
+          trip?.snapshot?.plan?.sections?.find((part) => part.id === "itinerary")?.proposal
+            ?.items ?? []
+        );
+      });
+    await waitUntil(async () =>
+      (await readIdeaPlan()).some(
+        (item) => item.location === "Manual Unlocated Place" && item.day === undefined,
+      ),
+    );
+    const ideaPlan = await readIdeaPlan();
     const idea = ideaPlan.find((item) => item.location === "Manual Unlocated Place");
     check(
       idea?.id &&
         idea.day === undefined &&
         idea.startTime === undefined &&
         idea.endTime === undefined,
-      "adding from Ideas leaves the Stop unscheduled",
+      "moving a manually added Stop to Ideas leaves it unscheduled",
     );
     check(
       !idea?.placeId && !idea?.savedPlace && idea?.estCost === undefined,

@@ -8,16 +8,16 @@ now. Implementation history and browser acceptance for each phase are in the
 
 ## Layout
 
-| Area              | Content                                                                                                                                                                                                                                                                                                       | Implementation                                                                                                          |
-| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                               | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
-| Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                   | `ChatsPanel`, `TripCover`                                                                                               |
-| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                            | `TripsPage`, `TripCover`                                                                                                |
-| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                   | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
-| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                   | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
-| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                              | `ChatPanel`                                                                                                             |
-| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                   | `TripMapCanvas`, `TripMap`                                                                                              |
-| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, Ideas, day strip, then selected-day stops and bookings; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
+| Area              | Content                                                                                                                                                                                                                                                                                                                   | Implementation                                                                                                          |
+| ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                                           | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                               | `ChatsPanel`, `TripCover`                                                                                               |
+| Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                                        | `TripsPage`, `TripCover`                                                                                                |
+| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                               | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                      |
+| Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                               | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`             |
+| Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                                          | `ChatPanel`                                                                                                             |
+| Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                               | `TripMapCanvas`, `TripMap`                                                                                              |
+| Trip workspace    | Dedicated itinerary and linked map on desktop; itinerary/map switch on tablet; the existing Trip tab on phones. Itinerary opens on a one-line budget summary (breakdown on demand), then tips on demand, an "N ideas" chip, day strip, then selected-day stops and bookings; every expand/collapse uses one shared motion | `WorkspaceView`, `TripEditor`, `TripPanel`, `TripTips`, `TripMapCanvas`, `timeline/TimelineStop`, `timeline/BookingRow` |
 
 - **Sidebar.**
   - Expands to 240 px (220 px below 1250 px) or collapses to a 64 px icon rail. The toggle uses
@@ -710,9 +710,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   (`localStorage`, key `trip-tips-folded:<tripId>`). The
   block is absent when the plan has no guide. Advice spanning multiple calendar months explicitly identifies that its scope is the first month.
 - **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. While the Trip view stays open, the date refreshes each minute and when the window regains focus or visibility. Budget and travel tips initially collapse; a valid manual day selection is saved per trip in this browser (`localStorage`, key `trip-day-selected:<tripId>`) and is restored during the same destination-local day. When that day changes, the selection yields to the new Today; expired or out-of-range selections also yield to Today (or Day 1 when today is outside the trip). Saved tips preferences still take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
-- **Restaurants.** The restaurants the dining specialist found are listed under Ideas, marked
-  "Restaurant suggestion". Schedule on a day copies one into the day as a stop, with no price, and the
-  change can be undone; Remove deletes the suggestion. The dining meal budget stays in the plan's
+- **Restaurants.** The restaurants the dining specialist found count in the "N ideas" chip and are
+  listed on the Ideas tab of the Add to trip panel. Adding one schedules it on the open day as a stop,
+  with no price, and the change can be undone. The dining meal budget stays in the plan's
   estimate and total, and is not shown as a card.
 
 ## Map and places
@@ -804,7 +804,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Trip itinerary.** One itinerary view: heading and summary, compact budget,
   collapsed travel tips (when the plan has a destination guide), the day strip, the chosen day's stops in visiting order with the number
   their place carries on the map (a repeat visit keeps it), and the day's flights and stay rows.
-  Ideas sit above the day strip, unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
+  Parked places show as an "N ideas" chip above the day strip, unnumbered. On wide desktop the linked map is visible beside the itinerary; on tablet an Itinerary/Map
   switch shows one at a time. The phone Trip tab continues to show the existing Trip surface. The
   itinerary has no status label:
   "Needs review", "Draft" and "Review plan" are removed ([Agent Note](../.agents/notes/implemented/feature/2026-10-08-remove-status-labels.md)).
@@ -847,8 +847,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   the last day), Add again and Remove, then Replace place (opens the place search in the card), Open in
   Maps (only when the stop's place has coordinates; it opens Google Maps directions to them in a new tab,
   which hands off to the phone's maps app and needs no API call), the visit-progress items and Mark as
-  booked. An idea offers Schedule on a day, Edit details, Add a comment and Remove, and a restaurant
-  suggestion offers only Schedule on a day and Remove. Adjust schedule, Edit details, Add a comment and
+  booked. Parked places have no row; the Ideas tab of the Add to trip panel schedules them. Adjust schedule, Edit details, Add a comment and
   Schedule on a day open a small popover attached to the row (`StopPopover`, a `role="dialog"` named for
   the action) at every width; it takes focus, closes on Escape or a tap outside without saving what was
   typed, and returns focus to the row. Tapping the time opens the same Adjust schedule popover; tapping
@@ -869,15 +868,16 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   state that no budget is set; invalid totals never render `NaN`, a negative bar, or a bar wider than its
   container.
 - **Add to trip panel** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-add-to-trip-panel.md)).
-  An Add button ends every day and heads Ideas; both open one panel under the button with the tabs
-  Search, Ideas (day only), Saved and Custom, a Keep open checkbox and Close. Search takes a place name,
+  An Add button ends every day and opens one panel under the button; the "N ideas" chip opens the same
+  panel for the open day on its Ideas tab. The panel has the tabs
+  Search, Ideas, Saved and Custom, a Keep open checkbox and Close. Search takes a place name,
   starts near the trip destination and has the filters Places, Stays, Restaurants, Experiences and
   Events; a filter sends its kind to `/api/places/search`, which adds a query word, and narrows the
   results by their place type (amusement parks count as Experiences, a place with no type shows under
   every filter, and a filter that hides every returned place shows "No places found"). Ideas lists unscheduled places and schedules the chosen one on the day.
   Saved lists the places saved on the account's other trips (`lib/trip/saved-places.ts`), once each.
   Custom takes a name, an optional start time (day only, 22:59 at the latest; the end is an hour later) and a note. Choosing a
-  place adds it to the day, or to Ideas when the panel was opened from Ideas, at once; a result with
+  place adds it to the day at once; a result with
   coordinates keeps its saved map match, and one without is matched by the automatic place save or
   shows its search box when that fails. There is no preview, Day or time form or confirm step. A place
   already on the day is added again as its own stop. A day-only `add` is timed by the server after the
@@ -915,8 +915,8 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
-  panel is labelled by the selected tab and contains the day's heading and timeline. Ideas sit above
-  the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  panel is labelled by the selected tab and contains the day's heading and timeline. The "N ideas" chip
+  sits above the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
@@ -979,8 +979,8 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
 - **Day menu and itinerary menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-day-menus.md)).
   Each day has a menu named "Day {n} actions" next to its title: Edit title, Add note (Edit note once a note
   exists), Add day before, Add day after, Clear day and Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
-  brings the map forward). The itinerary has a menu named "Itinerary actions" beside the Show distances
-  switch: Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
+  brings the map forward). The itinerary has a menu named "Itinerary actions" in the toolbar above
+  the day strip: Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
   revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
   moves a day earlier and every booked date stays put, anywhere else the end date moves a day later and
   later stops, stays and flights move with it, the Brief form's dates follow the plan, and Add day after the last day opens the new day; a stay that spans the new day gains a night and its cost
@@ -993,16 +993,14 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   day and Remove day move the keys with their days, Remove day drops the removed day's entry, and a plan
   the assistant returns without `dayNotes` keeps the browser's notes for the days it still has, and a revision for a mentioned specialist drops notes beyond the days the plan now has. Logic is in `lib/trip/day-actions.ts`; verify with
   `pnpm --filter @trip/web e2e day-menus --prod` (1440 px, 390 px and a one-day trip, in English and Chinese).
-- **Drag across days and Ideas** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md)).
-  Ideas is always shown, above the day strip, even when empty, so a Stop can be dropped on it. Every
+- **Drag across days and onto the ideas chip** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-cross-day-drag.md), [superseded in part](../.agents/notes/implemented/feature/2026-10-28-ideas-chip.md)).
+  The "N ideas" chip is a drop target while a Stop is dragged and is absent when no place is parked. Every
   tab in the day strip is a drop target (only where it is visible: the part of a tab scrolled out of the strip takes no drop) that marks itself with an outline: dropping a Stop there
   appends it to that day (an empty day included), and holding a dragged Stop over a tab for 600 ms
   opens that day so the insertion line can choose any position in it. A Stop dropped on a day is one
-  `move` edit, a Stop dropped on Ideas is one `idea` edit that parks it last, and an Idea (pressed
-  anywhere on its row, long-press on touch) dropped on a tab or the open day is one `schedule` edit
-  that places it at the end of the day, with the line shown there. Each is a single Undo, and the
+  `move` edit, a Stop dropped on the chip is one `idea` edit that parks it last. Each is a single Undo, and the
   Stop numbers, times and Legs of both days refresh. A day without room, another accommodation
-  segment, the Stop's own day tab, Ideas dropped on Ideas, Escape and a locked trip change nothing or
+  segment, the Stop's own day tab, Escape and a locked trip change nothing or
   show the usual refusal. While the day changes under a drag, the dragged row is not drawn; the line
   and the outlined tab show the target. Verify with
   `pnpm --filter @trip/web e2e cross-day-drag --prod` (1440 px with a mouse, 390 px with touch).
@@ -1010,10 +1008,9 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens
   Google Maps in a new tab from the previous stop to this one, by coordinates when both places are
-  known and by stop name otherwise; it is left out between the same place twice. The Show distances switch above the day strip hides or shows every leg
-  distance and leaves the Directions links. It is on by default and kept in this browser under
-  `trip.show-distances.v1`; if the browser cannot read or write it, distances show and the switch still
-  works for the session. A stay whose selected candidate has a known `detailsUrl` shows a Book link to it
+  known and by stop name otherwise; it is left out between the same place twice. Legs are always shown: there is no Show distances switch, and the
+  retired `trip.show-distances.v1` browser preference is neither read nor written
+  ([Agent Note](../.agents/notes/implemented/feature/2026-10-28-ideas-chip.md)). A stay whose selected candidate has a known `detailsUrl` shows a Book link to it
   on its row; stops and stays without a link show nothing. `leg-distances.e2e.mjs` checks all of this on
   desktop and phone, in English and Chinese.
 - **Applied at once.** An edit applies as soon as the server accepts it, with no review step. A
@@ -1070,7 +1067,7 @@ data mode, at 1440×1000 and 390×844, in English and in Chinese. It plans a sim
 stops onto Day 1 and checks the rules in this section: no confirm or status label, each leg's mode
 and duration with no button, a leg change that re-times the stops after it and Undo that restores them,
 a time edit that applies at once and Undo, an overlap marked on its stop, a stay Alternative that changes
-the total, a restaurant from Ideas scheduled and undone, travel tips that fold (and stay folded after a
+the total, a restaurant from the ideas chip scheduled and undone, travel tips that fold (and stay folded after a
 reload on desktop), no horizontal page scroll, no console error, and no English label in the Chinese
 drawer except plan text, model text and the exact strings in the script's `KNOWN_EXCEPTIONS`.
 

@@ -488,8 +488,8 @@ async function interactions(browser) {
     await timeline.getByRole("menuitem", { name: "Move to ideas", exact: true }).click();
     await settle(page, 800);
     check(
-      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
-      "a stop moved to Ideas is listed there",
+      (await timeline.locator("button.timeline-ideas-chip").count()) === 1,
+      "a stop moved to Ideas shows the ideas chip",
     );
     const remaining = timeline.locator(".timeline-day .timeline-stop").first();
     const timeBeforeEdit = await remaining.innerText();
@@ -522,8 +522,8 @@ async function interactions(browser) {
       "Undo restores the time with an Idea in the plan",
     );
     check(
-      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
-      "the Idea is still in Ideas after Undo",
+      (await timeline.locator("button.timeline-ideas-chip").count()) === 1,
+      "the ideas chip is still shown after Undo",
     );
   }
 

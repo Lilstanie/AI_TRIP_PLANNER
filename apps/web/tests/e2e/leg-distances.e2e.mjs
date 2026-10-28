@@ -190,7 +190,6 @@ const COPY = {
     trip: /^Trip/,
     day: (n) => new RegExp(`^Day ${n}\\b`),
     list: (n) => new RegExp(`^Day ${n} timeline$`),
-    toggle: "Show distances",
     directions: /Directions/,
     book: /^Book/,
     near: "850 m",
@@ -201,7 +200,6 @@ const COPY = {
     trip: /^行程/,
     day: (n) => new RegExp(`^第 ?${n} ?天`),
     list: (n) => new RegExp(`第 ?${n} ?天`),
-    toggle: "显示距离",
     directions: /路线/,
     book: /^预订/,
     near: "850 米",
@@ -209,7 +207,7 @@ const COPY = {
   },
 };
 
-async function openTrip(browser, { name, width, height, language, storage }) {
+async function openTrip(browser, { name, width, height, language }) {
   const phone = width < 700;
   const context = await browser.newContext({
     viewport: { width, height },
@@ -219,9 +217,10 @@ async function openTrip(browser, { name, width, height, language, storage }) {
   });
   const { snapshot, catalog } = seed();
   await context.addInitScript(
-    ({ snapshot, catalog, language, storage, key }) => {
+    ({ snapshot, catalog, language, key }) => {
       if (!sessionStorage.getItem("e2e-seeded")) {
         sessionStorage.setItem("e2e-seeded", "1");
+        localStorage.setItem(key, "0");
         localStorage.setItem("trip-workspace-v1", JSON.stringify(snapshot));
         localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
         localStorage.setItem(
@@ -236,22 +235,16 @@ async function openTrip(browser, { name, width, height, language, storage }) {
           }),
         );
       }
-      if (storage === "unreadable") {
-        const read = Storage.prototype.getItem;
-        Storage.prototype.getItem = function (name) {
-          if (name === key) throw new DOMException("blocked", "SecurityError");
-          return read.call(this, name);
-        };
-      }
-      if (storage === "unwritable") {
-        const write = Storage.prototype.setItem;
-        Storage.prototype.setItem = function (name, value) {
-          if (name === key) throw new DOMException("blocked", "QuotaExceededError");
-          return write.call(this, name, value);
+      window.__preferenceCalls = 0;
+      for (const method of ["getItem", "setItem", "removeItem"]) {
+        const original = Storage.prototype[method];
+        Storage.prototype[method] = function (name, ...rest) {
+          if (name === key) window.__preferenceCalls += 1;
+          return original.call(this, name, ...rest);
         };
       }
     },
-    { snapshot, catalog, language, storage, key: STORAGE_KEY },
+    { snapshot, catalog, language, key: STORAGE_KEY },
   );
   const page = await context.newPage();
   const errors = [];
@@ -329,7 +322,6 @@ const links = (session) =>
   session.panel
     .locator(".timeline-connection")
     .getByRole("link", { name: session.copy.directions });
-const toggleOf = (session) => session.panel.getByRole("switch", { name: session.copy.toggle });
 
 async function walkthrough(browser, scenario) {
   const session = await openTrip(browser, scenario);
@@ -399,42 +391,16 @@ async function walkthrough(browser, scenario) {
   );
   await showDay(session, 1);
 
-  const toggle = toggleOf(session);
   check(
-    (await toggle.getAttribute("aria-checked")) === "true",
-    tag("Show distances is on at first load"),
+    (await panel.getByRole("switch").count()) === 0 &&
+      (await panel.getByText(/Show distances|显示距离/).count()) === 0,
+    tag("no Show distances switch renders"),
   );
-  await toggle.click();
-  await settle(page, 300);
-  check((await toggle.getAttribute("aria-checked")) === "false", tag("the switch turns off"));
-  check((await distances(session).count()) === 0, tag("every Leg distance is hidden"));
   check(
-    (await links(session).count()) === 2,
-    tag("Directions links stay when distances are hidden"),
+    (await distances(session).count()) === 2 && (await links(session).count()) === 2,
+    tag("distances and Directions links show although the old preference is stored as off"),
   );
-  await page.screenshot({ path: `${OUT}/${name}-off.png` });
-
-  await page.reload({ waitUntil: "domcontentloaded" });
-  const reopened = { ...session };
-  if (width(scenario) < 700) {
-    await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
-    await page.locator(".phone-mine .trip-card").first().click();
-    await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
-  }
-  if (width(scenario) >= 700) await openDesktopTrip(page, scenario.language);
-  await panel.waitFor({ timeout: 30_000 });
-  await showDay(reopened, 1);
-  await toggleOf(reopened).waitFor();
-  await settle(page, 800);
-  check(
-    (await toggleOf(reopened).getAttribute("aria-checked")) === "false",
-    tag("the switch is still off after a reload"),
-  );
-  check((await distances(reopened).count()) === 0, tag("distances stay hidden after a reload"));
-
-  await toggleOf(reopened).click();
-  await until(async () => (await distances(reopened).count()) === 2);
-  check((await distances(reopened).count()) === 2, tag("turning the switch on shows them again"));
+  await page.screenshot({ path: `${OUT}/${name}-legs.png` });
 
   await page.reload({ waitUntil: "domcontentloaded" });
   if (width(scenario) < 700) {
@@ -444,37 +410,18 @@ async function walkthrough(browser, scenario) {
   }
   if (width(scenario) >= 700) await openDesktopTrip(page, scenario.language);
   await panel.waitFor({ timeout: 30_000 });
-  await showDay(reopened, 1);
-  await toggleOf(reopened).waitFor();
-  await settle(page, 800);
+  await showDay(session, 1);
+  await until(async () => (await distances(session).count()) === 2);
+  check((await distances(session).count()) === 2, tag("distances still show after a reload"));
   check(
-    (await toggleOf(reopened).getAttribute("aria-checked")) === "true",
-    tag("the switch is still on after a second reload"),
+    (await page.evaluate(() => window.__preferenceCalls)) === 0,
+    tag("the old preference is never read or written"),
   );
   check(errors.length === 0, tag("no console or page errors"), errors);
   await session.context.close();
 }
 
 const width = (scenario) => scenario.width;
-
-async function storageCase(browser, scenario) {
-  const session = await openTrip(browser, scenario);
-  const { page, name, errors } = session;
-  await showDay(session, 1);
-  await until(async () => (await distances(session).count()) >= 2);
-  const toggle = toggleOf(session);
-  check((await toggle.getAttribute("aria-checked")) === "true", `${name}: defaults to on`);
-  check((await distances(session).count()) === 2, `${name}: distances are shown`);
-  await toggle.click();
-  await settle(page, 300);
-  check(
-    (await toggle.getAttribute("aria-checked")) === "false" &&
-      (await distances(session).count()) === 0,
-    `${name}: the switch still works for the session`,
-  );
-  check(errors.length === 0, `${name}: no console or page errors`, errors);
-  await session.context.close();
-}
 
 const browser = await chromium.launch({
   headless: true,
@@ -494,14 +441,6 @@ try {
       }).catch((error) =>
         check(false, `${viewport.label}-${language}: walkthrough completes`, String(error)),
       );
-  for (const storage of ["unreadable", "unwritable"])
-    await storageCase(browser, {
-      width: 1440,
-      height: 900,
-      language: "en",
-      storage,
-      name: `storage-${storage}`,
-    }).catch((error) => check(false, `storage-${storage}: case completes`, String(error)));
 } finally {
   await browser.close();
   writeFileSync(`${OUT}/summary.json`, JSON.stringify(results, null, 2));

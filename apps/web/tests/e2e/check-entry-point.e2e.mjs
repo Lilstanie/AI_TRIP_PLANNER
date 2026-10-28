@@ -240,8 +240,8 @@ async function main() {
         "1: Undo with an Idea in the plan shows no error",
       );
       check(
-        (await trip(page).locator(".timeline-ideas .timeline-stop").count()) >= 1,
-        "1: the Idea is still in Ideas after Undo",
+        (await trip(page).locator("button.timeline-ideas-chip").count()) === 1,
+        "1: the ideas chip is still shown after Undo",
       );
       summary.undoWithIdea = { before, restored };
       await page.screenshot({ path: `${OUT}/01-undo-with-idea.png` });

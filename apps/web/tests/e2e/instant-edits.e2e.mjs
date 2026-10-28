@@ -334,16 +334,6 @@ try {
       meeting,
     );
     await undone("adding a custom place", before);
-    await page.getByRole("button", { name: "Add to Ideas", exact: true }).click();
-    await panel.getByRole("tab", { name: "Custom", exact: true }).click();
-    await panel.getByRole("textbox", { name: "Name", exact: true }).fill("Parked place");
-    await panel.getByRole("button", { name: "Add", exact: true }).click();
-    await waitSaved((items) => items.some((item) => item.location === "Parked place"));
-    check(
-      (await stored("Parked place"))?.day === undefined,
-      `a custom name can be saved as an Idea at once at ${tag}`,
-    );
-    await undone("saving an Idea", before);
 
     await page.getByRole("button", { name: "Add to Day 1", exact: true }).click();
     await search.fill("nothing here");
@@ -434,11 +424,13 @@ try {
     await waitSaved((items) => items.some((item) => item.placeId === "stub:Instant Pier"));
     await undone("replacing a place", before);
 
-    await menu("Instant Idea", "Schedule on a day");
-    await page.getByLabel("Day", { exact: true }).selectOption("2");
-    await page.getByRole("button", { name: "Schedule", exact: true }).click();
+    await page.locator("button.timeline-ideas-chip").click();
+    await page
+      .getByRole("region", { name: "Add to trip" })
+      .getByRole("button", { name: "Add Instant Idea", exact: true })
+      .click();
     await waitSaved(
-      (items) => items.find((item) => item.id === `idea-${viewport.width}`)?.day === 2,
+      (items) => items.find((item) => item.id === `idea-${viewport.width}`)?.day === 1,
     );
     check(await noDiscard(), `scheduling an Idea lands without a confirm at ${tag}`);
     await undone("scheduling an Idea", before);
@@ -467,10 +459,6 @@ try {
       (await noDiscard()) && (await note.count()) === 0,
       `Cancel closes a half-filled note form without asking at ${tag}`,
     );
-    await menu("Instant Idea", "Schedule on a day");
-    await page.getByLabel("Day", { exact: true }).selectOption("3");
-    await page.getByRole("button", { name: "Cancel", exact: true }).first().click();
-    check(await noDiscard(), `Cancel closes a half-filled schedule form without asking at ${tag}`);
     await menu("Instant Museum", "Replace place");
     const replace = page.getByRole("searchbox").last();
     await replace.fill("Never searched");

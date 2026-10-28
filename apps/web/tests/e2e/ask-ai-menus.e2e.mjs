@@ -368,19 +368,6 @@ try {
       );
 
       await reopen();
-      await page
-        .getByRole("button", { name: /^Ideas/ })
-        .first()
-        .click()
-        .catch(() => undefined);
-      const ideaMenu = stopMenu("Fir");
-      if (await ideaMenu.count()) {
-        await ideaMenu.first().click();
-        check((await askItem().count()) === 0, `an idea menu has no Ask AI item at ${tag}`);
-        await page.keyboard.press("Escape");
-      } else check(false, `the idea row has a menu at ${tag}`);
-
-      await reopen();
       await selectDay(1);
       let release;
       holdChat = new Promise((resolveHold) => (release = resolveHold));

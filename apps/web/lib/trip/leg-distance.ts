@@ -1,8 +1,6 @@
 import type { AppLocale } from "@/lib/i18n/locale";
 import { translate } from "@/lib/i18n/locale";
 
-export const SHOW_DISTANCES_KEY = "trip.show-distances.v1";
-
 export function formatDistance(meters: number | undefined, locale: AppLocale = "en") {
   if (meters === undefined || !Number.isFinite(meters) || meters <= 0) return undefined;
   if (meters < 1000) return translate(locale, "{v0} m", { v0: Math.round(meters) });

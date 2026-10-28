@@ -2,6 +2,7 @@
 
 Status: implemented
 Owner: spec #743, ticket #751
+Superseded in part: the Show distances switch, by [Ideas as an "N ideas" chip](2026-10-28-ideas-chip.md).
 
 ## Problem
 

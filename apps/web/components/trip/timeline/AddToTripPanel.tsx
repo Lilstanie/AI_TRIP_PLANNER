@@ -8,7 +8,7 @@ import type { GooglePlace } from "@/lib/integrations/google";
 import type { TimelineEdits } from "./useTimelineEdits";
 
 type Activity = TripPlaces["activities"][number];
-export type AddTarget = { kind: "day"; day: number } | { kind: "ideas" };
+export type AddTarget = { kind: "day"; day: number };
 type Tab = "search" | "ideas" | "saved" | "custom";
 
 const FILTER_LABEL = {
@@ -31,6 +31,7 @@ function clockPlusHour(start: string) {
 
 export function AddToTripPanel({
   target,
+  initialTab = "search",
   tripId,
   locked,
   edits,
@@ -39,6 +40,7 @@ export function AddToTripPanel({
   onClose,
 }: {
   target: AddTarget;
+  initialTab?: Tab;
   tripId: string;
   locked: boolean;
   edits: TimelineEdits;
@@ -47,9 +49,8 @@ export function AddToTripPanel({
   onClose(): void;
 }) {
   const { t, notice } = useLocale();
-  const tabs: Tab[] =
-    target.kind === "day" ? ["search", "ideas", "saved", "custom"] : ["search", "saved", "custom"];
-  const [tab, setTab] = useState<Tab>("search");
+  const tabs: Tab[] = ["search", "ideas", "saved", "custom"];
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [text, setText] = useState("");
   const [filter, setFilter] = useState<AddFilter>("places");
   const [keepOpen, setKeepOpen] = useState(false);
@@ -72,7 +73,7 @@ export function AddToTripPanel({
     setNote("");
     setStart("");
   };
-  const day = target.kind === "day" ? { day: target.day } : {};
+  const day = { day: target.day };
 
   async function addPlace(input: {
     title: string;
@@ -233,7 +234,7 @@ export function AddToTripPanel({
         </div>
       )}
 
-      {tab === "ideas" && target.kind === "day" && (
+      {tab === "ideas" && (
         <div role="tabpanel" className="add-panel__body">
           {ideas.length ? (
             <ul className="stop-editor__results" aria-label={t("Ideas")}>
@@ -303,7 +304,7 @@ export function AddToTripPanel({
           onSubmit={async (event) => {
             event.preventDefault();
             if (!typed) return;
-            const timed = target.kind === "day" && start;
+            const timed = start;
             finish(
               await edits.add({
                 id: crypto.randomUUID(),
@@ -326,18 +327,16 @@ export function AddToTripPanel({
               onChange={(event) => setName(event.target.value)}
             />
           </label>
-          {target.kind === "day" && (
-            <label>
-              {t("Start time")}
-              <input
-                type="time"
-                value={start}
-                max={LATEST_START}
-                disabled={locked}
-                onChange={(event) => setStart(event.target.value)}
-              />
-            </label>
-          )}
+          <label>
+            {t("Start time")}
+            <input
+              type="time"
+              value={start}
+              max={LATEST_START}
+              disabled={locked}
+              onChange={(event) => setStart(event.target.value)}
+            />
+          </label>
           <label>
             {t("Note")}
             <input

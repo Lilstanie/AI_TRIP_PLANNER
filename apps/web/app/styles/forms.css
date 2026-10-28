@@ -15,7 +15,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.rdp-day_button)
     .settings-text-button
   ):not(.agent-lab__trace-block):not(.team-panel__press):not(.thinking-row__toggle):not(
     .thinking-row__summary-button
-  ):not(.chat__tab):not(.msg-action) {
+  ):not(.chat__tab):not(.msg-action):not(.timeline-ideas-chip) {
   min-height: 36px;
 }
 button:disabled {

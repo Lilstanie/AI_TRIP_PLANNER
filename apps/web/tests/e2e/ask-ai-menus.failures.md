@@ -10,7 +10,7 @@ Written before the code (#756, spec #755). Each line is a way the feature could 
 
 ## Stop menu
 
-- The Stop menu has no Ask AI item, or the Idea and suggestion menus offer one although an unscheduled place has no day to ask about.
+- The Stop menu has no Ask AI item.
 - The item is reachable only with a mouse, or has no accessible name.
 - Choosing it sends nothing, sends a different message from the old bar (`Suggest a change for <stop> on Day <n>, taking the rest of my current plan into account.`), or names the wrong day or stop.
 - A stop with no name sends a message with an empty or `undefined` name instead of falling back to the location or detail.
