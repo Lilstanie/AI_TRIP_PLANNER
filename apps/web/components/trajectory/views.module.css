@@ -1,8 +1,8 @@
 .root {
   --dsw-alias-label-primary: var(--text);
-  --dsw-alias-label-secondary: var(--text-dim);
-  --dsw-alias-label-tertiary: var(--text-mut);
-  --dsw-alias-label-caption: var(--text-mut);
+  --dsw-alias-label-secondary: color-mix(in srgb, var(--text) 74%, var(--surface));
+  --dsw-alias-label-tertiary: color-mix(in srgb, var(--text) 74%, var(--surface));
+  --dsw-alias-label-caption: color-mix(in srgb, var(--text) 74%, var(--surface));
   --dsw-alias-bg-layer-1: var(--surface);
   --dsw-alias-bg-layer-2: var(--surface-2);
   --dsw-alias-bg-module-platform: var(--surface-2);

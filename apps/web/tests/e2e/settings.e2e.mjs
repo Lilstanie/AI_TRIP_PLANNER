@@ -176,7 +176,12 @@ async function run(browser, { width, height, tag }) {
   await settle(page);
 
   const chats = page.getByRole("button", { name: /^Chats/ });
-  const newChat = async () => {
+  const closeWhere = async () => {
+    const where = page.getByRole("dialog", { name: "Where" });
+    await page.keyboard.press("Escape");
+    await where.waitFor({ state: "hidden" });
+  };
+  const newChat = async (keepOpen = false) => {
     if (width <= 520) {
       await page.getByRole("tab", { name: "Mine", exact: true }).click();
     } else if (width < 1000) {
@@ -186,10 +191,16 @@ async function run(browser, { width, height, tag }) {
       await chats.click();
       await settle(page);
     }
-    await page.getByRole("button", { name: "New chat" }).first().click();
+    if (width <= 520) await page.getByRole("button", { name: "New chat" }).first().click();
+    else {
+      await page.getByRole("button", { name: "New trip" }).first().click();
+      const where = page.getByRole("dialog", { name: "Where" });
+      await where.waitFor();
+      if (!keepOpen) await closeWhere();
+    }
     await settle(page, 700);
   };
-  await newChat();
+  await newChat(true);
   if (width <= 520) await page.locator(".phone-topbar__title-button").click();
   const facts = await page.locator(width <= 520 ? ".facts-sheet" : ".workspace-topbar").innerText();
   check(
@@ -216,6 +227,7 @@ async function run(browser, { width, height, tag }) {
       JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}").conversations?.length ??
       0,
   );
+  if (width > 520) await closeWhere();
   await newChat();
   await newChat();
   const after = await page.evaluate(
@@ -223,7 +235,10 @@ async function run(browser, { width, height, tag }) {
       JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}").conversations?.length ??
       0,
   );
-  check(after === before, `${tag}: repeated New chat reuses the blank chat (${before} → ${after})`);
+  check(
+    after === before,
+    `${tag}: repeated new conversation reuses the blank chat (${before} → ${after})`,
+  );
 
   await page.reload();
   await page.waitForSelector(".workspace-app");

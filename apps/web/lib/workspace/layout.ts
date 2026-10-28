@@ -1,5 +1,7 @@
 import type { FactKey } from "./trip-facts";
 
+export type ChatView = "conversation" | "trajectory";
+
 export type MobileView = "chat" | "map" | "trip" | "trajectory" | "mine";
 export const PHONE_VIEWS: readonly MobileView[] = ["chat", "map", "trip", "mine"];
 export type DialogKind = "settings";
@@ -11,6 +13,7 @@ export type Media = { phone: boolean; narrow: boolean };
 export type Surface = {
   page: "workspace" | "trips";
   view: MobileView;
+  chatView?: ChatView;
   drawer?: Drawer;
   sheet?: "facts" | "team";
   fact?: FactKey;
@@ -33,6 +36,7 @@ export type LayoutEvent =
   | { type: "close-dialog" }
   | { type: "show-trips" }
   | { type: "select-view"; view: MobileView }
+  | { type: "show-chat-view"; view: ChatView }
   | { type: "chat-opened" }
   | { type: "trip-opened" }
   | { type: "chat-started"; fact?: FactKey }
@@ -56,6 +60,11 @@ export function restoreLayout(view: unknown, media: Media): Surface {
 }
 
 export function layout(surface: Surface, event: LayoutEvent, media: Media): Surface {
+  const next = step(surface, event, media);
+  return surface.chatView && !next.chatView ? { ...next, chatView: surface.chatView } : next;
+}
+
+function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
   switch (event.type) {
     case "open-trip":
       return media.phone
@@ -99,6 +108,13 @@ export function layout(surface: Surface, event: LayoutEvent, media: Media): Surf
       if (!media.phone && event.view === "trajectory")
         return { ...surface, page: "workspace", view: "chat" };
       return { ...surface, page: "workspace", view: event.view };
+    case "show-chat-view":
+      return {
+        ...(surface.drawer === "trip" ? without(surface, "drawer") : surface),
+        page: "workspace",
+        view: media.phone ? surface.view : "chat",
+        chatView: event.view,
+      };
     case "chat-opened":
     case "trip-opened":
       return strip({

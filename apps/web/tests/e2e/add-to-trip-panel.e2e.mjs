@@ -22,7 +22,7 @@ let currentPage;
 const TEXT = {
   en: {
     day: (n) => `Add to Day ${n}`,
-    ideas: "Add to Ideas",
+    ideas: "1 idea",
     panel: "Add to trip",
     tabs: { search: "Search", ideas: "Ideas", saved: "Saved", custom: "Custom" },
     filters: {
@@ -45,7 +45,7 @@ const TEXT = {
   },
   zh: {
     day: (n) => `添加到第 ${n} 天`,
-    ideas: "添加到备选地点",
+    ideas: "1 个备选地点",
     panel: "添加到行程",
     tabs: { search: "搜索", ideas: "备选地点", saved: "已保存", custom: "自定义" },
     filters: {
@@ -392,8 +392,11 @@ try {
     check(
       (await timeline.getByRole("button", { name: /^(Add place|添加地点)$/ }).count()) === 0 &&
         (await timeline.getByRole("button", { name: T.day(1), exact: true }).count()) === 1 &&
-        (await timeline.getByRole("button", { name: T.ideas, exact: true }).count()) === 1,
-      `an Add button ends the day and heads Ideas, and the old Add place is gone at ${tag}`,
+        (await timeline.getByRole("button", { name: T.ideas, exact: true }).count()) === 1 &&
+        (await timeline
+          .getByRole("button", { name: /^(Add to Ideas|添加到备选地点)$/ })
+          .count()) === 0,
+      `an Add button ends the day, the ideas chip opens the panel, and the old Add place is gone at ${tag}`,
     );
 
     let before = await savedCore();
@@ -647,32 +650,10 @@ try {
 
     await openFromIdeas();
     check(
-      (await panel.getByRole("tab", { name: T.tabs.ideas, exact: true }).count()) === 0,
-      `opened from Ideas the panel does not offer the Ideas tab at ${tag}`,
+      (await tab(T.tabs.ideas).getAttribute("aria-selected")) === "true",
+      `the ideas chip opens the panel on its Ideas tab at ${tag}`,
     );
-    await searchFor("Panel Ideas Cafe");
-    await panel
-      .getByRole("button", { name: /Panel Ideas Cafe/ })
-      .first()
-      .click();
-    await waitSaved((items) => items.some((item) => item.location === "Panel Ideas Cafe"));
-    check(
-      (await stored("Panel Ideas Cafe"))?.day === undefined,
-      `adding from Ideas lands the place in Ideas with no day at ${tag}`,
-    );
-    await undone("adding to Ideas", before);
-
-    await openFromIdeas();
-    await tab(T.tabs.custom).click();
-    check(
-      (await panel.getByLabel(T.start, { exact: true }).count()) === 0,
-      `Custom offers no time when adding to Ideas at ${tag}`,
-    );
-    await panel.getByRole("textbox", { name: T.name, exact: true }).fill("Loose idea");
-    await panel.getByRole("button", { name: T.add, exact: true }).click();
-    await waitSaved((items) => items.some((item) => item.location === "Loose idea"));
-    check((await stored("Loose idea"))?.day === undefined, `a custom Idea has no day at ${tag}`);
-    await undone("a custom Idea", before);
+    await panel.getByRole("button", { name: T.close, exact: true }).click();
 
     await openFromDay(1);
     await panel.getByRole("checkbox", { name: T.keep }).check();

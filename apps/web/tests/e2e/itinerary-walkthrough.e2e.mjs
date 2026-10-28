@@ -33,7 +33,6 @@ const TEXT = {
       "Add again",
       "Remove",
     ],
-    idea: ["Schedule on a day", "Edit details", "Add a comment", "Remove"],
     secondary: ["Replace place", "Open in Maps"],
     dayMenu: (n) => `Day ${n} actions`,
     dayItems: ["Add day before", "Add day after", "Clear day", "Remove day"],
@@ -44,7 +43,7 @@ const TEXT = {
     bulk: ["Move all events to ideas", "Remove all scheduled events"],
     dayMap: (n) => `Day map, Day ${n}`,
     addDay: (n) => `Add to Day ${n}`,
-    addIdeas: "Add to Ideas",
+    ideasChip: (n) => `${n} ${n === 1 ? "idea" : "ideas"}`,
     panel: "Add to trip",
     tabs: { search: "Search", ideas: "Ideas", saved: "Saved", custom: "Custom" },
     close: "Close",
@@ -68,7 +67,6 @@ const TEXT = {
       dayField: "Day",
       scheduleButton: "Schedule",
     },
-    switch: "Show distances",
     directions: /Directions/,
     metres: (n) => `${n} m`,
     kilometres: (n) => `${n} km`,
@@ -90,7 +88,6 @@ const TEXT = {
       "再次添加",
       "移除",
     ],
-    idea: ["安排到某一天", "编辑详情", "添加评论", "移除"],
     secondary: [],
     dayMenu: (n) => `第 ${n} 天的操作`,
     dayItems: ["在前面加一天", "在后面加一天", "清空这一天", "删除这一天"],
@@ -101,7 +98,7 @@ const TEXT = {
     bulk: ["全部活动移至备选地点", "移除所有已安排的活动"],
     dayMap: (n) => `当天地图，第 ${n} 天`,
     addDay: (n) => `添加到第 ${n} 天`,
-    addIdeas: "添加到备选地点",
+    ideasChip: (n) => `${n} 个备选地点`,
     panel: "添加到行程",
     tabs: { search: "搜索", ideas: "备选地点", saved: "已保存", custom: "自定义" },
     close: "关闭",
@@ -125,7 +122,6 @@ const TEXT = {
       dayField: "天",
       scheduleButton: "安排日期",
     },
-    switch: "显示距离",
     directions: /路线/,
     metres: (n) => `${n} 米`,
     kilometres: (n) => `${n} 公里`,
@@ -158,7 +154,6 @@ const metresBetween = (from, to) => {
       Math.sin(rad(b.longitude - a.longitude) / 2) ** 2;
   return Math.round(2 * radius * Math.asin(Math.sqrt(half)));
 };
-const SHOW_DISTANCES_KEY = "trip.show-distances.v1";
 
 const typed = (name, primaryType, coordinates = true) => ({
   id: `stub:${name}`,
@@ -506,13 +501,16 @@ try {
     const chip = (day) => strip.locator(`[data-day="${day}"]`);
     const dayPanel = timeline.locator(".timeline-day");
     const rows = dayPanel.locator(".timeline-stop");
-    const ideas = timeline.locator(".timeline-ideas");
-    const ideaRows = ideas.locator(".timeline-stop");
+    const ideasChip = timeline.locator("button.timeline-ideas-chip");
+    const ideaNames = async () =>
+      (await saved())
+        .filter((item) => item.kind === "activity" && item.day === undefined)
+        .map((item) => item.location)
+        .sort();
     const line = timeline.locator(".timeline-drop-line");
     const rowIn = (scope, name) =>
       scope.filter({ has: page.locator(".timeline-stop__name", { hasText: name }) }).first();
     const row = (name) => rowIn(rows, name);
-    const ideaRow = (name) => rowIn(ideaRows, name);
     const names = async (scope) =>
       (await scope.locator(".timeline-stop__name").allTextContents()).map((text) =>
         text.replace(/^(Stop|停靠点) \d+[:：]\s*/, "").trim(),
@@ -688,7 +686,7 @@ try {
       await panel.waitFor();
     };
     const openFromIdeas = async () => {
-      await timeline.getByRole("button", { name: T.addIdeas, exact: true }).click();
+      await ideasChip.click();
       await panel.waitFor();
     };
     const searchFor = async (text) => {
@@ -740,26 +738,26 @@ try {
         });
       return { settled, linksMatch, shown: await distanceTexts(), links };
     };
-    const switchOf = () => timeline.getByRole("switch", { name: T.switch });
 
     await showDay(1);
     const original = await snap();
-    const ideasBox = await ideas.boundingBox();
+    const chipBox = await ideasChip.boundingBox();
     const stripBox = await strip.boundingBox();
-    check(!!ideasBox && ideasBox.y < stripBox.y, `the Ideas section sits above Day 1 at ${tag}`, {
-      ideas: ideasBox?.y,
+    check(!!chipBox && chipBox.y < stripBox.y, `the ideas chip sits above Day 1 at ${tag}`, {
+      chip: chipBox?.y,
       strip: stripBox.y,
     });
     check(
-      !/Set aside for later|暂留待选/.test(await ideas.innerText()),
-      `Ideas carries no helper line under its title at ${tag}`,
+      (await timeline.getByRole("heading", { name: /^(Ideas|备选地点)$/ }).count()) === 0 &&
+        (await timeline.getByRole("switch").count()) === 0,
+      `no Ideas section and no Show distances switch render at ${tag}`,
     );
     check(
-      (await names(ideaRows)).join() === "Fir" &&
+      (await ideasChip.innerText()) === T.ideasChip(1) &&
         (await shownNames()).join() === "Alder,Birch,Cedar,Dogwood" &&
         (await dayTabs().count()) === 4,
-      `the fixture has one Idea and four stops on Day 1 of four days at ${tag}`,
-      { ideas: await names(ideaRows), day: await shownNames() },
+      `the fixture has one idea and four stops on Day 1 of four days at ${tag}`,
+      { chip: await ideasChip.innerText(), day: await shownNames() },
     );
     await shot("start");
 
@@ -769,27 +767,6 @@ try {
       `each Leg of Day 1 shows its distance and a Directions link between its two stops at ${tag}`,
       initialLegs,
     );
-    check(
-      (await switchOf().getAttribute("aria-checked")) === "true",
-      `Show distances is on at first load at ${tag}`,
-    );
-
-    await switchOf().click();
-    check(
-      (await waitUntil(async () => (await distanceTexts()).length === 0, 4000)) &&
-        (await directionLinks().count()) === 3 &&
-        (await switchOf().getAttribute("aria-checked")) === "false",
-      `Show distances off hides every distance and keeps the Directions links at ${tag}`,
-    );
-    await shot("distances-off");
-    await switchOf().click();
-    const backOn = await legsMatch(["Alder", "Birch", "Cedar", "Dogwood"]);
-    check(
-      backOn.settled && backOn.linksMatch,
-      `Show distances on brings every distance back at ${tag}`,
-      backOn,
-    );
-
     let before = await stable();
     let editsBefore = requests("move").length;
     await frame(row("Alder"), row("Cedar"));
@@ -886,12 +863,11 @@ try {
 
     before = await stable();
     await begin(rows, "Birch");
-    const zone = await centre(ideas.locator("ol"), true);
+    const zone = await centre(ideasChip, true);
     await go(zone.x, zone.y);
     check(
-      (await ideas.getAttribute("data-drop-target")) === "true" &&
-        (await ideas.locator(".timeline-drop-line").count()) === 1,
-      `Ideas is marked as the target with a line while dragging a stop at ${tag}`,
+      (await ideasChip.getAttribute("data-drop-target")) === "true",
+      `the ideas chip is marked as the target while dragging a stop at ${tag}`,
     );
     await shot("drag-to-ideas");
     await release();
@@ -905,73 +881,17 @@ try {
       `the drop on Ideas is one idea edit that clears the times at ${tag}`,
     );
     check(
-      (await waitUntil(async () => (await names(ideaRows)).join() === "Fir,Birch", 5000)) &&
+      (await waitUntil(async () => (await ideasChip.innerText()) === T.ideasChip(2), 5000)) &&
         (await shownNames()).join() === "Alder,Cedar,Dogwood" &&
         (await shownNumbers()).join() === "1,2,3",
-      `Ideas lists the stop and Day 1 renumbers at ${tag}`,
+      `the chip counts the stop and Day 1 renumbers at ${tag}`,
     );
     await undone("a drop on Ideas", before);
     check(
-      (await names(ideaRows)).join() === "Fir" && (await shownNames()).length === 4,
+      (await ideasChip.innerText()) === T.ideasChip(1) && (await shownNames()).length === 4,
       `Undo returns the stop to its day at ${tag}`,
     );
 
-    await begin(rows, "Birch");
-    const again = await centre(ideas.locator("ol"), true);
-    await go(again.x, again.y);
-    await release();
-    await waitUntil(async () => (await dayOf("Birch")) === undefined, 10_000);
-    before = await stable();
-    await frame(ideaRow("Birch"), row("Cedar"));
-    await begin(ideaRows, "Birch");
-    await row("Cedar").scrollIntoViewIfNeeded();
-    const cedarAgain = await centre(row("Cedar"));
-    await go(cedarAgain.x, cedarAgain.box.y + cedarAgain.box.height * 0.25);
-    const dogwood = await row("Dogwood").boundingBox();
-    check(
-      (await line.count()) === 1 && (await line.first().boundingBox()).y >= dogwood.y,
-      `an Idea over the open day shows the line at the end of the day at ${tag}`,
-    );
-    await release();
-    check(
-      await waitDay("Birch", 1),
-      `an Idea dropped on the open day is scheduled on it at ${tag}`,
-    );
-    check(
-      (await expectNames(["Alder", "Cedar", "Dogwood", "Birch"])) &&
-        (await shownNumbers()).join() === "1,2,3,4" &&
-        !!(await itemOf("Birch")).startTime,
-      `the open day lists the Idea last with a time and refreshed numbers at ${tag}`,
-      await shownNames(),
-    );
-    await undone("scheduling an Idea by drop", before);
-    check(
-      (await names(ideaRows)).join() === "Fir,Birch",
-      `Undo returns the Idea to Ideas at ${tag}`,
-    );
-    await frame(ideaRow("Birch"), row("Cedar"));
-    await begin(ideaRows, "Birch");
-    await row("Cedar").scrollIntoViewIfNeeded();
-    const last = await centre(row("Cedar"));
-    await go(last.x, last.box.y + last.box.height * 0.25);
-    await release();
-    await waitDay("Birch", 1);
-    check(
-      await expectNames(["Alder", "Cedar", "Dogwood", "Birch"]),
-      `a stop dragged to Ideas and back is on its day again at ${tag}`,
-    );
-
-    before = await stable();
-    await begin(ideaRows, "Fir");
-    const dayThree = await centre(chip(3), true);
-    await go(dayThree.x, dayThree.y);
-    await release();
-    check(await waitDay("Fir", 3), `an Idea dropped on a day chip is scheduled there at ${tag}`);
-    check(
-      requests("schedule").at(-1)?.operation.day === 3 && !!(await itemOf("Fir")).startTime,
-      `scheduling an Idea by drop is one edit with times at ${tag}`,
-    );
-    await undone("scheduling an Idea on another day", before);
     await showDay(1);
     check(await noPrompt(), `no drag asked to keep or discard anything at ${tag}`);
 
@@ -994,12 +914,6 @@ try {
         stopEntries.find((entry) => entry.name === T.stop[5])?.disabled === false &&
         stopEntries.every((entry) => entry.name.length > 0),
       `Move to previous day is disabled on Day 1 and every item is named at ${tag}`,
-    );
-    const ideaNames = (await menuEntries("Fir", ideaRows)).map((entry) => entry.name);
-    check(
-      T.idea.every((label) => ideaNames.includes(label)),
-      `the Idea menu offers Schedule on a day, Edit details, Add a comment and Remove at ${tag}`,
-      ideaNames,
     );
     await showDay(4);
     const lastEntries = await menuEntries("Night");
@@ -1070,8 +984,8 @@ try {
       (_, items) => items.find((item) => item.location === "Birch")?.day === undefined,
     );
     check(
-      (await names(ideaRows)).includes("Birch"),
-      `Move to ideas parks the stop in Ideas at once at ${tag}`,
+      (await ideaNames()).includes("Birch") && (await ideasChip.innerText()) === T.ideasChip(2),
+      `Move to ideas parks the stop and the chip counts it at once at ${tag}`,
     );
     await undone("Move to ideas", before);
 
@@ -1101,32 +1015,6 @@ try {
     await waitSaved((_, items) => !items.some((item) => item.location === "Birch"));
     check((await row("Birch").count()) === 0, `Remove takes effect at once at ${tag}`);
     await undone("Remove", before);
-
-    pop = await viaMenu("Fir", T.idea[0], T.pop.day, ideaRows);
-    check(
-      (await onRow(pop, ideaRows, "Fir")) && (await unnamed(pop)).length === 0,
-      `Schedule on a day opens a named popover on the Idea at ${tag}`,
-    );
-    await field(pop, T.pop.dayField).selectOption("2");
-    await pop.getByRole("button", { name: T.pop.scheduleButton, exact: true }).click();
-    await waitSaved((_, items) => items.find((item) => item.location === "Fir")?.day === 2);
-    await undone("Schedule on a day", before);
-
-    pop = await viaMenu("Fir", T.idea[1], T.pop.details, ideaRows);
-    await field(pop, T.pop.what).fill("Park picnic");
-    await pop.getByRole("button", { name: T.pop.save, exact: true }).click();
-    await waitSaved((_, items) => items.some((item) => item.detail === "Park picnic"));
-    await undone("Edit details on an Idea", before);
-
-    pop = await viaMenu("Fir", T.idea[2], T.pop.comment, ideaRows);
-    await field(pop, T.pop.commentField).fill("Ask Sam");
-    await pop.getByRole("button", { name: T.pop.save, exact: true }).click();
-    await waitSaved((_, items) => items.some((item) => item.note === "Ask Sam"));
-    await undone("Add a comment on an Idea", before);
-
-    await rowMenu("Fir", T.idea[3], ideaRows);
-    await waitSaved((_, items) => !items.some((item) => item.location === "Fir"));
-    await undone("Remove on an Idea", before);
 
     await row("Alder").locator(".timeline-stop__main").click();
     check(
@@ -1208,9 +1096,11 @@ try {
     await chooseItinerary(T.bulk[0]);
     await waitSaved((_, list) => list.every((item) => item.day === undefined));
     check(
-      (await names(ideaRows)).length === 7 && (await saved()).length === 7,
-      `Move all events to ideas keeps every place as an Idea at ${tag}`,
-      await names(ideaRows),
+      (await ideaNames()).length === 7 &&
+        (await saved()).length === 7 &&
+        (await ideasChip.innerText()) === T.ideasChip(7),
+      `Move all events to ideas keeps every place as an idea and the chip counts seven at ${tag}`,
+      await ideaNames(),
     );
     await shot("all-in-ideas");
     await undone("Move all events to ideas", before);
@@ -1218,8 +1108,8 @@ try {
     await chooseItinerary(T.bulk[1]);
     await waitSaved((_, list) => list.length === 1);
     check(
-      (await names(ideaRows)).join() === "Fir",
-      `Remove all scheduled events keeps the Ideas at ${tag}`,
+      (await ideaNames()).join() === "Fir" && (await ideasChip.innerText()) === T.ideasChip(1),
+      `Remove all scheduled events keeps the ideas at ${tag}`,
     );
     await undone("Remove all scheduled events", before);
 
@@ -1398,29 +1288,10 @@ try {
 
     await openFromIdeas();
     check(
-      (await panel.getByRole("tab", { name: T.tabs.ideas, exact: true }).count()) === 0,
-      `opened from Ideas the panel does not offer the Ideas tab at ${tag}`,
+      (await panelTab(T.tabs.ideas).getAttribute("aria-selected")) === "true",
+      `the ideas chip opens the panel on its Ideas tab at ${tag}`,
     );
-    await pickResult("Walk Ideas Cafe");
-    await waitSaved((_, list) => list.some((item) => item.location === "Walk Ideas Cafe"));
-    check(
-      (await itemOf("Walk Ideas Cafe"))?.day === undefined &&
-        (await names(ideaRows)).includes("Walk Ideas Cafe"),
-      `adding from Ideas lands the place in Ideas with no day at ${tag}`,
-    );
-    await undone("adding to Ideas", before);
-
-    await openFromIdeas();
-    await panelTab(T.tabs.custom).click();
-    check(
-      (await panel.getByLabel(T.panelStart, { exact: true }).count()) === 0,
-      `Custom offers no time when adding to Ideas at ${tag}`,
-    );
-    await panel.getByRole("textbox", { name: T.name, exact: true }).fill("Loose idea");
-    await panel.getByRole("button", { name: T.add, exact: true }).click();
-    await waitSaved((_, list) => list.some((item) => item.location === "Loose idea"));
-    check((await itemOf("Loose idea"))?.day === undefined, `a custom Idea has no day at ${tag}`);
-    await undone("a custom Idea", before);
+    await panel.getByRole("button", { name: T.close, exact: true }).click();
 
     await openFromDay(1);
     await panel.getByRole("checkbox", { name: T.keep }).check();
@@ -1446,32 +1317,6 @@ try {
       dialogs,
     );
 
-    await showDay(1);
-    await switchOf().click();
-    await waitUntil(async () => (await distanceTexts()).length === 0, 4000);
-    await page.reload();
-    await page.locator(".workspace-app").waitFor();
-    await page.waitForLoadState("networkidle");
-    await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-    await openTrip(true);
-    await timeline.waitFor({ timeout: 10_000 });
-    await showDay(1);
-    await switchOf().waitFor();
-    check(
-      (await switchOf().getAttribute("aria-checked")) === "false" &&
-        (await distanceTexts()).length === 0 &&
-        (await page.evaluate((key) => localStorage.getItem(key), SHOW_DISTANCES_KEY)) !== null,
-      `Show distances stays off after a reload at ${tag}`,
-    );
-    await switchOf().click();
-    const reopened = await legsMatch(await shownNames());
-    check(
-      reopened.settled &&
-        reopened.linksMatch &&
-        (await switchOf().getAttribute("aria-checked")) === "true",
-      `Show distances on again brings the distances back after a reload at ${tag}`,
-      reopened,
-    );
     await shot("final");
 
     check(pageErrors.length === 0, `no page or console errors at ${tag}`, pageErrors);

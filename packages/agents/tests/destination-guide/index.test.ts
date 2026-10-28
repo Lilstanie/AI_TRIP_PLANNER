@@ -77,7 +77,8 @@ describe("destination guide", () => {
     });
     expect(AgentProposal.safeParse(result).success).toBe(true);
     expect(result.summary).not.toContain("STUB");
-    expect(result.items.filter((item) => item.kind === "attraction")).toHaveLength(2);
+    expect(result.items.filter((item) => item.kind === "attraction")).toHaveLength(1);
+    expect(result.items.length).toBeLessThanOrEqual(5);
     expect(result.items.find((item) => item.kind === "entry-health")?.detail).toContain(
       "Australian passport",
     );
@@ -96,7 +97,7 @@ describe("destination guide", () => {
       result.items.find((item) => item.kind === "weather-packing")?.detail ?? "";
 
     expect(entryHealth).toContain("Australian passport");
-    expect(entryHealth).toContain("official government sources");
+    expect(result.assumptions.join(" ")).toContain("official government sources");
     expect(weatherPacking).toContain("planning context only");
     expect(result.assumptions.join(" ")).toContain("not a forecast");
   });

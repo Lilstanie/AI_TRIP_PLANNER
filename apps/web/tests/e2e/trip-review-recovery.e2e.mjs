@@ -300,14 +300,16 @@ try {
           );
           await openTrip();
           page.once("dialog", (dialog) => dialog.dismiss());
-          await page.getByRole("button", { name: "Ask AI about this day", exact: true }).click();
+          await page.getByRole("button", { name: "Day 1 actions", exact: true }).click();
+          await page.getByRole("menuitem", { name: "Ask AI", exact: true }).click();
           assert.equal(requests.length, 1);
           assert.equal(
             await page.getByRole("region", { name: "Trip timeline", exact: true }).isVisible(),
             true,
           );
           page.once("dialog", (dialog) => dialog.accept());
-          await page.getByRole("button", { name: "Ask AI about this day", exact: true }).click();
+          await page.getByRole("button", { name: "Day 1 actions", exact: true }).click();
+          await page.getByRole("menuitem", { name: "Ask AI", exact: true }).click();
           await page.getByRole("button", { name: "Retry update", exact: true }).waitFor();
           assert.equal(requests.length, 2);
           assert.match(requests[1].message, /Day 1/);

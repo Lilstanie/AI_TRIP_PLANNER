@@ -248,11 +248,12 @@ async function run(size, viewport) {
         .getByRole("button", { name: /^Chats\b/ })
         .first()
         .click();
-      await page.getByRole("button", { name: "New chat", exact: true }).waitFor();
+      await page.getByRole("button", { name: "New trip", exact: true }).waitFor();
       await page.clock.install();
       await input.fill("flushed before switching");
       await page.clock.runFor(50);
-      await page.getByRole("button", { name: "New chat", exact: true }).click();
+      await page.getByRole("button", { name: "New trip", exact: true }).click();
+      await page.keyboard.press("Escape");
       assert.equal(
         await page.evaluate(
           (key) =>

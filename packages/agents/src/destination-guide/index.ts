@@ -18,6 +18,7 @@ import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembe
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
+import { firstSentence } from "./first-sentence";
 import {
   gatherWeatherEvidence,
   weatherPacking,
@@ -32,12 +33,12 @@ const GuideAttraction = z.object({
 
 const DestinationGuideDraft = z.object({
   summary: z.string().trim().min(1).max(400),
-  attractions: z.array(GuideAttraction).max(5),
+  attractions: z.array(GuideAttraction).max(1),
   customs: z.array(z.string().trim().min(1).max(400)).min(1).max(4),
   safety: z.array(z.string().trim().min(1).max(400)).min(1).max(4),
   entryHealth: z.array(z.string().trim().min(1).max(400)).min(1).max(4),
   weather: z.string().trim().min(1).max(500),
-  packing: z.array(z.string().trim().min(1).max(300)).min(1).max(6),
+  packing: z.array(z.string().trim().min(1).max(80)).min(1).max(4),
   assumptions: z.array(z.string().trim().min(1).max(400)).max(6),
 });
 
@@ -60,13 +61,13 @@ export function fitDraft(draft: z.infer<typeof ModelGuideDraft>): DestinationGui
   return DestinationGuideDraft.parse({
     summary: clip(draft.summary, 400),
     attractions: draft.attractions
-      .slice(0, 5)
+      .slice(0, 1)
       .map(({ name, detail }) => ({ name, detail: clip(detail, 500) })),
     customs: each(draft.customs, 4, 400),
     safety: each(draft.safety, 4, 400),
     entryHealth: each(draft.entryHealth, 4, 400),
     weather: clip(draft.weather, 500),
-    packing: each(draft.packing, 6, 300),
+    packing: each(draft.packing, 4, 80),
     assumptions: each(draft.assumptions, 6, 400),
   });
 }
@@ -128,14 +129,13 @@ function fallbackDraft(
   language: InterfaceLanguage | undefined,
   weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
-  const { pace, interests, accessibility } = rememberedPlanningPreferences(preferences);
-  const attractionLimit = pace.includes("relaxed") ? 3 : pace.includes("packed") ? 5 : 4;
+  const { interests, accessibility } = rememberedPlanningPreferences(preferences);
   const rankedPlaces = rankPlacesByInterests(places, interests);
   const copy = summaryCopy(language);
   const packing = weatherPacking(weatherEvidence, language);
   return {
     summary: copy.guide(brief.destination, brief.dates[0]),
-    attractions: rankedPlaces.slice(0, attractionLimit).map((place) => ({
+    attractions: rankedPlaces.slice(0, 1).map((place) => ({
       name: place.name,
       detail: copy.attraction(place.category, place.rating),
     })),
@@ -146,11 +146,6 @@ function fallbackDraft(
     packing: [...(packing.length ? packing : [copy.packingLayers]), ...copy.packingBasics],
     assumptions: [
       "Destination-specific claims are limited to the validated evidence available.",
-      ...(pace
-        ? [
-            `The number of suggested attractions follows the remembered ${pace} preference where candidates are available.`,
-          ]
-        : []),
       ...(interests.length
         ? [
             `Grounded candidates matching remembered interests (${interests.join(", ")}) are preferred when available.`,
@@ -163,6 +158,12 @@ function fallbackDraft(
         : []),
     ],
   };
+}
+
+function withVerify(sentence: string, clause: string): string {
+  const stop = sentence.match(/[.。!?！？]+$/)?.[0] ?? "";
+  const body = stop ? sentence.slice(0, -stop.length) : sentence;
+  return `${body}${stop === "。" || /[\u4e00-\u9fff]$/.test(body) ? "；" : "; "}${clause}${stop || "."}`;
 }
 
 function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
@@ -182,7 +183,7 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
         model,
         tools: [evidence],
         systemPrompt:
-          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 5 attractions, each detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; packing 1-6 strings of at most 300 characters; assumptions at most 6 strings.\n\n" +
+          "You are the destination specialist. Always call read_destination_evidence before answering and use only its facts. Attraction names must be a grounded candidate's name copied character for character, with no category, rating or district appended. Give concise customs, packing and planning guidance. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. Use weatherEvidence to choose packing for the supplied conditions. Its forecast entries are dated forecasts; climate entries are historical context, never forecasts. Unavailable entries supply no weather facts. If no weather evidence is supplied, use monthly planning context only. Never assert entry eligibility, vaccine requirements or that an area is safe; direct travellers to current official immigration, health and travel-advisory sources. Never claim live opening hours or availability. Return the requested structured destination guide.\n\nThe traveller reads at most five short tips, so write for that: customs, safety, entryHealth and weather each lead with one complete sentence of at most 160 characters, and only that first sentence is shown. entryHealth names the passport and points to current official sources. Packing is 1-4 items of at most 80 characters each, no full sentences, shown as one comma-separated line.\n\nKeep within these lengths; longer text is cut at a sentence end: summary at most 400 characters; at most 1 attraction, its detail at most 500 characters; customs, safety and entryHealth are each 1-4 strings of at most 400 characters; weather at most 500 characters; assumptions at most 6 strings.\n\n" +
           TRAVELLER_PREFERENCES_RULE +
           replyLanguageRule(input.language),
         responseFormat: ModelGuideDraft,
@@ -264,32 +265,44 @@ async function planDestinationGuide(
     brief.dates[0].slice(0, 7) !== brief.dates[1].slice(0, 7)
       ? copy.monthScope(brief.dates[0], brief.dates[1])
       : "";
-  const packing = draft.packing.map((item) => item.replace(/[\s.!;,]+$/, "")).filter(Boolean);
+  const packing = draft.packing
+    .map((item) => item.replace(/[\s.!;,]+$/, ""))
+    .filter(Boolean)
+    .slice(0, 4);
+  const scoped = (text: string) =>
+    scope
+      ? `${scope.trim().replace(/[.。]$/, (stop) => (stop === "。" ? "：" : ": "))}${text}`
+      : text;
 
   return {
     agent: "destination-guide",
     summary: draft.summary,
     items: [
-      ...draft.attractions.map((attraction) => ({
+      ...draft.attractions.slice(0, 1).map((attraction) => ({
         kind: "attraction",
         location: attraction.name,
-        detail: `${attraction.name}: ${attraction.detail}`,
+        detail: firstSentence(`${attraction.name}: ${attraction.detail}`),
       })),
-      { kind: "customs", detail: draft.customs.join(" ") },
-      { kind: "safety", detail: scope + draft.safety.join(" ") },
+      { kind: "customs", detail: firstSentence(draft.customs.join(" ")) },
+      { kind: "safety", detail: scoped(firstSentence(draft.safety.join(" "))) },
       {
         kind: "entry-health",
-        detail: `${scope}${draft.entryHealth.join(" ")}${copy.entryHealthVerify}`,
+        detail: scoped(
+          withVerify(firstSentence(draft.entryHealth.join(" ")), copy.entryHealthShort),
+        ),
       },
       {
         kind: "weather-packing",
-        detail: weatherEvidence.length
-          ? weatherText(weatherEvidence, ctx.replyLanguage)
-          : scope + draft.weather,
+        detail: scoped(
+          weatherEvidence.length
+            ? weatherText(weatherEvidence, ctx.replyLanguage)
+            : firstSentence(draft.weather),
+        ),
         packing,
       },
     ],
     assumptions: [
+      copy.entryHealthVerify.trim(),
       mockEnabled()
         ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
         : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",

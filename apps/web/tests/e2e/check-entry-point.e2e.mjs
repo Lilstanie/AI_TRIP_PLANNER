@@ -189,7 +189,8 @@ async function startNewTrip(page) {
     .first()
     .click();
   await settle(page, 400);
-  await page.getByRole("button", { name: "New chat", exact: true }).click();
+  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip", exact: true }).click();
+  await page.keyboard.press("Escape");
   await settle(page, 400);
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.locator(".msg-item--agent .msg-item__body").last().waitFor({ timeout: 180_000 });
@@ -239,8 +240,8 @@ async function main() {
         "1: Undo with an Idea in the plan shows no error",
       );
       check(
-        (await trip(page).locator(".timeline-ideas .timeline-stop").count()) >= 1,
-        "1: the Idea is still in Ideas after Undo",
+        (await trip(page).locator("button.timeline-ideas-chip").count()) === 1,
+        "1: the ideas chip is still shown after Undo",
       );
       summary.undoWithIdea = { before, restored };
       await page.screenshot({ path: `${OUT}/01-undo-with-idea.png` });

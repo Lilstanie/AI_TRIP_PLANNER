@@ -34,7 +34,7 @@ export function TrajectoryToolbar({
   t,
 }: TrajectoryToolbarProps) {
   return (
-    <div className={css.root} role="toolbar" aria-label={t("toolbar.aria")}>
+    <div className={`${css.root} glass-float`} role="toolbar" aria-label={t("toolbar.aria")}>
       <div className={css.inner}>
         <div className={css.actions}>
           <button

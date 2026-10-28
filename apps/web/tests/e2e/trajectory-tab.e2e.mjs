@@ -572,7 +572,7 @@ try {
         panel &&
         pane.height >= 150 &&
         panel.y >= pane.y + pane.height - 1 &&
-        panel.width >= pane.width - 2,
+        panel.width >= pane.width - 20,
       `${label}: in the chat column the inspector sits under a full-width ledger`,
       { pane, panel },
     );

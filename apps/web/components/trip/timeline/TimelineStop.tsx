@@ -19,11 +19,11 @@ import {
   ComposeIcon,
   MapPinIcon,
   RouteIcon,
+  SendIcon,
   SuitcaseIcon,
 } from "../../ui/icons";
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopPopover } from "./StopPopover";
-import { TripChatShortcut } from "./TripChatShortcut";
 import type { RowDrag } from "../useItineraryDrag";
 
 type Activity = ProposalItem & { id?: string };
@@ -33,10 +33,12 @@ type Panel = "" | "search";
 type Popover = "" | "time" | "details" | "comment" | "day";
 
 const PROGRESS = {
-  planned: { label: "Planned", action: "Mark as planned", notice: "{name} marked as planned." },
-  visited: { label: "Visited", action: "Mark as visited", notice: "{name} marked as visited." },
-  skipped: { label: "Skipped", action: "Mark as skipped", notice: "{name} marked as skipped." },
+  planned: { action: "Mark as planned", notice: "{name} marked as planned." },
+  visited: { action: "Mark as visited", notice: "{name} marked as visited." },
+  skipped: { action: "Mark as skipped", notice: "{name} marked as skipped." },
 } as const;
+
+const PROGRESS_TAG = { visited: "Visited", skipped: "Skipped" } as const;
 
 const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
   loading: "Finding this place…",
@@ -111,6 +113,15 @@ export function TimelineStop({
   const name = place?.displayName?.text ?? activity.location ?? activity.detail;
   const confirmed = !!activity.placeId;
   const matched = !confirmed && status === "located" && !!place;
+  const placeTag = confirmed
+    ? null
+    : matched
+      ? saveState === "failed"
+        ? { className: "timeline-tag timeline-tag--warn", text: t("Place not saved yet") }
+        : { className: "timeline-tag", text: t("Saving place…") }
+      : STATUS_TEXT[status]
+        ? { className: "timeline-tag timeline-tag--warn", text: t(STATUS_TEXT[status]!) }
+        : null;
   const [start, setStart] = useState(activity.startTime ?? "");
   const [end, setEnd] = useState(activity.endTime ?? "");
   const [popover, setPopover] = useState<Popover>("");
@@ -219,6 +230,22 @@ export function TimelineStop({
       );
       return items;
     }
+    const askItem: ActionMenuItem[] = onAskAI
+      ? [
+          {
+            label: t("Ask AI"),
+            icon: <SendIcon />,
+            disabled: locked,
+            onSelect: () =>
+              onAskAI(
+                t(
+                  "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.",
+                  { v0: name, v1: activity.day! },
+                ),
+              ),
+          },
+        ]
+      : [];
     items.push(
       {
         label: t("Adjust schedule"),
@@ -228,6 +255,7 @@ export function TimelineStop({
       },
       detailsItem,
       commentItem,
+      ...askItem,
       {
         label: t("Move to ideas"),
         icon: <SuitcaseIcon />,
@@ -383,27 +411,14 @@ export function TimelineStop({
             <span className="timeline-stop__meta">
               {suggestion ? (
                 <span className="timeline-tag">{t("Restaurant suggestion")}</span>
-              ) : confirmed ? (
-                <span className="timeline-tag timeline-tag--ok">{t("Place confirmed")}</span>
-              ) : matched && saveState === "failed" ? (
-                <span className="timeline-tag timeline-tag--warn">{t("Place not saved yet")}</span>
-              ) : matched ? (
-                <span className="timeline-tag">{t("Saving place…")}</span>
               ) : (
-                <span className="timeline-tag timeline-tag--warn">
-                  {STATUS_TEXT[status] ? t(STATUS_TEXT[status]!) : ""}
-                </span>
+                placeTag && <span className={placeTag.className}>{placeTag.text}</span>
               )}
               {place?.id.startsWith("osm:") && <span className="timeline-tag">OpenStreetMap</span>}
-              {!suggestion && (
-                <span className="timeline-tag">
-                  {t(PROGRESS[activity.progress ?? "planned"].label)}
-                </span>
+              {!suggestion && activity.progress && activity.progress !== "planned" && (
+                <span className="timeline-tag">{t(PROGRESS_TAG[activity.progress])}</span>
               )}
               {activity.booked && <span className="timeline-tag">{t("Booked")}</span>}
-              {activity.priceNeedsReview && (
-                <span className="timeline-tag timeline-tag--warn">{t("Price needs checking")}</span>
-              )}
             </span>
           </button>
           <ActionMenu
@@ -414,9 +429,6 @@ export function TimelineStop({
             items={menu()}
           />
         </div>
-        {activity.day !== undefined && onAskAI && (
-          <TripChatShortcut day={activity.day} stop={name} onSend={onAskAI} />
-        )}
         {conflicts.length > 0 && (
           <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
             {conflicts.map((notice, index) => (

@@ -2,7 +2,8 @@
 import { useEffect, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
-import { ChatViewTabs, type ChatView } from "../chat/ChatViewTabs";
+import { ChatViewTabs } from "../chat/ChatViewTabs";
+import { useTrajectoryFocus } from "../chat/trajectory-focus";
 import { useTripUndo } from "../trip/useTripUndo";
 import { TripEditor } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
@@ -46,7 +47,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
-  const [chatView, setChatView] = useState<ChatView>("conversation");
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const {
     plan,
@@ -102,6 +102,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { keyboardOpen } = usePhoneKeyboard(phone);
   const { tripUpdated } = usePhoneTripUpdates(model);
   usePhoneBack(phone);
+  const { focus: teamFocus } = useTrajectoryFocus();
+  const seenFocus = useRef(teamFocus?.nonce ?? 0);
+  useEffect(() => {
+    if (!teamFocus || teamFocus.nonce === seenFocus.current) return;
+    seenFocus.current = teamFocus.nonce;
+    if (!phone) layout.showChatView("trajectory");
+  }, [teamFocus, phone, layout]);
   const wasPhone = useRef(phone);
   useEffect(() => {
     if (wasPhone.current && !phone && mobileView === "trip") openTrip();
@@ -207,9 +214,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const sendFromTrip = (message: string) => {
     if (!session.send(message)) return;
-    closeTrip();
     layout.selectView("chat");
-    setChatView("conversation");
+    layout.showChatView("conversation");
   };
 
   const selectMapStop = (id: string) => {
@@ -267,11 +273,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         chatsOpen={false}
         chatCount={catalog.conversations.length}
         tripCount={catalog.trips.length}
-        onChats={() => undefined}
         onTrips={showTrips}
         onCalendar={showCalendar}
         onNewTrip={swap(session.newTrip)}
-        onNewChat={swap(session.newChat)}
         tripsView={tripsTab}
         onSettings={openSettings}
         saveState={saveState}
@@ -391,7 +395,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           onTrips={showTrips}
           onCalendar={showCalendar}
           onNewTrip={swap(session.newTrip)}
-          onNewChat={swap(session.newChat)}
           tripsView={tripsTab}
           onSettings={openSettings}
           saveState={saveState}
@@ -458,8 +461,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             ) : (
               <div className="topbar-leading">
                 <ChatViewTabs
-                  view={chatView}
-                  onChoose={setChatView}
+                  view={layout.chatView}
+                  onChoose={layout.showChatView}
                   className="topbar-chat-tabs chat__tabs"
                 />
                 <TeamControl
@@ -667,8 +670,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     showTabs={false}
                     blankUntouched={untouched}
                     conversationId={history.catalog.activeConversationId}
-                    view={chatView}
-                    onViewChange={setChatView}
+                    view={layout.chatView}
+                    onViewChange={layout.showChatView}
                     onAttachFiles={composerAttachments.addFiles}
                     attachments={composerAttachments.attachments}
                     onRemoveAttachment={composerAttachments.removeAttachment}

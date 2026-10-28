@@ -35,7 +35,8 @@ try {
     else await page.getByRole("button", { name: "打开你的行程" }).click();
     await page.locator(".trip-panel").waitFor();
     check(
-      await page.getByText("预计总额", { exact: true }).isVisible(),
+      (await page.getByText("行程预算", { exact: true }).count()) === 1 &&
+        (await page.locator(".trip-panel__budget-summary .budget-status").isVisible()),
       `${width}: trip summary Chinese`,
     );
     const english =

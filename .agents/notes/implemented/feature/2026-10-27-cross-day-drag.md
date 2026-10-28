@@ -2,6 +2,7 @@
 
 Status: implemented
 Owner: spec #743, ticket #749
+Superseded in part: the always-shown Ideas section above the day strip and dragging an Idea out, by [Ideas as an "N ideas" chip](2026-10-28-ideas-chip.md).
 
 ## Problem
 

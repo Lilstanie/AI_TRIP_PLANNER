@@ -218,12 +218,10 @@ try {
     const waitDay = (name, day) => waitUntil(async () => (await dayOf(name)) === day, 10_000);
     const dayPanel = timeline.locator(".timeline-day");
     const rows = dayPanel.locator(".timeline-stop");
-    const ideas = timeline.locator(".timeline-ideas");
-    const ideaRows = ideas.locator(".timeline-stop");
+    const ideasChip = timeline.locator("button.timeline-ideas-chip");
     const rowIn = (scope, name) =>
       scope.filter({ has: page.locator(".timeline-stop__name", { hasText: name }) }).first();
     const row = (name) => rowIn(rows, name);
-    const ideaRow = (name) => rowIn(ideaRows, name);
     const names = async (scope) =>
       (await scope.locator(".timeline-stop__name").allTextContents()).map((text) =>
         text.replace(/^Stop \d+:\s*/, "").trim(),
@@ -307,18 +305,18 @@ try {
       );
     };
 
-    const ideasBox = await ideas.boundingBox();
+    const chipBox = await ideasChip.boundingBox();
     const stripBox = await strip.boundingBox();
     const titleBox = await dayPanel.locator("#timeline-day-title").boundingBox();
     check(
-      !!ideasBox && ideasBox.y < stripBox.y && ideasBox.y < titleBox.y,
-      `the Ideas section sits above Day 1 at ${tag}`,
-      { ideas: ideasBox?.y, strip: stripBox.y, title: titleBox.y },
+      !!chipBox && chipBox.y < stripBox.y && chipBox.y < titleBox.y,
+      `the ideas chip sits above Day 1 at ${tag}`,
+      { chip: chipBox?.y, strip: stripBox.y, title: titleBox.y },
     );
     check(
-      (await names(ideaRows)).join() === "Fir" && (await shownNames()).join() === NAMES.join(),
-      `the fixture has one Idea and four stops on Day 1 at ${tag}`,
-      { ideas: await names(ideaRows), day: await shownNames() },
+      (await ideasChip.innerText()) === "1 idea" && (await shownNames()).join() === NAMES.join(),
+      `the fixture has one idea and four stops on Day 1 at ${tag}`,
+      { chip: await ideasChip.innerText(), day: await shownNames() },
     );
 
     let before = requestCount();
@@ -391,12 +389,11 @@ try {
 
     before = requestCount();
     await begin(rows, "Birch");
-    const zone = await centre(ideas.locator("ol"));
+    const zone = await centre(ideasChip);
     await go(zone.x, zone.y);
     check(
-      (await ideas.getAttribute("data-drop-target")) === "true" &&
-        (await ideas.locator(".timeline-drop-line").count()) === 1,
-      `Ideas is marked as the target with a line while dragging a stop at ${tag}`,
+      (await ideasChip.getAttribute("data-drop-target")) === "true",
+      `the ideas chip is marked as the target while dragging a stop at ${tag}`,
     );
     await page.screenshot({ path: resolve(out, `to-ideas-${viewport.width}.png`), fullPage: true });
     await release();
@@ -414,74 +411,13 @@ try {
       { requests: requestCount() - before },
     );
     check(
-      (await waitUntil(async () => (await names(ideaRows)).join() === "Fir,Birch", 5000)) &&
+      (await waitUntil(async () => (await ideasChip.innerText()) === "2 ideas", 5000)) &&
         (await shownNames()).join() === "Alder,Cedar,Dogwood" &&
         (await shownNumbers()).join() === "1,2,3",
-      `Ideas lists the stop and Day 1 renumbers at ${tag}`,
-      { ideas: await names(ideaRows), day: await shownNames() },
+      `the chip counts the stop and Day 1 renumbers at ${tag}`,
+      { chip: await ideasChip.innerText(), day: await shownNames() },
     );
     await restored("a drop on Ideas");
-
-    before = requestCount();
-    await begin(ideaRows, "Fir");
-    await toChip(3);
-    await release();
-    check(await waitDay("Fir", 3), `an Idea dropped on a day is scheduled there at ${tag}`);
-    const scheduled = await itemOf("Fir");
-    check(
-      requestCount() === before + 1 &&
-        requests("schedule").at(-1)?.operation.day === 3 &&
-        !!scheduled.startTime &&
-        !!scheduled.endTime,
-      `scheduling an Idea by drop is one edit with times at ${tag}`,
-      { requests: requestCount() - before, start: scheduled.startTime },
-    );
-    check(
-      (await ideaRows.count()) === 0,
-      `the scheduled Idea leaves the Ideas section at ${tag}`,
-      await names(ideaRows),
-    );
-    await restored("scheduling an Idea");
-    check(
-      (await names(ideaRows)).join() === "Fir",
-      `Undo returns the Idea to Ideas at ${tag}`,
-      await names(ideaRows),
-    );
-
-    before = requestCount();
-    await begin(ideaRows, "Fir");
-    const cedar = await centre(row("Cedar"));
-    await go(cedar.x, cedar.box.y + cedar.box.height * 0.25);
-    const dogwood = await row("Dogwood").boundingBox();
-    check(
-      (await line.count()) === 1 && (await line.first().boundingBox()).y >= dogwood.y,
-      `an Idea over the open day shows the line at the end of the day at ${tag}`,
-      { line: (await line.first().boundingBox())?.y, dogwood: dogwood.y },
-    );
-    await release();
-    check(await waitDay("Fir", 1), `an Idea dropped on the open day is scheduled on it at ${tag}`);
-    check(
-      (await waitUntil(
-        async () => (await shownNames()).join() === "Alder,Birch,Cedar,Dogwood,Fir",
-        5000,
-      )) && (await shownNumbers()).join() === "1,2,3,4,5",
-      `the open day lists the Idea last with refreshed numbers at ${tag}`,
-      { names: await shownNames(), numbers: await shownNumbers() },
-    );
-    await restored("scheduling an Idea on the open day");
-
-    before = requestCount();
-    await begin(ideaRows, "Fir");
-    await toChip(4);
-    await release();
-    await sleep(800);
-    check(
-      JSON.stringify(core(await saved())) === baseline &&
-        (await page.getByText(/no room left/i).count()) > 0 &&
-        (await names(ideaRows)).join() === "Fir",
-      `an Idea dropped on a full day is refused with a notice and stays in Ideas at ${tag}`,
-      await page.locator("[role=alert]").allInnerTexts(),
-    );
 
     before = requestCount();
     await begin(rows, "Alder");
@@ -489,16 +425,10 @@ try {
     await release();
     await unchanged("a drop on the stop's own day chip", before);
     before = requestCount();
-    await begin(ideaRows, "Fir");
-    const own = await centre(ideas.locator("ol"));
-    await go(own.x, own.y);
-    await release();
-    await unchanged("an Idea dropped on Ideas", before);
-    before = requestCount();
     await begin(rows, "Alder");
     await go(pos.x, phone ? pos.y : 5);
     await release();
-    await unchanged("a release outside every day and Ideas", before);
+    await unchanged("a release outside every day and the chip", before);
     if (phone) {
       await chip(1).click();
       const clipped = await page.evaluate(() => {

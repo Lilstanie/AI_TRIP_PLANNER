@@ -217,7 +217,6 @@ try {
   await budgetPage.getByRole("button", { name: "Open your trip" }).click();
   await budgetPage.locator(".budget-status").waitFor();
   const budgetSummary = await budgetPage.locator(".trip-panel__budget-summary").innerText();
-  const budgetNote = await budgetPage.locator(".trip__budget-note").allTextContents();
   const budgetStatus = await budgetPage.locator(".budget-status").innerText();
   check(
     budgetStatus === "At budget · unpriced stops not counted",
@@ -229,9 +228,9 @@ try {
     "#435 exact budget with unpriced admissions uses the caution state",
   );
   check(
-    budgetNote.some((note) => /costs for stops without a published price \(\d+\)/i.test(note)),
+    /\d+ unpriced/.test(budgetSummary),
     "#435 unpriced stop costs are disclosed",
-    { budgetNote, budgetSummary },
+    budgetSummary,
   );
   check(!/AUD\s*0\s*under/i.test(budgetSummary), "#435 does not claim AUD 0 under budget");
   await budgetPage.locator(".trip-panel__budget-summary").scrollIntoViewIfNeeded();
@@ -409,13 +408,13 @@ try {
           .locator(".trip-tips__packing")
           .first()
           .evaluate((n) => ({
-            marker: getComputedStyle(n).listStyleType,
+            line: n.tagName === "P" && n.textContent.includes(", "),
             size: getComputedStyle(n).fontSize,
             paragraph: getComputedStyle(n.parentElement.querySelector("p")).fontSize,
           }));
         check(
-          packing.marker !== "none" && packing.size === packing.paragraph,
-          `${tag} #404 marked consistent packing list`,
+          packing.line && packing.size === packing.paragraph,
+          `${tag} #404 comma packing line, consistent size`,
           packing,
         );
         const days = await p.locator(".day-strip").evaluate((n) => ({

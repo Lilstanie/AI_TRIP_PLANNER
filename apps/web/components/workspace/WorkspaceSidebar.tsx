@@ -4,10 +4,8 @@ import { BrandMark } from "./BrandMark";
 import {
   CalendarIcon,
   ChatIcon,
-  ComposeIcon,
   MoreIcon,
   NewTripIcon,
-  PlusIcon,
   SidebarIcon,
   SuitcaseIcon,
 } from "../ui/icons";
@@ -35,7 +33,6 @@ function NavButton({
   expanded,
   controls,
   buttonRef,
-  action,
   onClick,
 }: {
   icon: ReactNode;
@@ -47,10 +44,9 @@ function NavButton({
   expanded?: boolean;
   controls?: string;
   buttonRef?: Ref<HTMLButtonElement>;
-  action?: { icon: ReactNode; label: string; onClick(): void };
   onClick(): void;
 }) {
-  const main = (
+  return (
     <button
       ref={buttonRef}
       type="button"
@@ -66,22 +62,6 @@ function NavButton({
       {!collapsed && <span className="sidebar-nav__label">{label}</span>}
       {!collapsed && count !== undefined && <span className="sidebar-nav__count">{count}</span>}
     </button>
-  );
-  if (!action) return main;
-  return (
-    <div className="sidebar-nav__row">
-      {main}
-      <button
-        type="button"
-        className="sidebar-nav__action"
-        aria-label={action.label}
-        title={collapsed ? undefined : action.label}
-        data-tooltip={collapsed ? action.label : undefined}
-        onClick={action.onClick}
-      >
-        {action.icon}
-      </button>
-    </div>
   );
 }
 
@@ -189,7 +169,6 @@ export function WorkspaceSidebar({
   onTrips,
   onCalendar,
   onNewTrip,
-  onNewChat,
   chatsButton,
   onSettings,
   saveState,
@@ -206,12 +185,11 @@ export function WorkspaceSidebar({
   chatCount: number;
   tripCount: number;
 
-  onChats(): void;
+  onChats?(): void;
 
   onTrips(): void;
   onCalendar(): void;
   onNewTrip(): void;
-  onNewChat(): void;
 
   chatsButton?: Ref<HTMLButtonElement>;
 
@@ -252,7 +230,7 @@ export function WorkspaceSidebar({
           collapsed={isCollapsed}
           onClick={onNewTrip}
         />
-        {collapsible ? (
+        {onChats && (
           <NavButton
             buttonRef={chatsButton}
             icon={<ChatIcon filled={chatsOpen} />}
@@ -263,14 +241,6 @@ export function WorkspaceSidebar({
             expanded={chatsOpen}
             controls="chats-panel"
             onClick={onChats}
-            action={{ icon: <PlusIcon />, label: t("New chat"), onClick: onNewChat }}
-          />
-        ) : (
-          <NavButton
-            icon={<ComposeIcon />}
-            label={t("New chat")}
-            collapsed={isCollapsed}
-            onClick={onNewChat}
           />
         )}
         <NavButton

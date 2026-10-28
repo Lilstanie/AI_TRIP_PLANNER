@@ -9,11 +9,13 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.rdp-day_button)
     .composer__primary
   ):not(.question__icon-button):not(.question__option):not(.question__button):not(
     .attachment-chip__remove
-  ):not(.timeline-stop__main):not(.settings-pill):not(.settings-switch):not(.settings-tab):not(
-    .memory-row__main
-  ):not(.memory-row__answer):not(.settings-text-button):not(.agent-lab__trace-block):not(
-    .team-panel__press
-  ):not(.thinking-row__toggle):not(.thinking-row__summary-button):not(.chat__tab):not(.msg-action) {
+  ):not(.timeline-stop__main):not(.timeline-stop__time):not(.settings-pill):not(
+    .settings-switch
+  ):not(.settings-tab):not(.memory-row__main):not(.memory-row__answer):not(
+    .settings-text-button
+  ):not(.agent-lab__trace-block):not(.team-panel__press):not(.thinking-row__toggle):not(
+    .thinking-row__summary-button
+  ):not(.chat__tab):not(.msg-action):not(.timeline-ideas-chip) {
   min-height: 36px;
 }
 button:disabled {
@@ -29,11 +31,13 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
     .question__option
   ):not(.question__button):not(.attachment-chip__remove):not(.day-strip__day):not(
     .timeline-stop__main
-  ):not(.settings-chip):not(.settings-pill):not(.settings-switch):not(.settings-tab):not(
-    .memory-row__main
-  ):not(.memory-row__answer):not(.settings-text-button):not(.agent-lab__trace-block):not(
-    .team-panel__press
-  ):not(.thinking-row__toggle):not(.thinking-row__summary-button):not(.chat__tab):not(.msg-action) {
+  ):not(.timeline-stop__time):not(.settings-chip):not(.settings-pill):not(.settings-switch):not(
+    .settings-tab
+  ):not(.memory-row__main):not(.memory-row__answer):not(.settings-text-button):not(
+    .agent-lab__trace-block
+  ):not(.team-panel__press):not(.thinking-row__toggle):not(.thinking-row__summary-button):not(
+    .chat__tab
+  ):not(.msg-action) {
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--button-bg, var(--fill-hover));

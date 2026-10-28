@@ -249,7 +249,10 @@ async function scanStops(page) {
   return stops;
 }
 
-const isConfirmed = (stop) => stop.tags.includes("Place confirmed");
+const isConfirmed = (stop) =>
+  ![UNCONFIRMED, RETRYABLE, "Place not saved yet", "Saving place…"].some((tag) =>
+    stop.tags.includes(tag),
+  );
 const sameStop = (a, b) => a.day === b.day && a.row === b.row;
 
 async function openStop(page, stop) {

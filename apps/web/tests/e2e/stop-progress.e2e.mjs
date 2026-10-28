@@ -63,7 +63,8 @@ try {
     await page.setViewportSize({ width, height: 1000 });
     if (width === 390) await page.getByRole("tab", { name: /^Trip/ }).click();
     const row = page.locator(".timeline-stop").filter({ hasText: "Museum visit" }).first();
-    await row.getByText("Planned", { exact: true }).waitFor();
+    assert.equal(await row.getByText("Planned", { exact: true }).count(), 0);
+    assert.equal(await row.getByText(/^(Visited|Skipped)$/).count(), 0);
     results.push({ width, defaultState: "planned" });
     for (const [state, label] of [
       ["visited", "Visited"],
@@ -72,7 +73,10 @@ try {
     ]) {
       await row.getByRole("button", { name: /Actions for/ }).click();
       await page.getByRole("menuitem", { name: `Mark as ${state}`, exact: true }).click();
-      await row.getByText(label, { exact: true }).waitFor();
+      if (state === "planned")
+        await row.getByText(/^(Visited|Skipped)$/).waitFor({ state: "hidden" });
+      else await row.getByText(label, { exact: true }).waitFor();
+      assert.equal(await row.getByText("Planned", { exact: true }).count(), 0);
       const nextRow = page.locator(".timeline-stop").filter({ hasText: "Gallery visit" }).first();
       assert.equal(
         await nextRow.locator(".timeline-stop__main").getAttribute("aria-expanded"),
@@ -107,7 +111,10 @@ try {
       await page.locator(".trip-card").first().click();
       if (width === 390) await page.getByRole("tab", { name: /^Trip/ }).click();
       else await page.getByRole("button", { name: "Open your trip", exact: true }).click();
-      await row.getByText(label, { exact: true }).waitFor();
+      if (state === "planned")
+        await row.getByText(/^(Visited|Skipped)$/).waitFor({ state: "hidden" });
+      else await row.getByText(label, { exact: true }).waitFor();
+      assert.equal(await row.getByText("Planned", { exact: true }).count(), 0);
       assert.equal(
         await row.locator(".timeline-stop__main").getAttribute("aria-expanded"),
         "false",
@@ -132,13 +139,13 @@ try {
   await page.keyboard.press("Enter");
   await keyboardRow.getByText("Visited", { exact: true }).waitFor();
   await page.getByRole("button", { name: "Undo", exact: true }).click();
-  await keyboardRow.getByText("Planned", { exact: true }).waitFor();
+  await keyboardRow.getByText("Visited", { exact: true }).waitFor({ state: "hidden" });
   results.push({ keyboardActivation: true, undo: true });
   await page.getByRole("button", { name: "Close your trip", exact: true }).click();
   await page.getByRole("button", { name: "Switch language to 简体中文" }).click();
   await page.getByRole("button", { name: "打开你的行程", exact: true }).click();
   const row = page.locator(".timeline-stop").filter({ hasText: "Museum visit" }).first();
-  await row.getByText("待游览", { exact: true }).waitFor();
+  assert.equal(await row.getByText(/^(待游览|已游览|已跳过)$/).count(), 0);
   await row
     .getByRole("button", { name: /Museum visit/ })
     .last()
@@ -147,7 +154,7 @@ try {
   await row.getByText("已游览", { exact: true }).waitFor();
   await page.screenshot({ path: `${out}/zh-visited.png`, fullPage: true });
   await page.getByRole("button", { name: "撤销", exact: true }).click();
-  await row.getByText("待游览", { exact: true }).waitFor();
+  await row.getByText("已游览", { exact: true }).waitFor({ state: "hidden" });
   results.push({ locale: "zh", undo: true });
   await page.evaluate((key) => {
     const catalog = JSON.parse(localStorage.getItem(key));
@@ -164,7 +171,7 @@ try {
   await page.locator(".sidebar-nav").getByRole("button", { name: /^行程/ }).click();
   await page.locator(".trip-card").first().click();
   await page.getByRole("button", { name: "打开你的行程", exact: true }).click();
-  await row.getByText("待游览", { exact: true }).waitFor();
+  await row.getByText(/^(待游览|已游览|已跳过)$/).waitFor({ state: "hidden" });
   results.push({ invalidSavedProgress: "planned" });
   assert.deepEqual(errors, []);
 } catch (error) {

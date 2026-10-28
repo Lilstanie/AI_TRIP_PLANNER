@@ -32,9 +32,9 @@ const LANGS = {
     trips: /^Trips\b/,
     changeTime: "Change time",
     moveToPrevDay: "Move to previous day",
-    scheduleOnDay: "Schedule on a day",
-    schedule: "Schedule",
-    restaurant: "Restaurant suggestion",
+    addPanel: "Add to trip",
+    ideas: "Ideas",
+    add: "Add",
   },
   zh: {
     locale: "zh-CN",
@@ -45,9 +45,9 @@ const LANGS = {
     trips: /^行程/,
     changeTime: "修改时间",
     moveToPrevDay: "移至前一天",
-    scheduleOnDay: "安排到某一天",
-    schedule: "安排日期",
-    restaurant: "餐厅建议",
+    addPanel: "添加到行程",
+    ideas: "备选地点",
+    add: "添加",
   },
 };
 
@@ -441,8 +441,8 @@ async function walk(browser, { width, lang }) {
     `${run}: no stop shows a "Use this place" or "Confirm" box`,
   );
 
-  runSummary.measures.placeConfirmedTags =
-    lang === "en" ? allStops.filter((stop) => stop.tags.includes("Place confirmed")).length : null;
+  runSummary.measures.untaggedStops =
+    lang === "en" ? allStops.filter((stop) => stop.tags.length === 0).length : null;
   await dayTab(page, 1).click();
   await settle(page, 400);
   await shot("01-planned");
@@ -690,35 +690,23 @@ async function walk(browser, { width, lang }) {
   runSummary.measures.stay = { costBefore, costAfter, totalBefore, totalAfter };
   await shot("05-stay-alternative");
 
-  const restaurantIdea = () =>
-    page
-      .locator(".timeline-ideas li.timeline-stop--idea")
-      .filter({ hasText: L.restaurant })
-      .first();
-  const ideasBefore = await page.locator(".timeline-ideas li.timeline-stop--idea").count();
-  const idea = restaurantIdea();
-  const ideaName = await idea.locator(".timeline-stop__name").evaluate((node) =>
-    [...node.childNodes]
-      .filter((n) => !(n.nodeType === 1 && n.classList.contains("sr-only")))
-      .map((n) => n.textContent)
-      .join("")
-      .trim(),
-  );
-  check(
-    ideasBefore >= 1 && (await idea.count()) === 1,
-    `${run}: Ideas list a restaurant suggestion (${ideaName})`,
-  );
-  await idea.locator(".action-menu__trigger").click();
-  await page.getByRole("menuitem", { name: L.scheduleOnDay, exact: true }).click();
-  await trip.locator(".stop-popover select").selectOption("2");
-  await trip.locator(".stop-popover button[type=submit]").click();
-  await settle(page, 700);
-  check(
-    (await page.locator(".timeline-ideas li.timeline-stop--idea").count()) === ideasBefore - 1,
-    `${run}: scheduling takes the restaurant out of Ideas`,
-  );
+  const chip = trip.locator("button.timeline-ideas-chip");
+  const chipCount = async () =>
+    (await chip.count()) ? Number((await chip.innerText()).match(/\d+/)?.[0]) : 0;
+  const ideasBefore = await chipCount();
+  check(ideasBefore >= 1, `${run}: the ideas chip counts a restaurant suggestion (${ideasBefore})`);
   await dayTab(page, 2).click();
   await settle(page, 400);
+  await chip.click();
+  const addPanel = trip.getByRole("region", { name: L.addPanel });
+  const firstIdea = addPanel.getByRole("list", { name: L.ideas }).locator("li").first();
+  const ideaName = (await firstIdea.locator("strong").innerText()).trim();
+  await firstIdea.getByRole("button", { name: L.add, exact: true }).click();
+  await settle(page, 700);
+  check(
+    (await chipCount()) === ideasBefore - 1,
+    `${run}: scheduling takes the restaurant out of the ideas`,
+  );
   const onDay2 = await readDay(page);
   check(
     stopsOf(onDay2).some((row) => row.name === ideaName),
@@ -726,10 +714,7 @@ async function walk(browser, { width, lang }) {
   );
   await shot("06-idea-scheduled");
   await clickUndo(page);
-  check(
-    (await page.locator(".timeline-ideas li.timeline-stop--idea").count()) === ideasBefore,
-    `${run}: Undo puts the restaurant back in Ideas`,
-  );
+  check((await chipCount()) === ideasBefore, `${run}: Undo puts the restaurant back in the ideas`);
   await dayTab(page, 2).click();
   await settle(page, 400);
   check(

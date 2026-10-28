@@ -398,13 +398,24 @@ stay beside the scenario they verify. [Coverage ownership](../.agents/notes/impl
 records the assertion consolidation boundaries.
 
 `apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` runs the whole Mindtrip itinerary interaction in one
-journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and to Ideas
-and back, every Stop, Idea, Day and Itinerary menu item, the Add to trip panel from a day and from Ideas on
-each tab, Undo after each change, Leg distances, Directions and Show distances off and on. Screenshots and
+journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and onto the ideas
+chip, every Stop, Day and Itinerary menu item, the Add to trip panel from a day and from the ideas chip on
+each tab, Undo after each change, Leg distances and Directions. Screenshots and
 `result.json` land in `output/playwright/itinerary-walkthrough/after/`. It includes Edit title and Add note on a day.
 
 ```bash
 pnpm --filter @trip/web e2e itinerary-walkthrough --prod
+```
+
+`apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` runs the whole quiet itinerary panel of spec #755 on one saved
+Trip at desktop, phone and in Chinese: budget line, ideas chip, days and folded Travel tips in that order, the
+budget expand and collapse, Ask AI in the stop and day menus, quiet rows with no fills, tags or helper
+sentence, no Show distances, the chip as drop target with Undo, no plus beside Chats, Conversation and
+Trajectory with the Trip panel open, and the restyled Trajectory. Screenshots and `result.json` land in
+`output/playwright/quiet-walkthrough/after/`.
+
+```bash
+pnpm --filter @trip/web e2e quiet-walkthrough --prod
 ```
 
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one

@@ -51,6 +51,7 @@ const ENGLISH = {
     `Check current official immigration and public-health requirements${nationality ? ` for a ${nationality} passport` : " for each traveller's passport"}; requirements can change.`,
   entryHealthVerify:
     " Verify all entry and health rules against current official government sources before booking or departure.",
+  entryHealthShort: "check official sources",
   monthlyWeather: (date: string) =>
     `For ${month(date, "en")}, use this as planning context only and check an official short-range forecast shortly before departure.`,
   monthScope: (start: string, end: string) =>
@@ -107,6 +108,7 @@ const CHINESE: typeof ENGLISH = {
   entryHealth: (nationality) =>
     `请查看最新的官方入境与公共卫生要求${nationality ? `（${nationality} 护照）` : "（按每位旅行者的护照）"}；要求可能会变。`,
   entryHealthVerify: "预订或出发前，请以政府官方渠道的最新入境与健康规定为准。",
+  entryHealthShort: "以官方渠道为准",
   monthlyWeather: (date) => `${month(date, "zh-CN")}的天气仅作规划参考，出发前请查看官方短期预报。`,
   monthScope: (start, end) =>
     `以下仅为${monthYear(start, "zh-CN")}的规划参考；${monthYear(end, "zh-CN")}之前的其余月份请重新查看。`,

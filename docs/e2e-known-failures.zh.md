@@ -23,7 +23,6 @@
 | 脚本                 | 失败内容                                                                        | Issue |
 | -------------------- | ------------------------------------------------------------------------------- | ----- |
 | `timeline`           | 第一项检查后，截图一直等待不再渲染的 `.workspace-drawer--trip`。                | 暂无  |
-| `trip-add-stop`      | 通过 14 项检查后等待按钮 “Ask AI about this day”，随后超时。                    | 暂无  |
 | `auto-save-places`   | 通过 35 项检查后，“the priced stop raises the estimate” 失败：估算仍为空。      | 暂无  |
 | `drawer-walkthrough` | 规划后等待 `.workspace-drawer--trip .trip-editor`，随后超时。                   | 暂无  |
 | `itinerary`          | “Day 1 timeline is shown” 失败，且在 `.workspace-drawer--trip` 下找不到站点行。 | 暂无  |
@@ -31,6 +30,26 @@
 | `check-entry-point`  | 通过 28 项检查后等待文本框 “Message AI Trip Planner”，随后超时。                | 暂无  |
 | `notice-keys`        | 规划后等待 `.workspace-drawer--trip .trip-editor`，随后超时。                   | 暂无  |
 | `narrow-time-editor` | 在 1001 px 等待按钮 “Close your trip”，随后超时。                               | 暂无  |
+
+以下脚本在安静行程面板工作的未修改基线（2026-10-28）上失败，由各工单实现者在干净 worktree 中以 `pnpm --filter @trip/web e2e <script> --prod` 运行发现。它们不是安静面板工单造成的；各自的原因尚未调查。
+
+| 脚本                         | 检查日期   |
+| ---------------------------- | ---------- |
+| `activities-not-costed`      | 2026-10-28 |
+| `trip-ui-triage`             | 2026-10-28 |
+| `budget-source-replacement`  | 2026-10-28 |
+| `trip-display-currency`      | 2026-10-28 |
+| `display-currency`           | 2026-10-28 |
+| `reply-cost-line`            | 2026-10-28 |
+| `workspace-control-overflow` | 2026-10-28 |
+| `workspace-chinese`          | 2026-10-28 |
+| `stop-progress`              | 2026-10-28 |
+| `open-in-maps`               | 2026-10-28 |
+| `settings`                   | 2026-10-28 |
+| `workspace-performance`      | 2026-10-28 |
+| `trajectory-timeline`        | 2026-10-28 |
+| `cross-day-drag`             | 2026-10-28 |
+| `itinerary-walkthrough`      | 2026-10-28 |
 
 `phone-state` 的重新加载现在能恢复 Map：脚本在恢复循环前重新加载一次，因为陈旧编辑段落会让布局持久化暂停直到重新加载。这一暂停是产品缺口，记录在 `apps/web/tests/e2e/phone-state.failures.md`。
 

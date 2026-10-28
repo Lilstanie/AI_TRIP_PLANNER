@@ -309,15 +309,15 @@ async function interactions(browser) {
     const stops = timeline.locator(".timeline-day .timeline-stop");
     for (let stop = 0; stop < (await stops.count()); stop += 1) {
       const row = stops.nth(stop);
-      if (await row.locator(".timeline-tag--ok").count()) continue;
+      if (!(await row.locator(".timeline-tag").count())) continue;
       if (!(await row.locator(".stop-place-card").count()))
         await row.locator(".timeline-stop__main").click();
-      const saved = row.locator(".timeline-tag--ok");
-      await saved
+      const pending = row.locator(".timeline-tag");
+      await pending
         .first()
-        .waitFor({ timeout: 8_000 })
+        .waitFor({ state: "hidden", timeout: 8_000 })
         .catch(() => undefined);
-      if (!(await saved.count())) {
+      if (await pending.count()) {
         await row.getByRole("searchbox").fill(LANDMARKS[searches++ % LANDMARKS.length]);
         await row.getByRole("button", { name: "Search", exact: true }).click();
         const result = row.getByRole("button", { name: /^Use / }).first();
@@ -346,9 +346,12 @@ async function interactions(browser) {
   if (routeDay >= 0) {
     await confirmDay(routeDay);
     const stops = timeline.locator(".timeline-day .timeline-stop");
-    const confirmed = await timeline
-      .locator(".timeline-day .timeline-stop .timeline-tag--ok")
-      .count();
+    const confirmed =
+      (await stops.count()) -
+      (await timeline
+        .locator(".timeline-day .timeline-stop")
+        .filter({ has: page.locator(".timeline-tag") })
+        .count());
     check(
       confirmed === (await stops.count()),
       `every stop on the day is confirmed (${confirmed}/${await stops.count()})`,
@@ -485,8 +488,8 @@ async function interactions(browser) {
     await timeline.getByRole("menuitem", { name: "Move to ideas", exact: true }).click();
     await settle(page, 800);
     check(
-      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
-      "a stop moved to Ideas is listed there",
+      (await timeline.locator("button.timeline-ideas-chip").count()) === 1,
+      "a stop moved to Ideas shows the ideas chip",
     );
     const remaining = timeline.locator(".timeline-day .timeline-stop").first();
     const timeBeforeEdit = await remaining.innerText();
@@ -519,8 +522,8 @@ async function interactions(browser) {
       "Undo restores the time with an Idea in the plan",
     );
     check(
-      (await timeline.locator(".timeline-ideas .timeline-stop").count()) >= 1,
-      "the Idea is still in Ideas after Undo",
+      (await timeline.locator("button.timeline-ideas-chip").count()) === 1,
+      "the ideas chip is still shown after Undo",
     );
   }
 

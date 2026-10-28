@@ -26,7 +26,6 @@ drawer that the calmer workspace (#740) replaced.
 | Script               | What fails                                                                                                 | Issue    |
 | -------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
 | `timeline`           | After the first check the screenshot waits forever for `.workspace-drawer--trip`, which no longer renders. | none yet |
-| `trip-add-stop`      | After 14 checks it waits for the button "Ask AI about this day", then times out.                           | none yet |
 | `auto-save-places`   | After 35 checks "the priced stop raises the estimate" fails: the estimate stays empty.                     | none yet |
 | `drawer-walkthrough` | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
 | `itinerary`          | "Day 1 timeline is shown" fails and no stop rows are found under `.workspace-drawer--trip`.                | none yet |
@@ -34,6 +33,26 @@ drawer that the calmer workspace (#740) replaced.
 | `check-entry-point`  | After 28 checks it waits for the textbox "Message AI Trip Planner", then times out.                        | none yet |
 | `notice-keys`        | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
 | `narrow-time-editor` | Waits for the button "Close your trip" at 1001 px, then times out.                                         | none yet |
+
+The following scripts failed on the unmodified base of the quiet itinerary panel work (2026-10-28), found by the ticket implementers who ran them in a clean worktree as `pnpm --filter @trip/web e2e <script> --prod`. The quiet panel tickets did not cause them; the cause of each is not yet investigated.
+
+| Script                       | Checked    |
+| ---------------------------- | ---------- |
+| `activities-not-costed`      | 2026-10-28 |
+| `trip-ui-triage`             | 2026-10-28 |
+| `budget-source-replacement`  | 2026-10-28 |
+| `trip-display-currency`      | 2026-10-28 |
+| `display-currency`           | 2026-10-28 |
+| `reply-cost-line`            | 2026-10-28 |
+| `workspace-control-overflow` | 2026-10-28 |
+| `workspace-chinese`          | 2026-10-28 |
+| `stop-progress`              | 2026-10-28 |
+| `open-in-maps`               | 2026-10-28 |
+| `settings`                   | 2026-10-28 |
+| `workspace-performance`      | 2026-10-28 |
+| `trajectory-timeline`        | 2026-10-28 |
+| `cross-day-drag`             | 2026-10-28 |
+| `itinerary-walkthrough`      | 2026-10-28 |
 
 `phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
 

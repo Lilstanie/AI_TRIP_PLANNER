@@ -72,12 +72,10 @@ export function LegRow({
   from,
   to,
   locked = false,
-  showDistance = true,
   directions,
   onChoose,
 }: {
   connection: Connection;
-  showDistance?: boolean;
   directions?: string;
 
   from: string;
@@ -109,7 +107,7 @@ export function LegRow({
               )}
             </span>
           )}
-          {showDistance && connection.distance && (
+          {connection.distance && (
             <span className="timeline-connection__distance">· {connection.distance}</span>
           )}
           {connection.status !== "failed" && (

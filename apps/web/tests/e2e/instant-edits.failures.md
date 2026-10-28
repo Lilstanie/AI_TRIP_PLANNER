@@ -5,7 +5,7 @@ The agreed seam is the real Trip workspace in a browser at 1440x900 and 390x844 
 Each edit kind below is checked for three things: it lands without a confirm, the saved plan changes, and Undo restores the saved plan.
 
 - Choosing a search result in the Add to trip panel shows a form with Day, Start time, End time and an Add stop button instead of putting the place in the plan.
-- The Add to trip panel has no way to take a custom name and add it at once, or to park a place as an Idea, without the preview form.
+- The Add to trip panel has no way to take a custom name and add it at once without the preview form.
 - A suggested slot on a day whose last stop ends late wraps past midnight and is accepted as an early-morning stop, or the add fails with no notice.
 - Adding a place that is already on the day replaces or merges with the existing stop instead of adding a second stop.
 - Search with no results leaves the Add to trip panel open with no notice, or adds nothing and says nothing.

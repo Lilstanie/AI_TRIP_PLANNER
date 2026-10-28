@@ -2,6 +2,7 @@
 import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { MessageKey } from "@/lib/i18n/locale";
+import { MAX_TIPS, packingLine, tipSentence } from "@/lib/trip/tip-text";
 import { useLocale } from "../account/LocaleProvider";
 
 const KIND_LABEL: Record<string, MessageKey> = {
@@ -33,10 +34,13 @@ function rememberFolded(tripId: string, value: boolean) {
 }
 
 export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: boolean }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const items = (
     plan.sections.find((section) => section.id === "destination-guide")?.proposal?.items ?? []
-  ).filter((item) => item.detail.trim());
+  )
+    .filter((item) => item.detail.trim() || packingLine(item.packing, ""))
+    .slice(0, MAX_TIPS);
+  const separator = locale.startsWith("zh") ? "、" : ", ";
 
   const preference = useRef(savedFolded(plan.tripId));
   const [open, setOpen] = useState(() =>
@@ -66,13 +70,11 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
             <p className="trip-tips__kind">
               {KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]!) : item.kind}
             </p>
-            <p>{item.detail}</p>
-            {item.packing?.length ? (
-              <ul className="trip-tips__packing">
-                {item.packing.map((entry, entryIndex) => (
-                  <li key={entryIndex}>{entry}</li>
-                ))}
-              </ul>
+            {item.detail.trim() ? (
+              <p>{item.kind === "weather-packing" ? item.detail : tipSentence(item.detail)}</p>
+            ) : null}
+            {packingLine(item.packing, "") ? (
+              <p className="trip-tips__packing">{packingLine(item.packing, separator)}</p>
             ) : null}
           </li>
         ))}
