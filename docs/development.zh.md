@@ -287,6 +287,12 @@ pnpm --filter @trip/web e2e itinerary-walkthrough --prod
 pnpm --filter @trip/web e2e quiet-walkthrough --prod
 ```
 
+`apps/web/tests/e2e/trip-home-walkthrough.e2e.mjs` 在同一份本地目录上完整运行规格 #765 的 Trip home，覆盖桌面 1440、390 触屏手机，以及两者的中文：以行程卡片、日历条带和 Chats 搜索作为入口，从 Chats 列表选择聊天，标签，三张卡片，地图，聊天列表，新聊天，快照比行程更旧的聊天行，Rename，带 Undo 的 Delete，返回按钮，以及没有站点、偏好和聊天的行程。截图和 `result.json` 写入 `output/playwright/trip-home-walkthrough/after/`；`trip-home-older-chat` 负责较旧聊天的存储数据检查。
+
+```bash
+pnpm --filter @trip/web e2e trip-home-walkthrough --prod
+```
+
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` 检查：旅行者为某一程选择的出行方式（`TripBrief.legModes`）确实是计划所采用的方式，或者被如实报告为不可用，绝不会被悄悄替换。四个场景不需要模型（选择通过简报传入），一个需要模型（旅行者在聊天中说出）；没有模型密钥时，这一个会报告 `skip` 而不是失败。产物写入 `output/e2e/leg-mode-choice/<run>/`。
 
 ```bash

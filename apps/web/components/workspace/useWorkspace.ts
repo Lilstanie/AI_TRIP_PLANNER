@@ -12,6 +12,7 @@ import { blankDraft, type Draft } from "@/lib/workspace";
 import {
   reusableBlankConversation,
   conversationTitle,
+  latestSnapshot,
   upsertCurrent,
   searchCatalog,
   updateCatalog,
@@ -264,9 +265,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   function selectConversation(id: string) {
     const conversation = catalog.conversations.find((item) => item.id === id);
     if (!conversation) return;
-    const source =
-      conversation.snapshot ??
-      catalog.trips.find((item) => item.id === conversation.tripId)?.snapshot;
+    const source = latestSnapshot(catalog, conversation);
     if (!source) freshTripId.current = crypto.randomUUID();
     open({
       ...(source

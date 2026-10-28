@@ -417,6 +417,36 @@ try {
   check(narrow.errors.length === 0, "narrow run has no page or console errors", narrow.errors);
   await narrow.context.close();
 
+  const tie = await open("en");
+  await tie.page.clock.setFixedTime(new Date("2030-01-01T00:00:00.000Z"));
+  await openHome(tie.page, /^Trip to Melbourne/);
+  for (const text of ["First tie", "Second tie"]) {
+    await box(tie.page).fill(text);
+    await start(tie.page).click();
+    await tie.page.locator(".composer textarea").waitFor();
+    await storedWhen(tie.page, (value) =>
+      value.conversations.some((item) => item.input === text && item.tripId === melbourne.trip.id),
+    );
+    await tie.page.waitForTimeout(500);
+    await openHome(tie.page, /^Trip to Melbourne/);
+  }
+  const stamps = (await stored(tie.page)).conversations
+    .filter((item) => item.input.endsWith(" tie"))
+    .map((item) => item.updatedAt);
+  check(
+    stamps.length === 2 && stamps[0] === stamps[1],
+    "two chats saved in the same millisecond share one timestamp",
+    stamps,
+  );
+  await rows(tie.page).first().click();
+  await tie.page.locator(".composer textarea").waitFor();
+  check(
+    (await tie.page.locator(".composer textarea").inputValue()) === "Second tie",
+    "of two chats with the same timestamp the one started last leads the list",
+  );
+  check(tie.errors.length === 0, "tie run has no page or console errors", tie.errors);
+  await tie.context.close();
+
   const zh = await open("zh");
   await openHome(zh.page, /Sydney/, /^行程/);
   const zhDates = await rows(zh.page).locator("time").allInnerTexts();

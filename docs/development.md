@@ -418,6 +418,18 @@ Trajectory with the Trip panel open, and the restyled Trajectory. Screenshots an
 pnpm --filter @trip/web e2e quiet-walkthrough --prod
 ```
 
+`apps/web/tests/e2e/trip-home-walkthrough.e2e.mjs` runs the whole Trip home of spec #765 on one local catalog on
+desktop 1440, on a 390 touch phone, and in Chinese on both: the Trips card, the calendar band and the Chats
+search as entry points, a chat chosen from the Chats list, the tags, the three cards, the map, the chats list,
+a new chat, a chat row whose snapshot is older than the trip's, Rename, Delete with Undo, the Back button and a
+trip with no stops, preferences or chats. Screenshots and `result.json` land in
+`output/playwright/trip-home-walkthrough/after/`; `trip-home-older-chat` holds the stored-data checks for the
+older chat.
+
+```bash
+pnpm --filter @trip/web e2e trip-home-walkthrough --prod
+```
+
 `apps/web/tests/e2e/leg-mode-choice.e2e.mjs` checks that a travel mode the traveller chose for one
 hop (`TripBrief.legModes`) is the mode the plan uses, or is reported as unavailable — never silently
 swapped. Four scenarios need no model (the choice arrives on the brief) and one does (the traveller

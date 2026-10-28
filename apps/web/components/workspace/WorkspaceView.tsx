@@ -22,7 +22,7 @@ import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import { TripHome } from "./TripHome";
 import { TripHomeCards } from "./TripHomeCards";
-import { conversationTitle } from "@/lib/workspace/catalog";
+import { conversationTitle, tripConversations } from "@/lib/workspace/catalog";
 import { TripHomeChats } from "./TripHomeChats";
 import { TripHomeMap } from "./TripHomeMap";
 import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
@@ -470,14 +470,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 }
               >
                 <TripHomeChats
-                  chats={catalog.conversations
-                    .filter((item) => item.tripId === homeTrip.id)
-                    .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))
-                    .map((item) => ({
-                      id: item.id,
-                      title: conversationTitle(item, locale),
-                      updatedAt: item.updatedAt,
-                    }))}
+                  chats={tripConversations(catalog, homeTrip.id).map((item) => ({
+                    id: item.id,
+                    title: conversationTitle(item, locale),
+                    updatedAt: item.updatedAt,
+                  }))}
                   onOpen={swap(session.selectConversation)}
                   onStart={swap((text: string) => session.newTripChat(homeTrip.id, text))}
                 />
@@ -800,7 +797,12 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 </div>
                 {phone && (
                   <div className="workspace-panel workspace-panel--mine" {...phonePanel("mine")}>
-                    <PhoneMine model={model} />
+                    <PhoneMine
+                      model={model}
+                      tripsTab={tripsTab}
+                      onTripsTab={setTripsTab}
+                      calendarTripId={calendarTripId}
+                    />
                   </div>
                 )}
                 {backdrop.value && (
