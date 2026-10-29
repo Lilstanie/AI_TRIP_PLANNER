@@ -27,12 +27,18 @@ centre and the right rail. Returning from the conversation restores Trip home.
 - Trip home lists every Chat whose `tripId` is the open Trip. One Trip can have any number of Chats.
 - Choosing a Chat replaces the dashboard in the centre with that conversation. The action cards and
   map remain on the right, and Back returns to Trip home.
-- Sending from the Trip home composer creates a new Chat linked to the Trip, carries the message
-  into that Chat and opens it.
+- The first nonempty send creates one linked Chat and sends once with the current Trip Plan.
+  There is no separate Start chat action. Focus, typing, clearing and empty submission create nothing.
+  Enter sends, Shift+Enter inserts a line break, and IME confirmation does not send. Switching Trips
+  clears an unsent home draft. A failed first send keeps its Chat and user message; Retry reuses both.
+- The Chat heading shows its count. Rows show a message-derived title, localized date and forward
+  affordance; manually renamed titles are preserved. Opening an older Chat keeps the Trip's newer Plan.
 - A suggestion is generated from the open Trip's current Plan. Choosing a suggestion sends its
-  prompt through the same new-or-current Chat flow.
+  prompt through the same first-send Chat flow. The suggestion, Ideas count and Ideas list share
+  one selection rule for unscheduled activities and restaurant suggestions.
 - Dismissing a suggestion remembers that choice for the Trip until the Plan changes. A new Plan
-  makes suggestions eligible to appear again.
+  makes suggestions eligible to appear again. A full store still dismisses for this visit and reports
+  persistence failure. Null or malformed dismissal records are ignored without changing Trip data.
 
 ## Actions
 
@@ -77,8 +83,8 @@ Trip home becomes one column in this order:
 5. Trip map.
 6. Composer.
 
-The main page keeps a single scroll region, and the composer remains reachable at the end of the
-column. An action drawer uses the full screen and the same close and focus rules as desktop.
+The main page keeps a single scroll region above a fixed bottom composer, so a long Chat list leaves
+Send visible. An action drawer uses the full screen and the same close and focus rules as desktop.
 
 ## Boundaries
 

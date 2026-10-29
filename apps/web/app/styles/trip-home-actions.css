@@ -129,7 +129,7 @@
     padding: var(--space-4);
   }
   .trip-home-chat > .chat {
-    min-height: min(620px, 75vh);
+    min-height: min(420px, 55vh);
   }
 }
 @media (prefers-reduced-motion: reduce) {

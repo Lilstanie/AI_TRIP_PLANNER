@@ -86,11 +86,17 @@ The Trip home action area and its acceptance criteria are detailed in
     the chat title and its date in the interface language. Choosing a row replaces only the main column
     with that chat, leaving the Trip action rail and map mounted. It uses the latest saved plan: when the chat's own snapshot is older than the trip's,
     the trip's plan is shown and kept, so opening an older chat never downgrades the trip, and only an edit
-    changes it. Below the list a box named "New chat" and a "Start chat" button start a new chat on
-    the trip: the chat keeps the trip's plan, becomes the active chat, and carries any typed text into the
-    composer without sending it. A trip with no chats shows only the box, and an empty box still starts a
-    chat; an empty box reuses the trip's untouched empty chat instead of storing another. Starting a chat while the assistant answers on another chat stops that answer, as opening any
-    chat does. A contextual suggestion uses the same linked-chat flow and stays dismissed until the Plan
+    changes it. The heading shows the Chat count, and every row includes a forward affordance.
+    Automatic Chat titles use the first user message; manually renamed titles stay intact.
+    A bottom composer named "New chat" stays visible while the list scrolls. Its first nonempty
+    send creates one linked Chat and sends one request using the Trip's current Plan immediately.
+    Focus, typing, clearing and empty submission create nothing. Enter sends, Shift+Enter adds a
+    line break, and IME confirmation does not send. Switching Trips discards an unsent home draft.
+    Failed sends keep the Chat and message and offer Retry in that Chat without duplication.
+    Navigating away keeps generation attached to its initiating Chat. A contextual suggestion uses
+    the same send flow and shares the Ideas card and drawer's unscheduled activity and restaurant
+    selection rule. Dismissal takes effect for this visit even if persistence fails, reports that
+    failure, and ignores malformed auxiliary storage without resetting Trips. It stays dismissed until the Plan
     changes. Five cards above the map open Itinerary, Ideas, Bookings, Trip preferences and Calendar
     in one right-side drawer (`TripHomeActionDrawer`) without leaving Trip home. Itinerary embeds the
     same editable Trip view as the conversation and shares its latest Plan, pending edit, selected

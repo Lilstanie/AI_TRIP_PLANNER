@@ -5,6 +5,8 @@ Owner: spec #765, ticket #767
 
 Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) keeps Chat
 selection inside Trip home instead of navigating to the global conversation workspace.
+[Trip home sends the first message](2026-10-29-trip-home-send.md) supersedes the separate Start chat
+step and destination-only Chat titles.
 
 ## Problem
 
@@ -17,10 +19,9 @@ the page started another chat for the trip.
   `tripId` is the trip, newest `updatedAt` first (ties by creation order, the last started first), each row a button with the chat title and its date in
   the interface language. Choosing a row calls `selectConversation`, so the chat opens with the latest of
   its own snapshot and the trip's (see the [Trip home page note](2026-10-28-trip-home-page.md)).
-- A box named "New chat" and a "Start chat" button call `newTripChat(tripId, text)`. It opens a copy of the
-  trip's snapshot with no messages and the typed text as the composer input, under a new conversation id,
-  and saves it with `upsertCurrent`, which links the conversation to the trip. Nothing is sent; an empty
-  box still starts a chat. A trip with no chats renders only the box.
+- The bottom "New chat" composer creates a linked Chat on its first nonempty send, using the
+  explicit Trip snapshot through `sendHomeTripChat`. It immediately sends the first message once.
+  Focus, typing, clearing and empty submissions create nothing; failed sends retry in the same Chat.
 - The list is the main route from the Trip home to a conversation. The E2E helper `openTripWorkspace`
   chooses the newest row instead of going through the Chats panel.
 
@@ -33,9 +34,9 @@ the page started another chat for the trip.
 
 ## Consequences
 
-- Chats of one trip share a generated title (destination and dates), so the date tells them apart until
-  the traveller renames them.
-- Every Start chat click stores one more conversation, even if the traveller sends nothing.
+- Chats use the first user message as their automatic title, preserving manual names. The heading
+  shows a count and rows retain localized dates and forward affordances.
+- Starting a Chat requires a nonempty message; the composer remains visible while the list scrolls.
 - Opening an older chat shows the trip's newer plan, so the save that follows does not downgrade the trip;
   chats of one trip with the same `updatedAt` list the one started last first.
 - The `day-menus` E2E fixture used the conversation id `menus-conversation-…` without the `conversation:`
