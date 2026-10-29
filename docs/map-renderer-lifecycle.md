@@ -4,7 +4,8 @@
 disposing its renderer. Each renderer owns one full-height child of the map surface. A failed Google
 constructor removes that child before fallback; a late SDK response cannot create a map after unmount.
 Google authentication subscriptions preserve the existing host callback, snapshot listeners before
-dispatch and restore the host callback when the last owner leaves.
+dispatch and restore the host callback when the last owner leaves. Their module-level set is a registry
+of active map owners that becomes empty on disposal, not a cache of failed trips.
 
 Fallback belongs to the mounted map. A new mount follows the configured provider again; failed Trip
 identities are not cached. Strict Google mode keeps saved places and an explicit retry action instead

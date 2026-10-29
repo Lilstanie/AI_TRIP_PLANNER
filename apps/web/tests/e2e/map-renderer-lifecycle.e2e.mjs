@@ -111,9 +111,13 @@ async function open({ width, language, provider, failure }) {
   );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
-  const phone = width <= 520;
+  await enterTrip(page, width, language);
+  return { context, page, errors };
+}
+
+async function enterTrip(page, width, language) {
   await (
-    phone
+    width <= 520
       ? page.getByRole("tab", { name: language === "zh" ? /^我的/ : /^Mine/ })
       : page
           .locator(".sidebar-nav")
@@ -125,7 +129,6 @@ async function open({ width, language, provider, failure }) {
     .first()
     .click();
   await page.locator(".trip-home").waitFor();
-  return { context, page, errors };
 }
 
 const mapScope = (page) => page.locator(".trip-home");
@@ -171,6 +174,13 @@ try {
       provider: "google",
       failure: "constructor",
       strict: true,
+    },
+    {
+      name: "google-host-replaced-recovery",
+      width: 1440,
+      language: "en",
+      provider: "google-with-fallback",
+      hostReplacement: true,
     },
     {
       name: "google-auth-phone",
@@ -244,6 +254,20 @@ try {
         await settled(page, "google");
         await page.evaluate(() => window.__googleRendererFixture.fail());
       }
+      if (scenario.hostReplacement) {
+        await settled(page, "google");
+        await page.evaluate(() => window.__googleRendererFixture.replaceHost());
+        await unmountMap(page);
+        check(
+          await page.evaluate(
+            () => window.gm_authFailure === window.__googleRendererFixture.externalAuthFailure,
+          ),
+          `${scenario.name}: external host survives owner disposal`,
+        );
+        await enterTrip(page, scenario.width, scenario.language);
+        await settled(page, "google");
+        await page.evaluate(() => window.__googleRendererFixture.fail());
+      }
       const expectedProvider = scenario.provider === "google" ? "google" : "osm";
       await settled(page, expectedProvider);
       if (scenario.width <= 520) {
@@ -275,19 +299,18 @@ try {
       }
       if (expectedProvider === "google") {
         check(
-          (await scope.locator('[class~="gm-err-container"]').count()) === 0 &&
-            (await scope.locator('[class~="fixture-google-layer"]').count()) === 1 &&
-            (await scope.locator("fixture-google-marker").count()) === 2 &&
-            (await scope.locator('[class~="maplibregl-canvas"]').count()) === 0,
+          (await scope.locator(".google-map__renderer").count()) === 1 &&
+            (await scope.locator("[data-fixture-error]").count()) === 0 &&
+            (await scope.locator("[data-fixture-renderer]").count()) === 1 &&
+            (await scope.locator("fixture-google-marker").count()) === 2,
           `${scenario.name}: Google success keeps exactly one active renderer`,
         );
       } else {
         check(
-          (await scope
-            .locator(
-              '[class~="gm-err-container"], [class~="fixture-google-layer"], fixture-google-marker',
-            )
-            .count()) === 0,
+          (await scope.locator(".google-map__renderer").count()) === 1 &&
+            (await scope
+              .locator("[data-fixture-error], [data-fixture-renderer], fixture-google-marker")
+              .count()) === 0,
           `${scenario.name}: fallback removes stale Google layers`,
         );
       }
@@ -342,11 +365,15 @@ try {
       await unmountMap(page);
       await page.evaluate(() => window.__googleRendererFixture.releaseIdle());
       check(errors.length === 0, `${scenario.name}: unmount has no browser errors`, errors);
-      const callbacks = await page.evaluate(() => {
+      const callbacks = await page.evaluate((hostReplacement) => {
         const fixture = window.__googleRendererFixture;
         return {
           previousAuthCalls: fixture.previousAuthCalls,
+          externalAuthCalls: fixture.externalAuthCalls,
           authDispatches: fixture.authDispatches,
+          hostPreserved: hostReplacement
+            ? window.gm_authFailure === fixture.externalAuthFailure
+            : window.gm_authFailure === fixture.previousAuthFailure,
           pending: fixture.pending.size,
           live: fixture.maps
             .filter((map) => map.element.isConnected)
@@ -373,9 +400,12 @@ try {
               0,
             ),
         };
-      });
+      }, scenario.hostReplacement);
       check(
-        callbacks.previousAuthCalls === callbacks.authDispatches &&
+        callbacks.hostPreserved &&
+          (scenario.hostReplacement
+            ? callbacks.externalAuthCalls === callbacks.authDispatches
+            : callbacks.previousAuthCalls === callbacks.authDispatches) &&
           (scenario.name !== "google-auth-phone" || callbacks.authDispatches > 0),
         `${scenario.name}: host auth handler runs once per dispatch`,
         callbacks,

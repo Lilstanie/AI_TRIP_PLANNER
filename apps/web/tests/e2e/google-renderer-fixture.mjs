@@ -1,13 +1,17 @@
 export function installGoogleRendererFixture({ failure = "none" } = {}) {
   const maps = [];
   const pending = new Set();
-  window.gm_authFailure = () => {
+  const previousAuthFailure = () => {
     fixture.previousAuthCalls += 1;
   };
+  window.gm_authFailure = previousAuthFailure;
   const fixture = (window.__googleRendererFixture = {
     previousAuthCalls: 0,
+    externalAuthCalls: 0,
     authDispatches: 0,
     authRejected: false,
+    previousAuthFailure,
+    externalAuthFailure: undefined,
     maps,
     pending,
     failure,
@@ -21,10 +25,17 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
         if (map.destroyed || !map.element.isConnected) continue;
         const error = document.createElement("div");
         error.className = "gm-err-container";
+        error.dataset.fixtureError = "";
         error.textContent = "Controlled Google authentication failure";
         map.element.append(error);
       }
       window.gm_authFailure?.();
+    },
+    replaceHost() {
+      this.externalAuthFailure = () => {
+        this.externalAuthCalls += 1;
+      };
+      window.gm_authFailure = this.externalAuthFailure;
     },
     releaseIdle() {
       for (const map of maps) {
@@ -48,6 +59,8 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
       const layer = document.createElement("div");
       layer.className =
         fixture.failure === "constructor" ? "gm-err-container" : "fixture-google-layer";
+      if (fixture.failure === "constructor") layer.dataset.fixtureError = "";
+      else layer.dataset.fixtureRenderer = "";
       element.append(layer);
       if (fixture.failure === "constructor")
         throw new Error("Controlled Google constructor failure");

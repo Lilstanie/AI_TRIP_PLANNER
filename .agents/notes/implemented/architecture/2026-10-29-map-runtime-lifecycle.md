@@ -16,6 +16,13 @@ its event handles, one-shot callbacks, Google authentication subscription and di
 constructor removes that child before fallback. Disposal removes tracked callbacks before destroying
 the renderer and restoring the previous authentication hook when the final Google map leaves.
 
+The module-level Google authentication set is an active-owner registry, not a failure cache. It lets
+overlapping maps share one host callback without replacing each other and becomes empty when the last
+runtime disposes. The host callback snapshots both the previous handler and its listeners before
+dispatch because a listener can synchronously dispose itself and remove the final owner. The final
+owner restores the exact previous handler and clears the module state even if another script replaced
+the host callback in the meantime.
+
 `TripMap` aborts a pending SDK load when its mount is disposed and disposes any result that completes
 after that point. Authentication failure belongs to the mounted runtime: automatic fallback changes
 the provider for that mount, while strict Google mode keeps saved places and an explicit retry action.
@@ -30,6 +37,8 @@ height.
   and the final unmount cannot reliably restore the host hook.
 - Cache Google failure by Trip identity: this makes provider availability depend on a previous visit
   rather than the current runtime and deployment configuration.
+- Dispatch the mutable owner registry or reread the mutable previous handler: synchronous disposal
+  can remove the final owner and lose an existing host callback.
 
 ## Consequences
 
