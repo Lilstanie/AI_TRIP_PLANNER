@@ -501,7 +501,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           />
         </EditorDraftProvider>
       ) : (
-        <TripDrawerEmpty phone={phone} onPlanInChat={() => selectView("chat")} onAddDetails={edit} />
+        <TripDrawerEmpty
+          phone={phone}
+          onPlanInChat={() => selectView("chat")}
+          onAddDetails={edit}
+        />
       )}
     </>
   );
