@@ -16,7 +16,13 @@ configure a new runner in this repository.
 
 ## 1. Run the app
 
-Start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
+For fixture E2E, first check `pnpm --filter @trip/web e2e list`. Prefer
+`pnpm --filter @trip/web e2e run <name>` for supported journeys; it owns a production server and
+blanks known credentials during build and runtime. For unsupported scripts, follow the raw fixture
+setup in [local E2E CLI](../../../docs/local-test-cli.md) before running them. Mock data flags alone
+do not isolate credentials or a reused server.
+
+For manual inspection, start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
 Use mock data unless the change concerns live providers. The data-mode toggle switches per request:
 use the top bar, or Mine on a phone, to check both without redeploying.
@@ -53,7 +59,7 @@ At phone width confirm there is no horizontal page scroll: `document.documentEle
 must equal the viewport width. Check dark and light theme when colours changed.
 
 For a complex path, a script under `apps/web/tests/e2e/` does steps 2 and 3 repeatably; run the one
-that covers your change with `pnpm --filter @trip/web e2e <name>` or add one, following
+that covers your change using the invocation selected in step 1, or add one, following
 [Testing approach](../../../docs/development.md#testing-approach). Motion changes also need the
 reduced-motion state, as in `thinking-orb.e2e.mjs`.
 

@@ -40,11 +40,14 @@ screenshots and other evidence remain available. This protects the integrations 
 network egress firewall, and new credential names must be added to the CLI's deny list before their
 integration is covered.
 
-The supported journeys are `agent-lab-single-agent` and `agent-lab-replay`. Smoke runs only
+The supported journeys are `agent-lab-single-agent`, `agent-lab-replay` and `pending-ask-refresh`.
+Smoke runs only
 `agent-lab-single-agent`: a complete desktop and phone browser run of the registered Agent Lab fixture.
 Its assertions cover fixture provenance, the completed API artifact, the rendered plan, keyboard access,
 workspace storage preservation and browser errors. `agent-lab-replay` runs the tight-budget fixture and
 checks artifact download, replay, comparison, invalid artifact handling, and the resulting UI and status.
+`pending-ask-refresh` restores a pending question across reload and keeps it answerable after a failed
+submission.
 `agent-lab-live-gate` remains unsupported because it needs two additional servers and skips internally
 when they are unavailable. Other journeys remain unsupported until their complete fixture path and server
 requirements are verified. An unsupported explicit selection and any failed, timed-out or blocked journey
@@ -55,8 +58,26 @@ pnpm --filter @trip/web e2e agent-lab-single-agent
 pnpm --filter @trip/web e2e agent-lab-replay
 ```
 
-Raw scripts retain their existing environment and server-reuse behavior. Use the isolated `run`
-command when the fixture-only environment and per-invocation evidence are required.
+For fixture-only verification, check support with `pnpm --filter @trip/web e2e list`, then prefer
+`pnpm --filter @trip/web e2e run <name>` for a supported journey. A raw script listed as unsupported
+still needs its own verified fixture setup; passing it to `run` does not add support.
+
+Raw scripts inherit the shell environment and `BASE_URL`, and Next can load credentials from local
+dotenv files. `DATA_MODE=mock` and `USE_MOCK_TOOLS=true` alone do not blank browser Maps or other
+integration credentials. Before using the raw form for a fixture-only check:
+
+- Explicitly blank the applicable credentials for build, server and journey processes, including dotenv-loaded values;
+  the current known names are owned by `CREDENTIALS` in
+  [local-cli.mjs](../apps/web/tests/e2e/local-cli.mjs). Keep the traveller's dotenv files unchanged.
+- Use the script's established fixture/model-disable setup and intercept external SDK, tile and
+  provider requests it can make. Record any remaining live dependency.
+- Clear an inherited `BASE_URL` to let the raw runner own its server, or deliberately set it only
+  after verifying that the reused server has the same fixture environment.
+- Record the exact command, server mode, credential presence or absence, fixture identity and evidence
+  path. Retain an environment-related failure alongside the corrected run.
+
+The isolated CLI's credential boundary applies only to `run`; neither invocation form is a general
+network firewall.
 
 ## Repeat runs
 
@@ -107,7 +128,7 @@ each check has an id, status and summary, with remediation when blocked.
 
 `list` shows every raw E2E script with its support status, known prerequisites and an exclusion reason.
 Its JSON object includes `supported`, the unsupported count and a `scripts` array. Only
-`agent-lab-single-agent` and `agent-lab-replay` are supported. Replay covers a tight-budget fixture,
+`agent-lab-single-agent`, `agent-lab-replay` and `pending-ask-refresh` are supported. Replay covers a tight-budget fixture,
 artifact download and replay, comparisons, invalid artifacts, and resulting UI and status. Smoke runs
 only the single-agent journey. `leg-mode-choice` remains excluded because one
 model-dependent scenario can skip while the script still exits successfully. `agent-lab-live-gate`

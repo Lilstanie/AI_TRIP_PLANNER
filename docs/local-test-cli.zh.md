@@ -32,9 +32,10 @@ JSON 模式只向标准输出写入一个 JSON 对象；子进程输出保存在
 这能隔离仓库当前使用的这些集成，但不构成通用网络出口防火墙。新增凭据名称时，必须
 先加入命令的屏蔽列表，才能纳入此隔离保证。
 
-支持的行程是 `agent-lab-single-agent` 和 `agent-lab-replay`。Smoke 只运行 `agent-lab-single-agent`：它会在桌面和手机视口
+支持的行程是 `agent-lab-single-agent`、`agent-lab-replay` 和 `pending-ask-refresh`。Smoke 只运行 `agent-lab-single-agent`：它会在桌面和手机视口
 完整运行已注册的 Agent Lab fixture，断言覆盖 fixture 来源、已完成的 API artifact、渲染后的计划、键盘访问、工作区存储未改变以及浏览器错误。
 `agent-lab-replay` 会运行紧预算 fixture，并检查 artifact 下载、回放、比较、无效 artifact 处理，以及对应界面和状态。
+`pending-ask-refresh` 会在刷新后恢复待回答的问题，并确保提交失败后问题仍可回答。
 `agent-lab-live-gate` 仍不受支持，因为它需要额外两个服务器，而且服务器不可用时会在脚本内部跳过。其他行程要先验证完整 fixture 流程和服务器要求后才能支持。
 显式选择不支持的行程，以及任何失败、超时或阻塞的行程，都会让整个集合返回非零；其他行程通过也不能抹掉失败结果。原始命令仍可使用：
 
@@ -43,7 +44,23 @@ pnpm --filter @trip/web e2e agent-lab-single-agent
 pnpm --filter @trip/web e2e agent-lab-replay
 ```
 
-原始脚本保留既有环境变量和复用服务器的行为。需要 fixture 隔离和每次运行独立证据时，请使用新的 `run` 命令。
+验证纯 fixture 流程时，先用 `pnpm --filter @trip/web e2e list` 检查支持范围，再优先通过
+`pnpm --filter @trip/web e2e run <name>` 运行受支持的行程。列为不支持的原始脚本仍需单独验证其
+fixture 配置；把它传给 `run` 不会自动增加支持。
+
+原始脚本会继承 shell 环境和 `BASE_URL`，Next 也可能从本地 dotenv 文件读取凭据。
+仅设置 `DATA_MODE=mock` 和 `USE_MOCK_TOOLS=true` 不会清空浏览器 Maps 或其他集成凭据。
+用原始命令验证纯 fixture 流程前：
+
+- 显式清空构建、服务器和行程进程适用的凭据，包括 dotenv 加载的值；当前已知名称由
+  [local-cli.mjs](../apps/web/tests/e2e/local-cli.mjs) 中的 `CREDENTIALS` 维护。保留旅客的 dotenv 文件不变。
+- 使用脚本既有的 fixture 和模型禁用配置，并拦截它可能发起的外部 SDK、瓦片和供应商请求。
+  记录仍然依赖的实时服务。
+- 清除继承的 `BASE_URL`，让原始 runner 拥有自己的服务器；只有确认复用服务器使用相同 fixture
+  环境后，才有意设置该值。
+- 记录准确命令、服务器模式、凭据是否存在、fixture 身份和证据路径。环境问题造成的失败应与修正后的运行一起保留。
+
+隔离 CLI 的凭据边界只适用于 `run`；两种调用方式都不是通用网络防火墙。
 
 <a id="repeat-runs"></a>
 
@@ -87,8 +104,8 @@ dotenv 文件内容。本地 fixture 模式不需要供应商凭据。缺少必�
 JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 `checks`；每项检查包含 id、状态和摘要，若被
 阻断则附带修复方法。
 
-`list` 会列出所有原始 E2E 脚本、支持状态、已知前置条件和排除原因。支持 `agent-lab-single-agent` 和
-`agent-lab-replay`。Replay 覆盖紧预算 fixture、artifact 下载和回放、比较、无效 artifact，以及对应界面和状态；Smoke
+`list` 会列出所有原始 E2E 脚本、支持状态、已知前置条件和排除原因。支持 `agent-lab-single-agent`、
+`agent-lab-replay` 和 `pending-ask-refresh`。Replay 覆盖紧预算 fixture、artifact 下载和回放、比较、无效 artifact，以及对应界面和状态；Smoke
 只运行 single-agent 行程。`leg-mode-choice` 暂不支持，因为其中一个依赖模型的场景可能被跳过，但整个脚本仍可能返回成功。`agent-lab-live-gate`
 和 `map-provider-http` 需要多个服务器。`plan-quality` 和 `conversation-scope` 默认使用 live 数据，并需要
 `DEEPSEEK_API_KEY`。尚未审核是否能完整使用本地 fixture 执行并隔离状态的脚本也会保持不支持，同时会标明尚未核实的前置条件。
