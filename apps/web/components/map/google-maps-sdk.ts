@@ -42,10 +42,44 @@ export type MapsSDK = {
 export type MapRuntime = {
   maps: MapsSDK;
   map: InstanceType<MapsSDK["Map"]>;
-  provider?: "google" | "osm";
+  provider: "google" | "osm";
+  listen(event: string, fn: () => void): { remove(): void };
+  listenOnce(event: string, fn: () => void): { remove(): void };
+  onAuthFailure(fn: () => void): { remove(): void };
+  dispose(): void;
 };
 
 let sdk: Promise<MapsSDK> | undefined;
+const authFailures = new Set<() => void>();
+let previousAuthFailure: (() => void) | undefined;
+let installedAuthFailure: (() => void) | undefined;
+
+export function subscribeGoogleAuthFailure(fn: () => void) {
+  const host = window as typeof window & { gm_authFailure?: () => void };
+  if (!authFailures.size) {
+    previousAuthFailure = host.gm_authFailure;
+    installedAuthFailure = () => {
+      const previous = previousAuthFailure;
+      for (const listener of [...authFailures]) listener();
+      previous?.();
+    };
+    host.gm_authFailure = installedAuthFailure;
+  }
+  authFailures.add(fn);
+  let active = true;
+  return {
+    remove() {
+      if (!active) return;
+      active = false;
+      authFailures.delete(fn);
+      if (!authFailures.size && host.gm_authFailure === installedAuthFailure) {
+        host.gm_authFailure = previousAuthFailure;
+        installedAuthFailure = undefined;
+        previousAuthFailure = undefined;
+      }
+    },
+  };
+}
 
 export function loadMaps() {
   if (sdk) return sdk;
@@ -94,10 +128,10 @@ export function loadMaps() {
 }
 
 export function framable(runtime: MapRuntime, moving: { current: boolean }): FramableMap {
-  const { maps, map } = runtime;
+  const { maps, map, listenOnce } = runtime;
   const settle = () => {
     moving.current = true;
-    maps.event.addListenerOnce(map, "idle", () => {
+    listenOnce("idle", () => {
       moving.current = false;
     });
   };
@@ -113,7 +147,7 @@ export function framable(runtime: MapRuntime, moving: { current: boolean }): Fra
       points.forEach((point) => bounds.extend(point));
       map.setOptions({ maxZoom });
       map.fitBounds(bounds, 72);
-      maps.event.addListenerOnce(map, "idle", () => map.setOptions({ maxZoom: null }));
+      listenOnce("idle", () => map.setOptions({ maxZoom: null }));
     },
   };
 }
