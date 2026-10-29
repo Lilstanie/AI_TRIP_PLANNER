@@ -99,7 +99,7 @@ The trajectory part of the Stage 2 demo also runs in mock mode with no keys, in 
 
 The redesigned workspace also runs in mock mode with no keys. Follow it in light and dark, at 1440 px and on a 390x844 or 360x800 phone.
 
-1. Open the blank workspace. Desktop keeps its map area hidden; on a phone, Map shows a basemap with one hint and a button to Chat, and nothing asks for location until Locate me is pressed. Chat, Mine and the empty Trajectory sheet each show one sentence and one action.
+1. Open the blank workspace. Desktop keeps its map area hidden; on a phone, Map shows a basemap with one hint and a button to Chat, and nothing asks for location until Locate me is pressed. Chat and the empty Trajectory sheet each show one sentence and one action; Mine shows Trips and Chats with New trip and New chat.
 2. On desktop use the sidebar: New chat starts a plain chat without trip facts, Calendar opens Trips on its calendar view, and New trip remains on the Your trips page.
 3. Plan the first example trip. While it runs the Agent Team capsule shows three stacked avatars and "N working"; afterwards it shows the avatars only. One press (the capsule, or on a phone the same capsule) opens the six-row team panel.
 4. Open Trajectory (the tab on desktop; the capsule on a phone). It opens on the simple list; expand a row for its rounds, then press Full view for the ledger.
