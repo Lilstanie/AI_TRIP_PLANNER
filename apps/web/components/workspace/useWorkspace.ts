@@ -463,6 +463,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       title: conversationTitle(item, locale),
       subtitle: trip ? tripTitles.get(trip.id) : undefined,
       active: item.id === catalog.activeConversationId,
+      untouched: !item.renamed && isUntouchedConversation(item, defaults),
     };
   });
   const activeTrip = blank

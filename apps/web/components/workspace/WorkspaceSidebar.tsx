@@ -20,6 +20,7 @@ export type HistoryItem = {
   subtitle?: string;
   destination?: string;
   active?: boolean;
+  untouched?: boolean;
 };
 
 export type WorkspacePage = "workspace" | "trips";

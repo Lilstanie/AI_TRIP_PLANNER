@@ -815,8 +815,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   empty Trajectory keep one primary action, while Mine keeps one action for each collection. Chat keeps
   the composer prompt and example chips and drops the estimates footer until a message exists. Mine with
   no trips and no saved chat shows the Trips and Chats headings with their New trip and New chat actions;
-  the search field, the Trips and Calendar switch and history rows appear once there is something to
-  search, switch or open. A day with no stops says "Nothing planned for this day yet." and leaves Add to Day N as the
+  the search field, the Trips and Calendar switch and history rows appear once there is a trip, a
+  Chat with content or a rename, or a search to act on. An untouched blank Chat titled New chat does
+  not count as saved history. A day with no stops says "Nothing planned for this day yet." and leaves Add to Day N as the
   day's own control; Ask AI is an item in the day menu and in each stop's menu. The empty Trajectory says "Each step the assistant takes will be listed here after
   you send a message." beside Plan in Chat; a phone Trip drawer without a plan offers Plan in Chat only.
   See the [empty phone screens Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-empty-states.md).

@@ -23,8 +23,8 @@ estimates footer under the composer prompt before any estimate existed.
   chat has a message; the footer is unchanged everywhere else.
 - Mine with no trips and no saved chat shows the Trips and Chats headings with their own New trip and
   New chat actions. The search field, the Trips and Calendar switch and history rows appear once there
-  is a trip, a saved chat or a search to act on. "Saved chat" means a chat other than the untitled
-  blank one.
+  is a trip, an explicitly created chat or a search to act on. Initial untouched state is not saved;
+  explicitly created Chats remain reachable even before a Trip or generated title exists.
 - An empty day says "Nothing planned for this day yet." on the Trip tab and the Map sheet alike, one
   string with one Chinese pair.
 - The empty Trajectory says "Each step the assistant takes will be listed here after you send a message."

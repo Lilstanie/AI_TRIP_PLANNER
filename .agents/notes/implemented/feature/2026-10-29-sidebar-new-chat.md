@@ -16,6 +16,8 @@ trip-labelled blank conversation and open the Where editor first.
   follows the chat-owned generation rule.
 - New trip remains on the Your trips page and phone Mine; desktop Chats lists destinations without
   adding a second trip-start control beside the primary New chat.
+- Mine derives its empty state from collection membership, never from a Chat title; ordinary Chats
+  remain reachable while still titled New chat. Initial untouched state is not persisted.
 - While a Chat reply is running, opening another Chat does not abort or cross-write the original
   turn; returning restores that Chat's progress or result.
 

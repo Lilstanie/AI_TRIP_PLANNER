@@ -115,6 +115,9 @@ const openPage = async ({
     if (url.hostname === "127.0.0.1" && url.port === new URL(proxyUrl).port) {
       return route.continue();
     }
+    if (/tiles\.openfreemap\.org|openstreetmap|photon\.komoot|nominatim|osrm/.test(url.hostname)) {
+      return route.abort();
+    }
     externalRequests.push(url.href);
     return route.abort();
   });
@@ -127,7 +130,7 @@ const openPage = async ({
 const nav = (page) => page.locator(".sidebar-nav");
 const entry = (page, name) => nav(page).getByRole("button", { name: new RegExp(`^${name}`) });
 const composer = (page) =>
-  page.getByRole("textbox", { name: /Message AI Trip Planner|向 AI 行程规划提问/ });
+  page.getByRole("textbox", { name: /Message AI Trip Planner|向 AI 旅行规划助手发送消息/ });
 const readCatalog = (page) =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), CATALOG_KEY);
 const waitCatalog = async (page, predicate, arg) => {
@@ -293,6 +296,39 @@ try {
     await phone.page.screenshot({
       path: `${OUT}/${language}-phone-mine-new-chat.png`,
     });
+    await phone.page.getByRole("tab", { name: text.chat }).click();
+    proxy.reset();
+    await send(phone.page, "Phone original plain chat");
+    await proxy.waitForCount(1);
+    const phoneRequest = proxy.requests[0];
+    await waitForControlledProgress(phone.page);
+    await phone.page.getByRole("tab", { name: text.mine }).click();
+    await mine.getByRole("button", { name: text.newChat, exact: true }).click();
+    await phone.page.getByRole("tab", { name: text.mine }).click();
+    const originalChat = mine.locator(
+      ".history-item:not(.history-item--active) .history-item__open",
+    );
+    check(
+      (await originalChat.count()) === 1,
+      `${language} phone Mine: original ordinary Chat remains reachable while generating`,
+    );
+    await originalChat.click();
+    await waitForControlledProgress(phone.page);
+    check(
+      (await phone.page.getByText("Phone original plain chat", { exact: true }).count()) === 1 &&
+        (await readCatalog(phone.page)).activeConversationId === phoneCatalog.activeConversationId,
+      `${language} phone Mine: reopening the original Chat restores its message and progress`,
+    );
+    phoneRequest.releaseNeedsInfo("Phone original reply", {});
+    await within(phoneRequest.settled, "phone original reply");
+    await phone.page.getByText("Phone original reply", { exact: true }).waitFor();
+    await phone.page.getByRole("tab", { name: text.mine }).click();
+    await mine.locator(".history-item--active .history-item__open").click();
+    check(
+      (await phone.page.getByText("Phone original reply", { exact: true }).count()) === 1,
+      `${language} phone Mine: completed ordinary Chat remains reachable`,
+    );
+    await phone.page.screenshot({ path: `${OUT}/${language}-phone-original-chat-restored.png` });
     await phone.context.close();
   }
 
