@@ -28,6 +28,11 @@ The E2E journey must fail when any of these user-visible outcomes regress:
 23. A desktop split handle changes its value without changing the actual Chat/map widths.
 24. The test measures a newly mounted suggestion before its stored dismissal state is ready.
 25. A reload's pending blank-Chat persistence is mistaken for a Trip-entry mutation.
+26. The Ideas card count omits an unscheduled restaurant that the Ideas drawer lists.
+27. A valid JSON `null` dismissal record crashes Trip home instead of falling back safely.
+28. A storage quota error leaves the suggestion visible or raises an unhandled browser error.
+29. A storage quota error hides the suggestion without telling the traveller that its dismissal
+    lasts only for this visit.
 
 The repeatable evidence is `trip-home-action-rail.e2e.mjs`, which seeds local fixture data and writes
 screenshots plus `summary.json` under `output/playwright/trip-home-action-rail/`.

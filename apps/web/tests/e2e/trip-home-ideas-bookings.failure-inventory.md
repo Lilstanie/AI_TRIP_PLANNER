@@ -12,6 +12,9 @@ The browser journey must fail when any of these outcomes regress:
 8. Bookings follows itinerary order instead of keeping activity, flight and stay groups.
 9. English or Chinese controls and group labels are unavailable.
 10. Browser console or page errors occur during the journey.
+11. The Ideas card count disagrees with the unscheduled activities plus restaurant suggestions in
+    the Ideas drawer.
+12. A converted flight or stay price is shown without the established currency-estimate notice.
 
 The repeatable evidence is `trip-home-ideas-bookings.e2e.mjs`. It uses a local catalog fixture and
 writes screenshots plus `summary.json` under `output/playwright/trip-home-ideas-bookings/`. It

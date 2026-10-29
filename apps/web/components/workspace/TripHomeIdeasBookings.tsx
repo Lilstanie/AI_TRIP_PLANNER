@@ -3,22 +3,20 @@
 import { useState } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
+import { CurrencyNotice } from "../account/CurrencyNotice";
 import {
   FlowAttractionIcon,
   FlowFlightIcon,
   FlowRestaurantIcon,
   FlowStayIcon,
 } from "../ui/flow-icons";
-import { buildItinerary } from "@/lib/trip/itinerary";
+import { tripIdeas } from "@/lib/trip/ideas";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
-import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
+import { intlLocale } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 
 const titleOf = (item: ProposalItem) => item.location ?? item.detail;
-
-const scheduleLabel = (locale: AppLocale, name: string, day: number) =>
-  locale === "zh" ? `将 ${name} 安排到第 ${day} 天` : `Schedule ${name} on Day ${day}`;
 
 function IdeaIcon({ restaurant }: { restaurant: boolean }) {
   const Icon = restaurant ? FlowRestaurantIcon : FlowAttractionIcon;
@@ -48,7 +46,7 @@ export function TripHomeIdeas({
   const [busy, setBusy] = useState(false);
   const restaurants = restaurantSuggestions(plan);
   const restaurantIds = new Set(restaurants.map((item) => item.id));
-  const ideas = [...buildItinerary(plan, () => undefined).ideas(), ...restaurants];
+  const ideas = tripIdeas(plan);
 
   const schedule = async (idea: ProposalItem, day: number) => {
     setBusy(true);
@@ -99,7 +97,7 @@ export function TripHomeIdeas({
                     key={day}
                     type="button"
                     disabled={disabled || busy}
-                    aria-label={scheduleLabel(locale, title, day)}
+                    aria-label={t("Schedule {name} on Day {day}", { name: title, day })}
                     title={dayLabel(plan, day, locale)}
                     onClick={() => void schedule(idea, day)}
                   >
@@ -164,7 +162,7 @@ function BookingGroup({
 }
 
 export function TripHomeBookings({ plan }: { plan: TripPlan }) {
-  const { t, money, locale } = useLocale();
+  const { t, money } = useLocale();
   const transport = plan.sections.find((section) => section.id === "transport")?.proposal;
   const accommodation = plan.sections.find((section) => section.id === "accommodation")?.proposal;
   const flights = transport?.flights ?? [];
@@ -251,12 +249,9 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
 
   return (
     <div className="trip-home-action trip-home-ideas-bookings trip-home-ideas-bookings--bookings">
+      <CurrencyNotice />
       <BookingGroup label={t("Activities")} icon="activity" entries={activities} />
-      <BookingGroup
-        label={locale === "zh" ? "航班" : "Flights"}
-        icon="flight"
-        entries={flightEntries}
-      />
+      <BookingGroup label={t("Flights")} icon="flight" entries={flightEntries} />
       <BookingGroup label={t("Stays")} icon="stay" entries={stayEntries} />
     </div>
   );

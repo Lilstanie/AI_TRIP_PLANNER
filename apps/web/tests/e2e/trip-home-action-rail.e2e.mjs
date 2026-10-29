@@ -289,6 +289,11 @@ try {
     "the rail orders Itinerary, Ideas, Bookings, Trip preferences and Calendar",
     actionNames,
   );
+  check(
+    (await action(page, /^Ideas/).innerText()).includes("2 ideas"),
+    "the Ideas count uses the same activity selector as the drawer",
+    await action(page, /^Ideas/).innerText(),
+  );
   const chatNames = await chats(page).getByRole("button").allInnerTexts();
   check(
     chatNames.some((name) => name.includes("Food ideas")) &&
@@ -553,6 +558,44 @@ try {
     desktop.errors,
   );
   await desktop.context.close();
+
+  const corrupt = await open("en", { width: 1440, height: 1000 });
+  await corrupt.page.evaluate((key) => localStorage.setItem(key, "null"), "trip-home-suggestion-dismissals-v1");
+  await openHome(corrupt.page);
+  await corrupt.page.getByRole("region", { name: "Trip suggestion" }).waitFor();
+  check(
+    (await corrupt.page.getByRole("region", { name: "Trip suggestion" }).count()) === 1 &&
+      corrupt.errors.length === 0,
+    "a null suggestion-dismissal record degrades safely",
+    corrupt.errors,
+  );
+  await corrupt.context.close();
+
+  const quota = await open("en", { width: 1440, height: 1000 });
+  await quota.page.evaluate((key) => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (name, value) {
+      if (name === key) throw new DOMException("Quota exceeded", "QuotaExceededError");
+      return setItem.call(this, name, value);
+    };
+  }, "trip-home-suggestion-dismissals-v1");
+  await openHome(quota.page);
+  await quota.page
+    .getByRole("region", { name: "Trip suggestion" })
+    .getByRole("button", { name: "Dismiss", exact: true })
+    .click();
+  const quotaStatus = quota.page.getByRole("status", {
+    name: "Dismissed for this visit; could not save.",
+  });
+  await quotaStatus.waitFor();
+  check(
+    (await quota.page.getByRole("region", { name: "Trip suggestion" }).count()) === 0 &&
+      (await quotaStatus.innerText()) === "Dismissed for this visit; could not save." &&
+      quota.errors.length === 0,
+    "a quota failure dismisses for this visit and reports persistence failure",
+    { status: await quotaStatus.innerText(), errors: quota.errors },
+  );
+  await quota.context.close();
 
   for (const width of [375, 520, 521, 1000, 1001]) {
     const responsive = await open("en", { width, height: width <= 520 ? 844 : 900 }, width <= 520);
