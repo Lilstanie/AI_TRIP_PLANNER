@@ -157,17 +157,17 @@ Trip 首页移除 Start chat 按钮，直接展示聊天输入框，首次发送
 
 ### Published task graph
 
-| Ticket | GitHub | Jira | Blocked by |
-| --- | --- | --- | --- |
-| 1 | [#789](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/789) | [TP-149](https://headmastereggy.atlassian.net/browse/TP-149) | None |
-| 2 | [#790](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/790) | [TP-150](https://headmastereggy.atlassian.net/browse/TP-150) | None |
-| 3 | [#791](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/791) | [TP-151](https://headmastereggy.atlassian.net/browse/TP-151) | 2 |
-| 4 | [#792](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/792) | [TP-152](https://headmastereggy.atlassian.net/browse/TP-152) | 2 |
-| 5 | [#793](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/793) | [TP-153](https://headmastereggy.atlassian.net/browse/TP-153) | None |
-| 6 | [#794](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/794) | [TP-154](https://headmastereggy.atlassian.net/browse/TP-154) | None |
-| 7 | [#795](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/795) | [TP-155](https://headmastereggy.atlassian.net/browse/TP-155) | 6 |
-| 8 | [#796](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/796) | [TP-156](https://headmastereggy.atlassian.net/browse/TP-156) | 6 |
-| 9 | [#797](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/797) | [TP-157](https://headmastereggy.atlassian.net/browse/TP-157) | 1, 2, 3, 4, 5, 6, 7, 8 |
+| Ticket | GitHub                                                          | Jira                                                         | Blocked by             |
+| ------ | --------------------------------------------------------------- | ------------------------------------------------------------ | ---------------------- |
+| 1      | [#789](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/789) | [TP-149](https://headmastereggy.atlassian.net/browse/TP-149) | None                   |
+| 2      | [#790](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/790) | [TP-150](https://headmastereggy.atlassian.net/browse/TP-150) | None                   |
+| 3      | [#791](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/791) | [TP-151](https://headmastereggy.atlassian.net/browse/TP-151) | 2                      |
+| 4      | [#792](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/792) | [TP-152](https://headmastereggy.atlassian.net/browse/TP-152) | 2                      |
+| 5      | [#793](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/793) | [TP-153](https://headmastereggy.atlassian.net/browse/TP-153) | None                   |
+| 6      | [#794](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/794) | [TP-154](https://headmastereggy.atlassian.net/browse/TP-154) | None                   |
+| 7      | [#795](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/795) | [TP-155](https://headmastereggy.atlassian.net/browse/TP-155) | 6                      |
+| 8      | [#796](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/796) | [TP-156](https://headmastereggy.atlassian.net/browse/TP-156) | 6                      |
+| 9      | [#797](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/797) | [TP-157](https://headmastereggy.atlassian.net/browse/TP-157) | 1, 2, 3, 4, 5, 6, 7, 8 |
 
 最多三名实现代理同时运行，各用独立工作区；禁止 Astra。复杂状态使用 Terra，边界清晰切片
 使用 Sol；限额时可按任务切换其他可用模型。工单保持打开直到获准合并；实现调度按已验证、

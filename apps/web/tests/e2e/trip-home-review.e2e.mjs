@@ -201,7 +201,7 @@ try {
     (await stored(wide.page)).conversations.filter((item) => item.tripId === sydney.trip.id);
   const before = await tripChats();
   const stamp = async () => (await stored(wide.page)).trips[0].snapshot.savedAt;
-  let firstStamp;
+  const firstStamp = await stamp();
   for (let click = 1; click <= 3; click += 1) {
     await wide.page
       .locator(".sidebar-nav")
@@ -209,26 +209,20 @@ try {
       .click();
     await wide.page.locator(".trip-cards button.trip-card").first().click();
     await home(wide.page).waitFor();
-    await home(wide.page).getByRole("button", { name: "Start chat" }).click();
-    await wide.page.locator(".composer textarea").waitFor();
-    await wide.page.waitForTimeout(800);
-    if (click === 1) firstStamp = await stamp();
+    const send = home(wide.page).getByRole("button", { name: "Send", exact: true });
+    check(await send.isDisabled(), `empty Send stays disabled on click attempt ${click}`);
+    await home(wide.page).getByRole("textbox", { name: "New chat", exact: true }).press("Enter");
     const count = (await tripChats()).length;
-    check(
-      count <= before.length + 1,
-      `empty Start chat click ${click} leaves at most one extra chat`,
-      count,
-    );
+    check(count === before.length, `empty Enter ${click} creates no Chat`, count);
   }
   const after = await tripChats();
-  check(
-    after.filter((item) => !item.messages.length && !item.input).length <= 1,
-    "three empty Start chat clicks leave one untouched chat, not three",
-    after.length,
-  );
+  check(after.length === before.length, "three empty Enter presses leave the Chat list unchanged", {
+    before: before.length,
+    after: after.length,
+  });
   check(
     (await stamp()) === firstStamp,
-    "empty Start chat clicks leave the trip snapshot's saved time alone",
+    "empty Enter presses leave the trip snapshot's saved time alone",
     { firstStamp, now: await stamp() },
   );
   check(wide.errors.length === 0, "wide run has no page or console errors", wide.errors);

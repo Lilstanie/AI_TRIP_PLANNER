@@ -23,6 +23,12 @@ export const LOCAL_JOURNEYS = [
     description:
       "Chat-owned generation across navigation, multiple Chats and Trips, control states, conflicts, deletion, and workspace teardown.",
   },
+  {
+    name: "trip-home-send",
+    smoke: false,
+    description:
+      "Trip-home first-send atomicity, IME and keyboard handling, Chat identity, navigation state, and responsive sticky composer.",
+  },
 ];
 
 export const SMOKE_JOURNEYS = LOCAL_JOURNEYS.filter((journey) => journey.smoke).map(

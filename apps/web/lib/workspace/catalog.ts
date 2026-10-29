@@ -94,6 +94,14 @@ function titleFor(snapshot: Snapshot, locale: AppLocale = "en"): string {
   return destination ? `${destination} · ${dates}` : "Untitled trip";
 }
 
+function chatTitleFor(snapshot: Snapshot): string {
+  const message = snapshot.messages.find((item) => item.role === "user")?.text.trim();
+  if (!message) return titleFor(snapshot);
+  const normalized = message.replace(/\s+/g, " ");
+  const characters = Array.from(normalized);
+  return characters.length > 72 ? `${characters.slice(0, 71).join("").trimEnd()}…` : normalized;
+}
+
 const legacyTitleFor = (snapshot: Snapshot) => {
   const destination = snapshot.plan.brief.destination.trim();
   const [start, end] = snapshot.plan.brief.dates;
@@ -110,7 +118,8 @@ export function conversationTitle(conversation: ConversationRecord, locale: AppL
     (conversation.title !== legacyTitleFor(snapshot) && conversation.title !== titleFor(snapshot))
   )
     return conversation.title;
-  return titleFor(snapshot, locale);
+  const message = snapshot.messages.find((item) => item.role === "user")?.text.trim();
+  return message ? chatTitleFor(snapshot) : titleFor(snapshot, locale);
 }
 
 function normalizeLayout(value: unknown): PanelLayout {
@@ -159,7 +168,7 @@ function normalizeLayout(value: unknown): PanelLayout {
 function conversationFrom(snapshot: Snapshot, tripId: string): ConversationRecord {
   return {
     id: `conversation:${snapshot.id}`,
-    title: titleFor(snapshot),
+    title: chatTitleFor(snapshot),
     updatedAt: snapshot.savedAt,
     tripId,
     messages: clone(snapshot.messages),

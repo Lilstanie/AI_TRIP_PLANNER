@@ -523,7 +523,7 @@ describe("Workspace interactions", () => {
       expect(catalog.activeTripId).toBe(`trip:${request.tripId}`);
     });
   });
-  it("aborts an in-flight plan on New chat and never shows its late answer", async () => {
+  it("keeps an in-flight plan owned by its Chat after New chat and shows the late answer there", async () => {
     let finish!: (response: Response) => void;
     const fetcher = vi.fn((input: RequestInfo | URL) =>
       String(input) === "/api/chat"
@@ -543,11 +543,11 @@ describe("Workspace interactions", () => {
       RequestInit,
     ];
     startBlank();
-    expect(call[1].signal!.aborted).toBe(true);
+    expect(call[1].signal!.aborted).toBe(false);
     await act(async () => {
       finish(complete("Tokyo"));
     });
-    expect(screen.queryByText(/Tokyo/)).toBeNull();
+    expect(screen.queryByText(/^Updated$/)).toBeNull();
     const input = screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement;
     expect(input.disabled).toBe(false);
     expect(input.value).toBe("");
@@ -667,7 +667,7 @@ describe("Workspace interactions", () => {
     expect(first.brief.destination).toBe("Paris");
     expect((chatCalls[0]![1] as RequestInit).body).toBe((chatCalls[1]![1] as RequestInit).body);
   });
-  it("opens a trip from history and ignores the result of the aborted old request", async () => {
+  it("opens a trip from history while a background Chat keeps its late answer", async () => {
     const melbourne = {
       ...snapshot,
       id: "melbourne-chat",
@@ -700,7 +700,8 @@ describe("Workspace interactions", () => {
       finish!(complete("Obsolete result"));
     });
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
-    expect(screen.queryByText(/Obsolete result/)).toBeNull();
+    expect(screen.queryByText(/^Updated$/)).toBeNull();
+    expect(screen.queryByText(/^Obsolete result$/)).toBeNull();
     openPreferences();
     expect(screen.getByRole("button", { name: "Replan trip" }).hasAttribute("disabled")).toBe(
       false,

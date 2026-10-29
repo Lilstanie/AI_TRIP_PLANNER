@@ -885,6 +885,8 @@ export const WORKSPACE_ZH = {
   "That day holds the last night of a stay.": "这一天是住宿的最后一晚。",
   "That change would leave the trip dates or stays invalid.": "此更改会使行程日期或住宿无效。",
   "Trip actions": "行程操作",
+  "Expand panel": "展开面板",
+  "Collapse panel": "收起面板",
   "Back to trip home": "返回行程主页",
   Bookings: "预订",
   "No bookings yet.": "还没有预订。",
