@@ -23,6 +23,7 @@
 | [思考过程界面](design/dsh-thinking-ui.zh.md)                  | 规划过程记录的参考与行为                        |
 | [类图](design/class-diagram.zh.md)                            | 领域对象与运行时关系                            |
 | [Stage 1 设计模型](design/stage1/README.zh.md)                | ELEC5620 Stage 1 报告模型，以及每个评分项的位置 |
+| [Stage 2 演示评分标准](design/stage2/demo-marking-criteria.zh.md) | ELEC5620 Stage 2 演示评分标准，原文照录并译为中文 |
 | [翻译维护](i18n.zh.md)                                        | 配对范围、术语与同步检查                        |
 | [AI 工具配置](agents/issue-tracker.zh.md)                     | 供 AI 工具使用的 issue 跟踪、分诊标签与领域文档 |
 
