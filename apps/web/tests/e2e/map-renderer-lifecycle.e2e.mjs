@@ -152,6 +152,25 @@ async function settled(page, provider) {
   await marker.waitFor({ state: "visible" });
 }
 
+async function phoneSurfaceSettled(page, provider) {
+  await page.waitForFunction(
+    (expectedProvider) => {
+      const map = document.querySelector(
+        `.trip-home .google-map[data-provider=${expectedProvider}]`,
+      );
+      const owner = map?.closest(".trip-map-canvas");
+      if (!map || !owner) return false;
+      const mapRect = map.getBoundingClientRect();
+      const ownerRect = owner.getBoundingClientRect();
+      return (
+        Math.abs(mapRect.width - ownerRect.width) <= 2 &&
+        Math.abs(mapRect.height - ownerRect.height) <= 2
+      );
+    },
+    provider,
+  );
+}
+
 async function unmountMap(page) {
   await page.locator(".trip-home__head button").first().click();
   await page.locator(".trip-home").waitFor({ state: "detached" });
@@ -271,7 +290,7 @@ try {
       const expectedProvider = scenario.provider === "google" ? "google" : "osm";
       await settled(page, expectedProvider);
       if (scenario.width <= 520) {
-        await page.evaluate(() => new Promise((resolve) => requestAnimationFrame(() => resolve())));
+        await phoneSurfaceSettled(page, expectedProvider);
         const surface = await scope
           .locator(`.google-map[data-provider=${expectedProvider}]`)
           .evaluate((element) => {
@@ -367,42 +386,39 @@ try {
       check(errors.length === 0, `${scenario.name}: unmount has no browser errors`, errors);
       const callbacks = await page.evaluate((hostReplacement) => {
         const fixture = window.__googleRendererFixture;
+        const ownerListeners = (map) =>
+          [...map.listeners.values()].reduce(
+            (events, listeners) => events + listeners.size,
+            0,
+          );
+        const connected = fixture.maps.filter((map) => map.element.isConnected);
+        const tripHome = fixture.maps.filter((map) => map.tripHome);
+        const releasedHost = hostReplacement
+          ? fixture.externalAuthFailure
+          : fixture.previousAuthFailure;
+        const hostReleased = window.gm_authFailure === releasedHost;
         return {
           previousAuthCalls: fixture.previousAuthCalls,
           externalAuthCalls: fixture.externalAuthCalls,
           authDispatches: fixture.authDispatches,
-          hostPreserved: hostReplacement
-            ? window.gm_authFailure === fixture.externalAuthFailure
-            : window.gm_authFailure === fixture.previousAuthFailure,
+          hostReleased,
           pending: fixture.pending.size,
-          live: fixture.maps
-            .filter((map) => map.element.isConnected)
-            .reduce(
-              (count, map) =>
-                count +
-                [...map.listeners.values()].reduce(
-                  (events, listeners) => events + listeners.size,
-                  0,
-                ),
-              0,
-            ),
+          live: connected.reduce((count, map) => count + ownerListeners(map), 0),
           disconnectedLive: fixture.maps.filter((map) => !map.destroyed && !map.element.isConnected)
             .length,
           disposedListeners: fixture.maps
             .filter((map) => map.destroyed)
-            .reduce(
-              (count, map) =>
-                count +
-                [...map.listeners.values()].reduce(
-                  (events, listeners) => events + listeners.size,
-                  0,
-                ),
-              0,
-            ),
+            .reduce((count, map) => count + ownerListeners(map), 0),
+          tripHomeConnected: tripHome.filter((map) => map.element.isConnected).length,
+          tripHomeUndestroyed: tripHome.filter((map) => !map.destroyed).length,
+          tripHomeLiveListeners: tripHome
+            .filter((map) => map.element.isConnected)
+            .reduce((count, map) => count + ownerListeners(map), 0),
+          backgroundOwners: connected.filter((map) => !map.tripHome).length,
         };
       }, scenario.hostReplacement);
       check(
-        callbacks.hostPreserved &&
+        callbacks.hostReleased === (callbacks.backgroundOwners === 0) &&
           (scenario.hostReplacement
             ? callbacks.externalAuthCalls === callbacks.authDispatches
             : callbacks.previousAuthCalls === callbacks.authDispatches) &&
@@ -413,7 +429,10 @@ try {
       check(
         callbacks.pending === callbacks.live &&
           callbacks.disconnectedLive === 0 &&
-          callbacks.disposedListeners === 0,
+          callbacks.disposedListeners === 0 &&
+          callbacks.tripHomeConnected === 0 &&
+          callbacks.tripHomeUndestroyed === 0 &&
+          callbacks.tripHomeLiveListeners === 0,
         `${scenario.name}: unmount leaves no orphan maps or callbacks`,
         callbacks,
       );
