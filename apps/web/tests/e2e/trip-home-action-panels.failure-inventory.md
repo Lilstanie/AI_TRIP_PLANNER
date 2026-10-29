@@ -16,5 +16,6 @@ The journey must fail when any of these outcomes regress:
 10. Arrow-key switching fails to move selection and focus together.
 11. Zoom, a narrow content container, an extreme chat/map split or a responsive breakpoint clips the panel, traps focus or creates horizontal overflow.
 12. Browser console or page errors occur during the journey.
+13. Saving Trip preferences after an outside Budget edit restores the older Budget or drops the unsubmitted preference.
 
 The repeatable evidence is `trip-home-action-panels.e2e.mjs`. It seeds local fixture data and writes screenshots plus `summary.json` under `output/playwright/trip-home-action-panels/`. Fixture and browser results do not establish live-provider or physical-device behaviour.

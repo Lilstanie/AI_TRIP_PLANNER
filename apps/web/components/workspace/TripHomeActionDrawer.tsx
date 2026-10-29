@@ -72,11 +72,29 @@ export function TripHomeActionDrawer({
     value: draft,
     baseline: draft,
   });
+  const overlayPreferences = (value: Draft) => {
+    const keys = [
+      "preferences",
+      "noAccommodation",
+      "learnedPreferences",
+      "legModes",
+      "excludeFlights",
+      "bookedStay",
+    ] as const;
+    const changed = Object.fromEntries(
+      keys
+        .filter(
+          (key) => JSON.stringify(value[key]) !== JSON.stringify(preferencesEdit.baseline[key]),
+        )
+        .map((key) => [key, value[key]]),
+    );
+    return { ...draft, ...changed };
+  };
   const preferencesDraft =
     preferencesEdit.tripId !== plan.tripId ||
     sameDraft(preferencesEdit.value, preferencesEdit.baseline)
       ? draft
-      : preferencesEdit.value;
+      : overlayPreferences(preferencesEdit.value);
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next: number | undefined;
     if (event.key === "ArrowRight") next = (index + 1) % TRIP_ACTIONS.length;
@@ -169,12 +187,15 @@ export function TripHomeActionDrawer({
               }))
             }
             onSave={(next) => {
-              setPreferencesEdit({ tripId: plan.tripId, value: next, baseline: next });
-              onSave(next);
+              const merged = overlayPreferences(next);
+              setPreferencesEdit({ tripId: plan.tripId, value: merged, baseline: merged });
+              onSave(merged);
             }}
             onReplan={(next) => {
-              const done = onReplan(next);
-              if (done) setPreferencesEdit({ tripId: plan.tripId, value: next, baseline: next });
+              const merged = overlayPreferences(next);
+              const done = onReplan(merged);
+              if (done)
+                setPreferencesEdit({ tripId: plan.tripId, value: merged, baseline: merged });
               return done;
             }}
             onDone={onClose}

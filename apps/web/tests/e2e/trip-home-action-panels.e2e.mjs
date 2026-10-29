@@ -691,6 +691,55 @@ try {
   await page.keyboard.press("Escape");
   await page.waitForFunction(() => !document.querySelector(".trip-home-action-surface.is-open"));
 
+  await home(page)
+    .getByRole("button", { name: /^Budget/ })
+    .click();
+  const budget = dialog(page, "Budget");
+  await budget.waitFor();
+  await budget.locator('input[type="number"]').fill("5200");
+  await budget.getByRole("button", { name: "Save", exact: true }).click();
+  await budget.waitFor({ state: "hidden" });
+  await page.waitForFunction(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}");
+    const trip = catalog.trips?.find((item) => item.title === "Sydney long weekend");
+    const chip = document.querySelector(".fact-chips")?.textContent ?? "";
+    return String(trip?.snapshot?.draft?.budgetTotal) === "5200" && chip.includes("5,200");
+  });
+  await action(page, /^Trip preferences/).click();
+  const afterBudget = dialog(page, "Trip preferences");
+  await afterBudget.waitFor();
+  check(
+    (await afterBudget.getByText("Keep unsaved panel text", { exact: true }).count()) === 1,
+    "a later Budget save keeps the unsubmitted Trip preferences edit",
+  );
+  await afterBudget.getByRole("button", { name: "Save", exact: true }).click();
+  await afterBudget.waitFor({ state: "hidden" });
+  await page.waitForFunction(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}");
+    const trip = catalog.trips?.find((item) => item.title === "Sydney long weekend");
+    const preferences = trip?.snapshot?.draft?.preferences ?? [];
+    return (
+      String(trip?.snapshot?.draft?.budgetTotal) === "5200" &&
+      preferences.includes("Keep unsaved panel text")
+    );
+  });
+  const merged = await page.evaluate(() => {
+    const catalog = JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "{}");
+    const trip = catalog.trips?.find((item) => item.title === "Sydney long weekend");
+    return {
+      budget: trip?.snapshot?.draft?.budgetTotal,
+      preferences: trip?.snapshot?.draft?.preferences ?? [],
+      chip: document.querySelector(".fact-chips")?.textContent ?? "",
+    };
+  });
+  check(
+    String(merged.budget) === "5200" &&
+      merged.preferences.includes("Keep unsaved panel text") &&
+      merged.chip.includes("5,200"),
+    "saving Trip preferences overlays local edits onto the latest Budget",
+    merged,
+  );
+
   await action(page, /^Calendar/).click();
   await dialog(page, "Calendar").waitFor();
   await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
