@@ -94,17 +94,19 @@ The Trip home action area and its acceptance criteria are detailed in
     changes. Five cards above the map open Itinerary, Ideas, Bookings, Trip preferences and Calendar
     in one right-side drawer (`TripHomeActionDrawer`) without leaving Trip home. Itinerary embeds the
     same editable Trip view as the conversation and shares its latest Plan, pending edit, selected
-    day and Undo; activities, flights and stays render in both entries, and booking-only days are not
-    free days. Itinerary and Calendar select a day and focus it on the map. Ideas uses the existing
-    scheduling flow, Bookings groups booked items, and preferences save and replan the open Trip.
-    Close, Escape and outside press restore focus to the opening card. There is no Media or Receipts
-    card. The side column holds the trip map
+    day or activity, unsubmitted form drafts and Undo; activities, flights and stays render in both
+    entries, and booking-only days are not free days. Background place saves and route checks run only
+    while the active Chat owns that Trip, so viewing another Trip home cannot rewrite the open Chat.
+    Itinerary and Calendar select a day and focus it on the map, and the home map uses the same selected
+    activity and routes. Ideas uses the existing scheduling flow, Bookings groups booked items, and
+    preferences save and replan the open Trip. Close, Escape and outside press restore focus to the
+    opening card. There is no Media or Receipts card. The side column holds the trip map
     (`TripHomeMap`): the existing `TripMapCanvas` uses the open Trip's latest Plan, including a selected
     Chat's newer snapshot. An open Chat retains the adjustable chat/map split on desktop. At 820 px and
     below the page stacks in phone reading order, with full-screen action drawers. A trip whose places
     cannot be found keeps the map's own notice instead of markers. The [Trip home actions Agent Note](../.agents/notes/implemented/feature/2026-10-29-trip-home-actions.md)
     records the behavior; `trip-home-action-rail`, `trip-home-calendar`, `trip-home-ideas-bookings`,
-    `trip-home-preferences` and `trip-home-walkthrough` are its E2Es.
+    `trip-home-preferences`, `trip-home-shared-editor` and `trip-home-walkthrough` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
