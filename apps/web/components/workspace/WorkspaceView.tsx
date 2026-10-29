@@ -28,7 +28,7 @@ import { TripHomeChats, TripHomeComposer } from "./TripHomeChats";
 import { TripHomeSuggestion } from "./TripHomeSuggestion";
 import { TripHomeMap } from "./TripHomeMap";
 import { TripHomeActionDrawer } from "./TripHomeActionDrawer";
-import { distinctTripTitles, tripName, tripTags } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
@@ -579,7 +579,25 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
                   homeTrip.id,
                 )!}
-                tags={tripTags(homeTrip, locale, settings.displayCurrency, t)}
+                key={homeTrip.id}
+                facts={{
+                  phone,
+                  view: mobileView,
+                  draft: homeSnapshot!.draft,
+                  plan: homePlan,
+                  busy: busy || editPending,
+                  errors,
+                  open: openFact,
+                  onOpen: (fact) => {
+                    if (catalog.activeTripId !== homeTrip.id) previewTrip(homeTrip.id);
+                    openPreferences(fact);
+                  },
+                  onClose: closePreferences,
+                  onSave: session.saveFacts,
+                  onPlan: session.planWith,
+                  preferencesChip: preferencesToggle,
+                  suggestPlaces: dataMode.mode === "live" && !!dataMode.providers?.maps,
+                }}
                 onBack={() => viewTransition(layout.showTrips)}
                 onRename={() => history.renameTrip(homeTrip.id)}
                 onDelete={() => deleteTrip(homeTrip.id)}

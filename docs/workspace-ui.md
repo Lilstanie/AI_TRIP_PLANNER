@@ -78,9 +78,9 @@ The Trip home action area and its acceptance criteria are detailed in
     read `Trip to Sydney · 1` and `· 2`. A back button named "Back to trips" returns to the Trips page on the tab
     the trip was opened from. The menu next to the title reuses the Trips page's Rename and Delete; Delete
     returns to Trips, where the existing Undo notice restores the trip and its chats. A trip deleted
-    while its page is open, from any list, also returns to Trips. One line of tags, a labelled list, shows
-    the brief's destination, dates (or the number of days when the dates do not read as a range), travellers
-    and budget in the trip's currency, and leaves out any that is empty. Under the tags, `TripHomeChats`
+    while its page is open, from any list, also returns to Trips. The same destination, dates, travellers and budget fact chips as the conversation top bar open their
+    existing editors on Trip home. Trip preferences stays on its action card and drawer, so the preference
+    list is edited separately. Opening a home fact activates that Trip before Save or Replan. Under the tags, `TripHomeChats`
     lists the trip's chats under a "Chats" heading, newest first by last update (chats saved in the same
     millisecond list the one started last first), each row a button with
     the chat title and its date in the interface language. Choosing a row replaces only the main column
@@ -150,8 +150,8 @@ The Trip home action area and its acceptance criteria are detailed in
     held a fixed distance from the top so a new row grows it downwards. The panel has no padding of
     its own: the head has the close button leading and a centred 20 px semibold title, content is
     inset by `--space-5`, and one Apple-blue pill at the bottom right (`--accent-fill` fill,
-    `--on-accent` label, 168 × 40) is the primary action: Save, Done on Trip preferences, or Update
-    trip once a plan exists. Trip preferences has a hairline under its head; the others have none. The
+    `--on-accent` label, 168 × 40) is the primary action: Save, or Done on Trip preferences before a
+    plan exists. When a plan exists the editor also offers an explicit Replan trip control beside Save. Trip preferences has a hairline under its head; the others have none. The
     panel is 512 px wide, 420 px for Who and Budget's shorter rows, and 680 px for When's two-month
     calendar (all `min(…, 100vw - 2 × --space-4)`). It is a Liquid Glass sheet with 28 px corners that
     springs in and sinks out (200 ms, kept mounted by `usePresence`), and the list rows use
@@ -233,9 +233,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     how to fix one next to it.
   - Before there is a plan, Save keeps the edit in the draft; nothing is sent. The stated facts go
     with the next chat message as `known`, and Plan trip in Trip preferences plans with the whole
-    brief (`mode: "plan"`). Once a plan exists the button says Replan trip: it keeps the edit and
-    replans with the whole brief, because a chat message carries the plan's brief, not the draft. A
-    rejected brief opens the editor of the first fact at fault, with the error beside the field.
+    brief (`mode: "plan"`). Once a plan exists, Save still keeps only the draft and leaves the Plan
+    unchanged; an explicit Replan trip button keeps the edit and replans with the whole brief, because a
+    chat message carries the plan's brief, not the draft. Cancel, Escape and outside dismissal leave
+    the persisted draft, Plan, other Trips and Settings untouched. A rejected brief opens the editor of
+    the first fact at fault, with the error beside the field.
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
     the trip and the title is kept for assistive technology only.
 - **Map on demand.** On desktop a chat with no plan shows the chat alone, centred at up to 880 px.
@@ -533,8 +535,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     and clicking anywhere in it highlights the card once — the field draws no ring of its own. Enter
     sends and Shift+Enter breaks the line, but never while an input method is composing. While a
     request runs, the primary action becomes Stop in place; there is no hint text.
-  - Update trip in a chip editor, or Plan trip in Trip preferences before there is a plan, sends
-    `mode: "plan"` with the brief.
+  - Replan trip in a chip editor, or Plan trip in Trip preferences before there is a plan, sends
+    `mode: "plan"` with the brief. Save alone never starts that request.
   - When a chip edit changes only the budget, the user's chat message names that change alone and
     formats its amount with the trip's display currency and locale.
   - A first chat message sends `mode: "start"`, and the server reports any missing destination,

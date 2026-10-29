@@ -601,21 +601,14 @@
 .trip-home__menu .history-item__more {
   opacity: 1;
 }
-.trip-home__tags {
+.workspace-app .trip-home .fact-chips {
   display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  margin: var(--space-3) 0 0;
-  padding: 0;
-  list-style: none;
+  flex: none;
+  justify-content: flex-start;
+  margin-top: var(--space-3);
 }
-.trip-home__tags li {
-  padding: 4px var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-  overflow-wrap: anywhere;
+.workspace-app .trip-home .fact-chips__scroller {
+  display: flex;
 }
 
 .trip-home-cards {

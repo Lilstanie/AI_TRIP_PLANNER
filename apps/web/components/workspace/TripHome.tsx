@@ -1,12 +1,13 @@
 "use client";
-import type { ReactNode } from "react";
-import { useLocale } from "@/components/account/LocaleProvider";
+import type { ComponentProps, ReactNode } from "react";
+import { TripFactChips } from "../preferences/TripFactChips";
+import { LocaleProvider, useLocale } from "@/components/account/LocaleProvider";
 import { ChevronIcon } from "../ui/icons";
 import { HistoryMenu } from "./WorkspaceSidebar";
 
 export function TripHome({
   title,
-  tags,
+  facts,
   onBack,
   onRename,
   onDelete,
@@ -18,7 +19,7 @@ export function TripHome({
   phone,
 }: {
   title: string;
-  tags: readonly string[];
+  facts: ComponentProps<typeof TripFactChips>;
   onBack(): void;
   onRename(): void;
   onDelete(): void;
@@ -49,13 +50,9 @@ export function TripHome({
             <HistoryMenu title={title} onRename={onRename} onDelete={onDelete} />
           </div>
         </header>
-        {tags.length > 0 && (
-          <ul className="trip-home__tags" aria-label={t("Trip details")}>
-            {tags.map((tag) => (
-              <li key={tag}>{tag}</li>
-            ))}
-          </ul>
-        )}
+        <LocaleProvider brief={facts.draft}>
+          <TripFactChips {...facts} facts={["where", "when", "who", "budget"]} />
+        </LocaleProvider>
         {suggestion}
         {phone && actions}
         {children}

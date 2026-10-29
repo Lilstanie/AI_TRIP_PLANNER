@@ -3,6 +3,9 @@
 Status: implemented
 Owner: repository owner (@HeadmasterEggy)
 
+Superseded in part: [Trip fact editors save without replanning](2026-10-29-trip-fact-save-and-replan.md)
+adds Save beside Replan trip once a Plan exists.
+
 ## Problem
 
 The repository owner asked for the Preferences interaction to work like Mindtrip's. Before this

@@ -111,7 +111,10 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
     case "close-trip-action":
       return isTripAction(surface.drawer) ? without(surface, "drawer") : surface;
     case "open-fact":
-      return only(without(surface, "dialog"), { page: "workspace", fact: event.fact });
+      return only(without(surface, "dialog"), {
+        page: surface.page === "home" ? "home" : "workspace",
+        fact: event.fact,
+      });
     case "close-fact":
       return without(surface, "fact");
     case "open-sheet":
