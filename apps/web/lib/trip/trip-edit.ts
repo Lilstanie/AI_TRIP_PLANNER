@@ -101,16 +101,20 @@ export const EditRequest = z.object({
       kind: z.literal("undo"),
       addedIds: z.array(z.string()).optional(),
       activities: z.array(
-        z.object({
-          id: z.string(),
-          day: z.number().int().positive(),
-          startTime: clock,
-          endTime: clock,
-          placeId: z.string().optional(),
-          savedPlace: ProposalItem.shape.savedPlace,
-          priceNeedsReview: z.boolean().optional(),
-          arriveBy: ArriveBy.optional(),
-        }),
+        z
+          .object({
+            id: z.string(),
+            day: z.number().int().positive(),
+            startTime: clock.optional(),
+            endTime: clock.optional(),
+            placeId: z.string().optional(),
+            savedPlace: ProposalItem.shape.savedPlace,
+            priceNeedsReview: z.boolean().optional(),
+            arriveBy: ArriveBy.optional(),
+          })
+          .refine((item) => Boolean(item.startTime) === Boolean(item.endTime), {
+            message: "An undone Stop needs both times or neither.",
+          }),
       ),
     }),
   ]),
@@ -403,11 +407,10 @@ export async function previewEdit(
   } else if (operation.kind === "verify") {
     affected.add(operation.day);
   } else if (operation.kind === "undo") {
-    const timed = activities.filter((activity) => activity.startTime && activity.endTime);
     if (
-      operation.activities.length !== timed.length ||
-      new Set(operation.activities.map((a) => a.id)).size !== timed.length ||
-      operation.activities.some((saved) => !timed.some((activity) => activity.id === saved.id))
+      operation.activities.length !== activities.length ||
+      new Set(operation.activities.map((a) => a.id)).size !== activities.length ||
+      operation.activities.some((saved) => !activities.some((activity) => activity.id === saved.id))
     )
       throw new NoticeError({ key: "Undo activities do not match this plan." });
     const restored: ProposalItem[] = operation.activities.map((saved) => {
@@ -422,6 +425,10 @@ export async function previewEdit(
         placeId: saved.placeId,
         priceNeedsReview: saved.priceNeedsReview,
       };
+      if (!saved.startTime) {
+        delete restoredItem.startTime;
+        delete restoredItem.endTime;
+      }
       if (saved.savedPlace) restoredItem.savedPlace = saved.savedPlace;
       else if (saved.placeId !== item.placeId) delete restoredItem.savedPlace;
 
@@ -429,12 +436,7 @@ export async function previewEdit(
       else delete restoredItem.arriveBy;
       return restoredItem;
     });
-    const restoredById = new Map(restored.map((item) => [item.id, item]));
-    activities.splice(
-      0,
-      activities.length,
-      ...activities.map((item) => restoredById.get(item.id) ?? item),
-    );
+    activities.splice(0, activities.length, ...restored);
   } else if (isStructural(operation)) {
     for (const stop of [
       before.find((a) => a.id === operation.id),

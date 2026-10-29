@@ -8,15 +8,13 @@ export function undoStepOf(plan: TripPlan): UndoStep {
   return {
     kind: "undo",
     activities: items
-      .filter(
-        (item) =>
-          item.kind === "activity" && item.day !== undefined && item.startTime && item.endTime,
-      )
+      .filter((item) => item.kind === "activity" && item.day !== undefined)
       .map((item) => ({
         id: item.id!,
         day: item.day!,
-        startTime: item.startTime!,
-        endTime: item.endTime!,
+        ...(item.startTime && item.endTime
+          ? { startTime: item.startTime, endTime: item.endTime }
+          : {}),
         placeId: item.placeId,
         priceNeedsReview: item.priceNeedsReview,
         ...(item.savedPlace ? { savedPlace: item.savedPlace } : {}),

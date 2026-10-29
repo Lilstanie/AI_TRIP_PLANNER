@@ -20,7 +20,8 @@ harness.
 9. Clicking a calendar activity does not open the shared itinerary editor on that activity and day.
 10. Clicking a month date no longer opens Itinerary on that day or fails to focus the map day.
 11. After an edit or Undo, Calendar, home Itinerary, conversation Trip and the map disagree about the
-    Plan, selected day or selected activity.
+    Plan, selected day or selected activity, including Undo refusing after an untimed stop is given
+    a time or failing to put it back in the All day region.
 12. Calendar builds a second Plan projection instead of reusing the Trip domain day / booking rules,
     so flights, overnight stays, Ideas or empty days diverge from Itinerary.
 13. Acceptance depends on the expanded combined drawer / map state from ticket #797.

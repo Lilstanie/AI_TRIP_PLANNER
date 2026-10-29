@@ -545,6 +545,51 @@ try {
     "the conversation Trip entry reflects the Calendar edit and Undo by stable activity identity",
   );
 
+  await page
+    .locator(".sidebar-nav")
+    .getByRole("button", { name: /^Trips/ })
+    .click();
+  await page.locator(".trip-cards .trip-card").first().click();
+  await page.locator(".trip-home").waitFor();
+  calendarDrawer = await openCalendar(page);
+  await activityButton(calendarDrawer, "markets").click();
+  const untimedStop = dialog(page, "Itinerary").locator(".timeline-stop.is-selected");
+  await untimedStop.waitFor();
+  check(
+    (await untimedStop.getByRole("button", { name: /^Change time, —/ }).count()) === 1,
+    "clicking an untimed activity opens its editor without an invented time",
+  );
+  await changeTime(dialog(page, "Itinerary"), untimedStop, "18:00", "19:00");
+  await untimedStop
+    .getByRole("button", { name: "Change time, 18:00–19:00", exact: true })
+    .waitFor();
+  await closeDrawer(page);
+  calendarDrawer = await openCalendar(page);
+  check(
+    (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "timed" &&
+      (await activityButton(calendarDrawer, "markets").getAttribute("aria-label"))?.includes(
+        "18:00–19:00",
+      ) === true,
+    "Calendar shows an untimed activity after it is given a time",
+  );
+  await activityButton(calendarDrawer, "markets").click();
+  const afterUntimedEdit = dialog(page, "Itinerary");
+  await afterUntimedEdit.getByRole("button", { name: "Undo last change" }).click();
+  const untimedAgain = await afterUntimedEdit
+    .locator(".timeline-stop.is-selected")
+    .getByRole("button", { name: /^Change time, —/ })
+    .waitFor({ timeout: 5000 })
+    .then(() => true)
+    .catch(() => false);
+  await closeDrawer(page);
+  calendarDrawer = await openCalendar(page);
+  check(
+    untimedAgain &&
+      (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "untimed",
+    "Undo returns a newly timed activity to the untimed All day region",
+  );
+  await closeDrawer(page);
+
   const unexpectedErrors = currentErrors.filter(
     (message) => !/Failed to load resource: net::ERR_FAILED/.test(message),
   );
@@ -564,9 +609,11 @@ try {
     weekDays: node.querySelectorAll(".trip-home-calendar__week-day").length,
     dateButtons: node.querySelectorAll(".trip-home-calendar__date").length,
   }));
-  const westernDateLabels = await calendarDrawer.locator(".trip-home-calendar__date").evaluateAll((buttons) =>
-    buttons.map((button) => button.getAttribute("aria-label")).filter(Boolean),
-  );
+  const westernDateLabels = await calendarDrawer
+    .locator(".trip-home-calendar__date")
+    .evaluateAll((buttons) =>
+      buttons.map((button) => button.getAttribute("aria-label")).filter(Boolean),
+    );
   await calendarDrawer.getByRole("button", { name: /^27 December 2030/ }).waitFor();
   await calendarDrawer.getByRole("button", { name: /^2 January 2031/ }).waitFor();
   check(

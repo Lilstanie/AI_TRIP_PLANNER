@@ -28,7 +28,9 @@ show dates outside the Trip.
   and Undo therefore update Itinerary, the conversation Trip, Calendar and the map through the
   existing Plan owner.
 - Editing validates activity ids without requiring every scheduled activity to be timed. Routing,
-  overlap checks, automatic time selection and Undo compare only timed activities.
+  overlap checks and automatic time selection compare only timed activities.
+- Undo snapshots every scheduled activity, with times only where the Plan has them, so undoing a
+  time added to an untimed stop restores its All day position.
 
 ## Alternatives considered
 
@@ -45,7 +47,8 @@ show dates outside the Trip.
 
 - Week and month navigation stop at the Trip bounds; the selected date may be retained while its
   button is outside the visible week.
-- Untimed entries remain useful all-day information and never acquire a manufactured start time.
+- Untimed entries remain useful all-day information and never acquire a manufactured start time;
+  an Undo can remove a time the traveller added.
 - Calendar depends on `apps/web/lib/trip/calendar.ts`, which reuses the timeline projection and has
   no separate persisted data.
 - Browser E2E covers a cross-year Trip at desktop phone widths, English and Chinese, Sydney and
