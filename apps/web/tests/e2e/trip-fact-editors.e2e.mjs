@@ -154,6 +154,17 @@ try {
         ? route.continue()
         : route.abort(),
     );
+    await page.route("https://tiles.openfreemap.org/styles/**", (route) =>
+      route.fulfill({
+        json: {
+          version: 8,
+          sources: {},
+          layers: [
+            { id: "background", type: "background", paint: { "background-color": "#e5ebe4" } },
+          ],
+        },
+      }),
+    );
     await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
     await page.route("**/api/chat", async (route) => {
       const request = route.request().postDataJSON();
