@@ -6,12 +6,14 @@ import { ChatViewTabs } from "../chat/ChatViewTabs";
 import { useTrajectoryFocus } from "../chat/trajectory-focus";
 import { useTripUndo } from "../trip/useTripUndo";
 import { TripEditorView } from "../trip/TripEditor";
+import { TripDrawerEmpty } from "../trip/TripDrawerEmpty";
+import { createEditorDrafts, EditorDraftProvider } from "../trip/editor-drafts";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
-import { useFormDrafts } from "../trip/timeline/useFormDrafts";
 import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
+import { useTripPlaces } from "../map/useTripPlaces";
 import { OpenItemsBadge } from "../trip/OpenItemsBadge";
 import { TripPanel } from "../trip/TripPanel";
 import { useUserLocation } from "../map/useUserLocation";
@@ -59,6 +61,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
+  const [editorDrafts] = useState(createEditorDrafts);
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const [homeChatId, setHomeChatId] = useState<string>();
   const homeActionTarget = useRef<HTMLElement>(null);
@@ -161,7 +164,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const sessionTripId = plan?.tripId;
   const sessionOwnsEditor =
     page !== "home" || (!!sessionTripId && sessionTripId === homeTrip?.snapshot.plan.tripId);
-  const drafts = useFormDrafts();
+  const homeTripPlaces = useTripPlaces(
+    page === "home" ? editorPlan : undefined,
+    tripPlaces.dataMode,
+    locale,
+    tripPlaces.forceOsm,
+    tripPlaces.allowFallback,
+  );
+  const editorTripPlaces = page === "home" ? homeTripPlaces : tripPlaces;
   const undo = useTripUndo(editorPlan);
   const revisions = usePlanRevision({
     plan: editorPlan,
@@ -176,7 +186,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const autoSaves = useAutoSavePlaces({
     plan: sessionOwnsEditor ? editorPlan : undefined,
-    tripPlaces,
+    tripPlaces: editorTripPlaces,
     revisions,
   });
 
@@ -452,63 +462,46 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const tripContent = (
     <>
       {editorPlan ? (
-        <TripPanel
-          key={editorPlan.tripId}
-          plan={editorPlan}
-          {...(chooser.problem ? { problem: chooser.problem } : {})}
-          timeline={
-            <TripEditorView
-              plan={editorPlan}
-              disabled={editPending}
-              onPending={session.trackEdit}
-              tripPlaces={tripPlaces}
-              selected={selectedActivity}
-              day={layout.mapDay}
-              onDayChange={layout.pickMapDay}
-              onSelect={session.selectStop}
-              onSend={sendFromTrip}
-              onRoutesChange={session.showRoutes}
-              onApply={session.applyEdit}
-              revisions={revisions}
-              undo={undo}
-              routes={mapRoutes}
-              legs={legs}
-              onLegApplied={legs.noteLeg}
-              onTimelineChange={session.setTimelineChanged}
-              onShowMap={(value) => {
-                layout.pickMapDay(value);
-                if (phone) selectView("map");
-                else if (narrow) setTripView("map");
-              }}
-              showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
-              saves={autoSaves}
-              phone={phone}
-              drafts={drafts}
-              edits={timelineEdits}
-              {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
-            />
-          }
-        />
+        <EditorDraftProvider store={editorDrafts} tripId={editorPlan.tripId}>
+          <TripPanel
+            key={editorPlan.tripId}
+            plan={editorPlan}
+            {...(chooser.problem ? { problem: chooser.problem } : {})}
+            timeline={
+              <TripEditorView
+                plan={editorPlan}
+                disabled={busy || editPending}
+                onPending={session.trackEdit}
+                tripPlaces={editorTripPlaces}
+                selected={selectedActivity}
+                day={layout.mapDay}
+                onDayChange={layout.pickMapDay}
+                onSelect={session.selectStop}
+                onSend={sendFromTrip}
+                onRoutesChange={session.showRoutes}
+                onApply={session.applyEdit}
+                revisions={revisions}
+                undo={undo}
+                routes={mapRoutes}
+                legs={legs}
+                onLegApplied={legs.noteLeg}
+                onTimelineChange={session.setTimelineChanged}
+                onShowMap={(value) => {
+                  layout.pickMapDay(value);
+                  if (phone) selectView("map");
+                  else if (narrow) setTripView("map");
+                }}
+                showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
+                saves={autoSaves}
+                phone={phone}
+                edits={timelineEdits}
+                {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
+              />
+            }
+          />
+        </EditorDraftProvider>
       ) : (
-        <div className="trip-drawer-empty">
-          <p>
-            {phone
-              ? t("No trip yet. Plan one in Chat and your itinerary and budget will appear here.")
-              : t(
-                  "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.",
-                )}
-          </p>
-          {phone && (
-            <button type="button" onClick={() => selectView("chat")}>
-              {t("Plan in Chat")}
-            </button>
-          )}
-          {!phone && (
-            <button type="button" onClick={edit}>
-              {t("Add trip details")}
-            </button>
-          )}
-        </div>
+        <TripDrawerEmpty phone={phone} onPlanInChat={() => selectView("chat")} onAddDetails={edit} />
       )}
     </>
   );

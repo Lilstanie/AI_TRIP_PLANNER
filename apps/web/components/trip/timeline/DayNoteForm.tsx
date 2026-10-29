@@ -1,24 +1,31 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef } from "react";
+import { useEditorDraft } from "../editor-drafts";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { NOTE_MAX, TITLE_MAX } from "@/lib/trip/day-actions";
 import { StopEditSurface } from "./StopEditSurface";
 
 export function DayNoteForm({
   mode,
+  draftKey,
   value,
   phone = false,
   onSubmit,
   onCancel,
 }: {
   mode: "title" | "note";
+  draftKey: string;
   value: string;
   phone?: boolean;
-  onSubmit(text: string): void;
+  onSubmit(text: string): boolean;
   onCancel(): void;
 }) {
   const { t } = useLocale();
-  const [text, setText] = useState(value);
+  const [text, setText, resetText] = useEditorDraft(draftKey, value);
+  const cancel = () => {
+    resetText();
+    onCancel();
+  };
   const first = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   useEffect(() => first.current?.focus(), []);
   const label = mode === "title" ? t("Day title") : t("Day note");
@@ -28,13 +35,13 @@ export function DayNoteForm({
         className="item-editor"
         onSubmit={(event) => {
           event.preventDefault();
-          onSubmit(text);
+          if (onSubmit(text)) resetText();
         }}
         onKeyDown={(event) => {
           if (event.key !== "Escape") return;
           event.preventDefault();
           event.stopPropagation();
-          onCancel();
+          cancel();
         }}
       >
         <label>
@@ -60,7 +67,7 @@ export function DayNoteForm({
           <button type="submit" className="primary">
             {t("Save")}
           </button>
-          <button type="button" onClick={onCancel}>
+          <button type="button" onClick={cancel}>
             {t("Cancel")}
           </button>
         </div>

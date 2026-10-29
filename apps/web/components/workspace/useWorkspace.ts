@@ -516,11 +516,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const savedCatalog = flushSave();
     const trip = savedCatalog.trips.find((item) => item.id === id);
     if (!trip) return false;
-    const conversationId = trip.conversationIds.at(-1);
-    const conversation = savedCatalog.conversations.find((item) => item.id === conversationId);
+    const conversation = tripConversations(savedCatalog, id)[0];
     open(
       {
-        ...trip.snapshot,
+        ...((conversation && latestSnapshot(savedCatalog, conversation)) ?? trip.snapshot),
         ...(conversation ? { messages: conversation.messages, input: conversation.input } : {}),
       },
       conversation?.id ?? `conversation:${trip.snapshot.id}`,

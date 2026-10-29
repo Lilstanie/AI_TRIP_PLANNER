@@ -46,7 +46,6 @@ import { directionsUrl } from "@/lib/trip/leg-distance";
 import { IDLE_AUTO_SAVE, type AutoSaveState } from "./useAutoSavePlaces";
 import type { LegState } from "./useLegRoutes";
 import type { EditOperation, PlanRevisions } from "./plan-revision";
-import type { FormDrafts } from "./timeline/useFormDrafts";
 
 type Activity = TripPlaces["activities"][number];
 
@@ -73,7 +72,6 @@ type TripEditorProps = {
   onTimelineChange?(changed: boolean): void;
   onShowMap?(day: number): void;
   phone?: boolean;
-  drafts?: FormDrafts;
 };
 
 function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
@@ -137,7 +135,6 @@ export function TripEditorView({
   onShowMap,
   phone = false,
   edits,
-  drafts,
 }: TripEditorProps & { edits: TimelineEdits }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
@@ -249,10 +246,12 @@ export function TripEditorView({
       onTimelineChange?.(true);
       onApply(next);
       then?.(next);
+      return true;
     } catch (error) {
       setProblem(
         error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
       );
+      return false;
     }
   };
   const [editingDay, setEditingDay] = useState<"title" | "note" | undefined>(undefined);
@@ -404,7 +403,6 @@ export function TripEditorView({
       place: placeId ? places[placeId] : undefined,
       status: locationStatus(activity),
       edits,
-      drafts,
       showPhotos,
       suggestion: !!activity.id && suggested.has(activity.id),
       saveState: (saves.saving === activity.id
@@ -596,6 +594,7 @@ export function TripEditorView({
         {editingDay && (
           <DayNoteForm
             key={`${day}-${editingDay}`}
+            draftKey={`day:${day}:${editingDay}`}
             mode={editingDay}
             value={(editingDay === "title" ? dayEntry?.title : dayEntry?.note) ?? ""}
             phone={phone}
