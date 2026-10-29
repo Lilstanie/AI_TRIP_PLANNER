@@ -7,22 +7,31 @@ area: apps/web, docs
 contract-impact: none
 ---
 
-# Finish #789 review gates and lifecycle note
+# Finish #789 renderer ownership and lifecycle verification
 
 ## What changed
 
 - Added `.agents/notes/implemented/architecture/2026-10-29-map-runtime-lifecycle.md` for renderer ownership.
 - Switched fixture/MapLibre class checks in `map-renderer-lifecycle.e2e.mjs` to attribute selectors so
   `pnpm verify:e2e-selectors` passes without editing the protected allowlist.
+- Wait for the phone map and its owning canvas to reach the same layout box before measuring the
+  rendered surface.
+- Record whether each fixture map belongs to Trip Home when it is constructed, so a detached map can
+  still be identified as an orphan after its ancestor leaves the DOM.
+- Assert host callback release against active map owners. The phone success scenario intentionally keeps
+  the background workspace map alive, so its host callback remains installed until that owner is gone.
 
 ## Why
 
 The lifecycle fix was already on `5bfac908`; the remaining gate failure was the selector verifier, and
-the lasting ownership rule still needed an implemented Agent Note.
+the lasting ownership rule still needed an implemented Agent Note. The phone success run also exposed
+two separate test assumptions: it measured before the responsive canvas had settled, then treated the
+background workspace map's live callback as a Trip Home orphan. The revised assertions distinguish the
+owners and require exact callback delivery for every auth dispatch.
 
 ## Validation
 
-- `BASE_URL=http://127.0.0.1:3198 LABEL=green-final-selector-fix node apps/web/tests/e2e/map-renderer-lifecycle.e2e.mjs` — 64/64.
+- `LABEL=green-ownership-fixture-preintegration pnpm --filter @trip/web e2e map-renderer-lifecycle --prod` — 72/72 before integrating `e38d46be`.
 - `pnpm --filter @trip/web exec tsc --noEmit --project tsconfig.map-lifecycle.json` — pass.
 - `pnpm --filter @trip/web lint` — pass with existing ChatPanel/PhoneTrajectory warnings.
 - `pnpm --filter @trip/web build` — pass.
@@ -33,4 +42,4 @@ the lasting ownership rule still needed an implemented Agent Note.
 ## Notes for the next person
 
 Keep red artifacts under `output/playwright/map-renderer-lifecycle/`. This branch already contains
-integration tip `4be0a550` through `c18eeced`; do not push or merge into integration from here.
+integration tip `e38d46be`; do not push or merge into integration from here.

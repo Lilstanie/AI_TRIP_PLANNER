@@ -52,6 +52,7 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
   class FixtureMap {
     constructor(element, options) {
       this.element = element;
+      this.tripHome = Boolean(element.closest(".trip-home"));
       this.center = options.center;
       this.zoom = options.zoom;
       this.listeners = new Map();
