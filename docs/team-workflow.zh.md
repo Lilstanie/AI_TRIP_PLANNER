@@ -46,9 +46,10 @@
 `refactor/<short-desc>` 或 `docs/<short-desc>`。分支名称与创建分支的工具或助手无关。
 使用 Conventional Commits 前缀：`feat:`、`fix:`、`docs:`、`refactor:`、`test:` 和 `chore:`。
 
-向 `main` 提交 PR（Pull Request），在 CI 通过后自行合并。不会要求或自动请求评审；
-跨模块更改时，请自行邀请队友。不要强制推送或删除 `main`
-（[原因](../.agents/notes/implemented/process/2026-09-22-no-review-requests.md)）。
+向 `main` 提交 PR（Pull Request）。PR 需由 [`.github/CODEOWNERS`](../.github/CODEOWNERS)
+中的某位代码负责人批准、且必需的检查全部通过后才能合并，因此没有人能批准自己的改动。
+代码负责人在发布需要时可不经批准直接合并。`main` 不能被强制推送或删除
+（[原因](../.agents/notes/implemented/process/2026-10-29-require-code-owner-review.md)）。
 
 每个 PR 都合并到 `main`。更改依赖尚未合并的 PR 时，以该分支为基础，但先合并下层 PR，
 再将后续 PR 的目标调整为 `main` 后合并；绝不将 PR 合并到另一条功能分支

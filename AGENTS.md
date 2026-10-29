@@ -89,7 +89,7 @@ checks the frozen and shared-contract rules.
 1. Triage an issue before implementing it: reproduce it, and send unclear scope back for clarification instead of guessing.
 2. Run the checks that the [pre-push-checks skill](.agents/skills/pre-push-checks/SKILL.md) selects before every push, and report only commands you ran.
 3. Write every pull request body, on opening and on each update, with the sections of [the pull request template](.github/pull_request_template.md): Summary, Evidence, Merge Danger.
-4. Once CI passes on the current head, merge the pull request you opened yourself ([team workflow](docs/team-workflow.md)) and stop. Merge anyone else's only when the user explicitly says so.
+4. Once CI passes on the current head, ask a code owner in [`.github/CODEOWNERS`](.github/CODEOWNERS) to review, and stop. Merge the pull request you opened only when the user is a code owner and tells you to; merge anyone else's only when the user explicitly says so ([team workflow](docs/team-workflow.md)).
 5. Once the pull request is open and its evidence is quoted in the body, run `pnpm clean:output` to delete the local evidence and scratch directories.
 
 ## After editing

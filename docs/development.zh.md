@@ -313,7 +313,7 @@ CI（`.github/workflows/ci.yml`）在拉取请求和推送到 `main` 时，用 N
 
 CI 还会运行 `node scripts/format-check-changed.mjs <base>`（即 `pnpm format:check-changed`），只检查相对拉取请求基线（推送时为上一个提交）发生变化的文件的 Prettier 格式。仓库中仍有从未格式化的文件，所以请只对你修改的文件运行 Prettier（`npx prettier --write <file>`），不要对目录运行，也不要使用 `pnpm format`。`pnpm install` 会让 Git 使用 `.githooks/`（通过 `scripts/install-git-hooks.mjs` 设置 `core.hooksPath`），其中的 `pre-push` 钩子以 `origin/main` 为基线运行同一检查，有未格式化文件时拒绝推送。推送的分支改动了 `apps/web/` 时，该钩子还会运行 `pnpm --filter @trip/web typecheck`。`git push --no-verify` 可以跳过一次。在 CI 中或不在 Git 仓库里时安装脚本什么也不做；如果已为其他工具设置了钩子路径，它也不会覆盖。
 
-在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/` 或 `test/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
+在拉取请求上，`protected-files` 任务会运行 `node scripts/verify-protected-files.mjs`、`node scripts/verify-docs.mjs`、配对检查，以及 `node scripts/verify-branch-name.mjs <head-branch>`。分支名检查会在源分支不以 `feature/`、`fix/`、`refactor/`、`docs/`、`chore/`、`test/` 或 `process/` 开头，或包含 AI 工具名时失败；Dependabot 分支不受限制。
 
 将 PR 标记为可交付前，在 `gh` 已完成身份验证的环境中运行下面的只读预检。它要求工作区干净、位于 PR 分支且提交与当前打开的 PR head 完全一致、目标分支为 `main`，并且 Summary、Evidence 和 Merge Danger 三个部分非空。该 head 的所有检查必须为 `SUCCESS`，唯一例外是 `CI / cli-acceptance-workers` 被跳过，且同一个 Actions run 中的 `CI / cli-acceptance-plan` 和 `CI / cli-acceptance` 均成功；aggregate 会验证仅文档变更的计划。检查器不判断 Evidence 的措辞，也不会推送、合并、关闭 PR 或删除分支；fixture 自检不能作为 GitHub CI 证据。
 
