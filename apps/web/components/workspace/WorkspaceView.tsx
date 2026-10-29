@@ -300,10 +300,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   }, [catalog.conversations, homeChatId, homeTripId]);
   useLayoutEffect(() => {
     if (!homeChatId) return;
+    if (phone) {
+      document.querySelector<HTMLElement>(".trip-home-chat")?.scrollIntoView({ block: "start" });
+    }
     document
       .querySelector<HTMLTextAreaElement>(".trip-home-chat .composer textarea")
       ?.focus({ preventScroll: true });
-  }, [homeChatId]);
+  }, [homeChatId, phone]);
   const deleteTrip = history.deleteTrip;
   const sidebarPage = page === "home" ? "trips" : page;
 

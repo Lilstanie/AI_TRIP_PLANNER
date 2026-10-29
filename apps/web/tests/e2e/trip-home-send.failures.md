@@ -20,6 +20,8 @@ The browser journey `trip-home-send.e2e.mjs` must fail before the implementation
 - A long Chat list leaves the desktop, tablet or phone composer outside the viewport or causes
   horizontal page overflow.
 - Phone loses its existing Trip navigation affordance, or the composer is unusable at 390 px.
+- First send leaves the new Chat below the phone viewport while keyboard focus is already in its
+  offscreen composer, or pointer scrolling cannot expose and operate that composer.
 - Opening a Chat clips its composer or map below a phone container that cannot scroll.
 - The suggestion, Ideas count or Ideas list disagrees about which unscheduled activities and
   restaurant suggestions are eligible.

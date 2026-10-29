@@ -102,7 +102,14 @@ createServer((_request, response) => response.end("collection fixture")).listen(
 `,
   );
   chmodSync(next, 0o755);
-  for (const name of ["agent-lab-single-agent", "agent-lab-replay", "pending-ask-refresh"])
+  for (const name of [
+    "agent-lab-single-agent",
+    "agent-lab-replay",
+    "pending-ask-refresh",
+    "chat-generation",
+    "new-chat",
+    "trip-home-send",
+  ])
     writeFileSync(
       resolve(journeys, `${name}.e2e.mjs`),
       `import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
@@ -237,10 +244,13 @@ assert.deepEqual(allSummary.requested, [
   "agent-lab-single-agent",
   "agent-lab-replay",
   "pending-ask-refresh",
+  "chat-generation",
+  "new-chat",
+  "trip-home-send",
 ]);
 assert.deepEqual(
   allSummary.results.map(({ status }) => status),
-  ["passed", "passed", "passed"],
+  ["passed", "passed", "passed", "passed", "passed", "passed"],
 );
 console.log(`All supported journeys passed: ${allSummary.invocationId}`);
 
@@ -299,11 +309,18 @@ const failedOutput = JSON.parse(failed.stdout);
 assert.equal(failedOutput.outcome, "failed");
 assert.deepEqual(
   failedOutput.results.map(({ status }) => status),
-  ["failed", "failed", "failed"],
+  ["failed", "failed", "failed", "failed", "failed", "failed"],
 );
 assert.deepEqual(
   events().map(({ scenario }) => scenario),
-  ["agent-lab-single-agent", "agent-lab-replay", "pending-ask-refresh"],
+  [
+    "agent-lab-single-agent",
+    "agent-lab-replay",
+    "pending-ask-refresh",
+    "chat-generation",
+    "new-chat",
+    "trip-home-send",
+  ],
 );
 assert.ok(events().every(({ mode }) => mode === "fail"));
 completed = true;

@@ -377,6 +377,7 @@ describe("session after a change made by hand", () => {
       ask: undefined,
       selectedActivity: undefined,
       mapRoutes: [],
+      estimateChange: undefined,
     });
     const saved = { ...blank, plan: replanned, previousTotal: 300, input: "next" };
     const reopened = session(before, { kind: "opened", saved });

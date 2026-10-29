@@ -759,31 +759,81 @@ async function runResponsiveOnly(page, label, profile) {
       .count()) === 1,
     `${profile.name} opens the new Chat with one user message`,
   );
+  const chat = page.locator(".trip-home-chat");
+  const userMessage = chat.getByText(
+    profile.language === "zh" ? "安排安静的港口散步" : "Plan a short evening walk",
+    { exact: true },
+  );
   if (profile.phone) {
-    const scroll = await page.locator(".trip-home__scroll").evaluate((element) => ({
+    const chatRect = await chat.boundingBox();
+    const messageRect = await userMessage.boundingBox();
+    check(
+      chatRect !== null &&
+        messageRect !== null &&
+        chatRect.y >= 0 &&
+        messageRect.y >= 0 &&
+        messageRect.y + messageRect.height <= profile.viewport.height + 1,
+      `${profile.name} opens at the new Chat instead of leaving it below Trip home`,
+      { chatRect, messageRect },
+    );
+  }
+  const chatComposer = chat.locator(".composer");
+  const chatComposerRect = await chatComposer.boundingBox();
+  check(
+    chatComposerRect !== null &&
+      chatComposerRect.y >= 0 &&
+      chatComposerRect.y + chatComposerRect.height <= profile.viewport.height + 1,
+    `${profile.name} keeps the opened Chat composer reachable without clipping`,
+    chatComposerRect,
+  );
+  if (profile.phone) {
+    const scroller = page.locator(".trip-home__scroll");
+    const beforeScroll = await scroller.evaluate((element) => ({
       height: element.clientHeight,
       contentHeight: element.scrollHeight,
+      scrollTop: element.scrollTop,
       overflow: getComputedStyle(element).overflowY,
     }));
     check(
-      scroll.contentHeight <= scroll.height || ["auto", "scroll"].includes(scroll.overflow),
-      `${profile.name} allows touch scrolling to Chat and map content`,
-      scroll,
+      beforeScroll.contentHeight > beforeScroll.height &&
+        !["hidden", "clip"].includes(beforeScroll.overflow),
+      `${profile.name} keeps the phone Trip-home scroller usable and unclipped`,
+      beforeScroll,
+    );
+    await page.mouse.move(profile.viewport.width / 2, profile.viewport.height / 2);
+    await page.mouse.wheel(0, 240);
+    await within(
+      page.waitForFunction(
+        (initial) => document.querySelector(".trip-home__scroll")?.scrollTop > initial,
+        beforeScroll.scrollTop,
+      ),
+      `${profile.name} pointer scroll reaches the opened Chat`,
+    );
+    const scrolledComposerRect = await chatComposer.boundingBox();
+    check(
+      scrolledComposerRect !== null &&
+        scrolledComposerRect.y >= 0 &&
+        scrolledComposerRect.y + scrolledComposerRect.height <= profile.viewport.height + 1,
+      `${profile.name} keeps the Chat composer usable after a realistic pointer scroll`,
+      scrolledComposerRect,
     );
   }
-  const chatComposer = page.locator(".trip-home-chat .composer");
-  await chatComposer.scrollIntoViewIfNeeded();
-  const chatRect = await chatComposer.boundingBox();
-  check(
-    chatRect && chatRect.y >= 0 && chatRect.y + chatRect.height <= profile.viewport.height + 1,
-    `${profile.name} keeps the opened Chat composer reachable without clipping`,
-    chatRect,
-  );
   profileProxy.requests[0].release(
     plan({ id: "sydney", destination: "Sydney", items: sydneyItems }),
     "Responsive reply",
   );
   await within(profileProxy.requests[0].settled, `${profile.name} response completion`);
+  if (profile.phone) {
+    const replyComposer = chat.locator(".composer textarea");
+    await replyComposer.click();
+    await replyComposer.pressSequentially("Phone reply");
+    check(
+      (await replyComposer.inputValue()) === "Phone reply" &&
+        (await replyComposer.evaluate((element) => document.activeElement === element)),
+      `${profile.name} can focus and type in the reachable Chat composer`,
+      await replyComposer.inputValue(),
+    );
+  }
   await page.screenshot({
     path: `${OUT}/${profile.name.replaceAll(" ", "-")}.png`,
   });
