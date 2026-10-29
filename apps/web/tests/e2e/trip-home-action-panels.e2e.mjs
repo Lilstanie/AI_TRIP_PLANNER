@@ -533,7 +533,7 @@ try {
   await expand.click();
   const expandedLayout = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
-    const content = surface?.querySelector(".drawer__body > *:not(.trip-home-action-map)");
+    const content = surface?.querySelector(".trip-home-action-content");
     const map = document.querySelector(".trip-home__map");
     if (!surface || !content || !map) return null;
     const surfaceBox = surface.getBoundingClientRect();
