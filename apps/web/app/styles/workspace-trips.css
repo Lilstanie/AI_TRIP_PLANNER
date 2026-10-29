@@ -504,7 +504,7 @@
 
 .trip-home {
   display: flex;
-  min-height: 100%;
+  min-height: 0;
 }
 .workspace-shell--trips[data-home-chat] {
   --trip-home-aside: calc((1 - var(--chat-share, 0.56)) * 100%);
@@ -515,11 +515,20 @@
   margin-inline: 0;
 }
 .trip-home__main {
+  display: flex;
   flex: 1 1 0;
+  flex-direction: column;
   min-width: 0;
   max-width: 860px;
   margin-inline: auto;
-  padding: 40px var(--space-5) 64px;
+  overflow: hidden;
+}
+.trip-home__scroll {
+  flex: 1;
+  min-height: 0;
+  padding: 40px var(--space-5) var(--space-5);
+  overflow-y: auto;
+  overscroll-behavior: contain;
 }
 .trip-home__aside {
   display: flex;
@@ -533,8 +542,12 @@
 .trip-home[data-aside] {
   height: 100%;
 }
-.trip-home[data-aside] .trip-home__main {
-  overflow-y: auto;
+.trip-home__composer {
+  flex: none;
+  padding: var(--space-3) var(--space-5) calc(var(--space-3) + env(safe-area-inset-bottom));
+  border-top: 1px solid var(--border);
+  background: var(--surface);
+  box-shadow: 0 -12px 30px color-mix(in srgb, var(--surface) 88%, transparent);
 }
 .trip-home__map {
   flex: 1 0 min(45vh, 420px);
@@ -665,13 +678,13 @@
 @media (max-width: 820px) {
   .trip-home[data-aside] {
     flex-direction: column;
-    height: auto;
+    height: 100%;
+    min-height: 0;
   }
-  .trip-home[data-aside] .trip-home__main {
-    flex: none;
+  .trip-home__main {
+    flex: 0 0 100%;
     width: 100%;
-    overflow-y: visible;
-    padding-bottom: var(--space-5);
+    height: 100%;
   }
   .trip-home__aside {
     flex: none;
@@ -682,9 +695,19 @@
     border-inline-start: 0;
   }
 }
+@media (min-width: 521px) {
+  .workspace-shell--trips[data-home-chat] .trip-home__scroll {
+    display: flex;
+    flex-direction: column;
+    overflow-y: hidden;
+  }
+}
 @media (max-width: 520px) {
-  .trip-home__main {
+  .trip-home__scroll {
     padding: var(--space-5) var(--space-4) var(--space-6);
+  }
+  .trip-home__composer {
+    padding: var(--space-3) var(--space-4) calc(var(--space-3) + env(safe-area-inset-bottom));
   }
   .trip-home__map {
     height: 340px;

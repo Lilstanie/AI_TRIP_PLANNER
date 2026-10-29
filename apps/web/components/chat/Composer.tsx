@@ -255,7 +255,7 @@ export function Composer({
         placeholder={placeholder}
         rows={1}
         value={value}
-        disabled={busy}
+        readOnly={busy}
         aria-autocomplete="list"
         {...(menuOpen
           ? {

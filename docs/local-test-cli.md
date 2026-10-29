@@ -40,15 +40,17 @@ screenshots and other evidence remain available. This protects the integrations 
 network egress firewall, and new credential names must be added to the CLI's deny list before their
 integration is covered.
 
-The supported journeys are `agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh` and
-`chat-generation`.
+The supported journeys are `agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation` and
+`trip-home-send`.
 Smoke runs only
 `agent-lab-single-agent`: a complete desktop and phone browser run of the registered Agent Lab fixture.
 Its assertions cover fixture provenance, the completed API artifact, the rendered plan, keyboard access,
 workspace storage preservation and browser errors. `agent-lab-replay` runs the tight-budget fixture and
 checks artifact download, replay, comparison, invalid artifact handling, and the resulting UI and status.
 `pending-ask-refresh` restores a pending question across reload and keeps it answerable after a failed
-submission. `chat-generation` is a controlled multi-Chat and multi-Trip browser journey that covers
+submission. `trip-home-send` verifies first send, retry, IME, Chat identity, Ideas parity, dismissal
+storage failures, and EN/ZH desktop, tablet, phone and breakpoint layouts, retaining screenshots and
+assertion summaries. `chat-generation` is a controlled multi-Chat and multi-Trip browser journey that covers
 navigation while generation continues, failure Retry, Stop followed by a new send, same-Trip writer
 exclusion, different-Trip isolation, deletion and Workspace teardown cancellation, and late Plan
 conflicts that preserve newer manual edits.
@@ -132,7 +134,7 @@ each check has an id, status and summary, with remediation when blocked.
 
 `list` shows every raw E2E script with its support status, known prerequisites and an exclusion reason.
 Its JSON object includes `supported`, the unsupported count and a `scripts` array. Only
-`agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh` and `chat-generation` are supported.
+`agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation` and `trip-home-send` are supported.
 Replay covers a tight-budget fixture,
 artifact download and replay, comparisons, invalid artifacts, and resulting UI and status. Smoke runs
 only the single-agent journey. `leg-mode-choice` remains excluded because one

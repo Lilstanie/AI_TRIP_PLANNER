@@ -192,7 +192,7 @@ const LABELS = {
     map: "Trip map",
     list: "Chats",
     box: "New chat",
-    start: "Start chat",
+    send: "Send",
     rename: "Rename",
     delete: "Delete",
     undo: "Undo",
@@ -216,7 +216,7 @@ const LABELS = {
     map: "行程地图",
     list: "聊天",
     box: "新聊天",
-    start: "开始聊天",
+    send: "发送",
     rename: "重命名",
     delete: "删除",
     undo: "撤销",
@@ -465,11 +465,12 @@ async function walk(profile) {
   await goHome(/Sydney/);
   const typed = profile.language === "zh" ? "去哪里吃饭？" : "Where should we eat?";
   await home.getByRole("textbox", { name: L.box }).fill(typed);
-  await home.getByRole("button", { name: L.start }).click();
+  await home.getByRole("button", { name: L.send }).click();
   await page.locator(".composer textarea").waitFor();
   check(
-    (await page.locator(".composer textarea").inputValue()) === typed,
-    "the new-chat box opens a chat with its text in the composer",
+    (await page.getByText(typed, { exact: true }).count()) >= 1 &&
+      (await page.locator(".composer textarea").inputValue()) === "",
+    "the first send opens a linked Chat with the message already sent",
   );
   await page.waitForTimeout(1200);
   await goHome(/Sydney/);
