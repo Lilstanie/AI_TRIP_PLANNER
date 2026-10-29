@@ -40,7 +40,7 @@ screenshots and other evidence remain available. This protects the integrations 
 network egress firewall, and new credential names must be added to the CLI's deny list before their
 integration is covered.
 
-The supported journeys are `agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation` and
+The supported journeys are `agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation`, `new-chat` and
 `trip-home-send`.
 Smoke runs only
 `agent-lab-single-agent`: a complete desktop and phone browser run of the registered Agent Lab fixture.
@@ -54,6 +54,7 @@ assertion summaries. `chat-generation` is a controlled multi-Chat and multi-Trip
 navigation while generation continues, failure Retry, Stop followed by a new send, same-Trip writer
 exclusion, different-Trip isolation, deletion and Workspace teardown cancellation, and late Plan
 conflicts that preserve newer manual edits.
+`new-chat` covers the sidebar primary New chat entry, plain Conversation-only sends, Trip association after a saveable Plan, Trips-page New trip, and concurrent Chat isolation.
 `agent-lab-live-gate` remains unsupported because it needs two additional servers and skips internally
 when they are unavailable. Other journeys remain unsupported until their complete fixture path and server
 requirements are verified. An unsupported explicit selection and any failed, timed-out or blocked journey
@@ -134,7 +135,7 @@ each check has an id, status and summary, with remediation when blocked.
 
 `list` shows every raw E2E script with its support status, known prerequisites and an exclusion reason.
 Its JSON object includes `supported`, the unsupported count and a `scripts` array. Only
-`agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation` and `trip-home-send` are supported.
+`agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation`, `new-chat` and `trip-home-send` are supported.
 Replay covers a tight-budget fixture,
 artifact download and replay, comparisons, invalid artifacts, and resulting UI and status. Smoke runs
 only the single-agent journey. `leg-mode-choice` remains excluded because one

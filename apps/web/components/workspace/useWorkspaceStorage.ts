@@ -14,6 +14,7 @@ import type { TripPlan } from "@trip/shared";
 import { CURRENT_KEY, type Draft, type Message, type Snapshot } from "@/lib/workspace";
 import {
   CATALOG_KEY,
+  isUntouchedConversation,
   serializeCatalog,
   upsertConversationDraft,
   upsertCurrent,
@@ -32,6 +33,7 @@ type WorkspaceStorageOptions = {
   input: string;
   ask: PendingAsk | undefined;
   previousTotal: number | undefined;
+  defaults: Draft;
   catalog: WorkspaceCatalog;
   setCatalog: Dispatch<SetStateAction<WorkspaceCatalog>>;
   activeConversation: MutableRefObject<string>;
@@ -45,6 +47,7 @@ export function useWorkspaceStorage({
   input,
   ask,
   previousTotal,
+  defaults,
   catalog,
   setCatalog,
   activeConversation,
@@ -74,6 +77,26 @@ export function useWorkspaceStorage({
       try {
         let nextCatalog: WorkspaceCatalog;
         if (!plan) {
+          const stored = catalogRef.current.conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (
+            !stored &&
+            isUntouchedConversation(
+              {
+                id: conversationId,
+                title: "",
+                updatedAt: "",
+                messages,
+                input,
+                draft,
+              },
+              defaults,
+            )
+          ) {
+            setSaveState("saved");
+            return;
+          }
           nextCatalog = upsertConversationDraft(catalogRef.current, {
             id: conversationId,
             messages,
@@ -137,6 +160,7 @@ export function useWorkspaceStorage({
     input,
     ask,
     previousTotal,
+    defaults,
     activeConversation,
     setCatalog,
     persistCatalog,

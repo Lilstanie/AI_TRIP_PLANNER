@@ -24,6 +24,12 @@ export const LOCAL_JOURNEYS = [
       "Chat-owned generation across navigation, multiple Chats and Trips, control states, conflicts, deletion, and workspace teardown.",
   },
   {
+    name: "new-chat",
+    smoke: false,
+    description:
+      "Sidebar primary New chat entry, plain-chat Conversation-only sends, Trip association after Plan, and concurrent Chat isolation.",
+  },
+  {
     name: "trip-home-send",
     smoke: false,
     description:

@@ -107,6 +107,7 @@ createServer((_request, response) => response.end("collection fixture")).listen(
     "agent-lab-replay",
     "pending-ask-refresh",
     "chat-generation",
+    "new-chat",
     "trip-home-send",
   ])
     writeFileSync(
@@ -244,11 +245,12 @@ assert.deepEqual(allSummary.requested, [
   "agent-lab-replay",
   "pending-ask-refresh",
   "chat-generation",
+  "new-chat",
   "trip-home-send",
 ]);
 assert.deepEqual(
   allSummary.results.map(({ status }) => status),
-  ["passed", "passed", "passed", "passed", "passed"],
+  ["passed", "passed", "passed", "passed", "passed", "passed"],
 );
 console.log(`All supported journeys passed: ${allSummary.invocationId}`);
 
@@ -307,7 +309,7 @@ const failedOutput = JSON.parse(failed.stdout);
 assert.equal(failedOutput.outcome, "failed");
 assert.deepEqual(
   failedOutput.results.map(({ status }) => status),
-  ["failed", "failed", "failed", "failed", "failed"],
+  ["failed", "failed", "failed", "failed", "failed", "failed"],
 );
 assert.deepEqual(
   events().map(({ scenario }) => scenario),
@@ -316,6 +318,7 @@ assert.deepEqual(
     "agent-lab-replay",
     "pending-ask-refresh",
     "chat-generation",
+    "new-chat",
     "trip-home-send",
   ],
 );

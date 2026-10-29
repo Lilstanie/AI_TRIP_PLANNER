@@ -67,6 +67,7 @@ const browser = await chromium.launch({
 const openPage = async (viewport = { width: 1440, height: 1000 }) => {
   const context = await browser.newContext({
     viewport,
+    ...(viewport.width <= 520 ? { isMobile: true, hasTouch: true } : {}),
     reducedMotion: "reduce",
     locale: "en-AU",
     timezoneId: "Australia/Sydney",
@@ -95,13 +96,16 @@ const openPage = async (viewport = { width: 1440, height: 1000 }) => {
   await page.goto(proxyUrl, { waitUntil: "domcontentloaded", timeout: WAIT });
   await page.locator(".workspace-app").waitFor({ timeout: WAIT });
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
+  if (viewport.width <= 520) {
+    await page.locator(".workspace-app[data-phone]").waitFor({ timeout: WAIT });
+  }
   await switchChat(page, "Alpha");
   await page.getByText("Alpha marker", { exact: true }).waitFor({ timeout: WAIT });
   return { context, page };
 };
 
 const composer = (page) => page.getByRole("textbox", { name: "Message AI Trip Planner" });
-const isPhone = async (page) => (await page.locator(".phone-tabbar").count()) > 0;
+const isPhone = async (page) => (await page.locator(".workspace-app[data-phone]").count()) > 0;
 const selectPhoneTab = async (page, name) => {
   await page
     .getByRole("tablist", { name: "Workspace sections" })
@@ -184,6 +188,9 @@ const assertLatestPlan = async (page, name) => {
 };
 const switchChat = async (page, name) => {
   if (await isPhone(page)) {
+    await composer(page)
+      .blur()
+      .catch(() => undefined);
     await selectPhoneTab(page, "Mine");
     await page.locator(".phone-mine").waitFor();
     await page

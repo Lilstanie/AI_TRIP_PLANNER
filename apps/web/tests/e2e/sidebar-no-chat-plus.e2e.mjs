@@ -101,14 +101,14 @@ try {
         );
       check(
         order.length === 4 &&
-          [text.newTrip, text.chats, text.trips, text.calendar].every((name, index) =>
+          [text.newChat, text.chats, text.trips, text.calendar].every((name, index) =>
             order[index].startsWith(name),
           ),
-        `${tag}: sidebar entries are exactly New trip, Chats, Trips, Calendar ${JSON.stringify(order)}`,
+        `${tag}: sidebar entries are exactly New chat, Chats, Trips, Calendar ${JSON.stringify(order)}`,
       );
       check(
-        (await nav.getByRole("button", { name: text.newChat }).count()) === 0,
-        `${tag}: no New chat button in the sidebar`,
+        (await nav.getByRole("button", { name: text.newTrip }).count()) === 0,
+        `${tag}: no New trip button in the sidebar`,
       );
       await page.screenshot({
         path: `${out}/${language}-${collapsed ? "collapsed" : "expanded"}-${seeded ? "saved" : "empty"}.png`,
@@ -116,21 +116,20 @@ try {
       await nav.getByRole("button", { name: new RegExp(`^${text.chats}`) }).click();
       await page.locator(".chats-panel.is-open").waitFor();
       check(
-        (await nav.getByRole("button", { name: text.newChat }).count()) === 0,
-        `${tag}: Chats panel open still leaves no New chat in the sidebar`,
+        (await nav.getByRole("button", { name: text.newTrip }).count()) === 0 &&
+          (await nav.getByRole("button", { name: text.newChat }).count()) === 1,
+        `${tag}: Chats panel open keeps sidebar New chat and no New trip`,
       );
       await nav.getByRole("button", { name: new RegExp(`^${text.chats}`) }).click();
-      await nav.getByRole("button", { name: new RegExp(`^${text.newTrip}`) }).focus();
+      await nav.getByRole("button", { name: new RegExp(`^${text.newChat}`) }).focus();
       await page.keyboard.press("Enter");
-      const dialog = page.getByRole("dialog").first();
-      await dialog.waitFor();
       check(
-        await dialog.evaluate((node) => node.contains(document.activeElement)),
-        `${tag}: New trip opens the Where dialog with focus inside`,
+        (await page.getByRole("dialog").count()) === 0,
+        `${tag}: New chat does not open the Where dialog`,
       );
       check(
         (await page.locator(".composer").count()) > 0,
-        `${tag}: New trip starts a blank conversation`,
+        `${tag}: New chat starts a blank conversation`,
       );
       check(
         await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),
@@ -144,11 +143,11 @@ try {
     await tablet.page.locator(".workspace-app").waitFor();
     await tablet.page.getByRole("button", { name: text.nav }).click();
     const drawer = tablet.page.locator(".workspace-drawer--nav");
-    await drawer.getByRole("button", { name: new RegExp(`^${text.newTrip}`) }).waitFor();
+    await drawer.getByRole("button", { name: new RegExp(`^${text.newChat}`) }).waitFor();
     check(
-      (await drawer.locator(".sidebar-nav").getByRole("button", { name: text.newChat }).count()) ===
+      (await drawer.locator(".sidebar-nav").getByRole("button", { name: text.newTrip }).count()) ===
         0,
-      `${language} tablet: navigation drawer has no New chat row`,
+      `${language} tablet: navigation drawer has no New trip row`,
     );
     const dead = await drawer
       .locator(".sidebar-nav button[aria-controls]")
@@ -163,8 +162,10 @@ try {
       dead,
     );
     check(
-      (await drawer.locator(".sidebar-nav").getByRole("button", { name: text.chats }).count()) ===
-        0 && (await drawer.locator(".history-item__open").count()) >= 0,
+      (await drawer
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: text.chats, exact: true })
+        .count()) === 0 && (await drawer.locator(".history-item__open").count()) >= 0,
       `${language} tablet: the drawer has no dead Chats entry`,
     );
     check(tablet.errors.length === 0, `${language} tablet: no page errors`);

@@ -4,8 +4,8 @@ import { BrandMark } from "./BrandMark";
 import {
   CalendarIcon,
   ChatIcon,
+  ComposeIcon,
   MoreIcon,
-  NewTripIcon,
   SidebarIcon,
   SuitcaseIcon,
 } from "../ui/icons";
@@ -20,6 +20,7 @@ export type HistoryItem = {
   subtitle?: string;
   destination?: string;
   active?: boolean;
+  untouched?: boolean;
 };
 
 export type WorkspacePage = "workspace" | "trips";
@@ -168,7 +169,7 @@ export function WorkspaceSidebar({
   onChats,
   onTrips,
   onCalendar,
-  onNewTrip,
+  onNewChat,
   chatsButton,
   onSettings,
   saveState,
@@ -189,7 +190,7 @@ export function WorkspaceSidebar({
 
   onTrips(): void;
   onCalendar(): void;
-  onNewTrip(): void;
+  onNewChat(): void;
 
   chatsButton?: Ref<HTMLButtonElement>;
 
@@ -225,10 +226,10 @@ export function WorkspaceSidebar({
 
       <nav className="sidebar-nav" aria-label={t("Workspace")}>
         <NavButton
-          icon={<NewTripIcon />}
-          label={t("New trip")}
+          icon={<ComposeIcon />}
+          label={t("New chat")}
           collapsed={isCollapsed}
-          onClick={onNewTrip}
+          onClick={onNewChat}
         />
         {onChats && (
           <NavButton

@@ -49,7 +49,8 @@ try {
   );
   await page.keyboard.press("Escape");
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip" }).click();
+  await page.getByRole("button", { name: /^Trips/ }).click();
+  await page.getByRole("button", { name: "New trip", exact: true }).click();
   const origin = await page.locator("#fact-origin").inputValue();
   check(
     origin === "Perth, Australia",

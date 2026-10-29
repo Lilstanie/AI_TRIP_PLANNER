@@ -1,6 +1,7 @@
 # Agent Note: Sidebar without the Chats plus
 
 Status: implemented
+Superseded in part: the sidebar primary entry becomes New chat in the [sidebar New chat note](../feature/2026-10-29-sidebar-new-chat.md).
 Owner: spec #755, ticket #758
 
 ## Problem
