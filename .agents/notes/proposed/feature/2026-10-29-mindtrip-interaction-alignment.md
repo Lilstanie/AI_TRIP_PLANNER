@@ -52,7 +52,7 @@ The owner accepts the following interview decisions on 29 October 2026:
 
 The owner requests a local spec and ticket draft before publication or implementation. The owner approved splitting the draft into nine slices; publication and implementation remain pending approval.
 The [review draft](2026-10-29-mindtrip-interaction-spec.md) records the scope, test seam and blocking edges.
-No GitHub/Jira publication is authorised until that draft is approved.
+The owner has now approved publication and parallel implementation. Spec #788 and tickets #789–#797 map to Jira TP-149–TP-157; PR #782 remains the integration target and must not be merged.
 
 ### Additional owner corrections and current-code evidence
 

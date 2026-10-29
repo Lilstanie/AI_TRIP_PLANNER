@@ -3,7 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { CloseIcon } from "@/components/ui/icons";
-import { buildItinerary } from "@/lib/trip/itinerary";
+import { tripIdeas } from "@/lib/trip/ideas";
 import { dayCount } from "@/lib/trip/timeline";
 import { translate, type AppLocale } from "@/lib/i18n/locale";
 
@@ -15,7 +15,7 @@ export function tripSuggestion(
 ): { text: string; prompt: string } {
   const t = (text: Parameters<typeof translate>[1], params?: Record<string, string | number>) =>
     translate(locale, text, params);
-  const ideas = buildItinerary(plan, () => undefined).ideas().length;
+  const ideas = tripIdeas(plan).length;
   if (ideas)
     return {
       text: t("{count} unscheduled ideas in {destination}. Want help placing them?", {
@@ -53,44 +53,67 @@ export function TripHomeSuggestion({
   const suggestion = tripSuggestion(plan, locale);
   const planKey = JSON.stringify(plan);
   const [dismissed, setDismissed] = useState(false);
+  const [persistenceFailed, setPersistenceFailed] = useState(false);
   const [ready, setReady] = useState(false);
   const dismissals = useRef<Record<string, string>>({});
 
   useEffect(() => {
     try {
-      dismissals.current = JSON.parse(
+      const parsed: unknown = JSON.parse(
         localStorage.getItem(TRIP_SUGGESTION_DISMISSALS_KEY) ?? "{}",
-      ) as Record<string, string>;
+      );
+      dismissals.current =
+        parsed && typeof parsed === "object" && !Array.isArray(parsed)
+          ? Object.fromEntries(
+              Object.entries(parsed).filter((entry): entry is [string, string] => {
+                return typeof entry[1] === "string";
+              }),
+            )
+          : {};
     } catch {
       dismissals.current = {};
     }
     setDismissed(dismissals.current[tripId] === planKey);
+    setPersistenceFailed(false);
     setReady(true);
   }, [planKey, tripId]);
 
-  if (!ready || dismissed) return null;
+  if (!ready) return null;
   const dismiss = () => {
     dismissals.current[tripId] = planKey;
-    localStorage.setItem(TRIP_SUGGESTION_DISMISSALS_KEY, JSON.stringify(dismissals.current));
+    try {
+      localStorage.setItem(TRIP_SUGGESTION_DISMISSALS_KEY, JSON.stringify(dismissals.current));
+    } catch {
+      setPersistenceFailed(true);
+    }
     setDismissed(true);
   };
   return (
-    <section className="trip-home-suggestion" aria-label={t("Trip suggestion")}>
-      <p>{suggestion.text}</p>
-      <div className="trip-home-suggestion__actions">
-        <button type="button" onClick={() => onChoose(suggestion.prompt)}>
-          {t("Ask AI")}
-        </button>
-        <button
-          type="button"
-          className="trip-home-suggestion__dismiss"
-          aria-label={t("Dismiss")}
-          onClick={dismiss}
-        >
-          <CloseIcon />
-          <span>{t("Dismiss")}</span>
-        </button>
-      </div>
-    </section>
+    <>
+      {!dismissed && (
+        <section className="trip-home-suggestion" aria-label={t("Trip suggestion")}>
+          <p>{suggestion.text}</p>
+          <div className="trip-home-suggestion__actions">
+            <button type="button" onClick={() => onChoose(suggestion.prompt)}>
+              {t("Ask AI")}
+            </button>
+            <button
+              type="button"
+              className="trip-home-suggestion__dismiss"
+              aria-label={t("Dismiss")}
+              onClick={dismiss}
+            >
+              <CloseIcon />
+              <span>{t("Dismiss")}</span>
+            </button>
+          </div>
+        </section>
+      )}
+      {persistenceFailed && (
+        <p className="muted trip-home-suggestion__status" role="status">
+          {t("Dismissed for this visit; could not save.")}
+        </p>
+      )}
+    </>
   );
 }

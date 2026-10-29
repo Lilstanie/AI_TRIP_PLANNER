@@ -250,7 +250,7 @@ let browser;
 let current;
 let currentErrors = [];
 
-async function open(language, fixture = catalog) {
+async function open(language, fixture = catalog, displayCurrency = "AUD") {
   const context = await browser.newContext({
     viewport: { width: 1440, height: 1000 },
     reducedMotion: "reduce",
@@ -258,7 +258,7 @@ async function open(language, fixture = catalog) {
     timezoneId: "Australia/Sydney",
   });
   await context.addInitScript(
-    ({ catalog, language }) => {
+    ({ catalog, language, displayCurrency }) => {
       localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
       localStorage.setItem(
         "trip.settings.v1",
@@ -270,12 +270,12 @@ async function open(language, fixture = catalog) {
           dataMode: "mock",
           appearance: "light",
           language,
-          displayCurrency: "AUD",
+          displayCurrency,
           updatedAt: "2026-10-29T00:00:00Z",
         }),
       );
     },
-    { catalog: fixture, language },
+    { catalog: fixture, language, displayCurrency },
   );
   const page = await context.newPage();
   const errors = [];
@@ -314,6 +314,11 @@ try {
   const desktop = await open("en");
   const { page } = desktop;
 
+  check(
+    (await action(page, /^Ideas/).innerText()).includes("2 ideas"),
+    "the Ideas card counts activities and restaurant suggestions shown in the drawer",
+    await action(page, /^Ideas/).innerText(),
+  );
   await action(page, /^Ideas/).click();
   const ideas = dialog(page, "Ideas");
   await ideas.waitFor();
@@ -405,6 +410,25 @@ try {
     desktop.errors,
   );
   await desktop.context.close();
+
+  const converted = await open("en", catalog, "CNY");
+  await action(converted.page, /^Bookings/).click();
+  const convertedBookings = dialog(converted.page, "Bookings");
+  await convertedBookings.waitFor();
+  const currencyNotice = convertedBookings.locator(".currency-notice");
+  await currencyNotice.waitFor();
+  check(
+    (await currencyNotice.count()) === 1 &&
+      (await currencyNotice.innerText()).includes("Approximate converted amounts"),
+    "converted booking prices show the established currency-estimate notice",
+    await currencyNotice.innerText(),
+  );
+  check(
+    converted.errors.length === 0,
+    "converted-price journey has no browser errors",
+    converted.errors,
+  );
+  await converted.context.close();
 
   const chinese = await open("zh");
   await action(chinese.page, /^备选地点/).click();

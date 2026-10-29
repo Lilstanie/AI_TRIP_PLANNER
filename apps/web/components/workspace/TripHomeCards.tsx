@@ -2,6 +2,7 @@
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
+import { tripIdeas } from "@/lib/trip/ideas";
 import { dayCount } from "@/lib/trip/timeline";
 import type { Draft } from "@/lib/workspace/workspace";
 import { draftPreferences } from "@/lib/workspace/workspace";
@@ -19,7 +20,7 @@ export function TripHomeCards({
   const { t } = useLocale();
   const itinerary = buildItinerary(plan, () => undefined);
   const stops = itinerary.stopCount;
-  const ideas = itinerary.ideas().length;
+  const ideas = tripIdeas(plan).length;
   const preferences = draftPreferences(draft).length;
   const cards = [
     {

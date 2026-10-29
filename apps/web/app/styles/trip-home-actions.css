@@ -37,6 +37,10 @@
   width: 16px;
   height: 16px;
 }
+.trip-home-suggestion__status {
+  margin-top: var(--space-3);
+  color: var(--danger, var(--text-dim));
+}
 .trip-home-chat__back {
   align-self: flex-start;
   min-width: 44px;

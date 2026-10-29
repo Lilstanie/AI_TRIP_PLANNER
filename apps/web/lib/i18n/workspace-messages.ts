@@ -290,6 +290,9 @@ export const WORKSPACE_ZH = {
   Conflicts: "冲突",
   "Retry update": "重试更新",
   "Close open panel": "关闭面板",
+  "Dismissed for this visit; could not save.": "本次访问中已关闭；但无法保存。",
+  Flights: "航班",
+  "Schedule {name} on Day {day}": "将 {name} 安排到第 {day} 天",
   "Retry / replace workspace storage": "重试保存工作区",
   "Your trip": "你的行程",
   "No trip yet. Describe where you want to go in the chat, or add your trip details. Your itinerary and budget will appear here.":

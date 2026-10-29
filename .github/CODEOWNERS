@@ -1,0 +1,4 @@
+# Every change needs an approving review from one of these two accounts.
+# Enforced by the "preview before merge main" ruleset on the default branch.
+# See .agents/notes/implemented/process/2026-10-29-require-code-owner-review.md
+*       @Lilstanie @HeadmasterEggy

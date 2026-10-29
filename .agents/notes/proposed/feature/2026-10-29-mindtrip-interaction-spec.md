@@ -147,14 +147,31 @@ Trip 首页移除 Start chat 按钮，直接展示聊天输入框，首次发送
 
 ### Further Notes
 
-用户已批准将七个切片拆为九个；本地逐票草稿已生成，发布／实现仍待明确批准。
-批准后发布 GitHub spec 和 tickets，创建／关联 Jira story，
-再执行实现。旧的聊天入口试改只作为研究证据保存在本地，不能当作当前分支的实现成果。
+用户已批准九票结构、发布和 implement-spec 并行实施。Spec 为 #788，九票为 #789–#797，
+对应 Jira TP-149–TP-157，现有 PR #782 作为集成分支；未经明确指令不合并。旧的聊天入口试改只作为研究证据保存在本地，不能当作当前分支的实现成果。
 周视图默认、生成恢复边界、失败重试和重叠活动规则仍是草稿中的具体化细节，待整体审阅。
 用户已明确取消 Trip 首页独立 Start chat 操作；初稿的空输入开启空 Chat 规则因此被替换。
 当前代码中打开会话会主动取消请求，传输层只接受仍属于当前 controller 的结果；这与
 后台继续生成的目标冲突。普通页面导航是否触发相同问题尚需可控浏览器复现，不能据此
 声称每一种切页都会取消。地图卸载崩溃和同名 Chat 不可辨认已在本地页面观察到。
+
+### Published task graph
+
+| Ticket | GitHub | Jira | Blocked by |
+| --- | --- | --- | --- |
+| 1 | [#789](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/789) | [TP-149](https://headmastereggy.atlassian.net/browse/TP-149) | None |
+| 2 | [#790](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/790) | [TP-150](https://headmastereggy.atlassian.net/browse/TP-150) | None |
+| 3 | [#791](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/791) | [TP-151](https://headmastereggy.atlassian.net/browse/TP-151) | 2 |
+| 4 | [#792](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/792) | [TP-152](https://headmastereggy.atlassian.net/browse/TP-152) | 2 |
+| 5 | [#793](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/793) | [TP-153](https://headmastereggy.atlassian.net/browse/TP-153) | None |
+| 6 | [#794](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/794) | [TP-154](https://headmastereggy.atlassian.net/browse/TP-154) | None |
+| 7 | [#795](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/795) | [TP-155](https://headmastereggy.atlassian.net/browse/TP-155) | 6 |
+| 8 | [#796](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/796) | [TP-156](https://headmastereggy.atlassian.net/browse/TP-156) | 6 |
+| 9 | [#797](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/797) | [TP-157](https://headmastereggy.atlassian.net/browse/TP-157) | 1, 2, 3, 4, 5, 6, 7, 8 |
+
+最多三名实现代理同时运行，各用独立工作区；禁止 Astra。复杂状态使用 Terra，边界清晰切片
+使用 Sol；限额时可按任务切换其他可用模型。工单保持打开直到获准合并；实现调度按已验证、
+已集成的切片提交判断依赖完成，不能因 GitHub 的待合并状态让任务图停滞。
 
 ### Ticket 1：地图失败恢复与安全卸载
 
