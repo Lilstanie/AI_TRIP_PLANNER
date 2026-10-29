@@ -114,7 +114,7 @@ export function MessageItem({
   onResend?: (text: string) => boolean;
   onOpenTrip?: () => void;
 }) {
-  const { t, locale } = useLocale();
+  const { t, locale, notice: localizeNotice } = useLocale();
   const [undone, setUndone] = useState(false);
   const [undoing, setUndoing] = useState(false);
   const assistantName = useAssistantName();
@@ -203,6 +203,11 @@ export function MessageItem({
           {...(animate ? { animate } : {})}
         />
       </div>
+      {message.conflictNotice && (
+        <p className="msg-item__notice" role="status">
+          {localizeNotice(message.conflictNotice)}
+        </p>
+      )}
       {message.memoryChange && (
         <div role="status" className="msg-item__memory-notice">
           {t(

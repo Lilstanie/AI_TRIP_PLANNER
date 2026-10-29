@@ -43,6 +43,7 @@ export type Message = {
 
   assistant?: AssistantId;
   memoryChange?: ChatResponse["memoryChange"];
+  conflictNotice?: Notice;
 
   at?: number;
 };

@@ -70,6 +70,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     input,
     editPending,
     busy,
+    status,
     activity,
     error,
     errors,
@@ -164,7 +165,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const undo = useTripUndo(editorPlan);
   const revisions = usePlanRevision({
     plan: editorPlan,
-    held: busy || editPending,
+    held: editPending,
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
       if (backgroundBase) undo.preserveBackground(backgroundBase, next);
@@ -458,7 +459,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           timeline={
             <TripEditorView
               plan={editorPlan}
-              disabled={busy || editPending}
+              disabled={editPending}
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
@@ -849,6 +850,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 <button type="button" onClick={session.dismissReplaced}>
                   {t("Dismiss")}
                 </button>
+              </div>
+            )}
+            {status === "stopped" && (
+              <div className="error-banner" role="status">
+                {t("Planning stopped.")}
               </div>
             )}
             {error && (
