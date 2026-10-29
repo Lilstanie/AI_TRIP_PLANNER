@@ -303,6 +303,7 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   The failure cases and decision are recorded in the
   [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - Transport searches and prices every planned flight leg, including traveller-selected inter-city flights; each available fare carries its route and selection into the proposal. A flight without a valid fare remains unpriced.
+- The itinerary draft allows route time plus a 15-minute arrival buffer between different locations. Route durations are checked after drafting; a failed or missing route remains unverified.
 - `detect_conflicts` uses the selected arrival flight’s destination-local arrival date and time to flag itinerary activities scheduled before landing; absent or malformed flight times remain unknown. It also combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of
