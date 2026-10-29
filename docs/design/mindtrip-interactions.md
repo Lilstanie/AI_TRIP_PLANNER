@@ -76,7 +76,7 @@ The mapping below describes the existing PR #782 tree, before further implementa
 | Chat row affordance      | The list shows title and date, with no visible count or forward arrow.                                                    |
 | Trip-specific input      | The composer keeps local component state and has no Trip key; isolation across direct Trip changes needs a browser check. |
 | Right-side actions       | Existing drawers retain the Trip context and restore focus on close.                                                      |
-| Calendar                 | The month grid is read-only and selects an Itinerary day; it does not reproduce the time-axis view.                       |
+| Calendar                 | Week and Month views reuse the Trip itinerary projection; choosing an activity opens the shared Itinerary editor.         |
 | Itinerary                | The Trip home drawer is read-only; the dedicated editor owns time/place editing.                                          |
 | Trip facts               | The Trip home shows plain tags, rather than fact editor buttons.                                                          |
 | Media, sharing and voice | No equivalent workflow is established here; do not add decorative controls without working data and actions.              |
