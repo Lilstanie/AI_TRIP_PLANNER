@@ -1,6 +1,7 @@
 # Agent Note: No automatic review requests
 
 Status: implemented
+Archived: 2026-10-29
 Owner: repository owner (@HeadmasterEggy)
 
 ## Problem

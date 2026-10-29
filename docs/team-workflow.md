@@ -39,9 +39,11 @@ Use a standard branch type prefix such as `feature/<module>-<short-desc>`, `fix/
 assistant that created them. Use conventional commit prefixes: `feat:`, `fix:`, `docs:`,
 `refactor:`, `test:` and `chore:`.
 
-Open a pull request for `main` and merge it yourself once CI passes. No review is required or
-requested automatically; ask a teammate yourself when a change crosses modules. Do not force-push or
-delete `main` ([why](../.agents/notes/implemented/process/2026-09-22-no-review-requests.md)).
+Open a pull request for `main`. It merges once one of the code owners in
+[`.github/CODEOWNERS`](../.github/CODEOWNERS) approves it and the required checks pass, so nobody
+approves their own work. The code owners may merge without an approval when a release needs it.
+`main` cannot be force-pushed or deleted
+([why](../.agents/notes/implemented/process/2026-10-29-require-code-owner-review.md)).
 
 Every pull request merges into `main`. When a change depends on an open pull request, base it on that
 branch, but merge the lower pull request first and retarget the next one to `main` before merging it;
