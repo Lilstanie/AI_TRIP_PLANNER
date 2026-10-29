@@ -181,7 +181,7 @@ describe("session after a planning turn", () => {
   it("cancelled: stops being busy and reports nothing", () => {
     const before = openTrip();
     const next = session(before, { kind: "cancelled" });
-    expect(next).toEqual({ ...before, busy: false });
+    expect(next).toEqual({ ...before, busy: false, status: "stopped" });
   });
 
   it("a retry after a failure clears the error, and its success leaves no retry behind", () => {
@@ -368,6 +368,7 @@ describe("session after a change made by hand", () => {
       messages: [],
       input: "",
       busy: false,
+      status: "idle",
       activity: [],
       error: undefined,
       errors: {},
@@ -375,6 +376,7 @@ describe("session after a change made by hand", () => {
       ask: undefined,
       selectedActivity: undefined,
       mapRoutes: [],
+      estimateChange: undefined,
     });
     const saved = { ...blank, plan: replanned, previousTotal: 300, input: "next" };
     const reopened = session(before, { kind: "opened", saved });
