@@ -29,3 +29,9 @@ Visible-session abort on navigation could not keep background progress or protec
 ## Notes for the next person
 
 Integrated on `c18eeced`. Parent owns #794 C2/C3 home sync. No push/PR/issue close. Scratch: `apps/web/.next-tp150/`, `tsconfig.tp150.json`.
+
+## Follow-up
+
+- Replaced custom Plan fingerprint with `editVersion` comparison; derive turn restore fields from session state; Stop abort defers to `finish` cancelled path.
+- Added Playwright `390×844` stopped/conflict path with `phone-stopped.png` / `phone-conflict.png`.
+- Removed scratch `tsconfig.tp150.json`. Exact-HEAD chat-generation evidence after follow-up commit.

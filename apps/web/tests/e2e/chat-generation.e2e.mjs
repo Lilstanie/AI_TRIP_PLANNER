@@ -64,9 +64,9 @@ const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
 });
 
-const openPage = async () => {
+const openPage = async (viewport = { width: 1440, height: 1000 }) => {
   const context = await browser.newContext({
-    viewport: { width: 1440, height: 1000 },
+    viewport,
     reducedMotion: "reduce",
     locale: "en-AU",
     timezoneId: "Australia/Sydney",
@@ -101,6 +101,21 @@ const openPage = async () => {
 };
 
 const composer = (page) => page.getByRole("textbox", { name: "Message AI Trip Planner" });
+const isPhone = async (page) => (await page.locator(".phone-tabbar").count()) > 0;
+const selectPhoneTab = async (page, name) => {
+  await page
+    .getByRole("tablist", { name: "Workspace sections" })
+    .getByRole("tab", { name, exact: true })
+    .click();
+};
+const openTripPanel = async (page) => {
+  if (await isPhone(page)) {
+    await selectPhoneTab(page, "Trip");
+  } else if (!(await page.getByRole("region", { name: "Trip timeline" }).isVisible())) {
+    await page.getByRole("button", { name: "Open your trip" }).click();
+  }
+  await page.getByRole("region", { name: "Trip timeline" }).waitFor();
+};
 const waitForControlledProgress = async (page) => {
   const thinking = page.getByRole("region", { name: "Thinking process" });
   await thinking.waitFor();
@@ -113,8 +128,7 @@ const waitForControlledProgress = async (page) => {
 const removeBaseStop = async (page) => {
   await switchChat(page, "Beta");
   await page.getByText("Beta marker", { exact: true }).waitFor();
-  if (!(await page.getByRole("region", { name: "Trip timeline" }).isVisible()))
-    await page.getByRole("button", { name: "Open your trip" }).click();
+  await openTripPanel(page);
   const timeline = page.getByRole("region", { name: "Trip timeline" });
   const row = timeline
     .locator(".timeline-stop")
@@ -128,10 +142,21 @@ const removeBaseStop = async (page) => {
     .locator(".timeline-stop__name")
     .filter({ hasText: "alpha-base" })
     .waitFor({ state: "detached" });
-  await page.getByRole("button", { name: "Open your trip", exact: true }).click();
+  await closeTripPanel(page);
   await composer(page).waitFor();
 };
 const closeTripPanel = async (page) => {
+  if (await isPhone(page)) {
+    if (
+      (await page
+        .getByRole("tablist", { name: "Workspace sections" })
+        .getByRole("tab", { name: "Chat", exact: true })
+        .getAttribute("aria-selected")) !== "true"
+    ) {
+      await selectPhoneTab(page, "Chat");
+    }
+    return;
+  }
   const tripToggle = page.getByRole("button", { name: "Open your trip" });
   if ((await tripToggle.count()) === 0) return;
   if ((await tripToggle.getAttribute("aria-expanded")) === "true") {
@@ -140,9 +165,7 @@ const closeTripPanel = async (page) => {
   }
 };
 const assertLatestPlan = async (page, name) => {
-  const tripToggle = page.getByRole("button", { name: "Open your trip" });
-  if ((await tripToggle.getAttribute("aria-expanded")) !== "true") await tripToggle.click();
-  await page.getByRole("region", { name: "Trip timeline" }).waitFor();
+  await openTripPanel(page);
   check(
     (await page.locator(".timeline-stop__name").filter({ hasText: "alpha-base" }).count()) === 0,
     name,
@@ -160,6 +183,20 @@ const assertLatestPlan = async (page, name) => {
   await composer(page).waitFor();
 };
 const switchChat = async (page, name) => {
+  if (await isPhone(page)) {
+    await selectPhoneTab(page, "Mine");
+    await page.locator(".phone-mine").waitFor();
+    await page
+      .locator(".phone-mine .history-item:not(.history-item--trip)")
+      .getByRole("button", { name: new RegExp(`^${name}`) })
+      .first()
+      .click({ timeout: WAIT });
+    await page
+      .getByRole("tablist", { name: "Workspace sections" })
+      .getByRole("tab", { name: "Chat", exact: true })
+      .waitFor();
+    return;
+  }
   const chats = page.locator(".sidebar-nav").getByRole("button", { name: /^Chats/ });
   if ((await chats.getAttribute("aria-expanded")) !== "true") await chats.click();
   await page
@@ -446,7 +483,7 @@ try {
   await switchChat(conflictJourney.page, "Beta");
   await switchChat(conflictJourney.page, "Alpha");
   await waitForControlledProgress(conflictJourney.page);
-  await conflictJourney.page.getByRole("button", { name: "Open your trip" }).click();
+  await openTripPanel(conflictJourney.page);
   check(
     (await conflictJourney.page
       .locator(".timeline-stop__name")
@@ -454,6 +491,7 @@ try {
       .count()) === 0,
     "returning to a pending Chat keeps another Chat's newer Plan edit",
   );
+  await closeTripPanel(conflictJourney.page);
   conflict.release(
     plan({
       id: "alpha",
@@ -708,6 +746,73 @@ try {
     await page.screenshot({ path: `${OUT}/ownership-${name.toLowerCase()}.png` });
     await journey.context.close();
   }
+
+  proxy.reset();
+  const phoneJourney = await openPage({ width: 390, height: 844 });
+  check(
+    (await phoneJourney.page.evaluate(() => document.documentElement.scrollWidth)) === 390,
+    "phone viewport has no horizontal page scroll before generation states",
+  );
+  await send(phoneJourney.page, "Phone stop request");
+  await proxy.waitForCount(1);
+  const phoneStop = proxy.requests[0];
+  await phoneJourney.page.getByRole("button", { name: "Stop planning" }).click();
+  await within(phoneStop.settled, "phone Stop request settles");
+  await phoneJourney.page
+    .getByText("Planning stopped.", { exact: true })
+    .waitFor({ timeout: WAIT });
+  check(
+    (await phoneJourney.page.getByText("Planning stopped.", { exact: true }).count()) === 1,
+    "phone shows the stopped banner",
+  );
+  await phoneJourney.page.screenshot({ path: `${OUT}/phone-stopped.png` });
+  await phoneJourney.context.close();
+
+  proxy.reset();
+  const phoneConflict = await openPage({ width: 390, height: 844 });
+  await send(phoneConflict.page, "Phone conflict request");
+  await proxy.waitForCount(1);
+  const phoneConflictRequest = proxy.requests[0];
+  await removeBaseStop(phoneConflict.page);
+  await switchChat(phoneConflict.page, "Alpha");
+  await waitForControlledProgress(phoneConflict.page);
+  await assertLatestPlan(
+    phoneConflict.page,
+    "phone running Chat restores latest P2 before delayed completion",
+  );
+  phoneConflictRequest.release(
+    plan({
+      id: "alpha",
+      destination: "Alpha",
+      items: [stop("alpha-base", 1, "09:00")],
+    }),
+    "Phone generated reply despite edit",
+  );
+  await within(phoneConflictRequest.settled, "phone conflict completion");
+  await switchChat(phoneConflict.page, "Alpha");
+  await phoneConflict.page
+    .getByText("Phone generated reply despite edit", { exact: true })
+    .waitFor({ timeout: WAIT });
+  await phoneConflict.page
+    .getByText("The plan changed while this reply was being prepared. Your edits were kept.", {
+      exact: true,
+    })
+    .waitFor({ timeout: WAIT });
+  check(
+    (await phoneConflict.page
+      .getByText("The plan changed while this reply was being prepared. Your edits were kept.", {
+        exact: true,
+      })
+      .count()) === 1,
+    "phone shows the conflict notice",
+  );
+  await assertLatestPlan(phoneConflict.page, "phone conflict completion keeps visible P2");
+  check(
+    (await phoneConflict.page.evaluate(() => document.documentElement.scrollWidth)) === 390,
+    "phone viewport has no horizontal page scroll after conflict notice",
+  );
+  await phoneConflict.page.screenshot({ path: `${OUT}/phone-conflict.png` });
+  await phoneConflict.context.close();
 
   check(browserErrors.length === 0, "no unexpected browser page errors", browserErrors);
   check(externalRequests.length === 0, "no external browser requests", externalRequests);
