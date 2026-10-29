@@ -391,6 +391,16 @@ try {
     "Calendar is usable inside the default side panel",
     defaultPanel,
   );
+  await calendarDrawer.getByRole("button", { name: "Month", exact: true }).click();
+  const monthWeekdays = await calendarDrawer
+    .locator(".trip-home-calendar__weekdays span")
+    .allTextContents();
+  check(
+    monthWeekdays.join(",") === "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
+    "Month header keeps Monday-first weekday labels when the first Trip week starts mid-week",
+    monthWeekdays,
+  );
+  await calendarDrawer.getByRole("button", { name: "Week", exact: true }).click();
 
   await selectedDate(calendarDrawer, "30 December 2030").click();
   const itinerary = dialog(page, "Itinerary");

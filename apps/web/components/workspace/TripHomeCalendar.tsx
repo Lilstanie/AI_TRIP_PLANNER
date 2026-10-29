@@ -214,6 +214,7 @@ export function TripHomeCalendar({
   const monthDays = new Date(
     Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() + 1, 0),
   ).getUTCDate();
+  const monthWeek = weekStart(visibleMonth);
   const previousLabel = view === "week" ? "Previous week" : "Previous month";
   const nextLabel = view === "week" ? "Next week" : "Next month";
   const canPrevious = view === "week" ? weekIndex > 0 : monthIndex > 0;
@@ -323,7 +324,7 @@ export function TripHomeCalendar({
         <section className="trip-home-calendar__month" aria-label={monthLabel.format(visibleMonth)}>
           <div className="trip-home-calendar__weekdays" aria-hidden="true">
             {Array.from({ length: 7 }, (_, index) => (
-              <span key={index}>{weekdays.format(new Date(weekDays[index]!))}</span>
+              <span key={index}>{weekdays.format(new Date(monthWeek + index * DAY_MS))}</span>
             ))}
           </div>
           <div className="trip-home-calendar__grid">
