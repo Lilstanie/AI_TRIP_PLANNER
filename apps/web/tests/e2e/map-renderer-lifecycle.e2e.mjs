@@ -153,22 +153,17 @@ async function settled(page, provider) {
 }
 
 async function phoneSurfaceSettled(page, provider) {
-  await page.waitForFunction(
-    (expectedProvider) => {
-      const map = document.querySelector(
-        `.trip-home .google-map[data-provider=${expectedProvider}]`,
-      );
-      const owner = map?.closest(".trip-map-canvas");
-      if (!map || !owner) return false;
-      const mapRect = map.getBoundingClientRect();
-      const ownerRect = owner.getBoundingClientRect();
-      return (
-        Math.abs(mapRect.width - ownerRect.width) <= 2 &&
-        Math.abs(mapRect.height - ownerRect.height) <= 2
-      );
-    },
-    provider,
-  );
+  await page.waitForFunction((expectedProvider) => {
+    const map = document.querySelector(`.trip-home .google-map[data-provider=${expectedProvider}]`);
+    const owner = map?.closest(".trip-map-canvas");
+    if (!map || !owner) return false;
+    const mapRect = map.getBoundingClientRect();
+    const ownerRect = owner.getBoundingClientRect();
+    return (
+      Math.abs(mapRect.width - ownerRect.width) <= 2 &&
+      Math.abs(mapRect.height - ownerRect.height) <= 2
+    );
+  }, provider);
 }
 
 async function unmountMap(page) {
@@ -387,10 +382,7 @@ try {
       const callbacks = await page.evaluate((hostReplacement) => {
         const fixture = window.__googleRendererFixture;
         const ownerListeners = (map) =>
-          [...map.listeners.values()].reduce(
-            (events, listeners) => events + listeners.size,
-            0,
-          );
+          [...map.listeners.values()].reduce((events, listeners) => events + listeners.size, 0);
         const connected = fixture.maps.filter((map) => map.element.isConnected);
         const tripHome = fixture.maps.filter((map) => map.tripHome);
         const releasedHost = hostReplacement
