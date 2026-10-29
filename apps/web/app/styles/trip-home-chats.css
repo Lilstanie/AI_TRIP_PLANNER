@@ -5,6 +5,7 @@
   margin: 0 0 var(--space-2);
   font-size: var(--font-size-title);
   font-weight: 700;
+  font-variant-numeric: tabular-nums;
 }
 .trip-home-chats__list {
   display: grid;
@@ -14,9 +15,9 @@
   list-style: none;
 }
 .trip-home-chats__row {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
   gap: var(--space-3);
   width: 100%;
   min-height: 44px;
@@ -26,34 +27,80 @@
   background: var(--surface-2);
   color: var(--text);
   text-align: start;
+  transition:
+    border-color var(--transition),
+    background-color var(--transition);
+}
+.trip-home-chats__row:hover {
+  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
+  background: var(--fill-hover);
 }
 .trip-home-chats__name {
   min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   overflow-wrap: anywhere;
+}
+.trip-home-chats__trailing {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  color: var(--text-dim);
 }
 .trip-home-chats__date {
   flex: none;
-  color: var(--text-dim);
   font-size: var(--font-size-meta);
 }
-.trip-home-chats__box {
+.trip-home-chats__chevron {
+  display: inline-grid;
+  place-items: center;
+}
+.trip-home-chats__chevron .icon {
+  width: 16px;
+  height: 16px;
+}
+.trip-home__composer-form {
   display: flex;
   align-items: flex-end;
   gap: var(--space-2);
+  width: min(100%, 860px);
+  margin-inline: auto;
 }
-.trip-home-chats__box textarea {
+.trip-home__composer-form textarea {
   flex: 1 1 auto;
   min-width: 0;
-  min-height: 44px;
-  resize: vertical;
+  min-height: 48px;
+  max-height: 132px;
+  padding: var(--space-3) var(--space-4);
+  resize: none;
 }
-.trip-home-chats__box button {
+.trip-home__composer-form button {
+  display: inline-grid;
   flex: none;
-  min-height: 44px;
+  width: 48px;
+  height: 48px;
+  min-height: 48px !important;
+  padding: 0 !important;
+  place-items: center;
+  border-radius: 50% !important;
+  background: var(--text) !important;
+  color: var(--surface);
+}
+.trip-home__composer-form button:disabled {
+  background: var(--fill-hover) !important;
+  color: var(--text-mut);
+}
+@media (prefers-reduced-motion: reduce) {
+  .trip-home-chats__row {
+    transition: none;
+  }
 }
 @media (max-width: 520px) {
   .trip-home-chats__row {
-    flex-direction: column;
+    gap: var(--space-2);
+  }
+  .trip-home-chats__trailing {
     gap: var(--space-1);
   }
 }

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useRef, useState, type CSSProperties } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs } from "../chat/ChatViewTabs";
@@ -298,15 +298,23 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     const conversation = catalog.conversations.find((item) => item.id === homeChatId);
     if (!conversation || conversation.tripId !== homeTripId) setHomeChatId(undefined);
   }, [catalog.conversations, homeChatId, homeTripId]);
+  useLayoutEffect(() => {
+    if (!homeChatId) return;
+    document
+      .querySelector<HTMLTextAreaElement>(".trip-home-chat .composer textarea")
+      ?.focus({ preventScroll: true });
+  }, [homeChatId]);
   const deleteTrip = history.deleteTrip;
   const sidebarPage = page === "home" ? "trips" : page;
 
   const openHomeChat = (id: string) => {
     if (session.openTripConversation(id)) setHomeChatId(id);
   };
-  const startHomeChat = (tripId: string, text: string) => {
-    const id = session.startHomeTripChat(tripId, text);
-    if (id) setHomeChatId(id);
+  const sendHomeChat = (tripId: string, text: string) => {
+    const id = session.sendHomeTripChat(tripId, text);
+    if (!id) return false;
+    setHomeChatId(id);
+    return true;
   };
   const backToHome = () => {
     setHomeChatId(undefined);
@@ -612,7 +620,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     <TripHomeSuggestion
                       tripId={homeTrip.id}
                       plan={homePlan}
-                      onChoose={(text) => startHomeChat(homeTrip.id, text)}
+                      onChoose={(text) => void sendHomeChat(homeTrip.id, text)}
                     />
                   ) : undefined
                 }
@@ -632,7 +640,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 }
                 composer={
                   homeChatId ? undefined : (
-                    <TripHomeComposer onStart={(text) => startHomeChat(homeTrip.id, text)} />
+                    <TripHomeComposer
+                      disabled={
+                        session.writingTripIds.includes(homeTrip.snapshot.plan.tripId) ||
+                        editPending
+                      }
+                      onSend={(text) => sendHomeChat(homeTrip.id, text)}
+                    />
                   )
                 }
               >
@@ -641,6 +655,24 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     <button type="button" className="trip-home-chat__back" onClick={backToHome}>
                       {t("Back to trip home")}
                     </button>
+                    {error && (
+                      <div className="error-banner" role="alert">
+                        {localizeNotice(error)}{" "}
+                        {canRetry && (
+                          <button disabled={busy} onClick={session.retry}>
+                            {t("Retry update")}
+                          </button>
+                        )}
+                      </div>
+                    )}
+                    {storageError && (
+                      <div className="error-banner" role="alert">
+                        {localizeNotice(storageError)}{" "}
+                        <button onClick={history.retryStorage}>
+                          {t("Retry / replace workspace storage")}
+                        </button>
+                      </div>
+                    )}
                     {chatPanel(true)}
                   </section>
                 ) : (

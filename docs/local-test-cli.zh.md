@@ -32,11 +32,13 @@ JSON 模式只向标准输出写入一个 JSON 对象；子进程输出保存在
 这能隔离仓库当前使用的这些集成，但不构成通用网络出口防火墙。新增凭据名称时，必须
 先加入命令的屏蔽列表，才能纳入此隔离保证。
 
-支持的行程是 `agent-lab-single-agent`、`agent-lab-replay`、`pending-ask-refresh`、`chat-generation` 和
-`new-chat`。Smoke 只运行 `agent-lab-single-agent`：它会在桌面和手机视口
+支持的行程是 `agent-lab-single-agent`、`agent-lab-replay`、`pending-ask-refresh`、`chat-generation`、`new-chat` 和
+`trip-home-send`。Smoke 只运行 `agent-lab-single-agent`：它会在桌面和手机视口
 完整运行已注册的 Agent Lab fixture，断言覆盖 fixture 来源、已完成的 API artifact、渲染后的计划、键盘访问、工作区存储未改变以及浏览器错误。
 `agent-lab-replay` 会运行紧预算 fixture，并检查 artifact 下载、回放、比较、无效 artifact 处理，以及对应界面和状态。
 `pending-ask-refresh` 会在刷新后恢复待回答的问题，并确保提交失败后问题仍可回答。
+`trip-home-send` 验证主页首次发送、重试、输入法、聊天主题、Ideas 一致性、关闭存储失败，
+以及中英文桌面、平板、手机和断点布局；证据包含截图与断言摘要。
 `chat-generation` 使用受控流覆盖多个 Chat 和 Trip：导航期间继续生成、失败后 Retry、
 Stop 后再次发送、同一 Trip 的写入互斥、不同 Trip 的并发隔离、删除 Chat/Trip 和离开
 Workspace 时的取消，以及迟到 Plan 不得覆盖较新的手动编辑。
@@ -110,7 +112,7 @@ JSON 输出为单个对象，包含 `schemaVersion`、`command`、`outcome` 和 
 阻断则附带修复方法。
 
 `list` 会列出所有原始 E2E 脚本、支持状态、已知前置条件和排除原因。支持 `agent-lab-single-agent`、
-`agent-lab-replay`、`pending-ask-refresh`、`chat-generation` 和 `new-chat`。Replay 覆盖紧预算 fixture、artifact
+`agent-lab-replay`、`pending-ask-refresh`、`chat-generation`、`new-chat` 和 `trip-home-send`。Replay 覆盖紧预算 fixture、artifact
 下载和回放、比较、无效 artifact，以及对应界面和状态；Smoke
 只运行 single-agent 行程。`leg-mode-choice` 暂不支持，因为其中一个依赖模型的场景可能被跳过，但整个脚本仍可能返回成功。`agent-lab-live-gate`
 和 `map-provider-http` 需要多个服务器。`plan-quality` 和 `conversation-scope` 默认使用 live 数据，并需要

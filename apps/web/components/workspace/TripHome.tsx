@@ -34,30 +34,32 @@ export function TripHome({
   return (
     <div className="trip-home" data-aside={map ? "true" : undefined}>
       <div className="trip-home__main">
-        <header className="trip-home__head">
-          <button
-            type="button"
-            className="trip-home__back"
-            aria-label={t("Back to trips")}
-            onClick={onBack}
-          >
-            <span className="trip-home__back-icon">
-              <ChevronIcon />
-            </span>
-          </button>
-          <h1 className="trip-home__title">{title}</h1>
-          <div className="trip-home__menu">
-            <HistoryMenu title={title} onRename={onRename} onDelete={onDelete} />
-          </div>
-        </header>
-        <LocaleProvider brief={facts.draft}>
-          <TripFactChips {...facts} facts={["where", "when", "who", "budget"]} />
-        </LocaleProvider>
-        {suggestion}
-        {phone && actions}
-        {children}
-        {phone && map}
-        {composer}
+        <div className="trip-home__scroll">
+          <header className="trip-home__head">
+            <button
+              type="button"
+              className="trip-home__back"
+              aria-label={t("Back to trips")}
+              onClick={onBack}
+            >
+              <span className="trip-home__back-icon">
+                <ChevronIcon />
+              </span>
+            </button>
+            <h1 className="trip-home__title">{title}</h1>
+            <div className="trip-home__menu">
+              <HistoryMenu title={title} onRename={onRename} onDelete={onDelete} />
+            </div>
+          </header>
+          <LocaleProvider brief={facts.draft}>
+            <TripFactChips {...facts} facts={["where", "when", "who", "budget"]} />
+          </LocaleProvider>
+          {suggestion}
+          {phone && actions}
+          {children}
+          {phone && map}
+        </div>
+        {composer && <div className="trip-home__composer">{composer}</div>}
       </div>
       {!phone && map && (
         <aside className="trip-home__aside">

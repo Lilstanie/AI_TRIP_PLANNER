@@ -59,6 +59,13 @@ type WorkspaceTransportOptions = {
   planDestinationLocation?: Draft["destinationLocation"];
 };
 
+type ChatSendContext = {
+  plan: TripPlan;
+  draft: Draft;
+  attachments?: PreparedAttachment[];
+  planDestinationLocation?: Draft["destinationLocation"];
+};
+
 export function useWorkspaceTransport({
   plan,
   draft,
@@ -98,11 +105,11 @@ export function useWorkspaceTransport({
     });
   if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
 
-  function confirmReplacingEditedPlan() {
-    if (!plan) return true;
+  function confirmReplacingEditedPlan(currentPlan = plan) {
+    if (!currentPlan) return true;
     const hasDirectEdits =
-      (plan.editVersion ?? 0) > 0 &&
-      (originalPlan.current === undefined || editSnapshot(plan) !== originalPlan.current);
+      (currentPlan.editVersion ?? 0) > 0 &&
+      (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
     if (!hasDirectEdits) return true;
     const message = translate(
       interfaceLanguage,
@@ -214,14 +221,17 @@ export function useWorkspaceTransport({
     );
   }
 
-  function send(override?: string, rewindIndex?: number) {
-    const message = (override ?? input).trim();
-
-    if ((!message && attachments.length === 0) || !canStart(plan?.tripId ?? freshTripId.current))
-      return false;
-    if (!confirmReplacingEditedPlan()) return false;
-
-    const files = attachments;
+  function prepareChat(override?: string, context?: ChatSendContext) {
+    const currentPlan = context?.plan ?? plan;
+    const currentDraft = context?.draft ?? draft;
+    const message = (override ?? (context ? "" : input)).trim();
+    const files = context ? (context.attachments ?? []) : attachments;
+    if (
+      (!message && files.length === 0) ||
+      !canStart(currentPlan?.tripId ?? freshTripId.current) ||
+      !confirmReplacingEditedPlan(currentPlan)
+    )
+      return;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
       name,
       mediaType,
@@ -229,42 +239,50 @@ export function useWorkspaceTransport({
       data,
     }));
     const mentions = resolveMentions(message, assistant?.names);
-    const started = run(
-      {
-        kind: "chat",
+    const destination = currentPlan?.brief.destination ?? currentDraft.destination;
+    const location = destinationLocationFor(
+      destination,
+      context?.planDestinationLocation ??
+        (currentPlan?.tripId === plan?.tripId ? planDestinationLocation : undefined),
+      currentDraft.destinationLocation,
+    );
+    return {
+      task: {
+        kind: "chat" as const,
         request: {
-          ...(plan
-            ? { tripId: plan.tripId, message, brief: plan.brief, plan }
-            : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
-          ...(mentions.length ? { mentions } : {}),
-          ...(destinationLocationFor(
-            plan?.brief.destination ?? draft.destination,
-            planDestinationLocation,
-            draft.destinationLocation,
-          )
+          ...(currentPlan
             ? {
-                destinationLocation: destinationLocationFor(
-                  plan?.brief.destination ?? draft.destination,
-                  planDestinationLocation,
-                  draft.destinationLocation,
-                ),
+                tripId: currentPlan.tripId,
+                message,
+                brief: currentPlan.brief,
+                plan: currentPlan,
               }
-            : {}),
+            : { tripId: freshTripId.current, message, known: knownFromDraft(currentDraft) }),
+          ...(mentions.length ? { mentions } : {}),
+          ...(location ? { destinationLocation: location } : {}),
           ...(sent.length ? { attachments: sent } : {}),
         },
       },
-      true,
-      {
+      change: {
         message: {
-          role: "user",
+          role: "user" as const,
           text: message,
           at: Date.now(),
           ...(files.length ? { attachments: storedAttachments(files) } : {}),
         },
-        ...(rewindIndex === undefined ? {} : { rewindIndex }),
       },
-    );
-    if (started && files.length) clearAttachments();
+      usesAttachments: files.length > 0,
+    };
+  }
+
+  function send(override?: string, rewindIndex?: number, context?: ChatSendContext) {
+    const prepared = prepareChat(override, context);
+    if (!prepared) return false;
+    const started = run(prepared.task, true, {
+      ...prepared.change,
+      ...(rewindIndex === undefined ? {} : { rewindIndex }),
+    });
+    if (started && prepared.usesAttachments) clearAttachments();
     return started;
   }
 
@@ -304,5 +322,5 @@ export function useWorkspaceTransport({
       { message: { role: "user", text: message, at: Date.now() } },
     );
   }
-  return { run, submit, send, answer };
+  return { run, submit, prepareChat, send, answer };
 }

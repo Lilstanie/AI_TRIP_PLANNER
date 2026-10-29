@@ -72,7 +72,8 @@
   box-shadow: none;
 }
 
-.composer__input:disabled {
+.composer__input:disabled,
+.composer__input:read-only {
   color: var(--text-dim);
   cursor: default;
 }

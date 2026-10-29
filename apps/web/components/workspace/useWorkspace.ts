@@ -86,6 +86,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   stateRef.current = state;
   const backgroundTurns = useRef(new Map<string, BackgroundTurn>());
   const tripWriters = useRef(new Map<string, string>());
+  const [writingTripIds, setWritingTripIds] = useState<readonly string[]>([]);
   const activeConversation = useRef(
     restored.conversationId ?? `conversation:${crypto.randomUUID()}`,
   );
@@ -302,8 +303,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   }
 
   function canStart(tripId: string) {
-    const turn = backgroundTurns.current.get(activeConversation.current);
-    return !tripWriters.current.has(tripId) && turn?.state.status !== "running";
+    return !tripWriters.current.has(tripId);
+  }
+
+  function syncWritingTrips() {
+    setWritingTripIds([...tripWriters.current.keys()]);
   }
 
   function start(
@@ -332,6 +336,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     };
     backgroundTurns.current.set(conversationId, turn);
     tripWriters.current.set(task.request.tripId, conversationId);
+    syncWritingTrips();
     return conversationId;
   }
 
@@ -356,6 +361,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
     if (tripWriters.current.get(turn.tripId) === conversationId)
       tripWriters.current.delete(turn.tripId);
+    syncWritingTrips();
     if (outcome.kind === "cancelled") {
       const next =
         activeConversation.current === conversationId
@@ -421,10 +427,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       if (tripWriters.current.get(turn.tripId) === conversationId)
         tripWriters.current.delete(turn.tripId);
     }
+    syncWritingTrips();
   }
 
   const composerAttachments = useComposerAttachments();
-  const { run, submit, send, answer } = useWorkspaceTransport({
+  const { run, submit, prepareChat, send, answer } = useWorkspaceTransport({
     plan,
     dataMode: dataMode.mode,
     assistant: settings.assistant,
@@ -541,38 +548,40 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     layout({ type: "trip-opened" });
   }
 
-  function startTripChat(tripId: string, text: string, navigate = true) {
+  function sendTripChat(tripId: string, text: string, navigate = true) {
+    const message = text.trim();
+    if (!message) return undefined;
     const savedCatalog = flushSave();
     const trip = savedCatalog.trips.find((item) => item.id === tripId);
     if (!trip) return undefined;
-    const untouched = text
-      ? undefined
-      : tripConversations(savedCatalog, tripId).find(
-          (item) => !item.messages.length && !item.input.trim() && !item.ask,
-        );
-    if (untouched) {
-      if (navigate) selectConversation(untouched.id);
-      else loadConversation(untouched.id);
-      return untouched.id;
-    }
+    const prepared = prepareChat(message, {
+      plan: trip.snapshot.plan,
+      draft: trip.snapshot.draft,
+    });
+    if (!prepared) return undefined;
     const id = crypto.randomUUID();
     const snapshot = {
       ...trip.snapshot,
       id,
       savedAt: new Date().toISOString(),
       messages: [],
-      input: text,
+      input: "",
       ask: undefined,
     };
-    open(snapshot, `conversation:${id}`);
-    setCatalog((current) => upsertCurrent(current, snapshot));
+    const conversationId = `conversation:${id}`;
+    open(snapshot, conversationId);
+    const sentSnapshot = { ...snapshot, messages: [prepared.change.message] };
+    setCatalog((current) => upsertCurrent(current, sentSnapshot, sentSnapshot.messages));
+    if (!run(prepared.task, true, prepared.change)) return undefined;
     if (navigate) layout({ type: "chat-started" });
-    requestAnimationFrame(() =>
-      document
-        .querySelector<HTMLInputElement>(".composer textarea")
-        ?.focus({ preventScroll: true }),
-    );
-    return `conversation:${id}`;
+    if (navigate) {
+      requestAnimationFrame(() =>
+        document
+          .querySelector<HTMLTextAreaElement>(".composer textarea")
+          ?.focus({ preventScroll: true }),
+      );
+    }
+    return conversationId;
   }
   function startBlankChat(
     base?: WorkspaceCatalog,
@@ -811,6 +820,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       error: state.error,
       errors: state.errors,
 
+      writingTripIds,
+
       canRetry: state.retry !== undefined,
       selectedActivity,
       mapRoutes: state.mapRoutes,
@@ -840,8 +851,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       openTripConversation: (id: string) => loadConversation(id),
       previewTrip: (id: string) => loadTrip(id),
       newChat: () => startBlankChat(),
-      newTripChat: startTripChat,
-      startHomeTripChat: (tripId: string, text: string) => startTripChat(tripId, text, false),
+      newTripChat: sendTripChat,
+      sendHomeTripChat: (tripId: string, text: string) => sendTripChat(tripId, text, false),
 
       newTrip: () => startBlankChat(undefined, "trip"),
     },

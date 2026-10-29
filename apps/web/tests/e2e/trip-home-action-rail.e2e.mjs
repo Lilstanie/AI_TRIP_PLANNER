@@ -527,7 +527,7 @@ try {
   const before = await stored(page);
   const box = home(page).getByRole("textbox", { name: "New chat" });
   await box.fill("Find a quiet dinner");
-  await home(page).getByRole("button", { name: "Start chat" }).click();
+  await home(page).getByRole("button", { name: "Send", exact: true }).click();
   await page.locator(".composer textarea").waitFor();
   await page.waitForFunction(
     (count) =>
@@ -536,7 +536,7 @@ try {
     before.conversations.length + 1,
   );
   check(
-    (await page.locator(".composer textarea").inputValue()) === "Find a quiet dinner" &&
+    (await page.getByText("Find a quiet dinner", { exact: true }).count()) >= 1 &&
       (await home(page).count()) === 1,
     "sending from Trip home opens a new Chat without leaving Trip home",
   );
@@ -708,7 +708,7 @@ try {
       actions: rect(".trip-home__actions"),
       chats: rect(".trip-home__main .trip-home-chats"),
       map: rect(".trip-home__map"),
-      composer: rect(".trip-home__main .trip-home-chats__box"),
+      composer: rect(".trip-home__main .trip-home__composer"),
     };
   });
   check(
