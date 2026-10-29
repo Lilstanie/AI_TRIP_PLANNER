@@ -95,9 +95,55 @@ export function detectConflicts(
     }
   }
 
+  const arrival = proposals
+    .find((proposal) => proposal.agent === "transport")
+    ?.flights?.find(
+      (flight) =>
+        flight.id === "flight-0" &&
+        flight.depart === brief.dates[0] &&
+        flight.to.trim().toLowerCase() === brief.destination.split("&")[0]?.trim().toLowerCase(),
+    );
+  const selected = arrival?.candidates.find((candidate) => candidate.id === arrival.selectedId);
+  const arrivalText = selected?.outbound?.segments.at(-1)?.arrivesAt;
+  const arrivalMatch = arrivalText?.match(
+    /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)(?:$|[ :])/,
+  );
+  const arrivalDate = arrivalMatch?.[1];
+  const arrivalTime = arrivalMatch ? `${arrivalMatch[2]}:${arrivalMatch[3]}` : undefined;
+  const tripStart = Date.parse(`${brief.dates[0]}T00:00:00Z`);
+  const arrived = arrivalDate ? Date.parse(`${arrivalDate}T00:00:00Z`) : NaN;
+  const arrivalDay = (arrived - tripStart) / 86400000 + 1;
+  if (
+    arrivalDate &&
+    arrivalTime &&
+    Number.isInteger(arrivalDay) &&
+    arrivalDay >= 1 &&
+    new Date(arrived).toISOString().slice(0, 10) === arrivalDate
+  ) {
+    const activities = proposals.find((proposal) => proposal.agent === "itinerary")?.items ?? [];
+    for (const item of activities) {
+      if (
+        item.day === undefined ||
+        !item.startTime ||
+        item.day > arrivalDay ||
+        (item.day === arrivalDay && item.startTime >= arrivalTime)
+      )
+        continue;
+      add(
+        "itinerary",
+        "time",
+        `activity on day ${item.day} starts before the flight arrives on day ${arrivalDay} at ${arrivalTime}`,
+        `schedule destination activities after arrival on day ${arrivalDay} at ${arrivalTime}`,
+      );
+    }
+  }
+
   const scheduled = proposals.flatMap((proposal) =>
     proposal.items.flatMap((item) =>
-      item.day !== undefined && item.startTime && item.endTime
+      item.day !== undefined &&
+      item.startTime &&
+      item.endTime &&
+      !(proposal.agent === "transport" && arrival && item.selectionId === arrival.id)
         ? [{ agent: proposal.agent, item }]
         : [],
     ),

@@ -318,7 +318,13 @@ function layOutHop(
 }
 
 interface TransportPlan {
-  flights: { legIndex: number; carrier: string; price: number; note?: string }[];
+  flights: {
+    legIndex: number;
+    optionIndex: number;
+    carrier: string;
+    price: number;
+    note?: string;
+  }[];
 
   schedule: { day: number; startMinutes: number }[];
   extraAssumptions: string[];
@@ -429,14 +435,31 @@ function assembleTransportProposal(
   const plan = overAllocation ? { ...chosenPlan, flights: cheapest } : chosenPlan;
 
   const flightItems = plan.flights.flatMap((fare) => {
-    const leg = evidence.flights.find(({ leg: flown }) => flown.index === fare.legIndex)?.leg;
+    const hop = evidence.flights.find(({ leg: flown }) => flown.index === fare.legIndex);
+    const leg = hop?.leg;
     if (!leg) return [];
+    const segments = hop.options[fare.optionIndex]?.outbound?.segments;
+    const departure = segments?.[0]?.departsAt.match(
+      /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)/,
+    );
+    const arrival = segments
+      ?.at(-1)
+      ?.arrivesAt.match(/^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)/);
+    const sameDayTimes =
+      departure &&
+      arrival &&
+      departure[1] === arrival[1] &&
+      departure[1] === leg.date &&
+      `${departure[2]}:${departure[3]}` < `${arrival[2]}:${arrival[3]}`;
     const returning = leg.index === 0 ? brief.dates[1] : undefined;
     return [
       {
         kind: "transport" as const,
         day: leg.day,
         selectionId: `flight-${leg.index}`,
+        ...(sameDayTimes
+          ? { startTime: `${departure[2]}:${departure[3]}`, endTime: `${arrival[2]}:${arrival[3]}` }
+          : {}),
         location: `${leg.from} → ${leg.to}`,
         detail: describeFlightChoice({
           from: leg.from,
@@ -473,10 +496,7 @@ function assembleTransportProposal(
       ...(option.outbound ? { outbound: option.outbound } : {}),
       ...(option.inbound ? { inbound: option.inbound } : {}),
     }));
-    const selected =
-      candidates.find(
-        (candidate) => candidate.carrier === fare.carrier && candidate.price === fare.price,
-      ) ?? candidates[0]!;
+    const selected = candidates[fare.optionIndex]!;
     return [
       {
         id: `flight-${hop.leg.index}`,
@@ -550,6 +570,7 @@ function cheapestFares(evidence: TransportEvidence): TransportPlan["flights"] {
     return [
       {
         legIndex: leg.index,
+        optionIndex: options.indexOf(pick),
         carrier: pick.carrier,
         price: pick.price,
         ...(pick.note ? { note: pick.note } : {}),
@@ -569,6 +590,7 @@ function deterministicPlan(evidence: TransportEvidence): TransportPlan {
     return [
       {
         legIndex: leg.index,
+        optionIndex: options.indexOf(pick),
         carrier: pick.carrier,
         price: pick.price,
         ...(pick.note ? { note: pick.note } : {}),
@@ -728,6 +750,7 @@ async function planTransport(
       if (!option) throw new Error(`Transport specialist chose an unknown flight ${id}.`);
       return {
         legIndex,
+        optionIndex,
         carrier: option.carrier,
         price: option.price,
         ...(option.note ? { note: option.note } : {}),
