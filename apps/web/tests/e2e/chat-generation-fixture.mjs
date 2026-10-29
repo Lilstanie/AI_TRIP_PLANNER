@@ -115,6 +115,25 @@ export function controlledProxy(BASE, within, WAIT = 5_000) {
         response.end(`${JSON.stringify({ type: "complete", response: { reply, plan: value } })}\n`);
         settled.resolve();
       },
+      releaseNeedsInfo(question, known = {}) {
+        if (entry.aborted) {
+          entry.lateReleaseAttempted = true;
+          response.end(`${JSON.stringify({ type: "needs_info", question, known })}\n`);
+          return;
+        }
+        if (entry.completed || entry.failed) return;
+        entry.completed = true;
+        response.write(
+          `${JSON.stringify({
+            type: "coordinator",
+            phase: "dispatch",
+            round: 1,
+            summary: "Controlled progress two",
+          })}\n`,
+        );
+        response.end(`${JSON.stringify({ type: "needs_info", question, known })}\n`);
+        settled.resolve();
+      },
       fail(message) {
         if (entry.completed || entry.failed || entry.aborted) return;
         entry.failed = true;

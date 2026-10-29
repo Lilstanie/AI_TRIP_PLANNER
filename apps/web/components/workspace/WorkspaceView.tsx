@@ -426,7 +426,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
         tripCount={catalog.trips.length}
         onTrips={showTrips}
         onCalendar={showCalendar}
-        onNewTrip={swap(session.newTrip)}
+        onNewChat={swap(session.newChat)}
         tripsView={tripsTab}
         onSettings={openSettings}
         saveState={saveState}
@@ -501,7 +501,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           />
         </EditorDraftProvider>
       ) : (
-        <TripDrawerEmpty phone={phone} onPlanInChat={() => selectView("chat")} onAddDetails={edit} />
+        <TripDrawerEmpty
+          phone={phone}
+          onPlanInChat={() => selectView("chat")}
+          onAddDetails={edit}
+        />
       )}
     </>
   );
@@ -530,7 +534,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           onChats={toggleChats}
           onTrips={showTrips}
           onCalendar={showCalendar}
-          onNewTrip={swap(session.newTrip)}
+          onNewChat={swap(session.newChat)}
           tripsView={tripsTab}
           onSettings={openSettings}
           saveState={saveState}

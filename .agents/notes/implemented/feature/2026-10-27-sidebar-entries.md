@@ -1,7 +1,7 @@
 # Agent Note: Sidebar New trip, Calendar and a Chats plus
 
 Status: implemented
-Superseded in part: the Chats plus and the drawer New chat entry are removed by the [no Chats plus note](../simplification/2026-10-28-sidebar-without-chats-plus.md).
+Superseded in part: the Chats plus and the drawer New chat entry are removed by the [no Chats plus note](../simplification/2026-10-28-sidebar-without-chats-plus.md); the sidebar primary entry becomes New chat in the [sidebar New chat note](2026-10-29-sidebar-new-chat.md).
 Owner: spec #730, ticket #736
 
 ## Problem

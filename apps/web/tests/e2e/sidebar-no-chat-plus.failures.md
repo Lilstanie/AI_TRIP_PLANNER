@@ -1,12 +1,10 @@
-# Sidebar without the Chats plus failure inventory
+# Sidebar primary New chat failure inventory
 
-- Expanded desktop sidebar still renders a New chat button, or any extra button, beside the Chats entry.
-- Collapsed desktop sidebar still renders a New chat button under the Chats icon, or loses New trip, Chats, Trips or Calendar.
-- No saved chats: the plus still shows, or Chats shows a count other than 0.
-- Saved chats: opening the Chats panel brings back a New chat button in the sidebar.
-- New trip stops opening the Where dialog on a blank trip, or the dialog does not take focus.
-- Keyboard order of the sidebar entries changes, or Enter on New trip does nothing.
-- Tablet navigation drawer still offers a New chat row beside Chats.
+- Expanded desktop sidebar loses New chat, Chats, Trips or Calendar, or still shows New trip as a sidebar row.
+- Collapsed desktop sidebar loses the New chat tooltip or icon, or restores a New trip sidebar row.
+- Opening the Chats panel puts New trip into the sidebar, or removes the sidebar New chat entry.
+- Enter on New chat opens the Where dialog, or fails to start a blank conversation.
+- Tablet navigation drawer still offers New trip, or loses the New chat row.
 - Tablet navigation drawer shows a Chats entry that does nothing: it controls a panel that is not rendered, or pressing it changes nothing. The drawer lists its chats inline instead.
 - Phone Mine tab loses its Chats section New chat button, or New chat there no longer opens Chat.
 - Chinese shows English labels in the sidebar, or the removed label leaves a gap in the layout.

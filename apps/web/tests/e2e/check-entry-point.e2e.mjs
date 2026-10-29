@@ -189,8 +189,7 @@ async function startNewTrip(page) {
     .first()
     .click();
   await settle(page, 400);
-  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip", exact: true }).click();
-  await page.keyboard.press("Escape");
+  await page.locator(".sidebar-nav").getByRole("button", { name: "New chat", exact: true }).click();
   await settle(page, 400);
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.locator(".msg-item--agent .msg-item__body").last().waitFor({ timeout: 180_000 });

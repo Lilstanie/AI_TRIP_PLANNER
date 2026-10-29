@@ -11,12 +11,12 @@ const check = (ok, message) => {
 };
 const labels = {
   en: {
-    newTrip: "New trip",
+    newChat: "New chat",
     calendar: "Calendar",
     trips: "Trips",
     chats: "Chats",
   },
-  zh: { newTrip: "新行程", calendar: "日历", trips: "行程", chats: "聊天" },
+  zh: { newChat: "新聊天", calendar: "日历", trips: "行程", chats: "聊天" },
 };
 const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
@@ -43,7 +43,7 @@ try {
         await page.locator(".sidebar-toggle").click();
         await page.locator(".workspace-sidebar.is-collapsed").waitFor();
       }
-      for (const name of [text.newTrip, text.chats, text.trips, text.calendar])
+      for (const name of [text.newChat, text.chats, text.trips, text.calendar])
         check(
           (await entry(name).count()) === 1,
           `${tag}: ${name} entry present with accessible name`,
@@ -55,13 +55,13 @@ try {
         );
       const position = (name) => order.findIndex((label) => label.startsWith(name));
       check(
-        position(text.newTrip) < position(text.chats) &&
+        position(text.newChat) < position(text.chats) &&
           position(text.chats) < position(text.trips) &&
           position(text.trips) < position(text.calendar),
         `${tag}: keyboard order ${JSON.stringify(order)}`,
       );
       if (collapsed) {
-        for (const name of [text.newTrip, text.calendar]) {
+        for (const name of [text.newChat, text.calendar]) {
           const tooltip = await entry(name).getAttribute("data-tooltip");
           check(tooltip === name, `${tag}: ${name} tooltip ${tooltip}`);
           check((await entry(name).locator("svg").count()) === 1, `${tag}: ${name} shows an icon`);
@@ -102,13 +102,13 @@ try {
       );
 
       await entry(text.calendar).click();
-      await entry(text.newTrip).click();
-      await page.getByRole("dialog").first().waitFor();
+      await entry(text.newChat).click();
       check(
-        (await page.locator(".composer").count()) > 0,
-        `${tag}: New trip opens the existing Where dialog on a blank trip`,
+        (await page.getByRole("dialog").count()) === 0 &&
+          (await page.locator(".composer").count()) > 0,
+        `${tag}: New chat opens a blank Chat without Where`,
       );
-      await page.screenshot({ path: `${out}/${language}-${state}-new-trip.png` });
+      await page.screenshot({ path: `${out}/${language}-${state}-new-chat.png` });
 
       check(
         await page.evaluate(() => document.documentElement.scrollWidth === innerWidth),

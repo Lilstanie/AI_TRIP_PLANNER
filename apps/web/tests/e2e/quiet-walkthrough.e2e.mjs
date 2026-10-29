@@ -27,7 +27,7 @@ const CLEAR = ["rgba(0, 0, 0, 0)", "transparent"];
 const COPY = {
   en: {
     ask: "Ask AI",
-    nav: ["New trip", "Chats", "Trips", "Calendar"],
+    nav: ["New chat", "Chats", "Trips", "Calendar"],
     newChat: "New chat",
     trajectory: "Trajectory",
     conversation: "Conversation",
@@ -36,7 +36,7 @@ const COPY = {
   },
   zh: {
     ask: "询问 AI",
-    nav: ["新行程", "聊天", "行程", "日历"],
+    nav: ["新聊天", "聊天", "行程", "日历"],
     newChat: "新聊天",
     trajectory: "轨迹",
     conversation: "对话",
@@ -684,8 +684,8 @@ try {
       await nav.getByRole("button", { name: new RegExp(`^${copy.nav[1]}`) }).click();
       await page.locator(".chats-panel.is-open").waitFor();
       check(
-        (await nav.getByRole("button", { name: copy.newChat }).count()) === 0,
-        `the open Chats panel adds no New chat row at ${tag}`,
+        (await nav.getByRole("button", { name: copy.newChat }).count()) === 1,
+        `the open Chats panel keeps the sidebar New chat row at ${tag}`,
       );
       await shot("sidebar");
       await nav.getByRole("button", { name: new RegExp(`^${copy.nav[1]}`) }).click();

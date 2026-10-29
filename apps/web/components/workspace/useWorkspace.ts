@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { useWorkspaceStorage } from "./useWorkspaceStorage";
 import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripDay } from "../trip/useTripDay";
@@ -10,6 +10,7 @@ import type { RouteResult } from "@/lib/integrations/google";
 import type { QuestionProgress } from "@/lib/workspace/ask-user";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import {
+  isUntouchedConversation,
   reusableBlankConversation,
   conversationTitle,
   latestSnapshot,
@@ -113,6 +114,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
   const { settings } = useSettings();
+  const defaults = useMemo(() => draftDefaults(settings), [settings]);
   const locale = useInterfaceLocale();
   const t = (
     text: import("@/lib/i18n/locale").MessageKey,
@@ -196,6 +198,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     input,
     ask,
     previousTotal,
+    defaults,
     catalog,
     setCatalog,
     activeConversation,
@@ -575,9 +578,32 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     kind: "chat" | "trip" = "chat",
     navigate = true,
   ) {
-    const defaults = draftDefaults(settings);
+    const currentId = activeConversation.current;
+    const turn = backgroundTurns.current.get(currentId);
+    const current = turn?.state ?? stateRef.current;
+    const savedCatalog = base ?? flushSave();
+    const currentRecord = savedCatalog.conversations.find((item) => item.id === currentId);
+    const currentIsUntouched =
+      turn?.state.status !== "running" &&
+      !current.plan &&
+      !current.ask &&
+      isUntouchedConversation(
+        {
+          id: currentId,
+          title: currentRecord?.title ?? "",
+          updatedAt: currentRecord?.updatedAt ?? "",
+          messages: current.messages,
+          input: current.input,
+          draft: current.draft,
+          ...(currentRecord?.tripId ? { tripId: currentRecord.tripId } : {}),
+          ...(currentRecord?.snapshot ? { snapshot: currentRecord.snapshot } : {}),
+        },
+        defaults,
+      );
+    const reusable = reusableBlankConversation(savedCatalog, defaults);
     const id =
-      reusableBlankConversation(base ?? catalog, defaults)?.id ??
+      (currentIsUntouched && currentRecord ? currentId : undefined) ??
+      (reusable && reusable.id !== currentId ? reusable.id : undefined) ??
       `conversation:${crypto.randomUUID()}`;
     open(
       { plan: undefined, previousTotal: undefined, draft: defaults, messages: [], input: "" },
@@ -778,7 +804,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       input,
       ask,
       previousTotal,
-      busy: state.busy,
+      busy: backgroundTurns.current.get(activeConversation.current)?.state.status === "running",
       status,
       activity: state.activity,
       error: state.error,

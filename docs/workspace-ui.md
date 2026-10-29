@@ -13,7 +13,7 @@ The Trip home action area and its acceptance criteria are detailed in
 
 | Area              | Content                                                                                                                                                                                                                                                                                                                                    | Implementation                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, New trip, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                                                            | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
+| Sidebar           | Logo, New chat, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                                                            | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                            |
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                                                | `ChatsPanel`, `TripCover`                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                                                         | `TripsPage`, `TripCover`                                                                                                |
 | Trip home         | Opened by choosing a trip card, a calendar band or a trip in the Chats search: trip title, facts, linked chats, new-chat composer, a contextual suggestion, five in-place action drawers and the trip map                                                                                                                                  | `TripHome`, `TripHomeChats`, `TripHomeCards`, `TripHomeActionDrawer`, `TripHomeMap`, `TripsPage`, `WorkspaceView`       |
@@ -34,15 +34,16 @@ The Trip home action area and its acceptance criteria are detailed in
   - The width is stored in the catalog layout only once the user resizes. Until then the stylesheet's
     responsive default applies, so narrowing the window still narrows the sidebar. Collapsing keeps
     the width for the next expand.
-  - The sidebar holds only navigation: New trip, Chats with a count,
+  - The sidebar holds only navigation: New chat, Chats with a count,
     Trips with a count, and Calendar, in outline line icons in the text colour that fill in for the
-    open panel or page, which also gets a heavier label, a quiet background and `aria-current`. New trip
-    runs the same action as the Your trips page button and opens the Where editor on a blank trip. Calendar
+    open panel or page, which also gets a heavier label, a quiet background and `aria-current`. New chat
+    runs the existing blank-chat action and opens a plain conversation without the Where editor. Calendar
     opens the Your trips page on its Calendar tab and is the current entry there; Trips is current on
     the Trips tab, and the page tabs and the sidebar share one selection. Collapsed, they are labelled
-    icon buttons with tooltips. New trip is the one way to start a conversation from the sidebar;
-    the [sidebar entries Agent Note](../.agents/notes/implemented/feature/2026-10-27-sidebar-entries.md)
-    and the [no Chats plus Agent Note](../.agents/notes/implemented/simplification/2026-10-28-sidebar-without-chats-plus.md) record why.
+    icon buttons with tooltips. New chat is the one way to start a conversation from the sidebar;
+    the [sidebar New chat Agent Note](../.agents/notes/implemented/feature/2026-10-29-sidebar-new-chat.md)
+    records why. New trip remains on the Your trips page and phone Mine; the desktop Chats panel keeps
+    destination and conversation history without a second trip-start control.
   - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
     glass region at the sidebar's right edge that springs and fades in over the workspace in 380 ms
     (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
@@ -51,11 +52,10 @@ The Trip home action area and its acceptance criteria are detailed in
     records why.
   - The panel has, from the top: a pill search field ("Search…", the visually hidden label "Search
     chats and trips" and a Clear search button that returns focus to the field), which filters both
-    lists; New chat (pencil icon) and New trip (suitcase with a plus); **Trips**, each row a small
-    destination cover and "Trip to <destination>"; and **Chats**, each row its localized short-date
-    title on one line with the linked trip's name under it. Renamed chat titles are preserved.
-    Choosing any of them closes the panel. See
-    [New chat and New trip](#conversations-trips-and-storage) for what the two starts do.
+    lists; **Trips**, each row a small destination cover and "Trip to <destination>"; and **Chats**,
+    each row its localized short-date title on one line with the linked trip's name under it.
+    Renamed chat titles are preserved. Choosing any row closes the panel. The primary New chat
+    remains in the sidebar and New trip remains on Your trips.
   - Search splits whitespace-separated terms and requires every term to match across a chat's title
     or messages, or a trip's stored title, destination, ISO dates and the text its row shows (the
     numbered title, date range, days and total); term order does not matter. A number matches only a
@@ -811,12 +811,12 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   it opens collapsed to its handle plus one line, "Nothing planned for this day yet.", and the day
   chips remain reachable by expanding it. See the
   [empty map Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-map-empty-hint.md).
-- **Empty phone screens.** Every empty phone screen says one sentence and offers one primary action, and
-  no screen says the same thing twice. Chat keeps the composer prompt and example chips and drops the
-  estimates footer until a message exists. Mine with no trips and no saved chat shows the Trips heading,
-  New trip and "No trips yet."; the search field, the Trips and Calendar switch and the Chats section
-  (with its blank row and New chat) appear once there is something to search, switch or open. A day with
-  no stops says "Nothing planned for this day yet." and leaves Add to Day N as the
+- **Empty phone screens.** Empty phone screens avoid repeated instructions; Chat, the empty day and the
+  empty Trajectory keep one primary action, while Mine keeps one action for each collection. Chat keeps
+  the composer prompt and example chips and drops the estimates footer until a message exists. Mine with
+  no trips and no saved chat shows the Trips and Chats headings with their New trip and New chat actions;
+  the search field, the Trips and Calendar switch and history rows appear once there is something to
+  search, switch or open. A day with no stops says "Nothing planned for this day yet." and leaves Add to Day N as the
   day's own control; Ask AI is an item in the day menu and in each stop's menu. The empty Trajectory says "Each step the assistant takes will be listed here after
   you send a message." beside Plan in Chat; a phone Trip drawer without a plan offers Plan in Chat only.
   See the [empty phone screens Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-empty-states.md).

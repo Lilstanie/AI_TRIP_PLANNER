@@ -359,7 +359,7 @@ try {
           await expectGlass(page, "team capsule", ".team-trigger", theme);
           await shot(page, "empty-workspace");
           const nav = page.locator(".sidebar-nav");
-          for (const name of ["New trip", "Chats", "Trips", "Calendar"])
+          for (const name of ["New chat", "Chats", "Trips", "Calendar"])
             check(
               (await nav.getByRole("button", { name: new RegExp(`^${name}`) }).count()) === 1,
               `sidebar has ${name}`,
@@ -367,11 +367,12 @@ try {
           await nav.getByRole("button", { name: /^Calendar/ }).click();
           await page.getByRole("tab", { name: "Calendar", selected: true }).waitFor();
           await shot(page, "sidebar-calendar");
-          await nav.getByRole("button", { name: /^New trip/ }).click();
-          await page.getByRole("dialog").first().waitFor();
-          await shot(page, "sidebar-new-trip");
-          await page.keyboard.press("Escape");
-          await page.getByRole("dialog").first().waitFor({ state: "detached" });
+          await nav.getByRole("button", { name: /^New chat/ }).click();
+          check(
+            (await page.getByRole("dialog").count()) === 0,
+            "sidebar New chat opens a blank Chat without Where",
+          );
+          await shot(page, "sidebar-new-chat");
           check(
             (await page
               .locator(".workspace-panel--map")

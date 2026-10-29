@@ -77,7 +77,7 @@ const chatsPanel = () => document.getElementById("chats-panel")!;
 const chatMenu = () => screen.getByRole("button", { name: /^Actions for (?!Trip to )/ });
 const historyButton = (name: RegExp) => within(chatsPanel()).getAllByRole("button", { name })[0]!;
 
-const newChatButton = () => within(sidebar()).getByRole("button", { name: "New trip" });
+const newChatButton = () => within(sidebar()).getByRole("button", { name: "New chat" });
 const startBlank = () => {
   fireEvent.click(newChatButton());
   fireEvent.keyDown(window, { key: "Escape" });
@@ -196,7 +196,7 @@ describe("Workspace interactions", () => {
       const active = catalog.conversations.find(
         (conversation) => conversation.id === catalog.activeConversationId,
       );
-      expect(active?.title).toBe("New trip");
+      expect(active?.title).toBe("New chat");
       expect(active?.tripId).toBeUndefined();
       expect(active?.messages).toEqual([]);
       expect(catalog.activeTripId).toBeUndefined();
@@ -211,10 +211,9 @@ describe("Workspace interactions", () => {
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
 
-    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
-    expect(within(sidebar()).getByRole("button", { name: "New trip" })).toBeTruthy();
-    fireEvent.click(within(sidebar()).getByRole("button", { name: "New trip" }));
-    expect(chatsPanel().classList.contains("is-open")).toBe(false);
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Trips/ }));
+    expect(screen.getByRole("heading", { name: "Your trips" })).toBeTruthy();
+    fireEvent.click(screen.getByRole("button", { name: "New trip" }));
     const where = await screen.findByRole("dialog", { name: "Where" });
     await waitFor(() => expect(where.contains(document.activeElement)).toBe(true));
     const chat = document.querySelector<HTMLElement>(".workspace-panel--chat")!;
@@ -251,7 +250,7 @@ describe("Workspace interactions", () => {
       expect(catalog.conversations.filter((item) => !item.tripId)).toHaveLength(1);
       expect(
         catalog.conversations.find((item) => item.id === catalog.activeConversationId)?.title,
-      ).toBe("New trip");
+      ).toBe("New chat");
     });
     expect(screen.queryByRole("dialog", { name: "Where" })).toBeNull();
   });
@@ -273,10 +272,10 @@ describe("Workspace interactions", () => {
       within(nav).getByRole("button", { name: "Close navigation" }),
     );
 
-    expect(within(nav).getAllByRole("button", { name: "New trip" })[0]).toBeTruthy();
-    fireEvent.click(within(nav).getByRole("button", { name: "New trip" }));
+    expect(within(nav).getAllByRole("button", { name: "New chat" })[0]).toBeTruthy();
+    fireEvent.click(within(nav).getByRole("button", { name: "New chat" }));
     await waitFor(() => expect(nav.getAttribute("aria-hidden")).toBe("true"));
-    expect(await screen.findByRole("dialog", { name: "Where" })).toBeTruthy();
+    expect(screen.queryByRole("dialog", { name: "Where" })).toBeNull();
   });
   it("reuses the empty conversation instead of stacking one per New chat press", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
@@ -291,7 +290,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
-      const empty = catalog.conversations.filter((item) => item.title === "New trip");
+      const empty = catalog.conversations.filter((item) => item.title === "New chat");
       expect(empty).toHaveLength(1);
 
       expect(catalog.activeConversationId).toBe(empty[0]!.id);
@@ -309,7 +308,7 @@ describe("Workspace interactions", () => {
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations).toHaveLength(2),
     );
     const deleted = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
-    fireEvent.click(screen.getByRole("button", { name: "Actions for New trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
 
     await waitFor(() => {
@@ -335,7 +334,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
-      expect(catalog.conversations.filter((item) => item.title === "New trip")).toHaveLength(1);
+      expect(catalog.conversations.filter((item) => item.title === "New chat")).toHaveLength(1);
     });
   });
   it("keeps the user's name when New chat reuses a renamed empty conversation", async () => {
@@ -346,7 +345,7 @@ describe("Workspace interactions", () => {
     );
     startBlank();
     const prompt = vi.spyOn(window, "prompt").mockReturnValue("Later ideas");
-    fireEvent.click(screen.getByRole("button", { name: "Actions for New trip" }));
+    fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
     prompt.mockRestore();
     await waitFor(() =>
@@ -359,7 +358,7 @@ describe("Workspace interactions", () => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.conversations).toHaveLength(2);
       expect(catalog.conversations.map((item) => item.title)).toContain("Later ideas");
-      expect(catalog.conversations.filter((item) => item.title === "New trip")).toHaveLength(0);
+      expect(catalog.conversations.filter((item) => item.title === "New chat")).toHaveLength(0);
     });
   });
   it("keeps rename and delete behind a per-conversation overflow menu", async () => {
@@ -523,7 +522,7 @@ describe("Workspace interactions", () => {
       expect(catalog.activeTripId).toBe(`trip:${request.tripId}`);
     });
   });
-  it("aborts an in-flight plan on New chat and never shows its late answer", async () => {
+  it("keeps an in-flight reply on New chat and shows it after returning", async () => {
     let finish!: (response: Response) => void;
     const fetcher = vi.fn((input: RequestInfo | URL) =>
       String(input) === "/api/chat"
@@ -542,15 +541,22 @@ describe("Workspace interactions", () => {
       string,
       RequestInit,
     ];
+    await waitFor(() =>
+      expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId).toBeTruthy(),
+    );
+    const originalId = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
     startBlank();
-    expect(call[1].signal!.aborted).toBe(true);
+    expect(call[1].signal!.aborted).toBe(false);
+    expect(screen.queryByText("Change to Tokyo")).toBeNull();
+    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
+    fireEvent.click(historyButton(/^Sydney ·/));
+    await waitFor(() => expect(screen.getByText("Change to Tokyo")).toBeTruthy());
     await act(async () => {
       finish(complete("Tokyo"));
     });
-    expect(screen.queryByText(/Tokyo/)).toBeNull();
-    const input = screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement;
-    expect(input.disabled).toBe(false);
-    expect(input.value).toBe("");
+    await waitFor(() => expect(screen.getByText("Updated")).toBeTruthy());
+    expect(chip(/^Destination: Tokyo$/)).toBeTruthy();
+    expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId).toBe(originalId);
   });
   it("lets chat planning run while map lookups are pending and drops stale places", async () => {
     let finishPlaces!: (response: Response) => void;
@@ -615,7 +621,7 @@ describe("Workspace interactions", () => {
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.trips).toHaveLength(0);
-      expect(catalog.conversations[0]?.title).toBe("New chat");
+      expect(catalog.conversations).toHaveLength(0);
     });
   });
   it("does not reopen the last trip on refresh but restores it when chosen from history", async () => {
@@ -700,7 +706,12 @@ describe("Workspace interactions", () => {
       finish!(complete("Obsolete result"));
     });
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
-    expect(screen.queryByText(/Obsolete result/)).toBeNull();
+    expect(screen.queryByRole("button", { name: /Destination: Obsolete/ })).toBeNull();
+    expect(
+      within(document.querySelector<HTMLElement>(".workspace-panel--chat")!).queryByText(
+        /Obsolete result/,
+      ),
+    ).toBeNull();
     openPreferences();
     expect(screen.getByRole("button", { name: "Replan trip" }).hasAttribute("disabled")).toBe(
       false,
@@ -753,12 +764,12 @@ describe("Workspace navigation", () => {
     const view = render(<Workspace />);
 
     await waitFor(() =>
-      expect(within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ })).toBeTruthy(),
+      expect(within(sidebar()).getByRole("button", { name: /^Chats\s*0$/ })).toBeTruthy(),
     );
     const toggle = screen.getByRole("button", { name: "Collapse sidebar" });
     expect(toggle.getAttribute("aria-expanded")).toBe("true");
     expect(within(sidebar()).getByText("AI Trip Planner")).toBeTruthy();
-    const chats = () => within(sidebar()).getByRole("button", { name: /^Chats\s*1$/ });
+    const chats = () => within(sidebar()).getByRole("button", { name: /^Chats\s*0$/ });
     const trips = () => within(sidebar()).getByRole("button", { name: /^Trips\s*0$/ });
 
     const filled = (button: HTMLElement) =>
@@ -782,7 +793,7 @@ describe("Workspace navigation", () => {
 
     expect(within(sidebar()).queryByText("AI Trip Planner")).toBeNull();
     expect(within(sidebar()).getByRole("img", { name: "AI Trip Planner" })).toBeTruthy();
-    for (const name of ["Chats, 1", "Trips, 0"]) {
+    for (const name of ["Chats, 0", "Trips, 0"]) {
       const button = within(sidebar()).getByRole("button", { name });
       expect(button.getAttribute("data-tooltip")).toBeTruthy();
     }
@@ -793,7 +804,7 @@ describe("Workspace navigation", () => {
     render(<Workspace />);
     expect(screen.getByRole("button", { name: "Expand sidebar" })).toBeTruthy();
 
-    fireEvent.click(within(sidebar()).getByRole("button", { name: "Chats, 1" }));
+    fireEvent.click(within(sidebar()).getByRole("button", { name: "Chats, 0" }));
     expect(document.activeElement).toBe(within(chatsPanel()).getByRole("searchbox"));
   });
 
@@ -811,6 +822,7 @@ describe("Workspace navigation", () => {
 
   it("lists recent chats by title only, with the full title kept for truncated rows", async () => {
     render(<Workspace />);
+    startBlank();
     const chats = await within(chatsPanel()).findByRole("region", { name: "Chats" });
     const row = await within(chats).findByRole("button", { name: "New chat" });
     expect(row.getAttribute("aria-current")).toBe("true");
