@@ -24,11 +24,11 @@ Different Trips can run concurrently. Stop aborts the owned turn, releases the w
 stopped status; failure exposes the saved task for Retry without repeating the user message.
 Deleting a Chat or Trip cancels its owned work. Workspace teardown cancels all remaining work.
 
-Manual Plan edits remain enabled while generation runs. Completion compares the latest Trip Plan
-with the starting Plan's brief, edit version, day notes and proposal selections. A changed Plan
-keeps its edits; the originating Chat retains the reply with a keyed conflict notice. Derived
-presentation fields do not constitute a manual edit. The optional message notice is readable by
-existing snapshots; Plan fields and catalog/snapshot versions are unchanged.
+Manual Plan edits remain enabled while generation runs. Completion treats a newer `editVersion` as
+a manual change against the starting Plan. A changed Plan keeps its edits; the originating Chat
+retains the reply with a keyed conflict notice. Derived presentation fields do not constitute a
+manual edit. The optional message notice is readable by existing snapshots; Plan fields and
+catalog/snapshot versions are unchanged.
 
 ## Alternatives considered
 
