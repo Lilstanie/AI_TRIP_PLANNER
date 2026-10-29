@@ -102,7 +102,13 @@ createServer((_request, response) => response.end("collection fixture")).listen(
 `,
   );
   chmodSync(next, 0o755);
-  for (const name of ["agent-lab-single-agent", "agent-lab-replay", "pending-ask-refresh", "chat-generation", "trip-home-send"])
+  for (const name of [
+    "agent-lab-single-agent",
+    "agent-lab-replay",
+    "pending-ask-refresh",
+    "chat-generation",
+    "trip-home-send",
+  ])
     writeFileSync(
       resolve(journeys, `${name}.e2e.mjs`),
       `import { appendFileSync, readFileSync, writeFileSync } from "node:fs";
