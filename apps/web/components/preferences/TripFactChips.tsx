@@ -58,6 +58,7 @@ type Props = {
   suggestPlaces?: boolean;
   phone?: boolean;
   view?: string;
+  facts?: readonly FactKey[];
 };
 
 export function TripFactChips(props: Props) {
@@ -136,7 +137,7 @@ export function TripFactChips(props: Props) {
   return (
     <div className="fact-chips" role="group" aria-label={t("Trip details")}>
       <div ref={scroller} className="fact-chips__scroller">
-        {FACTS.map((fact) => {
+        {(props.facts ?? FACTS).map((fact) => {
           const expanded = open === fact;
           const common = {
             type: "button" as const,
@@ -248,13 +249,20 @@ function FactForm({
     );
     return false;
   };
+  const next = () => ({
+    ...draft,
+    ...Object.fromEntries(
+      Object.entries(value).filter(
+        ([key, field]) =>
+          JSON.stringify(field) !== JSON.stringify(initial.current[key as keyof Draft]),
+      ),
+    ),
+  });
   const submit = (event: FormEvent) => {
     event.preventDefault();
     if (!check()) return;
-    if (!plan) {
-      onSave(value);
-      onDone();
-    } else if (onPlan(value)) onDone();
+    onSave(next());
+    onDone();
   };
 
   return (
@@ -269,22 +277,20 @@ function FactForm({
         />
       </fieldset>
       <div className="fact-form__actions">
-        {!plan && fact === "preferences" && (
+        {(plan || fact === "preferences") && (
           <button
             type="button"
             className="fact-form__secondary"
             disabled={busy}
             onClick={() => {
-              if (check() && onPlan(value)) onDone();
+              if (check() && onPlan(next())) onDone();
             }}
           >
-            {t(busy ? "Planning…" : "Plan trip")}
+            {t(busy ? "Planning…" : plan ? "Replan trip" : "Plan trip")}
           </button>
         )}
         <button type="submit" className="primary fact-form__primary" disabled={busy}>
-          {t(
-            plan ? (busy ? "Planning…" : "Replan trip") : fact === "preferences" ? "Done" : "Save",
-          )}
+          {t(!plan && fact === "preferences" ? "Done" : "Save")}
         </button>
       </div>
     </form>

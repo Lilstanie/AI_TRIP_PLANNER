@@ -177,8 +177,8 @@ try {
     "trips card opens the Trip home with the title heading",
   );
   const tags = await home(page)
-    .getByRole("list", { name: "Trip details" })
-    .locator("li")
+    .getByRole("group", { name: "Trip details" })
+    .locator(".fact-chip__value")
     .allInnerTexts();
   check(
     tags.length === 4 &&
@@ -215,8 +215,8 @@ try {
   await page.locator(".trip-calendar__trip[aria-label^='Trip to Melbourne']").first().click();
   await home(page).waitFor();
   const melbourneTags = await home(page)
-    .getByRole("list", { name: "Trip details" })
-    .locator("li")
+    .getByRole("group", { name: "Trip details" })
+    .locator(".fact-chip__value")
     .allInnerTexts();
   check(
     (await heading(page).innerText()) === "Trip to Melbourne" &&
@@ -374,11 +374,13 @@ try {
     .first()
     .click();
   await home(zh.page).waitFor();
-  const zhTags = await home(zh.page).locator(".trip-home__tags li").allInnerTexts();
-  const zhTagList = await home(zh.page).locator(".trip-home__tags").getAttribute("aria-label");
+  const zhTags = await home(zh.page).locator(".fact-chip__value").allInnerTexts();
+  const zhTagList = await home(zh.page)
+    .getByRole("group", { name: "行程信息" })
+    .getAttribute("aria-label");
   check(
     (await home(zh.page).getByRole("button", { name: "返回行程" }).count()) === 1 &&
-      zhTags.includes("2 位旅客") &&
+      zhTags.includes("2 位旅行人员") &&
       zhTagList === "行程信息",
     "Chinese back button, tag list name and traveller tag are translated",
     { zhTags, zhTagList },

@@ -178,8 +178,19 @@ async function open({ language = "en", width = 1440, height = 1000, phone = fals
   );
   const page = await context.newPage();
   const errors = [];
+  const failedResponses = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
+  page.on("response", (response) => {
+    if (response.status() >= 400) {
+      failedResponses.push({
+        status: response.status(),
+        url: response.url(),
+        method: response.request().method(),
+        body: response.request().postData(),
+      });
+    }
+  });
   await page.route("**/api/places/search", async (route) => {
     const { text } = route.request().postDataJSON();
     await route.fulfill({ json: { places: /zzz/i.test(text) ? [] : [placeFor(text)] } });
@@ -201,7 +212,7 @@ async function open({ language = "en", width = 1440, height = 1000, phone = fals
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   current = page;
   currentErrors = errors;
-  return { context, page, errors };
+  return { context, page, errors, failedResponses };
 }
 
 const home = (page) => page.locator(".trip-home");
@@ -231,7 +242,7 @@ const settled = async (scope, count) => {
 const box = (locator) => locator.evaluate((node) => node.getBoundingClientRect().toJSON());
 
 try {
-  const { context, page, errors } = await open({});
+  const { context, page, errors, failedResponses } = await open({});
   await page
     .locator(".sidebar-nav")
     .getByRole("button", { name: /^Trips/ })
@@ -353,7 +364,10 @@ try {
       (await page.getByRole("region", { name: "Trip map" }).count()) === 0,
     "a trip deleted while its home is open removes the map with the page",
   );
-  check(errors.length === 0, "English desktop run has no page or console errors", errors);
+  check(errors.length === 0, "English desktop run has no page or console errors", {
+    errors,
+    failedResponses,
+  });
   await context.close();
 
   const zh = await open({ language: "zh" });
@@ -380,7 +394,7 @@ try {
     await home(p).waitFor();
     await settled(mapRegion(p), 2);
     const head = await box(p.locator(".trip-home__head"));
-    const tags = await box(p.locator(".trip-home__tags"));
+    const tags = await box(p.locator(".trip-home .fact-chips"));
     const map = await box(mapRegion(p));
     const wide = await p.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - innerWidth,
