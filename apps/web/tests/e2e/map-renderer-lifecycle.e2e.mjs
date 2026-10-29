@@ -275,16 +275,18 @@ try {
       }
       if (expectedProvider === "google") {
         check(
-          (await scope.locator(".gm-err-container").count()) === 0 &&
-            (await scope.locator(".fixture-google-layer").count()) === 1 &&
+          (await scope.locator('[class~="gm-err-container"]').count()) === 0 &&
+            (await scope.locator('[class~="fixture-google-layer"]').count()) === 1 &&
             (await scope.locator("fixture-google-marker").count()) === 2 &&
-            (await scope.locator(".maplibregl-canvas").count()) === 0,
+            (await scope.locator('[class~="maplibregl-canvas"]').count()) === 0,
           `${scenario.name}: Google success keeps exactly one active renderer`,
         );
       } else {
         check(
           (await scope
-            .locator(".gm-err-container, .fixture-google-layer, fixture-google-marker")
+            .locator(
+              '[class~="gm-err-container"], [class~="fixture-google-layer"], fixture-google-marker',
+            )
             .count()) === 0,
           `${scenario.name}: fallback removes stale Google layers`,
         );
