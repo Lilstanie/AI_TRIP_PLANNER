@@ -247,7 +247,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   住宿读取相同的移动安排（`transport/legs.ts` 中的 `scheduledHops`），不产生过夜的城市会从住宿搜索中省略；
   协作板上没有移动安排时，夜晚均分。
   失败场景与决策记录在[多城市转场日 Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md)。
-- `detect_conflicts` 汇总预算超支、结构化的跨 agent 日程重叠，以及行程路线耗时检查后报告的
+- `detect_conflicts` 使用所选抵达航班目的地当地的抵达日期和时间，标记落地前安排的行程活动；航班时间缺失或格式无效时保持未知。它还汇总预算超支、结构化的跨 agent 日程重叠，以及行程路线耗时检查后报告的
   地理冲突。超支额以 AUD（`targetSaving`）按各部分可削减空间分配，即该部分费用减去 `floorCost`。
   如果最低费用之和已经超过预算，它返回一个 `infeasible budget` 冲突，注明该最低费用，
   图随即停止修订。
