@@ -256,6 +256,34 @@ const dialog = (page, name) => page.getByRole("dialog", { name, exact: true });
 const panelSwitcher = (page) => page.getByRole("tablist", { name: /^(Trip actions|行程操作)$/ });
 const panelTab = (page, name) => panelSwitcher(page).getByRole("tab", { name });
 const noOverflow = (page) => page.evaluate(() => document.documentElement.scrollWidth - innerWidth);
+const MAP_IDENTITY = "tp155-stable-map";
+
+async function markMap(page) {
+  await page.locator(".trip-home__map .trip-map-canvas").waitFor();
+  return page.evaluate((identity) => {
+    const map = document.querySelector(".trip-home__map");
+    const canvas = map?.querySelector(".trip-map-canvas");
+    if (!(map instanceof HTMLElement) || !(canvas instanceof HTMLElement)) return null;
+    map.dataset.rendererIdentity = identity;
+    canvas.dataset.rendererIdentity = identity;
+    return {
+      map: map.dataset.rendererIdentity,
+      canvas: canvas.dataset.rendererIdentity,
+    };
+  }, MAP_IDENTITY);
+}
+
+async function readMapIdentity(page) {
+  return page.evaluate(() => ({
+    markers: document.querySelectorAll('[data-renderer-identity="tp155-stable-map"]').length,
+    map: document.querySelector(".trip-home__map")?.getAttribute("data-renderer-identity"),
+    canvas: document
+      .querySelector(".trip-home__map .trip-map-canvas")
+      ?.getAttribute("data-renderer-identity"),
+    maps: document.querySelectorAll(".trip-home__map").length,
+    day: document.querySelector(".trip-home__map")?.getAttribute("data-day"),
+  }));
+}
 
 async function openHome(page, language = "en", width = 1440) {
   if (width <= 520) {
@@ -322,6 +350,12 @@ try {
       (await page.locator(".trip-home__map").getAttribute("data-day")) === "2",
     "selecting an Itinerary day keeps the shared selected day",
   );
+  const mapIdentity = await markMap(page);
+  check(
+    mapIdentity?.map === MAP_IDENTITY && mapIdentity.canvas === MAP_IDENTITY,
+    "the Trip map and renderer receive a lifecycle identity before expansion",
+    mapIdentity,
+  );
 
   const switcher = panelSwitcher(page);
   await switcher.waitFor();
@@ -336,6 +370,19 @@ try {
   await panelTab(page, /^Bookings/).click();
   const bookings = dialog(page, "Bookings");
   await bookings.waitFor();
+  await panelTab(page, /^Bookings/).focus();
+  await page.keyboard.press("ArrowRight");
+  const keyboardPreferences = dialog(page, "Trip preferences");
+  await keyboardPreferences.waitFor();
+  check(
+    (await panelTab(page, /^Trip preferences/).getAttribute("aria-selected")) === "true" &&
+      (await keyboardPreferences.evaluate(
+        (element) => document.activeElement === element.querySelector('[role="tab"][aria-selected="true"]'),
+      )),
+    "Tab and arrow keys switch actions and retain focus in the action switcher",
+  );
+  await page.keyboard.press("ArrowLeft");
+  await dialog(page, "Bookings").waitFor();
   check(
     (await dialog(page, "Itinerary").count()) === 0 &&
       (await bookings.getByRole("region", { name: "Flights", exact: true }).count()) === 1 &&
@@ -382,11 +429,22 @@ try {
       width: surfaceBox.width,
       mapWidth: mapBox.width,
       maps: document.querySelectorAll(".trip-home__map").length,
+      mapIdentity: document
+        .querySelector(".trip-home__map")
+        ?.getAttribute("data-renderer-identity"),
+      canvasIdentity: document
+        .querySelector(".trip-home__map .trip-map-canvas")
+        ?.getAttribute("data-renderer-identity"),
     };
   });
   check(
-    expanded?.expanded && expanded.sideBySide && expanded.mapWidth > 200 && expanded.maps === 1,
-    "Expand places panel content and the map side by side",
+    expanded?.expanded &&
+      expanded.sideBySide &&
+      expanded.mapWidth > 200 &&
+      expanded.maps === 1 &&
+      expanded.mapIdentity === MAP_IDENTITY &&
+      expanded.canvasIdentity === MAP_IDENTITY,
+    "Expand places the existing map renderer beside panel content",
     expanded,
   );
 
@@ -413,11 +471,20 @@ try {
       expanded: surface.classList.contains("is-expanded"),
       coversRail:
         Math.abs(surfaceBox.left - railBox.left) <= 24 && surfaceBox.width <= railBox.width + 24,
+      mapIdentity: document
+        .querySelector(".trip-home__map")
+        ?.getAttribute("data-renderer-identity"),
+      canvasIdentity: document
+        .querySelector(".trip-home__map .trip-map-canvas")
+        ?.getAttribute("data-renderer-identity"),
     };
   });
   check(
-    collapsed?.expanded === false && collapsed.coversRail,
-    "Collapse restores the narrow right panel",
+    collapsed?.expanded === false &&
+      collapsed.coversRail &&
+      collapsed.mapIdentity === MAP_IDENTITY &&
+      collapsed.canvasIdentity === MAP_IDENTITY,
+    "Collapse restores the narrow panel without remounting the map renderer",
     collapsed,
   );
 
@@ -467,21 +534,36 @@ try {
   await page.keyboard.press("End");
   await action(page, /^Calendar/).click();
   await dialog(page, "Calendar").waitFor();
+  await dialog(page, "Calendar").getByRole("button", { name: "Expand panel" }).click();
   const extreme = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface")?.getBoundingClientRect();
     const rail = document.querySelector(".trip-home__aside")?.getBoundingClientRect();
+    const map = document.querySelector(".trip-home__map");
     return {
       overflow: document.documentElement.scrollWidth - innerWidth,
       width: surface?.width,
       railWidth: rail?.width,
+      expanded: document
+        .querySelector(".trip-home-action-surface")
+        ?.classList.contains("is-expanded"),
+      mapWidth: map?.getBoundingClientRect().width,
+      mapIdentity: map?.getAttribute("data-renderer-identity"),
     };
   });
   check(
-    extreme.overflow <= 0 && extreme.width <= (extreme.railWidth ?? 0) + 24,
-    "an extreme chat/map split keeps the narrow panel usable without overflow",
+    extreme.overflow <= 0 &&
+      extreme.expanded &&
+      extreme.mapWidth > 200 &&
+      extreme.mapIdentity === MAP_IDENTITY,
+    "an extreme chat/map split expands beside the same map without overflow",
     extreme,
   );
-  await page.keyboard.press("Escape");
+  await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
+  await dialog(page, "Calendar").waitFor({ state: "hidden" });
+  check(
+    (await page.evaluate(() => document.activeElement?.textContent ?? "")).includes("Calendar"),
+    "a desktop outside press closes the panel and restores trigger focus",
+  );
   await page.screenshot({ path: `${OUT}/desktop-1440-en.png` });
   check(desktop.errors.length === 0, "desktop journey has no browser errors", desktop.errors);
   await desktop.context.close();
@@ -506,6 +588,7 @@ try {
   await openHome(chinese.page, "zh");
   await action(chinese.page, /^备选地点/).click();
   await dialog(chinese.page, "备选地点").waitFor();
+  await chinese.page.screenshot({ path: `${OUT}/desktop-1440-zh.png` });
   await panelTab(chinese.page, /^预订/).click();
   const zhBookings = dialog(chinese.page, "预订");
   await zhBookings.waitFor();
@@ -540,31 +623,60 @@ try {
         `phone panel fills the screen without Expand at ${width}px`,
         box,
       );
-      await responsive.page.keyboard.press("Escape");
+      await panel
+        .getByRole("button", { name: "Change time, 09:00–10:30", exact: true })
+        .click();
+      await panel.locator("#stop-time-opera").getByLabel("Start", { exact: true }).fill("09:15");
+      await responsive.page.evaluate(() => history.back());
+      await responsive.page.waitForFunction(
+        () =>
+          !document.querySelector(".item-editor") &&
+          !!document.querySelector(".trip-home-action-surface.is-open"),
+      );
+      check(
+        (await dialog(responsive.page, "Itinerary").isVisible()) &&
+          new URL(responsive.page.url()).pathname === "/",
+        `phone Back closes the nested time editor before the action panel at ${width}px`,
+      );
+      await responsive.page.evaluate(() => history.back());
       await panel.waitFor({ state: "hidden" });
+      const navigation = responsive.page.locator(".phone-tabbar");
       check(
         (await panel.isHidden()) &&
-          (await responsive.page
-            .locator(".phone-tabbar")
-            .getByRole("tab", { name: /^Mine/ })
-            .count()) === 0,
-        `Escape closes the phone action panel while Trip home keeps phone navigation at ${width}px`,
+          (await navigation.isVisible()) &&
+          (await navigation.getByRole("tab").count()) === 4 &&
+          (await responsive.page.evaluate(() => document.activeElement?.textContent ?? "")).includes(
+            "Itinerary",
+          ),
+        `Back closes the phone action panel and keeps navigation and trigger focus at ${width}px`,
       );
       await home(responsive.page).getByRole("button", { name: "Back to trips" }).click();
       await responsive.page.locator(".phone-mine").waitFor();
       await responsive.page.locator(".phone-mine__settings").click();
       const settings = responsive.page.getByRole("dialog", { name: "Settings" });
       await settings.waitFor();
-      await responsive.page.keyboard.press("Escape");
+      await responsive.page.evaluate(() => history.back());
       await settings.waitFor({ state: "hidden" });
       check(
         (await settings.isHidden()) && (await responsive.page.locator(".phone-mine").isVisible()),
-        `Settings keeps its own Escape close path at ${width}px`,
+        `Settings keeps its own Back close path at ${width}px`,
       );
     } else {
       await panelTab(responsive.page, /^Bookings/).click();
       await dialog(responsive.page, "Bookings").waitFor();
       check(true, `in-panel switching works at ${width}px`);
+      if (width === 1001) {
+        await dialog(responsive.page, "Bookings")
+          .getByRole("button", { name: "Expand panel" })
+          .click();
+        check(
+          (await noOverflow(responsive.page)) <= 0 &&
+            (await responsive.page
+              .locator(".trip-home-action-surface")
+              .evaluate((element) => element.classList.contains("is-expanded"))),
+          "the desktop breakpoint expands at a narrow content container without overflow",
+        );
+      }
     }
     check((await noOverflow(responsive.page)) <= 0, `no horizontal overflow at ${width}px`);
     await responsive.page.screenshot({ path: `${OUT}/panel-${width}-en.png` });
