@@ -151,9 +151,8 @@ async function gatherTransportEvidence(
     }
   };
 
-  const arrival = flightLegs(legs)[0];
-  const [arrivalPriced, groundResults] = await Promise.all([
-    arrival ? priceFlight(arrival) : Promise.resolve(undefined),
+  const [pricedFlights, groundResults] = await Promise.all([
+    Promise.all(flightLegs(legs).map(priceFlight)),
     Promise.all(routeQueries.map(gatherGround)),
   ]);
   ctx.signal?.throwIfAborted();
@@ -199,7 +198,9 @@ async function gatherTransportEvidence(
         `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
       );
   }
-  const flights = [...(arrivalPriced ? [arrivalPriced] : []), ...promotedFlights];
+  const flights = [...pricedFlights, ...promotedFlights].sort(
+    (left, right) => left.leg.index - right.leg.index,
+  );
 
   return {
     brief,
