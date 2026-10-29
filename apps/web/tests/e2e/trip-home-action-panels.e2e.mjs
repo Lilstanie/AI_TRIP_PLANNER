@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { installGoogleRendererFixture } from "./google-renderer-fixture.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
 const BASE = process.env.BASE_URL ?? "http://localhost:3000";
@@ -37,6 +38,11 @@ const items = [
     location: "Sydney Opera House",
     detail: "Guided tour",
     booked: true,
+    placeId: "fixture-opera",
+    savedPlace: {
+      name: "Sydney Opera House",
+      location: { latitude: -33.8568, longitude: 151.2153 },
+    },
   },
   {
     id: "harbour",
@@ -46,6 +52,11 @@ const items = [
     endTime: "11:00",
     location: "Circular Quay",
     detail: "Harbour walk",
+    placeId: "fixture-harbour",
+    savedPlace: {
+      name: "Circular Quay",
+      location: { latitude: -33.861, longitude: 151.2108 },
+    },
   },
   {
     id: "bakery",
@@ -206,6 +217,7 @@ const catalog = {
 let browser;
 let current;
 let currentErrors = [];
+let currentRequests = [];
 
 async function open(language, viewport, phone = false, displayCurrency = "AUD", createContext) {
   const options = {
@@ -236,16 +248,73 @@ async function open(language, viewport, phone = false, displayCurrency = "AUD", 
     },
     { catalog, language, displayCurrency },
   );
+  await context.addInitScript(installGoogleRendererFixture, { failure: "none" });
   const page = await context.newPage();
   const errors = [];
+  const requests = [];
   page.on("pageerror", (error) => errors.push(String(error)));
   page.on("console", (message) => message.type() === "error" && errors.push(message.text()));
-  await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
+  page.on("response", (response) => {
+    const url = response.url();
+    if (/\/api\/(?:data-mode|places\/)/.test(url))
+      requests.push({ status: response.status(), url });
+  });
+  const origin = new URL(BASE).origin;
+  await page.route(/^https?:\/\//, (route) => {
+    if (new URL(route.request().url()).origin === origin) return route.continue();
+    return route.abort();
+  });
+  await page.route("**/maps/api/js?*", (route) =>
+    route.fulfill({
+      contentType: "text/javascript",
+      body: "window.tripGoogleMapsReady();",
+    }),
+  );
+  await page.route("**/api/data-mode", (route) =>
+    route.fulfill({
+      json: {
+        configured: "mock",
+        providers: { maps: true, hotelsAndFlights: false, webMapsProvider: "google" },
+      },
+    }),
+  );
+  await page.route("**/api/places/search", (route) =>
+    route.fulfill({
+      json: {
+        places: items.map((item) => ({
+          id: item.placeId,
+          displayName: { text: item.savedPlace?.name },
+          location: item.savedPlace?.location,
+          source: "google",
+        })),
+      },
+    }),
+  );
+  await page.route("**/api/places/details", (route) => {
+    const id = route.request().postDataJSON().placeId;
+    const item = items.find((entry) => entry.placeId === id);
+    return route.fulfill({
+      json: {
+        place: item
+          ? {
+              id,
+              displayName: { text: item.savedPlace?.name },
+              location: item.savedPlace?.location,
+              source: "google",
+            }
+          : null,
+      },
+    });
+  });
+  await page.route("**/api/trip/preview-edit", (route) =>
+    route.fulfill({ status: 503, json: { error: "Action-panel fixture skips route durations" } }),
+  );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
   await page.locator(".workspace-app").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   current = page;
   currentErrors = errors;
+  currentRequests = requests;
   return { context, page, errors };
 }
 
@@ -259,30 +328,69 @@ const noOverflow = (page) => page.evaluate(() => document.documentElement.scroll
 const MAP_IDENTITY = "tp155-stable-map";
 
 async function markMap(page) {
-  await page.locator(".trip-home__map .trip-map-canvas").waitFor();
+  const host = page.locator(
+    ".trip-home__map .trip-map-canvas:not(.trip-map-canvas--empty) .google-map[data-provider=google]",
+  );
+  const renderer = host.locator(".google-map__renderer");
+  await host.waitFor({ state: "attached" });
+  await renderer.waitFor({ state: "attached" });
   return page.evaluate((identity) => {
     const map = document.querySelector(".trip-home__map");
     const canvas = map?.querySelector(".trip-map-canvas");
-    if (!(map instanceof HTMLElement) || !(canvas instanceof HTMLElement)) return null;
+    const host = canvas?.querySelector(".google-map[data-provider=google]");
+    const renderer = host?.querySelector(".google-map__renderer");
+    const fixture = window.__googleRendererFixture;
+    const instance = fixture?.maps.find((item) => item.element === renderer && !item.destroyed);
+    if (
+      !(map instanceof HTMLElement) ||
+      !(canvas instanceof HTMLElement) ||
+      !(host instanceof HTMLElement) ||
+      !(renderer instanceof HTMLElement) ||
+      !instance
+    )
+      return null;
     map.dataset.rendererIdentity = identity;
     canvas.dataset.rendererIdentity = identity;
+    host.dataset.rendererIdentity = identity;
+    renderer.dataset.rendererIdentity = identity;
+    instance.rendererIdentity = identity;
     return {
       map: map.dataset.rendererIdentity,
       canvas: canvas.dataset.rendererIdentity,
+      host: host.dataset.rendererIdentity,
+      renderer: renderer.dataset.rendererIdentity,
+      instance: instance.rendererIdentity,
+      index: fixture.maps.indexOf(instance),
+      fixtureMaps: fixture.maps.length,
+      liveMaps: fixture.maps.filter((item) => !item.destroyed).length,
+      connected: fixture.maps.filter((item) => item.element.isConnected).length,
     };
   }, MAP_IDENTITY);
 }
 
 async function readMapIdentity(page) {
-  return page.evaluate(() => ({
-    markers: document.querySelectorAll('[data-renderer-identity="tp155-stable-map"]').length,
-    map: document.querySelector(".trip-home__map")?.getAttribute("data-renderer-identity"),
-    canvas: document
-      .querySelector(".trip-home__map .trip-map-canvas")
-      ?.getAttribute("data-renderer-identity"),
-    maps: document.querySelectorAll(".trip-home__map").length,
-    day: document.querySelector(".trip-home__map")?.getAttribute("data-day"),
-  }));
+  return page.evaluate(() => {
+    const map = document.querySelector(".trip-home__map");
+    const canvas = map?.querySelector(".trip-map-canvas");
+    const host = canvas?.querySelector(".google-map[data-provider=google]");
+    const renderer = host?.querySelector(".google-map__renderer");
+    const fixture = window.__googleRendererFixture;
+    const instance = fixture?.maps.find((item) => item.element === renderer && !item.destroyed);
+    return {
+      markers: document.querySelectorAll('[data-renderer-identity="tp155-stable-map"]').length,
+      map: map?.getAttribute("data-renderer-identity"),
+      canvas: canvas?.getAttribute("data-renderer-identity"),
+      host: host?.getAttribute("data-renderer-identity"),
+      renderer: renderer?.getAttribute("data-renderer-identity"),
+      instance: instance?.rendererIdentity,
+      index: instance ? fixture.maps.indexOf(instance) : -1,
+      fixtureMaps: fixture?.maps.length ?? 0,
+      liveMaps: fixture?.maps.filter((item) => !item.destroyed).length ?? 0,
+      connected: fixture?.maps.filter((item) => item.element.isConnected).length ?? 0,
+      maps: document.querySelectorAll(".trip-home__map").length,
+      day: map?.getAttribute("data-day"),
+    };
+  });
 }
 
 async function openHome(page, language = "en", width = 1440) {
@@ -352,8 +460,15 @@ try {
   );
   const mapIdentity = await markMap(page);
   check(
-    mapIdentity?.map === MAP_IDENTITY && mapIdentity.canvas === MAP_IDENTITY,
-    "the Trip map and renderer receive a lifecycle identity before expansion",
+    mapIdentity?.map === MAP_IDENTITY &&
+      mapIdentity.canvas === MAP_IDENTITY &&
+      mapIdentity.host === MAP_IDENTITY &&
+      mapIdentity.renderer === MAP_IDENTITY &&
+      mapIdentity.instance === MAP_IDENTITY &&
+      mapIdentity.index >= 0 &&
+      mapIdentity.liveMaps === 1 &&
+      mapIdentity.connected === 1,
+    "the active Google renderer receives a lifecycle identity before expansion",
     mapIdentity,
   );
 
@@ -416,7 +531,7 @@ try {
     exact: true,
   });
   await expand.click();
-  const expanded = await page.evaluate(() => {
+  const expandedLayout = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
     const content = surface?.querySelector(".drawer__body > *:not(.trip-home-action-map)");
     const map = document.querySelector(".trip-home__map");
@@ -431,22 +546,22 @@ try {
         Math.min(contentBox.bottom, mapBox.bottom) - Math.max(contentBox.top, mapBox.top) > 200,
       width: surfaceBox.width,
       mapWidth: mapBox.width,
-      maps: document.querySelectorAll(".trip-home__map").length,
-      mapIdentity: document
-        .querySelector(".trip-home__map")
-        ?.getAttribute("data-renderer-identity"),
-      canvasIdentity: document
-        .querySelector(".trip-home__map .trip-map-canvas")
-        ?.getAttribute("data-renderer-identity"),
     };
   });
+  const expanded = { ...expandedLayout, ...(await readMapIdentity(page)) };
   check(
     expanded?.expanded &&
       expanded.sideBySide &&
       expanded.mapWidth > 200 &&
       expanded.maps === 1 &&
-      expanded.mapIdentity === MAP_IDENTITY &&
-      expanded.canvasIdentity === MAP_IDENTITY,
+      expanded.map === MAP_IDENTITY &&
+      expanded.canvas === MAP_IDENTITY &&
+      expanded.host === MAP_IDENTITY &&
+      expanded.renderer === MAP_IDENTITY &&
+      expanded.instance === MAP_IDENTITY &&
+      expanded.index === mapIdentity.index &&
+      expanded.liveMaps === 1 &&
+      expanded.connected === 1,
     "Expand places the existing map renderer beside panel content",
     expanded,
   );
@@ -465,7 +580,7 @@ try {
   );
 
   await ideas.getByRole("button", { name: "Collapse panel", exact: true }).click();
-  const collapsed = await page.evaluate(() => {
+  const collapsedLayout = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
     const rail = document.querySelector(".trip-home__aside");
     if (!surface || !rail) return null;
@@ -475,19 +590,21 @@ try {
       expanded: surface.classList.contains("is-expanded"),
       coversRail:
         Math.abs(surfaceBox.left - railBox.left) <= 24 && surfaceBox.width <= railBox.width + 24,
-      mapIdentity: document
-        .querySelector(".trip-home__map")
-        ?.getAttribute("data-renderer-identity"),
-      canvasIdentity: document
-        .querySelector(".trip-home__map .trip-map-canvas")
-        ?.getAttribute("data-renderer-identity"),
     };
   });
+  const collapsed = { ...collapsedLayout, ...(await readMapIdentity(page)) };
   check(
     collapsed?.expanded === false &&
       collapsed.coversRail &&
-      collapsed.mapIdentity === MAP_IDENTITY &&
-      collapsed.canvasIdentity === MAP_IDENTITY,
+      collapsed.map === MAP_IDENTITY &&
+      collapsed.canvas === MAP_IDENTITY &&
+      collapsed.host === MAP_IDENTITY &&
+      collapsed.renderer === MAP_IDENTITY &&
+      collapsed.instance === MAP_IDENTITY &&
+      collapsed.index === mapIdentity.index &&
+      collapsed.liveMaps === 1 &&
+      collapsed.connected === 1 &&
+      collapsed.day === "2",
     "Collapse restores the narrow panel without remounting the map renderer",
     collapsed,
   );
@@ -533,6 +650,32 @@ try {
     restored,
   );
 
+  await action(page, /^Trip preferences/).click();
+  const preferences = dialog(page, "Trip preferences");
+  await preferences.waitFor();
+  const preferenceField = preferences.getByLabel("Add a preference", { exact: true });
+  await preferenceField.fill("Keep unsaved panel text");
+  await preferenceField.press("Enter");
+  await panelTab(page, /^Ideas/).click();
+  await dialog(page, "Ideas").waitFor();
+  await panelTab(page, /^Trip preferences/).click();
+  await preferences.waitFor();
+  check(
+    (await preferences.getByText("Keep unsaved panel text", { exact: true }).count()) === 1,
+    "switching actions keeps an unsubmitted Trip preferences edit",
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector(".trip-home-action-surface.is-open"));
+  await action(page, /^Trip preferences/).click();
+  const reopened = dialog(page, "Trip preferences");
+  await reopened.waitFor();
+  check(
+    (await reopened.getByText("Keep unsaved panel text", { exact: true }).count()) === 1,
+    "closing and reopening keeps an unsubmitted Trip preferences edit",
+  );
+  await page.keyboard.press("Escape");
+  await page.waitForFunction(() => !document.querySelector(".trip-home-action-surface.is-open"));
+
   await action(page, /^Calendar/).click();
   await dialog(page, "Calendar").waitFor();
   await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
@@ -548,7 +691,7 @@ try {
   await action(page, /^Calendar/).click();
   await dialog(page, "Calendar").waitFor();
   await dialog(page, "Calendar").getByRole("button", { name: "Expand panel" }).click();
-  const extreme = await page.evaluate(() => {
+  const extremeLayout = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface")?.getBoundingClientRect();
     const rail = document.querySelector(".trip-home__aside")?.getBoundingClientRect();
     const map = document.querySelector(".trip-home__map");
@@ -560,19 +703,21 @@ try {
         .querySelector(".trip-home-action-surface")
         ?.classList.contains("is-expanded"),
       mapWidth: map?.getBoundingClientRect().width,
-      mapIdentity: map?.getAttribute("data-renderer-identity"),
-      canvasIdentity: map
-        ?.querySelector(".trip-map-canvas")
-        ?.getAttribute("data-renderer-identity"),
-      day: map?.getAttribute("data-day"),
     };
   });
+  const extreme = { ...extremeLayout, ...(await readMapIdentity(page)) };
   check(
     extreme.overflow <= 0 &&
       extreme.expanded &&
       extreme.mapWidth > 200 &&
-      extreme.mapIdentity === MAP_IDENTITY &&
-      extreme.canvasIdentity === MAP_IDENTITY &&
+      extreme.map === MAP_IDENTITY &&
+      extreme.canvas === MAP_IDENTITY &&
+      extreme.host === MAP_IDENTITY &&
+      extreme.renderer === MAP_IDENTITY &&
+      extreme.instance === MAP_IDENTITY &&
+      extreme.index === mapIdentity.index &&
+      extreme.liveMaps === 1 &&
+      extreme.connected === 1 &&
       extreme.day === "2",
     "an extreme chat/map split expands beside the same map without overflow",
     extreme,
@@ -685,8 +830,31 @@ try {
       );
     } else {
       await panelTab(responsive.page, /^Bookings/).click();
-      await dialog(responsive.page, "Bookings").waitFor();
-      check(true, `in-panel switching works at ${width}px`);
+      const bookings = dialog(responsive.page, "Bookings");
+      await bookings.waitFor();
+      const layout = await responsive.page.evaluate(() => {
+        const surface = document.querySelector(".trip-home-action-surface");
+        const switcher = surface?.querySelector(".trip-home-action-switcher");
+        const content = surface?.querySelector(".trip-home-action-content");
+        if (
+          !(surface instanceof HTMLElement) ||
+          !(switcher instanceof HTMLElement) ||
+          !(content instanceof HTMLElement)
+        )
+          return null;
+        return {
+          selected: switcher.querySelector('[role="tab"][aria-selected="true"]')?.textContent ?? "",
+          surfaceWidth: surface.getBoundingClientRect().width,
+          contentWidth: content.getBoundingClientRect().width,
+        };
+      });
+      check(
+        layout?.selected === "Bookings" &&
+          layout.contentWidth > 240 &&
+          (width !== 521 || layout.surfaceWidth >= width - 24),
+        `in-panel switching works at ${width}px`,
+        layout,
+      );
       if (width === 1001) {
         await dialog(responsive.page, "Bookings")
           .getByRole("button", { name: "Expand panel" })
@@ -737,7 +905,24 @@ try {
     await zoomed.context.close();
   }
 } catch (error) {
-  check(false, "journey completes", { error: String(error), pageErrors: currentErrors });
+  const mapState = await current
+    ?.evaluate(() => {
+      const map = document.querySelector(".trip-home__map");
+      const canvas = map?.querySelector(".trip-map-canvas");
+      return {
+        canvasClass: canvas?.className,
+        html: map?.innerHTML.slice(0, 1_000),
+        provider: canvas?.querySelector(".google-map")?.getAttribute("data-provider"),
+        text: map?.textContent,
+      };
+    })
+    .catch(() => undefined);
+  check(false, "journey completes", {
+    error: String(error),
+    mapState,
+    pageErrors: currentErrors,
+    requests: currentRequests,
+  });
   await current?.screenshot({ path: `${OUT}/failure.png` }).catch(() => {});
 } finally {
   await browser?.close();

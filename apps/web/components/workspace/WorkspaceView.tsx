@@ -4,18 +4,8 @@ import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs } from "../chat/ChatViewTabs";
 import { useTrajectoryFocus } from "../chat/trajectory-focus";
-import { useTripUndo } from "../trip/useTripUndo";
-import { TripEditorView } from "../trip/TripEditor";
-import { TripDrawerEmpty } from "../trip/TripDrawerEmpty";
-import { createEditorDrafts, EditorDraftProvider } from "../trip/editor-drafts";
-import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
-import { useLegRoutes } from "../trip/useLegRoutes";
-import { usePlanRevision } from "../trip/plan-revision";
-import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
-import { useTripPlaces } from "../map/useTripPlaces";
 import { OpenItemsBadge } from "../trip/OpenItemsBadge";
-import { TripPanel } from "../trip/TripPanel";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -31,6 +21,7 @@ import { TripHomeSuggestion } from "./TripHomeSuggestion";
 import { TripHomeMap } from "./TripHomeMap";
 import { TripHomeActionHost } from "./TripHomeActionHost";
 import { useTripHomeActionPanel } from "./useTripHomeActionPanel";
+import { useWorkspaceTripEditor } from "./useWorkspaceTripEditor";
 import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -55,14 +46,11 @@ import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import type { TripAction } from "@/lib/workspace/layout";
-import { useTimelineEdits } from "../trip/timeline/useTimelineEdits";
-import { itineraryActivities } from "@/lib/workspace";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
-  const [editorDrafts] = useState(createEditorDrafts);
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const [homeChatId, setHomeChatId] = useState<string>();
   const {
@@ -162,50 +150,41 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const homePlan = homeSnapshot?.plan;
   const editorPlan = page === "home" ? homePlan : plan;
   const sessionTripId = plan?.tripId;
+  const { previewTrip } = session;
   const sessionOwnsEditor =
     page !== "home" || (!!sessionTripId && sessionTripId === homeTrip?.snapshot.plan.tripId);
-  const homeTripPlaces = useTripPlaces(
-    page === "home" ? editorPlan : undefined,
-    tripPlaces.dataMode,
+  const sendFromTrip = (message: string) => {
+    if (!session.send(message)) return;
+    layout.selectView("chat");
+    layout.showChatView("conversation");
+  };
+  const { undo, timelineEdits, tripContent } = useWorkspaceTripEditor({
+    page,
+    editorPlan,
+    plan,
+    sessionOwnsEditor,
+    tripPlaces,
+    dataMode,
     locale,
-    tripPlaces.forceOsm,
-    tripPlaces.allowFallback,
-  );
-  const editorTripPlaces = page === "home" ? homeTripPlaces : tripPlaces;
-  const undo = useTripUndo(editorPlan);
-  const revisions = usePlanRevision({
-    plan: editorPlan,
-    held: editPending,
-    dataMode: dataMode.mode,
-    onApply: (next, backgroundBase) => {
-      if (backgroundBase) undo.preserveBackground(backgroundBase, next);
-      session.applyEdit(next);
+    editPending,
+    busy,
+    selectedActivity,
+    mapRoutes,
+    mapDay: layout.mapDay,
+    phone,
+    narrow,
+    onApplyEdit: session.applyEdit,
+    onTrackEdit: session.trackEdit,
+    onSelectStop: session.selectStop,
+    onShowRoutes: session.showRoutes,
+    onSetTimelineChanged: session.setTimelineChanged,
+    onPickMapDay: layout.pickMapDay,
+    onSendFromTrip: sendFromTrip,
+    onSelectView: (view) => {
+      if (view !== mobileView) viewTransition(() => layout.selectView(view), `to-${view}`);
     },
-  });
-  const chooser = useChooseCandidate(editorPlan, revisions, session.trackEdit);
-
-  const autoSaves = useAutoSavePlaces({
-    plan: sessionOwnsEditor ? editorPlan : undefined,
-    tripPlaces: editorTripPlaces,
-    revisions,
-  });
-
-  const legs = useLegRoutes({
-    plan: sessionOwnsEditor ? editorPlan : undefined,
-    revisions,
-    onRoutes: session.showRoutes,
-  });
-  const { previewTrip } = session;
-  const timelineEdits = useTimelineEdits({
-    plan: (sessionOwnsEditor ? editorPlan : plan)!,
-    dataMode: dataMode.mode,
-    activities: useMemo(() => itineraryActivities(editorPlan), [editorPlan]),
-    revisions,
-    undo,
-    onPending: session.trackEdit,
-    onRoutesChange: session.showRoutes,
-    onLegApplied: legs.noteLeg,
-    onTimelineChange: session.setTimelineChanged,
+    onShowTripMap: () => setTripView("map"),
+    onEdit: edit,
   });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
@@ -344,12 +323,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
-  const sendFromTrip = (message: string) => {
-    if (!session.send(message)) return;
-    layout.selectView("chat");
-    layout.showChatView("conversation");
-  };
-
   const selectMapStop = (id: string) => {
     const stop = itinerary.stop(id);
     if (stop) layout.pickMapDay(stop.day);
@@ -486,57 +459,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       routes={sessionOwnsEditor ? mapRoutes : []}
     />
   ) : undefined;
-  const tripContent = (
-    <>
-      {editorPlan ? (
-        <EditorDraftProvider store={editorDrafts} tripId={editorPlan.tripId}>
-          <TripPanel
-            key={editorPlan.tripId}
-            plan={editorPlan}
-            {...(chooser.problem ? { problem: chooser.problem } : {})}
-            timeline={
-              <TripEditorView
-                plan={editorPlan}
-                disabled={busy || editPending}
-                onPending={session.trackEdit}
-                tripPlaces={editorTripPlaces}
-                selected={selectedActivity}
-                day={layout.mapDay}
-                onDayChange={layout.pickMapDay}
-                onSelect={session.selectStop}
-                onSend={sendFromTrip}
-                onRoutesChange={session.showRoutes}
-                onApply={session.applyEdit}
-                revisions={revisions}
-                undo={undo}
-                routes={mapRoutes}
-                legs={legs}
-                onLegApplied={legs.noteLeg}
-                onTimelineChange={session.setTimelineChanged}
-                onShowMap={(value) => {
-                  layout.pickMapDay(value);
-                  if (phone) selectView("map");
-                  else if (narrow) setTripView("map");
-                }}
-                showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
-                saves={autoSaves}
-                phone={phone}
-                edits={timelineEdits}
-                {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
-              />
-            }
-          />
-        </EditorDraftProvider>
-      ) : (
-        <TripDrawerEmpty
-          phone={phone}
-          onPlanInChat={() => selectView("chat")}
-          onAddDetails={edit}
-        />
-      )}
-    </>
-  );
-
   return (
     <div
       className="workspace-app"

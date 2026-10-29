@@ -1,5 +1,5 @@
 "use client";
-import { useId, useRef, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { Drawer } from "../ui/Drawer";
 import { useLocale } from "../account/LocaleProvider";
@@ -8,7 +8,7 @@ import { TripHomePreferences } from "./TripHomePreferences";
 import { TripHomeCalendar } from "./TripHomeCalendar";
 import type { Notice } from "@/lib/i18n/notice";
 import { TRIP_ACTIONS, type TripAction } from "@/lib/workspace/layout";
-import type { Draft } from "@/lib/workspace/workspace";
+import { sameDraft, type Draft } from "@/lib/workspace/workspace";
 
 const TITLES = {
   itinerary: "Itinerary",
@@ -67,6 +67,16 @@ export function TripHomeActionDrawer({
   const titleKey = TITLES[action ?? "itinerary"];
   const title = t(titleKey);
   const active = action ?? "itinerary";
+  const [preferencesEdit, setPreferencesEdit] = useState({
+    tripId: plan.tripId,
+    value: draft,
+    baseline: draft,
+  });
+  const preferencesDraft =
+    preferencesEdit.tripId !== plan.tripId ||
+    sameDraft(preferencesEdit.value, preferencesEdit.baseline)
+      ? draft
+      : preferencesEdit.value;
   const onTabKeyDown = (event: KeyboardEvent<HTMLButtonElement>, index: number) => {
     let next: number | undefined;
     if (event.key === "ArrowRight") next = (index + 1) % TRIP_ACTIONS.length;
@@ -147,12 +157,26 @@ export function TripHomeActionDrawer({
         {active === "bookings" && <TripHomeBookings plan={plan} />}
         {active === "preferences" && (
           <TripHomePreferences
-            draft={draft}
+            value={preferencesDraft}
             plan={plan}
             busy={busy}
             errors={errors}
-            onSave={onSave}
-            onReplan={onReplan}
+            onChange={(next) =>
+              setPreferencesEdit((current) => ({
+                ...current,
+                tripId: plan.tripId,
+                value: next,
+              }))
+            }
+            onSave={(next) => {
+              setPreferencesEdit({ tripId: plan.tripId, value: next, baseline: next });
+              onSave(next);
+            }}
+            onReplan={(next) => {
+              const done = onReplan(next);
+              if (done) setPreferencesEdit({ tripId: plan.tripId, value: next, baseline: next });
+              return done;
+            }}
             onDone={onClose}
           />
         )}
