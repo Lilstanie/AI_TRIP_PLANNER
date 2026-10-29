@@ -164,56 +164,54 @@ export function useWorkspaceStorage({
     const conversation = current.conversations.find((item) => item.id === id);
     if (!conversation) return;
     if (state.plan && applyPlan) publishTabPlan(state.plan);
-    const snapshot =
+    const authority =
       current.trips.find((trip) => trip.id === conversation.tripId)?.snapshot ??
       conversation.snapshot;
-    let next =
-      state.plan && applyPlan
-        ? upsertCurrent(current, {
-            version: 4,
-            id: id.replace(/^conversation:/, ""),
-            savedAt: new Date().toISOString(),
-            plan: state.plan,
-            draft: state.draft,
-            messages: state.messages,
-            input: state.input,
-            ask: state.ask,
-            previousTotal: state.previousTotal,
-          })
-        : state.plan
-          ? {
-              ...current,
-              conversations: current.conversations.map((item) =>
-                item.id === id
-                  ? {
-                      ...item,
-                      updatedAt: new Date().toISOString(),
-                      messages: state.messages,
-                      input: state.input,
-                      ask: state.ask,
-                      draft: snapshot?.draft ?? state.draft,
-                      ...(snapshot
-                        ? {
-                            snapshot: {
-                              ...snapshot,
-                              id: id.replace(/^conversation:/, ""),
-                              messages: state.messages,
-                              input: state.input,
-                              ask: state.ask,
-                            },
-                          }
-                        : {}),
-                    }
-                  : item,
-              ),
-            }
-          : upsertConversationDraft(current, {
-              id,
-              messages: state.messages,
-              input: state.input,
-              ask: state.ask,
-              draft: state.draft,
-            });
+    let next: WorkspaceCatalog;
+    if (state.plan && applyPlan) {
+      next = upsertCurrent(current, {
+        version: 4,
+        id: id.replace(/^conversation:/, ""),
+        savedAt: new Date().toISOString(),
+        plan: state.plan,
+        draft: state.draft,
+        messages: state.messages,
+        input: state.input,
+        ask: state.ask,
+        previousTotal: state.previousTotal,
+      });
+    } else if (authority?.plan) {
+      next = {
+        ...current,
+        conversations: current.conversations.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                updatedAt: new Date().toISOString(),
+                messages: state.messages,
+                input: state.input,
+                ask: state.ask,
+                draft: authority.draft ?? state.draft,
+                snapshot: {
+                  ...authority,
+                  id: id.replace(/^conversation:/, ""),
+                  messages: state.messages,
+                  input: state.input,
+                  ask: state.ask,
+                },
+              }
+            : item,
+        ),
+      };
+    } else {
+      next = upsertConversationDraft(current, {
+        id,
+        messages: state.messages,
+        input: state.input,
+        ask: state.ask,
+        draft: state.draft,
+      });
+    }
     next = {
       ...next,
       activeConversationId: current.activeConversationId,

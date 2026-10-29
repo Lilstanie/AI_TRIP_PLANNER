@@ -5,7 +5,7 @@ import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripDay } from "../trip/useTripDay";
 import { savedBrowsing, rememberBrowsing, validSelectedStop } from "@/lib/workspace/browsing";
 import { useTripPlaces } from "../map/useTripPlaces";
-import { effectiveCurrency, type AgentProgressEvent, type TripPlan } from "@trip/shared";
+import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { QuestionProgress } from "@/lib/workspace/ask-user";
 import { blankDraft, type Draft } from "@/lib/workspace";
@@ -58,40 +58,14 @@ type BackgroundTurn = {
   controller: AbortController;
   state: SessionState;
   basePlan: TripPlan | undefined;
-  status: "running" | "stopped" | "failed";
-  activity: AgentProgressEvent[];
-  error?: Notice;
-  retry?: Task;
 };
 
 const PLAN_CONFLICT: Notice = {
   key: "The plan changed while this reply was being prepared. Your edits were kept.",
 };
-const planFingerprint = (plan: TripPlan | undefined) =>
-  plan === undefined
-    ? undefined
-    : JSON.stringify(
-        {
-          tripId: plan.tripId,
-          brief: plan.brief,
-          editVersion: plan.editVersion ?? 0,
-          dayNotes: plan.dayNotes,
-          sections: plan.sections.map((section) => ({
-            id: section.id,
-            proposal: section.proposal
-              ? {
-                  items: section.proposal.items,
-                  stays: section.proposal.stays,
-                  flights: section.proposal.flights,
-                }
-              : undefined,
-          })),
-        },
-        (_key, value: unknown) =>
-          value && typeof value === "object" && !Array.isArray(value)
-            ? Object.fromEntries(Object.entries(value).sort(([a], [b]) => a.localeCompare(b)))
-            : value,
-      );
+const editVersion = (plan: TripPlan | undefined) => plan?.editVersion ?? 0;
+const planChanged = (left: TripPlan | undefined, right: TripPlan | undefined) =>
+  editVersion(left) !== editVersion(right);
 
 export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [state, setSession] = useState<SessionState>(() =>
@@ -299,10 +273,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
         ? [
             {
               kind: "taskRestored" as const,
-              status: turn.status,
-              activity: turn.activity,
-              ...(turn.error ? { error: turn.error } : {}),
-              ...(turn.retry ? { retry: turn.retry } : {}),
+              status: turn.state.status as "running" | "stopped" | "failed",
+              activity: turn.state.activity,
+              ...(turn.state.error ? { error: turn.state.error } : {}),
+              ...(turn.state.retry ? { retry: turn.state.retry } : {}),
             },
           ]
         : []),
@@ -326,7 +300,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
   function canStart(tripId: string) {
     const turn = backgroundTurns.current.get(activeConversation.current);
-    return !tripWriters.current.has(tripId) && turn?.status !== "running";
+    return !tripWriters.current.has(tripId) && turn?.state.status !== "running";
   }
 
   function start(
@@ -352,8 +326,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       controller,
       state: next,
       basePlan,
-      status: "running",
-      activity: next.activity,
     };
     backgroundTurns.current.set(conversationId, turn);
     tripWriters.current.set(task.request.tripId, conversationId);
@@ -362,9 +334,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
   function progress(conversationId: string, controller: AbortController, event: SessionEvent) {
     const turn = backgroundTurns.current.get(conversationId);
-    if (!turn || turn.controller !== controller || turn.status !== "running") return;
+    if (!turn || turn.controller !== controller || turn.state.status !== "running") return;
     if (event.kind !== "progress") return;
-    turn.activity = [...turn.activity, event.event];
     turn.state =
       activeConversation.current === conversationId
         ? updateSession([event])
@@ -378,7 +349,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     _task: Task,
   ) {
     const turn = backgroundTurns.current.get(conversationId);
-    if (!turn || turn.controller !== controller || turn.status !== "running") return;
+    if (!turn || turn.controller !== controller || turn.state.status !== "running") return;
 
     if (tripWriters.current.get(turn.tripId) === conversationId)
       tripWriters.current.delete(turn.tripId);
@@ -388,8 +359,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
           ? updateSession([outcome])
           : nextSession(turn.state, outcome);
       turn.state = next;
-      turn.activity = next.activity;
-      turn.status = "stopped";
       saveBackground(conversationId, next, false);
       return;
     }
@@ -399,11 +368,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const visiblePlan =
       stateRef.current.plan?.tripId === turn.tripId ? stateRef.current.plan : undefined;
     const latestPlan =
-      visiblePlan !== undefined && planFingerprint(visiblePlan) !== planFingerprint(turn.basePlan)
+      visiblePlan !== undefined && planChanged(visiblePlan, turn.basePlan)
         ? visiblePlan
         : savedPlan;
-    const conflict =
-      outcome.kind === "planned" && planFingerprint(turn.basePlan) !== planFingerprint(latestPlan);
+    const conflict = outcome.kind === "planned" && planChanged(turn.basePlan, latestPlan);
     const event: SessionEvent = conflict
       ? {
           kind: "planConflict",
@@ -419,7 +387,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
           ])
         : nextSession(conflict ? { ...turn.state, plan: latestPlan } : turn.state, event);
     turn.state = next;
-    turn.activity = next.activity;
     saveBackground(conversationId, next, outcome.kind === "planned" && !conflict);
     if (
       outcome.kind === "planned" &&
@@ -431,9 +398,6 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       updateSession([{ kind: "edited", plan: next.plan }]);
 
     if (outcome.kind === "failed") {
-      turn.status = "failed";
-      turn.error = next.error;
-      turn.retry = next.retry;
       return;
     }
     backgroundTurns.current.delete(conversationId);
@@ -442,14 +406,8 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   function cancelActive() {
     const conversationId = activeConversation.current;
     const turn = backgroundTurns.current.get(conversationId);
-    if (!turn || turn.status !== "running") return;
+    if (!turn || turn.state.status !== "running") return;
     turn.controller.abort();
-    tripWriters.current.delete(turn.tripId);
-    const next = updateSession([{ kind: "cancelled" }]);
-    turn.state = next;
-    turn.activity = next.activity;
-    turn.status = "stopped";
-    saveBackground(conversationId, next, false);
   }
 
   function abortTurns(keep: (turn: BackgroundTurn) => boolean) {
