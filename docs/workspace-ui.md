@@ -92,10 +92,13 @@ The Trip home action area and its acceptance criteria are detailed in
     chat; an empty box reuses the trip's untouched empty chat instead of storing another. Starting a chat while the assistant answers on another chat stops that answer, as opening any
     chat does. A contextual suggestion uses the same linked-chat flow and stays dismissed until the Plan
     changes. Five cards above the map open Itinerary, Ideas, Bookings, Trip preferences and Calendar
-    in one right-side drawer (`TripHomeActionDrawer`) without leaving Trip home. Itinerary and Calendar
-    select a day and focus it on the map. Ideas uses the existing scheduling flow, Bookings groups
-    booked items, and preferences save and replan the open Trip. Close, Escape and outside press restore
-    focus to the opening card. There is no Media or Receipts card. The side column holds the trip map
+    in one right-side drawer (`TripHomeActionDrawer`) without leaving Trip home. Itinerary embeds the
+    same editable Trip view as the conversation and shares its latest Plan, pending edit, selected
+    day and Undo; activities, flights and stays render in both entries, and booking-only days are not
+    free days. Itinerary and Calendar select a day and focus it on the map. Ideas uses the existing
+    scheduling flow, Bookings groups booked items, and preferences save and replan the open Trip.
+    Close, Escape and outside press restore focus to the opening card. There is no Media or Receipts
+    card. The side column holds the trip map
     (`TripHomeMap`): the existing `TripMapCanvas` uses the open Trip's latest Plan, including a selected
     Chat's newer snapshot. An open Chat retains the adjustable chat/map split on desktop. At 820 px and
     below the page stacks in phone reading order, with full-screen action drawers. A trip whose places

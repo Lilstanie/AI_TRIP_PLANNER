@@ -1,7 +1,7 @@
 # Agent Note: Trip home actions stay in place
 
 Status: implemented
-Owner: spec #774, tickets #775–#779
+Owner: spec #774, tickets #775–#779, #794
 
 ## Problem
 
@@ -25,7 +25,9 @@ entry points, Plan ownership or Chat links.
 - Open every action in a right-side drawer without leaving Trip home. The desktop drawer covers the
   rail and keeps the main column visible; a phone drawer is full screen. No Media entry is added
   until a real media model exists.
-- Itinerary contains the complete plan and day timeline and focuses the map when a day is chosen.
+- Itinerary reuses the conversation's editable Trip view and latest Plan, including activities,
+  flights, stays, pending edits, selected day or activity and Undo. Changing either entry updates the
+  other, Calendar and the map; a day containing only transport or accommodation is not called free.
   Ideas contains unscheduled activities and restaurant suggestions. Bookings groups flights, stays
   and items marked as booked. Trip preferences reuses the existing preference editor. Calendar is a
   redesigned read-only calendar for the open Trip only; choosing a day opens Itinerary at that day
@@ -70,6 +72,8 @@ The complete interaction and acceptance specification is
   outside press restore focus.
 - Calendar shows only the open Trip, and a chosen day opens the corresponding Itinerary day and
   map focus.
+- Home Itinerary and the conversation Trip use one editable Plan and one Undo history. Activity,
+  flight and stay rows agree between both entries, while booking-only days remain visibly booked.
 - Suggestions send into a linked Chat and stay dismissed across reload until the Plan changes.
 - Fixture E2E covers desktop, tablet and phone in English and Chinese, keyboard use, zoom and no
   horizontal overflow.

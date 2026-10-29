@@ -269,10 +269,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const conversation = savedCatalog.conversations.find((item) => item.id === id);
     if (!conversation) return false;
     const source = latestSnapshot(savedCatalog, conversation);
+    const keepCurrentPlan =
+      plan &&
+      source &&
+      plan.tripId === source.plan.tripId &&
+      (editPending || JSON.stringify(plan) === JSON.stringify(source.plan));
     if (!source) freshTripId.current = crypto.randomUUID();
     open({
       ...(source
-        ? { plan: source.plan, previousTotal: source.previousTotal }
+        ? { plan: keepCurrentPlan ? plan : source.plan, previousTotal: source.previousTotal }
         : { plan: undefined, previousTotal: undefined }),
       draft: source ? source.draft : (conversation.draft ?? blankDraft()),
       messages: conversation.messages,
