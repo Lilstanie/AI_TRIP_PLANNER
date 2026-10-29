@@ -326,6 +326,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     layout.focusMapDay(day);
     openTripAction("itinerary");
   };
+  const chooseHomeActivity = (activityId: string, day: number) => {
+    const stop = itinerary.stop(activityId);
+    if (!stop || stop.day !== day) return;
+    layout.focusMapDay(day);
+    session.showStop(activityId);
+    openTripAction("itinerary");
+  };
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
@@ -501,7 +508,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           />
         </EditorDraftProvider>
       ) : (
-        <TripDrawerEmpty phone={phone} onPlanInChat={() => selectView("chat")} onAddDetails={edit} />
+        <TripDrawerEmpty
+          phone={phone}
+          onPlanInChat={() => selectView("chat")}
+          onAddDetails={edit}
+        />
       )}
     </>
   );
@@ -717,6 +728,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   }
                   onClose={closeHomeAction}
                   onSelectDay={chooseHomeDay}
+                  onSelectActivity={chooseHomeActivity}
+                  selectedActivity={selectedActivity}
                   returnFocus={homeActionTarget}
                   itinerary={
                     catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId

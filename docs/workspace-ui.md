@@ -97,8 +97,13 @@ The Trip home action area and its acceptance criteria are detailed in
     day or activity, unsubmitted form drafts and Undo; activities, flights and stays render in both
     entries, and booking-only days are not free days. Background place saves and route checks run only
     while the active Chat owns that Trip, so viewing another Trip home cannot rewrite the open Chat.
-    Itinerary and Calendar select a day and focus it on the map, and the home map uses the same selected
-    activity and routes. Ideas uses the existing scheduling flow, Bookings groups booked items, and
+    Calendar opens in Week view with a Week/Month switch. Both views retain the selected Trip day;
+    Previous and Next stay within the Trip, so the first and last periods disable the outward
+    control and no off-Trip date is shown as a Trip date. Clicking an activity opens its day in the
+    shared Itinerary editor. Timed activities show their actual ranges and overlaps, while untimed
+    activities, flights and stays appear in the All day region without invented times or drag
+    handles. Itinerary and Calendar select a day and focus it on the map, and the home map uses the
+    same selected activity and routes. Ideas uses the existing scheduling flow, Bookings groups booked items, and
     preferences save and replan the open Trip. Close, Escape and outside press restore focus to the
     opening card. There is no Media or Receipts card. The side column holds the trip map
     (`TripHomeMap`): the existing `TripMapCanvas` uses the open Trip's latest Plan, including a selected

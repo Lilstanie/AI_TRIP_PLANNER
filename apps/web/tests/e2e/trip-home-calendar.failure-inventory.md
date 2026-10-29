@@ -1,21 +1,30 @@
 # Trip home Calendar failure inventory
 
-The confirmed browser seam mounts the exported `TripHomeCalendar` with a real Trip Plan and uses
-its public date-selection callback. Parent-owned drawer and map behavior stays in the existing Trip
-home action-rail journey.
+Public seam: fixture-backed Trip home browser navigation from a trip card into the Calendar drawer,
+then into the shared itinerary editor. The journey uses the real workspace, not an isolated component
+harness.
 
-1. A date outside the current Trip can be activated or exposes a stale Trip activity.
-2. A Stop, Idea, flight or stay is placed on the wrong date.
-3. A stay covers its checkout date or misses an overnight date.
-4. A return flight is omitted or shown on its departure date instead of its return date.
-5. More than one Stop on a date loses an activity or its accessible date label.
-6. English or Chinese dates, month headings or category labels are unreadable.
-7. A keyboard user cannot reach and activate a Trip date.
-8. The selected day is not exposed through the documented selected-day state.
-9. A 375px viewport, narrow desktop drawer, 520/521px or 1000/1001px crossing creates horizontal
-   overflow or hides date content.
-10. Calendar offers date-range editing, month navigation away from the Trip, or unrelated Trips.
-11. Date cells lose visible focus, text contrast or minimum phone hit areas.
+1. Calendar opens in month view, or has no Week / Month switch in the default drawer.
+2. Week ↔ Month switching clears or shifts the selected Trip day, including across month or year
+   boundaries.
+3. Trip-local previous / next week navigation leaves the Trip, invents off-Trip dates, or changes the
+   selected day unexpectedly. The opening week is the calendar week containing the Trip start, so a
+   leading Monday-before-start cell is empty rather than a Trip date.
+4. A browser time zone shifts a Trip-local date by one day on the week or month surface.
+5. Timed activities are missing from the week time axis, or untimed activities / stays invent a clock
+   time instead of staying in an explicit all-day region.
+6. Overlapping timed activities cover each other so one cannot be found or activated.
+7. Drag-to-reschedule exists, or calendar projection invents start / end times.
+8. Two same-named activities are located by label instead of stable identity, so the wrong editor stop
+   opens.
+9. Clicking a calendar activity does not open the shared itinerary editor on that activity and day.
+10. Clicking a month date no longer opens Itinerary on that day or fails to focus the map day.
+11. After an edit or Undo, Calendar, home Itinerary, conversation Trip and the map disagree about the
+    Plan, selected day or selected activity.
+12. Calendar builds a second Plan projection instead of reusing the Trip domain day / booking rules,
+    so flights, overnight stays, Ideas or empty days diverge from Itinerary.
+13. Acceptance depends on the expanded combined drawer / map state from ticket #797.
+14. English / Chinese labels, keyboard activation, phone hit areas or drawer overflow regress.
 
 The repeatable artifact is `trip-home-calendar.e2e.mjs`, which writes screenshots and `summary.json`
 under `output/playwright/trip-home-calendar/`.

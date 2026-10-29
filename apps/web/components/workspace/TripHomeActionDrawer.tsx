@@ -33,6 +33,8 @@ export function TripHomeActionDrawer({
   onSchedule,
   onClose,
   onSelectDay,
+  onSelectActivity,
+  selectedActivity,
   returnFocus,
   itinerary,
 }: {
@@ -50,6 +52,8 @@ export function TripHomeActionDrawer({
   onSchedule(idea: ProposalItem, day: number): boolean | Promise<boolean>;
   onClose(): void;
   onSelectDay(day: number): void;
+  onSelectActivity(activityId: string, day: number): void;
+  selectedActivity?: string;
   returnFocus: RefObject<HTMLElement | null>;
   itinerary: ReactNode;
 }) {
@@ -90,7 +94,13 @@ export function TripHomeActionDrawer({
         />
       )}
       {action === "calendar" && (
-        <TripHomeCalendar plan={plan} selectedDay={selectedDay} onSelectDay={onSelectDay} />
+        <TripHomeCalendar
+          plan={plan}
+          selectedDay={selectedDay}
+          selectedActivity={selectedActivity}
+          onSelectDay={onSelectDay}
+          onSelectActivity={onSelectActivity}
+        />
       )}
     </Drawer>
   );

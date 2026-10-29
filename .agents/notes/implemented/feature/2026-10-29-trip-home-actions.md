@@ -3,6 +3,10 @@
 Status: implemented
 Owner: spec #774, tickets #775–#779, #794
 
+Superseded in part:
+[Trip home Calendar reuses the itinerary projection](2026-10-29-trip-home-calendar.md) replaces the
+read-only Calendar with Week/Month editing and all-day regions.
+
 ## Problem
 
 The current Trip home already groups the Trip's Chats and shows its map, but its Itinerary, Calendar
