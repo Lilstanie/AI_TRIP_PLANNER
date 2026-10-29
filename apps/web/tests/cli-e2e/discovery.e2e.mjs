@@ -178,6 +178,7 @@ assert.deepEqual(listing.supported, [
   "agent-lab-replay",
   "agent-lab-single-agent",
   "chat-generation",
+  "new-chat",
   "pending-ask-refresh",
   "trip-home-send",
 ]);
