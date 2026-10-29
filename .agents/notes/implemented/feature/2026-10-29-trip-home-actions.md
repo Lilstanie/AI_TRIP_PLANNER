@@ -26,8 +26,10 @@ entry points, Plan ownership or Chat links.
   rail and keeps the main column visible; a phone drawer is full screen. No Media entry is added
   until a real media model exists.
 - Itinerary reuses the conversation's editable Trip view and latest Plan, including activities,
-  flights, stays, pending edits, selected day or activity and Undo. Changing either entry updates the
-  other, Calendar and the map; a day containing only transport or accommodation is not called free.
+  flights, stays, pending edits, selected day or activity, unsubmitted form drafts and Undo. Changing
+  either entry updates the other, Calendar and the map; the home map uses that same selected activity
+  and routes. Background place saves and route checks run only while the active Chat owns the Trip.
+  A day containing only transport or accommodation is not called free.
   Ideas contains unscheduled activities and restaurant suggestions. Bookings groups flights, stays
   and items marked as booked. Trip preferences reuses the existing preference editor. Calendar is a
   redesigned read-only calendar for the open Trip only; choosing a day opens Itinerary at that day

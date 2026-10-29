@@ -560,7 +560,10 @@ try {
   await desktop.context.close();
 
   const corrupt = await open("en", { width: 1440, height: 1000 });
-  await corrupt.page.evaluate((key) => localStorage.setItem(key, "null"), "trip-home-suggestion-dismissals-v1");
+  await corrupt.page.evaluate(
+    (key) => localStorage.setItem(key, "null"),
+    "trip-home-suggestion-dismissals-v1",
+  );
   await openHome(corrupt.page);
   await corrupt.page.getByRole("region", { name: "Trip suggestion" }).waitFor();
   check(

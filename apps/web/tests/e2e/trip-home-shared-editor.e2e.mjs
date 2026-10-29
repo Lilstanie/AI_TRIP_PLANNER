@@ -368,7 +368,7 @@ const waitForText = async (scope, text, timeout = 10_000) => {
 };
 const closeDrawer = async (page) => {
   const open = page.locator('[role="dialog"][aria-modal="true"]');
-  await open.getByRole("button", { name: /^Close / }).click();
+  await open.locator(".drawer__close").click();
   await open.waitFor({ state: "hidden" });
 };
 const openTripHome = async (page) => {
@@ -450,6 +450,41 @@ try {
   );
   await itinerary.getByRole("tab", { name: /^Day 1/ }).click();
 
+  await stop(itinerary, "Sydney Opera House")
+    .getByRole("button", { name: /^Change time/ })
+    .click();
+  await itinerary
+    .getByLabel(/^Start/)
+    .first()
+    .fill("10:00");
+  await itinerary.getByLabel(/^End/).first().fill("11:30");
+  await page.getByRole("button", { name: "Close Itinerary", exact: true }).click();
+  await itinerary.waitFor({ state: "hidden" });
+  await openWorkspaceTrip(page);
+  const draftWorkspace = page.getByRole("region", { name: "Your trip" });
+  await stop(draftWorkspace, "Sydney Opera House")
+    .getByRole("button", { name: /^Change time/ })
+    .click();
+  check(
+    (await draftWorkspace
+      .getByLabel(/^Start/)
+      .first()
+      .inputValue()) === "10:00" &&
+      (await draftWorkspace.getByLabel(/^End/).first().inputValue()) === "11:30",
+    "unsubmitted time values survive switching editor entries",
+  );
+  await draftWorkspace.getByRole("button", { name: "Cancel", exact: true }).click();
+  await openTripHome(page);
+  await action(page, /^Itinerary/).click();
+  await itinerary.getByRole("tab", { name: /^Day 1/ }).click();
+  await stop(itinerary, "Sydney Opera House").locator(".timeline-stop__main").click();
+  await closeDrawer(page);
+  await homeMap(page).locator(".trip-map-marker").first().waitFor();
+  check(
+    (await homeMap(page).locator(".trip-map-marker.is-selected").count()) === 1,
+    "editor activity selection propagates to the home map",
+  );
+  await action(page, /^Itinerary/).click();
   await changeTime(itinerary, "Sydney Opera House", "11:00", "12:30");
   await changeTime(itinerary, "Sydney Opera House", "13:00", "14:30");
   await itinerary.getByRole("button", { name: "Undo last change" }).click();

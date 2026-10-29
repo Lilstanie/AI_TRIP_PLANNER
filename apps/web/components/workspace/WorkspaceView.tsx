@@ -8,6 +8,7 @@ import { useTripUndo } from "../trip/useTripUndo";
 import { TripEditorView } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
+import { useFormDrafts } from "../trip/timeline/useFormDrafts";
 import { usePlanRevision } from "../trip/plan-revision";
 import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
@@ -69,6 +70,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     input,
     editPending,
     busy,
+    status,
     activity,
     error,
     errors,
@@ -156,10 +158,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     : undefined;
   const homePlan = homeSnapshot?.plan;
   const editorPlan = page === "home" ? homePlan : plan;
+  const sessionTripId = plan?.tripId;
+  const sessionOwnsEditor =
+    page !== "home" || (!!sessionTripId && sessionTripId === homeTrip?.snapshot.plan.tripId);
+  const drafts = useFormDrafts();
   const undo = useTripUndo(editorPlan);
   const revisions = usePlanRevision({
     plan: editorPlan,
-    held: busy || editPending,
+    held: editPending,
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
       if (backgroundBase) undo.preserveBackground(backgroundBase, next);
@@ -168,12 +174,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   });
   const chooser = useChooseCandidate(editorPlan, revisions, session.trackEdit);
 
-  const autoSaves = useAutoSavePlaces({ plan: editorPlan, tripPlaces, revisions });
+  const autoSaves = useAutoSavePlaces({
+    plan: sessionOwnsEditor ? editorPlan : undefined,
+    tripPlaces,
+    revisions,
+  });
 
-  const legs = useLegRoutes({ plan: editorPlan, revisions, onRoutes: session.showRoutes });
+  const legs = useLegRoutes({
+    plan: sessionOwnsEditor ? editorPlan : undefined,
+    revisions,
+    onRoutes: session.showRoutes,
+  });
   const { previewTrip } = session;
   const timelineEdits = useTimelineEdits({
-    plan: editorPlan ?? plan!,
+    plan: (sessionOwnsEditor ? editorPlan : plan)!,
     dataMode: dataMode.mode,
     activities: useMemo(() => itineraryActivities(editorPlan), [editorPlan]),
     revisions,
@@ -445,7 +459,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           timeline={
             <TripEditorView
               plan={editorPlan}
-              disabled={busy || editPending}
+              disabled={editPending}
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
               selected={selectedActivity}
@@ -469,6 +483,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
               phone={phone}
+              drafts={drafts}
               edits={timelineEdits}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
@@ -594,6 +609,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       providers={dataMode.providers}
                       focusedDay={layout.mapDay}
                       focusRequest={layout.mapFocus}
+                      selectedActivity={selectedActivity}
+                      onSelectActivity={session.selectStop}
+                      routes={sessionOwnsEditor ? mapRoutes : []}
                     />
                   ) : undefined
                 }
@@ -832,6 +850,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 <button type="button" onClick={session.dismissReplaced}>
                   {t("Dismiss")}
                 </button>
+              </div>
+            )}
+            {status === "stopped" && (
+              <div className="error-banner" role="status">
+                {t("Planning stopped.")}
               </div>
             )}
             {error && (

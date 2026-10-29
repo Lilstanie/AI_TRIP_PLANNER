@@ -7,6 +7,7 @@ import { useLocale } from "../../account/LocaleProvider";
 import { SearchIcon } from "../../ui/icons";
 import type { TimelineEdits } from "./useTimelineEdits";
 import { StopEditSurface } from "./StopEditSurface";
+import type { FormDrafts } from "./useFormDrafts";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -91,6 +92,8 @@ export function ItemForm({
   mode,
   days,
   labels,
+  drafts,
+  draftKey,
   onSubmit,
   onCancel,
 }: {
@@ -98,14 +101,28 @@ export function ItemForm({
   mode: "details" | "note" | "schedule";
   days: number;
   labels: string[];
+  drafts?: FormDrafts;
+  draftKey?: string;
   onSubmit(action: ItemAction): boolean | Promise<boolean>;
   onCancel(): void;
 }) {
   const { t } = useLocale();
-  const [detail, setDetail] = useState(activity.detail);
-  const [location, setLocation] = useState(activity.location ?? "");
-  const [note, setNote] = useState(activity.note ?? "");
-  const [day, setDay] = useState(1);
+  const formKey = `${draftKey ?? activity.id}:${mode}`;
+  const stored = drafts?.get<{ detail: string; location: string; note: string; day: number }>(
+    formKey,
+  );
+  const [detail, setDetail] = useState(stored?.detail ?? activity.detail);
+  const [location, setLocation] = useState(stored?.location ?? activity.location ?? "");
+  const [note, setNote] = useState(stored?.note ?? activity.note ?? "");
+  const [day, setDay] = useState(stored?.day ?? 1);
+  const saveDraft = (next: { detail?: string; location?: string; note?: string; day?: number }) => {
+    drafts?.set(formKey, {
+      detail: next.detail ?? detail,
+      location: next.location ?? location,
+      note: next.note ?? note,
+      day: next.day ?? day,
+    });
+  };
   const [failed, setFailed] = useState(false);
   const validDay = mode !== "schedule" || (day >= 1 && day <= days);
   const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
@@ -139,7 +156,10 @@ export function ItemForm({
               ref={first}
               value={location}
               maxLength={120}
-              onChange={(e) => setLocation(e.target.value)}
+              onChange={(e) => {
+                setLocation(e.target.value);
+                saveDraft({ location: e.target.value });
+              }}
             />
           </label>
           <label>
@@ -148,7 +168,10 @@ export function ItemForm({
               value={detail}
               maxLength={500}
               rows={2}
-              onChange={(e) => setDetail(e.target.value)}
+              onChange={(e) => {
+                setDetail(e.target.value);
+                saveDraft({ detail: e.target.value });
+              }}
             />
           </label>
         </>
@@ -162,7 +185,10 @@ export function ItemForm({
             maxLength={500}
             rows={2}
             placeholder={t("e.g. Book tickets a day ahead")}
-            onChange={(e) => setNote(e.target.value)}
+            onChange={(e) => {
+              setNote(e.target.value);
+              saveDraft({ note: e.target.value });
+            }}
           />
         </label>
       )}
@@ -173,7 +199,10 @@ export function ItemForm({
             ref={first}
             aria-label={t("Day")}
             value={day}
-            onChange={(e) => setDay(Number(e.target.value))}
+            onChange={(e) => {
+              setDay(Number(e.target.value));
+              saveDraft({ day: Number(e.target.value) });
+            }}
           >
             {Array.from({ length: days }, (_, index) => (
               <option key={index} value={index + 1}>
@@ -202,6 +231,8 @@ export function PlaceSearch({
   edits,
   focusOnMount = false,
   phone,
+  drafts,
+  draftKey,
   onUse,
   onCancel,
 }: {
@@ -211,11 +242,14 @@ export function PlaceSearch({
 
   focusOnMount?: boolean;
   phone: boolean;
+  drafts?: FormDrafts;
+  draftKey?: string;
   onUse(placeId: string): boolean | Promise<boolean>;
   onCancel?(): void;
 }) {
   const { t } = useLocale();
-  const [query, setQuery] = useState("");
+  const searchKey = `${draftKey ?? "search"}:search`;
+  const [query, setQuery] = useState(drafts?.get<string>(searchKey) ?? "");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (focusOnMount) input.current?.focus();
@@ -246,7 +280,10 @@ export function PlaceSearch({
               value={query}
               placeholder={t("Search Google Maps")}
               disabled={locked}
-              onChange={(event) => setQuery(event.target.value)}
+              onChange={(event) => {
+                setQuery(event.target.value);
+                drafts?.set(searchKey, event.target.value);
+              }}
             />
           </span>
         </label>

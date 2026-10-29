@@ -94,17 +94,19 @@ The Trip home action area and its acceptance criteria are detailed in
     changes. Five cards above the map open Itinerary, Ideas, Bookings, Trip preferences and Calendar
     in one right-side drawer (`TripHomeActionDrawer`) without leaving Trip home. Itinerary embeds the
     same editable Trip view as the conversation and shares its latest Plan, pending edit, selected
-    day and Undo; activities, flights and stays render in both entries, and booking-only days are not
-    free days. Itinerary and Calendar select a day and focus it on the map. Ideas uses the existing
-    scheduling flow, Bookings groups booked items, and preferences save and replan the open Trip.
-    Close, Escape and outside press restore focus to the opening card. There is no Media or Receipts
-    card. The side column holds the trip map
+    day or activity, unsubmitted form drafts and Undo; activities, flights and stays render in both
+    entries, and booking-only days are not free days. Background place saves and route checks run only
+    while the active Chat owns that Trip, so viewing another Trip home cannot rewrite the open Chat.
+    Itinerary and Calendar select a day and focus it on the map, and the home map uses the same selected
+    activity and routes. Ideas uses the existing scheduling flow, Bookings groups booked items, and
+    preferences save and replan the open Trip. Close, Escape and outside press restore focus to the
+    opening card. There is no Media or Receipts card. The side column holds the trip map
     (`TripHomeMap`): the existing `TripMapCanvas` uses the open Trip's latest Plan, including a selected
     Chat's newer snapshot. An open Chat retains the adjustable chat/map split on desktop. At 820 px and
     below the page stacks in phone reading order, with full-screen action drawers. A trip whose places
     cannot be found keeps the map's own notice instead of markers. The [Trip home actions Agent Note](../.agents/notes/implemented/feature/2026-10-29-trip-home-actions.md)
     records the behavior; `trip-home-action-rail`, `trip-home-calendar`, `trip-home-ideas-bookings`,
-    `trip-home-preferences` and `trip-home-walkthrough` are its E2Es.
+    `trip-home-preferences`, `trip-home-shared-editor` and `trip-home-walkthrough` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
@@ -551,9 +553,21 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     paging, skip and submit are locked, and Stop aborts the request without discarding the question
     or its draft. A failed request leaves the question answerable for retry, a late response after
     Stop is ignored, and a successful reply clears the question.
-  - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
-    requests and clears progress, errors, selection and map routes in one `opened` session event.
-    Late responses are ignored.
+  - Generation belongs to the initiating Chat while the Workspace stays mounted. Trips, Calendar,
+    Settings, another Chat, another Trip and New chat leave its request running. Returning restores
+    received progress and partial content, or the complete reply if it finished in the background.
+    Opening another Chat flushes autosave and restores only that Chat's state; replies never migrate.
+  - One Chat at a time may generate a Plan for the same Trip. A refused send retains the draft and
+    creates no user message or request. Different Trips can generate independently. Stop aborts its
+    Chat's request and shows a stopped status; failure exposes Retry, which retains the existing user
+    message and starts one request. Deleting the owner Chat or Trip, or leaving the Workspace, aborts
+    its work. Reloading or closing the browser does not provide durable background execution.
+  - Manual Plan edits remain available during generation. A late Plan whose edit-bearing fields or
+    edit version differ from the starting Plan is retained as a reply with a localized conflict
+    notice; it never overwrites newer edits. See the
+    [Chat ownership decision](../.agents/notes/implemented/architecture/2026-10-29-chat-owned-generation.md).
+    `pnpm --filter @trip/web e2e run chat-generation` covers this contract with finite state waits
+    and controlled streams, retaining per-path ownership, request history and screenshots.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
     previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
     and a timeline edit clears it. Views get these as actions from
