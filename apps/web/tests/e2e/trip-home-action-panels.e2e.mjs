@@ -446,11 +446,7 @@ try {
   const restoredScroll = await page.evaluate(
     () => document.querySelector(".trip-home__scroll")?.scrollTop ?? 0,
   );
-  check(
-    restoredScroll >= 160,
-    "closing restores Trip home scroll",
-    restoredScroll,
-  );
+  check(restoredScroll >= 160, "closing restores Trip home scroll", restoredScroll);
   await page.evaluate(() => document.getElementById("tp155-scroll-pad")?.remove());
 
   await home(page)
