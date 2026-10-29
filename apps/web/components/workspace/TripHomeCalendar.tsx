@@ -1,162 +1,195 @@
 "use client";
-import { useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import type { TripPlan } from "@trip/shared";
+import {
+  DAY_MS,
+  calendarDays,
+  dateTime,
+  monthStart,
+  monthStarts,
+  tripDay,
+  weekStart,
+  weekStarts,
+  type CalendarCategory,
+  type CalendarDay,
+  type CalendarEntry,
+} from "@/lib/trip/calendar";
 import { intlLocale, translate, type AppLocale } from "@/lib/i18n/locale";
 import { useLocale } from "../account/LocaleProvider";
 import { FlowAttractionIcon, FlowFlightIcon, FlowStayIcon } from "../ui/flow-icons";
 
-const DAY_MS = 86400000;
-type Activity = { category: "stop" | "flight" | "stay"; label: string };
+type CalendarView = "week" | "month";
 
-function timestamp(date: string | undefined) {
-  if (!date) return undefined;
-  const time = Date.parse(`${date}T00:00:00Z`);
-  return Number.isFinite(time) ? time : undefined;
+function categoryLabel(category: CalendarCategory, locale: AppLocale) {
+  if (category === "activity") return translate(locale, "Stops");
+  if (category === "stay") return translate(locale, "Stay");
+  if (category === "transport") return translate(locale, "Transport");
+  return translate(locale, "Flight");
 }
 
-function tripDay(start: number, time: number) {
-  return Math.floor((time - start) / DAY_MS) + 1;
-}
-
-function name(value: string | undefined, fallback: string) {
-  return value?.trim() || fallback;
-}
-
-function activitiesByDay(plan: TripPlan) {
-  const start = timestamp(plan.brief.dates[0])!;
-  const end = timestamp(plan.brief.dates[1])!;
-  const activities = new Map<number, Activity[]>();
-  const add = (day: number, activity: Activity) => {
-    if (!Number.isInteger(day) || day < 1 || start + (day - 1) * DAY_MS > end) return;
-    const entries = activities.get(day) ?? [];
-    if (
-      !entries.some(
-        (entry) => entry.category === activity.category && entry.label === activity.label,
-      )
-    )
-      entries.push(activity);
-    activities.set(day, entries);
-  };
-
-  for (const item of plan.sections.find((section) => section.id === "itinerary")?.proposal?.items ??
-    []) {
-    if (item.kind !== "activity" || item.day === undefined) continue;
-    add(item.day, {
-      category: "stop",
-      label: name(item.location, item.detail),
-    });
-  }
-
-  for (const section of plan.sections) {
-    const proposal = section.proposal;
-    if (!proposal) continue;
-    for (const flight of proposal.flights ?? []) {
-      const outbound = timestamp(flight.depart);
-      if (outbound !== undefined && outbound >= start && outbound <= end)
-        add(tripDay(start, outbound), {
-          category: "flight",
-          label: `${flight.from} → ${flight.to}`,
-        });
-      const item = proposal.items.find((item) => item.selectionId === flight.id);
-      const returning = timestamp(/returning (\d{4}-\d{2}-\d{2})/.exec(item?.detail ?? "")?.[1]);
-      if (returning !== undefined && returning >= start && returning <= end)
-        add(tripDay(start, returning), {
-          category: "flight",
-          label: `${flight.to} → ${flight.from}`,
-        });
-    }
-    for (const item of proposal.items) {
-      if (
-        item.kind !== "flight" ||
-        item.day === undefined ||
-        proposal.flights?.some((flight) => flight.id === item.selectionId)
-      )
-        continue;
-      add(item.day, {
-        category: "flight",
-        label: name(item.location, item.detail.split(/[:;]/)[0]),
-      });
-      const returning = timestamp(/returning (\d{4}-\d{2}-\d{2})/.exec(item.detail)?.[1]);
-      if (returning !== undefined && returning >= start && returning <= end)
-        add(tripDay(start, returning), {
-          category: "flight",
-          label: name(item.location, item.detail),
-        });
-    }
-    for (const stay of proposal.stays ?? []) {
-      const hotel =
-        stay.candidates.find((candidate) => candidate.id === stay.selectedId)?.name ?? stay.city;
-      const checkIn = timestamp(stay.checkIn);
-      if (checkIn === undefined) continue;
-      for (let night = 0; night < stay.nights; night += 1) {
-        const time = checkIn + night * DAY_MS;
-        if (time >= start && time <= end)
-          add(tripDay(start, time), { category: "stay", label: hotel });
-      }
-    }
-    for (const item of proposal.items) {
-      if (
-        item.kind !== "hotel" ||
-        item.day === undefined ||
-        proposal.stays?.some((stay) => stay.id === item.selectionId)
-      )
-        continue;
-      const hotel = item.detail.split(" — ")[0]!.trim();
-      const nights = Number(/(\d+) night/.exec(item.detail)?.[1] ?? 1);
-      for (let night = 0; night < nights; night += 1)
-        add(item.day + night, { category: "stay", label: hotel });
-    }
-  }
-  return activities;
-}
-
-function monthRange(start: number, end: number) {
-  const first = new Date(start);
-  const last = new Date(end);
-  const months = [];
-  for (
-    let time = Date.UTC(first.getUTCFullYear(), first.getUTCMonth(), 1);
-    time <= end;
-    time = Date.UTC(new Date(time).getUTCFullYear(), new Date(time).getUTCMonth() + 1, 1)
-  )
-    months.push({ time, last: time === Date.UTC(last.getUTCFullYear(), last.getUTCMonth(), 1) });
-  return months;
-}
-
-function categoryLabel(category: Activity["category"], locale: AppLocale) {
-  if (category === "stop") return translate(locale, "Stops");
-  if (category === "flight") return translate(locale, "Flight");
-  return translate(locale, "Stay");
-}
-
-function CategoryIcon({ category, size }: { category: Activity["category"]; size: number }) {
+function CategoryIcon({ category, size }: { category: CalendarCategory; size: number }) {
   const Icon =
-    category === "stop"
+    category === "activity"
       ? FlowAttractionIcon
-      : category === "flight"
-        ? FlowFlightIcon
-        : FlowStayIcon;
+      : category === "stay"
+        ? FlowStayIcon
+        : FlowFlightIcon;
   return <Icon size={size} />;
+}
+
+function statusLabel(entry: CalendarEntry, locale: AppLocale) {
+  if (entry.allDay) {
+    return entry.category === "activity"
+      ? translate(locale, "Untimed")
+      : translate(locale, "All day");
+  }
+  return [entry.startTime, entry.endTime].filter(Boolean).join("–");
+}
+
+function CalendarEvent({
+  entry,
+  locale,
+  selected,
+  onSelect,
+}: {
+  entry: CalendarEntry;
+  locale: AppLocale;
+  selected: boolean;
+  onSelect(activityId: string, day: number): void;
+}) {
+  const status = statusLabel(entry, locale);
+  const activityId = entry.activity?.id;
+  const content = (
+    <>
+      <span className="trip-home-calendar__event-head">
+        <CategoryIcon category={entry.category} size={12} />
+        <span className="trip-home-calendar__event-title">{entry.title}</span>
+      </span>
+      <span className="trip-home-calendar__event-meta">
+        {entry.allDay && entry.category === "activity" && (
+          <span>{translate(locale, "All day")}</span>
+        )}
+        <span>{status}</span>
+        {entry.overlap && <span>{translate(locale, "Overlap")}</span>}
+      </span>
+    </>
+  );
+  const common = {
+    className: "trip-home-calendar__event",
+    "data-category": entry.category,
+    "data-time": entry.allDay ? "untimed" : "timed",
+    "data-overlap": entry.overlap ? "true" : undefined,
+    ...(entry.category === "activity" ? {} : { "data-row-type": entry.category }),
+  };
+  if (!activityId) return <span {...common}>{content}</span>;
+  return (
+    <button
+      {...common}
+      type="button"
+      data-activity-id={activityId}
+      data-selected={selected || undefined}
+      aria-label={[entry.title, categoryLabel(entry.category, locale), status, entry.detail]
+        .filter(Boolean)
+        .join(", ")}
+      onClick={() => onSelect(activityId, entry.day)}
+    >
+      {content}
+    </button>
+  );
+}
+
+function CalendarEntries({
+  day,
+  locale,
+  selectedActivity,
+  onSelectActivity,
+}: {
+  day: CalendarDay;
+  locale: AppLocale;
+  selectedActivity?: string;
+  onSelectActivity(activityId: string, day: number): void;
+}) {
+  const allDay = day.entries.filter((entry) => entry.allDay);
+  const timed = day.entries.filter((entry) => !entry.allDay);
+  return (
+    <div className="trip-home-calendar__entries">
+      {allDay.length > 0 && (
+        <section
+          className="trip-home-calendar__row trip-home-calendar__row--all-day"
+          aria-label={translate(locale, "All day activities")}
+        >
+          <h4>{translate(locale, "All day")}</h4>
+          {allDay.map((entry) => (
+            <CalendarEvent
+              key={entry.key}
+              entry={entry}
+              locale={locale}
+              selected={!!entry.activity?.id && entry.activity.id === selectedActivity}
+              onSelect={onSelectActivity}
+            />
+          ))}
+        </section>
+      )}
+      {timed.length > 0 && (
+        <section
+          className="trip-home-calendar__row trip-home-calendar__row--timed"
+          aria-label={translate(locale, "Timed activities")}
+        >
+          {timed.map((entry) => (
+            <CalendarEvent
+              key={entry.key}
+              entry={entry}
+              locale={locale}
+              selected={!!entry.activity?.id && entry.activity.id === selectedActivity}
+              onSelect={onSelectActivity}
+            />
+          ))}
+        </section>
+      )}
+    </div>
+  );
 }
 
 export function TripHomeCalendar({
   plan,
   onSelectDay,
+  onSelectActivity,
+  selectedActivity,
   selectedDay,
 }: {
   plan: TripPlan;
   onSelectDay(day: number): void;
+  onSelectActivity(activityId: string, day: number): void;
+  selectedActivity?: string;
   selectedDay?: number;
 }) {
   const { locale } = useLocale();
   const intl = intlLocale(locale);
-  const activities = useMemo(() => activitiesByDay(plan), [plan]);
-  const start = timestamp(plan.brief.dates[0]);
-  const end = timestamp(plan.brief.dates[1]);
-  if (start === undefined || end === undefined || start > end) return null;
+  const days = useMemo(() => calendarDays(plan, locale), [plan, locale]);
+  const weeks = useMemo(() => weekStarts(plan), [plan]);
+  const months = useMemo(() => monthStarts(plan), [plan]);
+  const selected = Math.min(Math.max(1, selectedDay ?? 1), days.length);
+  const selectedTime = dateTime(days[selected - 1]?.date) ?? 0;
+  const tripStart = dateTime(days[0]?.date) ?? selectedTime;
+  const selectedMonday = weekStart(selectedTime);
+  const selectedWeek = selectedMonday < tripStart ? tripStart : selectedMonday;
+  const selectedMonth = monthStart(selectedTime);
+  const [view, setView] = useState<CalendarView>("week");
+  const [visibleWeek, setVisibleWeek] = useState(selectedWeek);
+  const [visibleMonth, setVisibleMonth] = useState(selectedMonth);
 
-  const weekdays = new Intl.DateTimeFormat(intl, { weekday: "short", timeZone: "UTC" });
-  const dateLabel = new Intl.DateTimeFormat(intl, {
+  useEffect(() => {
+    setVisibleWeek(selectedWeek);
+    setVisibleMonth(selectedMonth);
+  }, [selectedWeek, selectedMonth]);
+
+  if (!days.length) return null;
+
+  const weekdays = new Intl.DateTimeFormat(intl, {
+    weekday: "short",
+    timeZone: "UTC",
+  });
+  const fullDate = new Intl.DateTimeFormat(intl, {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -167,78 +200,166 @@ export function TripHomeCalendar({
     year: "numeric",
     timeZone: "UTC",
   });
+  const weekLabel = new Intl.DateTimeFormat(intl, {
+    day: "numeric",
+    month: "short",
+    year: "numeric",
+    timeZone: "UTC",
+  });
+  const weekIndex = Math.max(0, weeks.indexOf(visibleWeek));
+  const monthIndex = Math.max(0, months.indexOf(visibleMonth));
+  const weekDays = Array.from({ length: 7 }, (_, index) => visibleWeek + index * DAY_MS);
+  const currentMonth = new Date(visibleMonth);
+  const leading = (currentMonth.getUTCDay() + 6) % 7;
+  const monthDays = new Date(
+    Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() + 1, 0),
+  ).getUTCDate();
+  const monthWeek = weekStart(visibleMonth);
+  const previousLabel = view === "week" ? "Previous week" : "Previous month";
+  const nextLabel = view === "week" ? "Next week" : "Next month";
+  const canPrevious = view === "week" ? weekIndex > 0 : monthIndex > 0;
+  const canNext = view === "week" ? weekIndex < weeks.length - 1 : monthIndex < months.length - 1;
+
   return (
-    <div className="trip-home-calendar">
-      <div className="trip-home-calendar__legend" aria-label={translate(locale, "Trip details")}>
-        {(["stop", "flight", "stay"] as const).map((category) => (
-          <span data-category={category} key={category}>
-            <CategoryIcon category={category} size={14} />
-            {categoryLabel(category, locale)}
-          </span>
-        ))}
+    <div
+      className="trip-home-calendar"
+      data-view={view}
+      data-selected-day={selected}
+      data-selected-date={days[selected - 1]!.date}
+    >
+      <div className="trip-home-calendar__toolbar">
+        <div
+          className="trip-home-calendar__views"
+          role="group"
+          aria-label={translate(locale, "Calendar view")}
+        >
+          {(["week", "month"] as const).map((value) => (
+            <button
+              type="button"
+              key={value}
+              aria-pressed={view === value}
+              onClick={() => setView(value)}
+            >
+              {translate(locale, value === "week" ? "Week" : "Month")}
+            </button>
+          ))}
+        </div>
+        <div className="trip-home-calendar__legend" aria-label={translate(locale, "Trip details")}>
+          {(["activity", "flight", "stay"] as const).map((category) => (
+            <span data-category={category} key={category}>
+              <CategoryIcon category={category} size={14} />
+              {categoryLabel(category, locale)}
+            </span>
+          ))}
+        </div>
       </div>
-      {monthRange(start, end).map(({ time }) => {
-        const month = new Date(time);
-        const year = month.getUTCFullYear();
-        const monthIndex = month.getUTCMonth();
-        const leading = (month.getUTCDay() + 6) % 7;
-        const days = new Date(Date.UTC(year, monthIndex + 1, 0)).getUTCDate();
-        return (
-          <section
-            className="trip-home-calendar__month"
-            key={time}
-            aria-label={monthLabel.format(month)}
-          >
-            <h3>{monthLabel.format(month)}</h3>
-            <div className="trip-home-calendar__weekdays" aria-hidden="true">
-              {Array.from({ length: 7 }, (_, index) => (
-                <span key={index}>{weekdays.format(new Date(Date.UTC(2024, 0, 1 + index)))}</span>
-              ))}
-            </div>
-            <div className="trip-home-calendar__grid">
-              {Array.from({ length: leading }, (_, index) => (
-                <span className="trip-home-calendar__blank" key={`blank-${index}`} />
-              ))}
-              {Array.from({ length: days }, (_, index) => {
-                const timeForDate = time + index * DAY_MS;
-                const day = tripDay(start, timeForDate);
-                if (timeForDate < start || timeForDate > end)
-                  return <span className="trip-home-calendar__blank" key={index + 1} />;
-                const entries = activities.get(day) ?? [];
-                const label = `${dateLabel.format(new Date(timeForDate))}${entries.length ? ` · ${entries.map((entry) => `${categoryLabel(entry.category, locale)}: ${entry.label}`).join(", ")}` : ""}`;
-                return (
+
+      <div className="trip-home-calendar__period">
+        <button
+          type="button"
+          disabled={!canPrevious}
+          aria-label={translate(locale, previousLabel)}
+          onClick={() => {
+            if (view === "week") setVisibleWeek(weeks[weekIndex - 1]!);
+            else setVisibleMonth(months[monthIndex - 1]!);
+          }}
+        >
+          ‹
+        </button>
+        <h3>
+          {view === "week"
+            ? `${weekLabel.format(weekDays[0])} – ${weekLabel.format(weekDays.at(-1)!)}`
+            : monthLabel.format(visibleMonth)}
+        </h3>
+        <button
+          type="button"
+          disabled={!canNext}
+          aria-label={translate(locale, nextLabel)}
+          onClick={() => {
+            if (view === "week") setVisibleWeek(weeks[weekIndex + 1]!);
+            else setVisibleMonth(months[monthIndex + 1]!);
+          }}
+        >
+          ›
+        </button>
+      </div>
+
+      {view === "week" ? (
+        <div className="trip-home-calendar__week" role="list">
+          {weekDays.map((time) => {
+            const day = tripDay(plan, time);
+            const entry = day === undefined ? undefined : days[day - 1];
+            return (
+              <section className="trip-home-calendar__week-day" role="listitem" key={time}>
+                <span className="trip-home-calendar__weekday">
+                  {weekdays.format(new Date(time))}
+                </span>
+                {entry ? (
+                  <>
+                    <button
+                      type="button"
+                      className="trip-home-calendar__date"
+                      data-day={entry.day}
+                      aria-pressed={selected === entry.day}
+                      aria-label={fullDate.format(new Date(time))}
+                      onClick={() => onSelectDay(entry.day)}
+                    >
+                      {new Date(time).getUTCDate()}
+                    </button>
+                    <CalendarEntries
+                      day={entry}
+                      locale={locale}
+                      selectedActivity={selectedActivity}
+                      onSelectActivity={onSelectActivity}
+                    />
+                  </>
+                ) : (
+                  <span className="trip-home-calendar__outside" aria-hidden="true" />
+                )}
+              </section>
+            );
+          })}
+        </div>
+      ) : (
+        <section className="trip-home-calendar__month" aria-label={monthLabel.format(visibleMonth)}>
+          <div className="trip-home-calendar__weekdays" aria-hidden="true">
+            {Array.from({ length: 7 }, (_, index) => (
+              <span key={index}>{weekdays.format(new Date(monthWeek + index * DAY_MS))}</span>
+            ))}
+          </div>
+          <div className="trip-home-calendar__grid">
+            {Array.from({ length: leading }, (_, index) => (
+              <span className="trip-home-calendar__blank" key={`blank-${index}`} />
+            ))}
+            {Array.from({ length: monthDays }, (_, index) => {
+              const time = visibleMonth + index * DAY_MS;
+              const day = tripDay(plan, time);
+              const entry = day === undefined ? undefined : days[day - 1];
+              if (!entry) return <span className="trip-home-calendar__blank" key={index + 1} />;
+              return (
+                <section className="trip-home-calendar__month-day" key={index + 1}>
                   <button
-                    className="trip-home-calendar__day"
                     type="button"
-                    key={index + 1}
-                    data-day={day}
-                    data-activities={
-                      [...new Set(entries.map((entry) => entry.category))].join(",") || undefined
-                    }
-                    aria-label={label}
-                    aria-pressed={selectedDay === day || undefined}
-                    onClick={() => onSelectDay(day)}
+                    className="trip-home-calendar__date"
+                    data-day={entry.day}
+                    aria-pressed={selected === entry.day}
+                    aria-label={fullDate.format(new Date(time))}
+                    onClick={() => onSelectDay(entry.day)}
                   >
-                    <span className="trip-home-calendar__date">{index + 1}</span>
-                    <span className="trip-home-calendar__events">
-                      {entries.map((entry, entryIndex) => (
-                        <span
-                          className="trip-home-calendar__event"
-                          data-category={entry.category}
-                          key={`${entry.category}-${entryIndex}`}
-                        >
-                          <CategoryIcon category={entry.category} size={12} />
-                          <span>{entry.label}</span>
-                        </span>
-                      ))}
-                    </span>
+                    {index + 1}
                   </button>
-                );
-              })}
-            </div>
-          </section>
-        );
-      })}
+                  <CalendarEntries
+                    day={entry}
+                    locale={locale}
+                    selectedActivity={selectedActivity}
+                    onSelectActivity={onSelectActivity}
+                  />
+                </section>
+              );
+            })}
+          </div>
+        </section>
+      )}
     </div>
   );
 }

@@ -23,6 +23,8 @@ export function TripHomeActionHost({
   onClose,
   onSwitch,
   onSelectDay,
+  onSelectActivity,
+  selectedActivity,
   returnFocus,
   expandable,
   expanded,
@@ -44,6 +46,8 @@ export function TripHomeActionHost({
   onClose(): void;
   onSwitch(action: TripAction): void;
   onSelectDay(day: number): void;
+  onSelectActivity(activityId: string, day: number): void;
+  selectedActivity?: string;
   returnFocus: RefObject<HTMLElement | null>;
   expandable: boolean;
   expanded: boolean;
@@ -67,6 +71,8 @@ export function TripHomeActionHost({
         plan={plan}
         draft={draft}
         selectedDay={selectedDay}
+        selectedActivity={selectedActivity}
+        onSelectActivity={onSelectActivity}
         busy={busy}
         errors={errors}
         editErrors={editErrors}

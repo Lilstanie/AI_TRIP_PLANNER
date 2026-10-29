@@ -320,6 +320,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     layout.focusMapDay(day);
     openTripAction("itinerary");
   };
+  const chooseHomeActivity = (activityId: string, day: number) => {
+    const stop = itinerary.stop(activityId);
+    if (!stop || stop.day !== day) return;
+    layout.focusMapDay(day);
+    session.showStop(activityId);
+    openTripAction("itinerary");
+  };
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
 
@@ -675,6 +682,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onClose={homeAction.close}
                 onSwitch={homeAction.switchTo}
                 onSelectDay={chooseHomeDay}
+                onSelectActivity={chooseHomeActivity}
+                selectedActivity={selectedActivity}
                 returnFocus={homeAction.returnFocus}
                 expandable={homeAction.expandable && !!homeMap}
                 expanded={homeAction.expanded}

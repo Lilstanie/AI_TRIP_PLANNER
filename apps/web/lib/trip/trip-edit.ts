@@ -101,16 +101,20 @@ export const EditRequest = z.object({
       kind: z.literal("undo"),
       addedIds: z.array(z.string()).optional(),
       activities: z.array(
-        z.object({
-          id: z.string(),
-          day: z.number().int().positive(),
-          startTime: clock,
-          endTime: clock,
-          placeId: z.string().optional(),
-          savedPlace: ProposalItem.shape.savedPlace,
-          priceNeedsReview: z.boolean().optional(),
-          arriveBy: ArriveBy.optional(),
-        }),
+        z
+          .object({
+            id: z.string(),
+            day: z.number().int().positive(),
+            startTime: clock.optional(),
+            endTime: clock.optional(),
+            placeId: z.string().optional(),
+            savedPlace: ProposalItem.shape.savedPlace,
+            priceNeedsReview: z.boolean().optional(),
+            arriveBy: ArriveBy.optional(),
+          })
+          .refine((item) => Boolean(item.startTime) === Boolean(item.endTime), {
+            message: "An undone Stop needs both times or neither.",
+          }),
       ),
     }),
   ]),
@@ -314,12 +318,10 @@ export async function previewEdit(
     return place;
   };
   if (
-    activities.some((i) => !i.id || !i.day || !i.startTime || !i.endTime) ||
+    activities.some((i) => !i.id || !i.day) ||
     new Set(activities.map((i) => i.id)).size !== activities.length
   )
-    throw new NoticeError({
-      key: "Activities need unique IDs and a complete schedule before editing.",
-    });
+    throw new NoticeError({ key: "Activities need unique IDs before editing." });
 
   if (isStructural(operation)) {
     const moved = applyItemAction(plan, operation.id, actionOf(operation), currency);
@@ -346,7 +348,9 @@ export async function previewEdit(
     autoTimed = operation.day !== undefined && operation.startTime === undefined;
     if (autoTimed) {
       const lastEnd = activities
-        .filter((activity) => activity.day === operation.day)
+        .filter(
+          (activity) => activity.day === operation.day && activity.startTime && activity.endTime,
+        )
         .reduce((latest, activity) => Math.max(latest, mins(activity.endTime!)), -1);
       const start = lastEnd < 0 ? 9 * 60 : lastEnd;
       if (start + 60 >= 1440)
@@ -382,6 +386,8 @@ export async function previewEdit(
         activities.some(
           (activity) =>
             activity.day === operation.day &&
+            activity.startTime &&
+            activity.endTime &&
             start < mins(activity.endTime!) &&
             end > mins(activity.startTime!),
         )
@@ -391,7 +397,8 @@ export async function previewEdit(
           params: { day: operation.day },
         });
       const index = activities.findIndex(
-        (activity) => activity.day === operation.day && mins(activity.startTime!) > start,
+        (activity) =>
+          activity.day === operation.day && activity.startTime && mins(activity.startTime) > start,
       );
       if (index < 0) activities.push(item);
       else activities.splice(index, 0, item);
@@ -402,7 +409,8 @@ export async function previewEdit(
   } else if (operation.kind === "undo") {
     if (
       operation.activities.length !== activities.length ||
-      new Set(operation.activities.map((a) => a.id)).size !== activities.length
+      new Set(operation.activities.map((a) => a.id)).size !== activities.length ||
+      operation.activities.some((saved) => !activities.some((activity) => activity.id === saved.id))
     )
       throw new NoticeError({ key: "Undo activities do not match this plan." });
     const restored: ProposalItem[] = operation.activities.map((saved) => {
@@ -417,6 +425,10 @@ export async function previewEdit(
         placeId: saved.placeId,
         priceNeedsReview: saved.priceNeedsReview,
       };
+      if (!saved.startTime) {
+        delete restoredItem.startTime;
+        delete restoredItem.endTime;
+      }
       if (saved.savedPlace) restoredItem.savedPlace = saved.savedPlace;
       else if (saved.placeId !== item.placeId) delete restoredItem.savedPlace;
 
@@ -517,8 +529,8 @@ export async function previewEdit(
   for (const day of routed ? affected : []) {
     if (day < 1 || day > days)
       throw new NoticeError({ key: "Activity day is outside trip dates." });
-    const daily = activities.filter((a) => a.day === day);
-    const original = before.filter((a) => a.day === day);
+    const daily = activities.filter((a) => a.day === day && a.startTime && a.endTime);
+    const original = before.filter((a) => a.day === day && a.startTime && a.endTime);
 
     const changedIndex =
       operation.kind === "swap"

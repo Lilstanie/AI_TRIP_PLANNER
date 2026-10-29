@@ -47,13 +47,13 @@ centre and the right rail. Returning from the conversation restores Trip home.
 The action cards appear in this order. Each card opens a Trip action drawer and includes a count
 when it has one.
 
-| Action           | Drawer content                                                                                                             | Interaction                                                          |
-| ---------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Itinerary        | The same editable Trip view as the conversation, with activities, flights, stays, pending edits and Undo                   | Edit in place; choosing a day focuses that day on the map            |
-| Ideas            | Unscheduled activities and restaurant suggestions                                                                          | An item can be scheduled through the existing itinerary editing flow |
-| Bookings         | Flights, stays and other itinerary items marked as booked                                                                  | Booked items remain grouped independently of their itinerary order   |
-| Trip preferences | The existing preference editor for this Trip                                                                               | Changes use the existing save and replan behavior                    |
-| Calendar         | A redesigned, read-only calendar for this Trip only; its date cells highlight trip days and stop, flight and stay activity | Choosing a day opens Itinerary at that day and focuses the map       |
+| Action           | Drawer content                                                                                                                | Interaction                                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Itinerary        | The same editable Trip view as the conversation, with activities, flights, stays, pending edits and Undo                      | Edit in place; choosing a day focuses that day on the map                                                        |
+| Ideas            | Unscheduled activities and restaurant suggestions                                                                             | An item can be scheduled through the existing itinerary editing flow                                             |
+| Bookings         | Flights, stays and other itinerary items marked as booked                                                                     | Booked items remain grouped independently of their itinerary order                                               |
+| Trip preferences | The existing preference editor for this Trip                                                                                  | Changes use the existing save and replan behavior                                                                |
+| Calendar         | A Week/Month view for this Trip only; it groups timed activities and all-day stops, flights and stays without inventing times | Choose an activity to open it in the shared Itinerary editor; choosing a day opens Itinerary and focuses the map |
 
 Media is intentionally absent until the product has a real media model. The drawer set does not add
 Receipts.
@@ -121,7 +121,9 @@ The implementation is complete when browser E2E covers:
 - Close, Escape and outside press restore focus to the opening card; list-mode Trip home also restores page scroll.
 - In-panel tabs switch actions without closing first, including across expand and collapse.
 - Non-AUD Bookings show the estimate notice; Flights and schedule names stay translated.
-- Choosing a day in Calendar opens Itinerary at that day and focuses the map.
+- Calendar opens in Week view, keeps the selected Trip day across Week and Month changes, and keeps
+  Previous and Next inside the Trip. Choosing an activity opens that activity in the shared Itinerary
+  editor; choosing a day opens Itinerary at that day and focuses the map.
 - Suggestions send a prompt into a linked Chat, and dismissal survives reload until the Plan
   changes.
 - Desktop, tablet and phone layouts pass in English and Chinese without horizontal overflow.
