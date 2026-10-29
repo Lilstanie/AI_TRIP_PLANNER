@@ -34,7 +34,8 @@ consistent in both directions across the invocation.
 
 ## Consequences
 
-- The CLI supports `agent-lab-single-agent` and `agent-lab-replay`; other selections return `unsupported`.
+- The CLI supports `agent-lab-single-agent`, `agent-lab-replay` and `pending-ask-refresh`; other
+  selections return `unsupported`.
 - `doctor` validates the required web TypeScript config shape; `report` marks requested/result coverage
   incomplete when scenario names do not match exactly; repeat accepts a pass only when both the child
   summary and process exit succeed.
