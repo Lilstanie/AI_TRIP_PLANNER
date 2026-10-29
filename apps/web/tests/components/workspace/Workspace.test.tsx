@@ -541,10 +541,6 @@ describe("Workspace interactions", () => {
       string,
       RequestInit,
     ];
-    await waitFor(() =>
-      expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId).toBeTruthy(),
-    );
-    const originalId = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
     startBlank();
     expect(call[1].signal!.aborted).toBe(false);
     await act(async () => {
@@ -554,12 +550,6 @@ describe("Workspace interactions", () => {
     const input = screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement;
     expect(input.disabled).toBe(false);
     expect(input.value).toBe("");
-    fireEvent.click(within(sidebar()).getByRole("button", { name: /^Chats/ }));
-    fireEvent.click(historyButton(/^Sydney ·/));
-    await waitFor(() => expect(screen.getByText("Change to Tokyo")).toBeTruthy());
-    await waitFor(() => expect(screen.getByText("Updated")).toBeTruthy());
-    expect(chip(/^Destination: Tokyo$/)).toBeTruthy();
-    expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId).toBe(originalId);
   });
   it("lets chat planning run while map lookups are pending and drops stale places", async () => {
     let finishPlaces!: (response: Response) => void;

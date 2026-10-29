@@ -372,7 +372,6 @@ describe("session after a change made by hand", () => {
       activity: [],
       error: undefined,
       errors: {},
-      estimateChange: undefined,
       retry: undefined,
       ask: undefined,
       selectedActivity: undefined,
