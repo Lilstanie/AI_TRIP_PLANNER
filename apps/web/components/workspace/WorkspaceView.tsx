@@ -4,18 +4,8 @@ import { TripFactChips } from "../preferences/TripFactChips";
 import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs } from "../chat/ChatViewTabs";
 import { useTrajectoryFocus } from "../chat/trajectory-focus";
-import { useTripUndo } from "../trip/useTripUndo";
-import { TripEditorView } from "../trip/TripEditor";
-import { TripDrawerEmpty } from "../trip/TripDrawerEmpty";
-import { createEditorDrafts, EditorDraftProvider } from "../trip/editor-drafts";
-import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
-import { useLegRoutes } from "../trip/useLegRoutes";
-import { usePlanRevision } from "../trip/plan-revision";
-import { useChooseCandidate } from "../trip/useChooseCandidate";
 import { TripMapCanvas } from "../map/TripMapCanvas";
-import { useTripPlaces } from "../map/useTripPlaces";
 import { OpenItemsBadge } from "../trip/OpenItemsBadge";
-import { TripPanel } from "../trip/TripPanel";
 import { useUserLocation } from "../map/useUserLocation";
 import { Drawer } from "../ui/Drawer";
 import { WorkspaceSidebar } from "./WorkspaceSidebar";
@@ -29,7 +19,9 @@ import { conversationTitle, latestSnapshot, tripConversations } from "@/lib/work
 import { TripHomeChats, TripHomeComposer } from "./TripHomeChats";
 import { TripHomeSuggestion } from "./TripHomeSuggestion";
 import { TripHomeMap } from "./TripHomeMap";
-import { TripHomeActionDrawer } from "./TripHomeActionDrawer";
+import { TripHomeActionHost } from "./TripHomeActionHost";
+import { useTripHomeActionPanel } from "./useTripHomeActionPanel";
+import { useWorkspaceTripEditor } from "./useWorkspaceTripEditor";
 import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -54,17 +46,13 @@ import { usePhoneBack } from "./usePhoneBack";
 import type { MobileView } from "./workspace-helpers";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import type { TripAction } from "@/lib/workspace/layout";
-import { useTimelineEdits } from "../trip/timeline/useTimelineEdits";
-import { itineraryActivities } from "@/lib/workspace";
 
 export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const { t, locale, delta, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { session, layout, itinerary, history } = model;
-  const [editorDrafts] = useState(createEditorDrafts);
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const [homeChatId, setHomeChatId] = useState<string>();
-  const homeActionTarget = useRef<HTMLElement>(null);
   const {
     plan,
     draft,
@@ -162,50 +150,41 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const homePlan = homeSnapshot?.plan;
   const editorPlan = page === "home" ? homePlan : plan;
   const sessionTripId = plan?.tripId;
+  const { previewTrip } = session;
   const sessionOwnsEditor =
     page !== "home" || (!!sessionTripId && sessionTripId === homeTrip?.snapshot.plan.tripId);
-  const homeTripPlaces = useTripPlaces(
-    page === "home" ? editorPlan : undefined,
-    tripPlaces.dataMode,
+  const sendFromTrip = (message: string) => {
+    if (!session.send(message)) return;
+    layout.selectView("chat");
+    layout.showChatView("conversation");
+  };
+  const { undo, timelineEdits, tripContent } = useWorkspaceTripEditor({
+    page,
+    editorPlan,
+    plan,
+    sessionOwnsEditor,
+    tripPlaces,
+    dataMode,
     locale,
-    tripPlaces.forceOsm,
-    tripPlaces.allowFallback,
-  );
-  const editorTripPlaces = page === "home" ? homeTripPlaces : tripPlaces;
-  const undo = useTripUndo(editorPlan);
-  const revisions = usePlanRevision({
-    plan: editorPlan,
-    held: editPending,
-    dataMode: dataMode.mode,
-    onApply: (next, backgroundBase) => {
-      if (backgroundBase) undo.preserveBackground(backgroundBase, next);
-      session.applyEdit(next);
+    editPending,
+    busy,
+    selectedActivity,
+    mapRoutes,
+    mapDay: layout.mapDay,
+    phone,
+    narrow,
+    onApplyEdit: session.applyEdit,
+    onTrackEdit: session.trackEdit,
+    onSelectStop: session.selectStop,
+    onShowRoutes: session.showRoutes,
+    onSetTimelineChanged: session.setTimelineChanged,
+    onPickMapDay: layout.pickMapDay,
+    onSendFromTrip: sendFromTrip,
+    onSelectView: (view) => {
+      if (view !== mobileView) viewTransition(() => layout.selectView(view), `to-${view}`);
     },
-  });
-  const chooser = useChooseCandidate(editorPlan, revisions, session.trackEdit);
-
-  const autoSaves = useAutoSavePlaces({
-    plan: sessionOwnsEditor ? editorPlan : undefined,
-    tripPlaces: editorTripPlaces,
-    revisions,
-  });
-
-  const legs = useLegRoutes({
-    plan: sessionOwnsEditor ? editorPlan : undefined,
-    revisions,
-    onRoutes: session.showRoutes,
-  });
-  const { previewTrip } = session;
-  const timelineEdits = useTimelineEdits({
-    plan: (sessionOwnsEditor ? editorPlan : plan)!,
-    dataMode: dataMode.mode,
-    activities: useMemo(() => itineraryActivities(editorPlan), [editorPlan]),
-    revisions,
-    undo,
-    onPending: session.trackEdit,
-    onRoutesChange: session.showRoutes,
-    onLegApplied: legs.noteLeg,
-    onTimelineChange: session.setTimelineChanged,
+    onShowTripMap: () => setTripView("map"),
+    onEdit: edit,
   });
   const chatsButton = useRef<HTMLButtonElement>(null);
   const chatsSearch = useRef<HTMLInputElement>(null);
@@ -274,6 +253,15 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     setCalendarTripId(undefined);
     viewTransition(layout.showTrips);
   };
+  const homeAction = useTripHomeActionPanel({
+    phone,
+    narrow,
+    tripAction,
+    openTripAction,
+    closeTripAction,
+    viewTransition,
+  });
+
   const showCalendar = () => {
     setHomeChatId(undefined);
     setTripsTab("calendar");
@@ -282,6 +270,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const openHome = (id: string) => {
     setHomeChatId(undefined);
+    homeAction.reset();
     setCalendarTripId(undefined);
     viewTransition(() => {
       layout.openHome(id);
@@ -323,15 +312,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     setHomeChatId(undefined);
   };
   const openHomeAction = (action: TripAction, trigger: HTMLButtonElement) => {
-    homeActionTarget.current = trigger;
-    viewTransition(() => {
+    homeAction.open(action, trigger, () => {
       if (homeTrip && catalog.activeTripId !== homeTrip.id) previewTrip(homeTrip.id);
-      openTripAction(action);
     });
-  };
-  const closeHomeAction = () => {
-    closeTripAction();
-    homeActionTarget.current?.focus({ preventScroll: true });
   };
   const chooseHomeDay = (day: number) => {
     layout.focusMapDay(day);
@@ -339,12 +322,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const selectView = (view: MobileView) =>
     view !== mobileView && viewTransition(() => layout.selectView(view), `to-${view}`);
-
-  const sendFromTrip = (message: string) => {
-    if (!session.send(message)) return;
-    layout.selectView("chat");
-    layout.showChatView("conversation");
-  };
 
   const selectMapStop = (id: string) => {
     const stop = itinerary.stop(id);
@@ -470,57 +447,18 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     />
   );
 
-  const tripContent = (
-    <>
-      {editorPlan ? (
-        <EditorDraftProvider store={editorDrafts} tripId={editorPlan.tripId}>
-          <TripPanel
-            key={editorPlan.tripId}
-            plan={editorPlan}
-            {...(chooser.problem ? { problem: chooser.problem } : {})}
-            timeline={
-              <TripEditorView
-                plan={editorPlan}
-                disabled={busy || editPending}
-                onPending={session.trackEdit}
-                tripPlaces={editorTripPlaces}
-                selected={selectedActivity}
-                day={layout.mapDay}
-                onDayChange={layout.pickMapDay}
-                onSelect={session.selectStop}
-                onSend={sendFromTrip}
-                onRoutesChange={session.showRoutes}
-                onApply={session.applyEdit}
-                revisions={revisions}
-                undo={undo}
-                routes={mapRoutes}
-                legs={legs}
-                onLegApplied={legs.noteLeg}
-                onTimelineChange={session.setTimelineChanged}
-                onShowMap={(value) => {
-                  layout.pickMapDay(value);
-                  if (phone) selectView("map");
-                  else if (narrow) setTripView("map");
-                }}
-                showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
-                saves={autoSaves}
-                phone={phone}
-                edits={timelineEdits}
-                {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
-              />
-            }
-          />
-        </EditorDraftProvider>
-      ) : (
-        <TripDrawerEmpty
-          phone={phone}
-          onPlanInChat={() => selectView("chat")}
-          onAddDetails={edit}
-        />
-      )}
-    </>
-  );
-
+  const homeMap = homePlan ? (
+    <TripHomeMap
+      plan={homePlan}
+      mode={dataMode.mode}
+      providers={dataMode.providers}
+      focusedDay={layout.mapDay}
+      focusRequest={layout.mapFocus}
+      selectedActivity={selectedActivity}
+      onSelectActivity={session.selectStop}
+      routes={sessionOwnsEditor ? mapRoutes : []}
+    />
+  ) : undefined;
   return (
     <div
       className="workspace-app"
@@ -579,11 +517,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 ? ({ "--chat-share": String(chatShare) } as CSSProperties)
                 : undefined
             }
+            data-home-action-expanded={homeAction.expanded ? "true" : undefined}
             data-home-chat={homeChatId ? "open" : undefined}
           >
             {homeTrip ? (
               <TripHome
                 phone={phone}
+                aside={!!homePlan}
+                mainRef={homeAction.mainRef}
                 title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
                   homeTrip.id,
                 )!}
@@ -627,20 +568,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     />
                   ) : undefined
                 }
-                map={
-                  homePlan ? (
-                    <TripHomeMap
-                      plan={homePlan}
-                      mode={dataMode.mode}
-                      providers={dataMode.providers}
-                      focusedDay={layout.mapDay}
-                      focusRequest={layout.mapFocus}
-                      selectedActivity={selectedActivity}
-                      onSelectActivity={session.selectStop}
-                      routes={sessionOwnsEditor ? mapRoutes : []}
-                    />
-                  ) : undefined
-                }
+                map={homeMap}
                 composer={
                   homeChatId ? undefined : (
                     <TripHomeComposer
@@ -720,50 +648,43 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               <SplitResizer share={chatShare} onChange={layout.resizeChat} />
             )}
             {homePlan && (
-              <>
-                {tripAction && (
-                  <button
-                    type="button"
-                    tabIndex={-1}
-                    className="trip-home-action-backdrop"
-                    aria-label={t("Close open panel")}
-                    onClick={closeHomeAction}
-                  />
-                )}
-                <TripHomeActionDrawer
-                  action={tripAction}
-                  plan={homePlan!}
-                  draft={homeSnapshot!.draft}
-                  selectedDay={layout.mapDay}
-                  busy={busy || editPending || timelineEdits.busy}
-                  errors={errors}
-                  editErrors={timelineEdits.errors}
-                  showEditNotice={!!timelineEdits.undo}
-                  onUndo={() => {
-                    if (timelineEdits.undo)
-                      void timelineEdits.edit(timelineEdits.undo).then((done) => {
-                        if (done) undo.clear();
-                      });
-                  }}
-                  onSave={session.saveFacts}
-                  onReplan={session.planWith}
-                  onSchedule={(idea, day) =>
-                    idea.id
-                      ? timelineEdits.edit({ kind: "schedule", id: idea.id, day }, (_, next) =>
-                          undo.record(next, { operation: { kind: "idea", id: idea.id! } }),
-                        )
-                      : false
-                  }
-                  onClose={closeHomeAction}
-                  onSelectDay={chooseHomeDay}
-                  returnFocus={homeActionTarget}
-                  itinerary={
-                    catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId
-                      ? tripContent
-                      : null
-                  }
-                />
-              </>
+              <TripHomeActionHost
+                action={tripAction}
+                plan={homePlan}
+                draft={homeSnapshot!.draft}
+                selectedDay={layout.mapDay}
+                busy={busy || editPending || timelineEdits.busy}
+                errors={errors}
+                editErrors={timelineEdits.errors}
+                showEditNotice={!!timelineEdits.undo}
+                onUndo={() => {
+                  if (timelineEdits.undo)
+                    void timelineEdits.edit(timelineEdits.undo).then((done) => {
+                      if (done) undo.clear();
+                    });
+                }}
+                onSave={session.saveFacts}
+                onReplan={session.planWith}
+                onSchedule={(idea, day) =>
+                  idea.id
+                    ? timelineEdits.edit({ kind: "schedule", id: idea.id, day }, (_, next) =>
+                        undo.record(next, { operation: { kind: "idea", id: idea.id! } }),
+                      )
+                    : false
+                }
+                onClose={homeAction.close}
+                onSwitch={homeAction.switchTo}
+                onSelectDay={chooseHomeDay}
+                returnFocus={homeAction.returnFocus}
+                expandable={homeAction.expandable && !!homeMap}
+                expanded={homeAction.expanded}
+                onToggleExpanded={homeAction.toggleExpanded}
+                itinerary={
+                  catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId
+                    ? tripContent
+                    : null
+                }
+              />
             )}
           </main>
         </div>
