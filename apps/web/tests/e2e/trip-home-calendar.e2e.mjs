@@ -286,7 +286,13 @@ const openCalendar = async (page, language = "en") => {
   await page.locator('[data-card="calendar"]').click();
   const drawer = calendar(page, language);
   await drawer.waitFor();
-  await drawer.locator(".trip-home-calendar").waitFor();
+  const root = drawer.locator(".trip-home-calendar");
+  await root.waitFor();
+  await root.locator(".trip-home-calendar__date").first().waitFor();
+  await drawer
+    .getByRole("button", { name: language === "zh" ? /年/ : /20\d{2}/ })
+    .first()
+    .waitFor();
   return drawer;
 };
 const closeDrawer = async (page) => {
@@ -558,16 +564,19 @@ try {
     weekDays: node.querySelectorAll(".trip-home-calendar__week-day").length,
     dateButtons: node.querySelectorAll(".trip-home-calendar__date").length,
   }));
-  const westernDates = await calendarDrawer
-    .getByRole("button")
-    .evaluateAll((buttons) =>
-      buttons.map((button) => button.getAttribute("aria-label")).filter(Boolean),
-    );
+  const westernDateLabels = await calendarDrawer.locator(".trip-home-calendar__date").evaluateAll((buttons) =>
+    buttons.map((button) => button.getAttribute("aria-label")).filter(Boolean),
+  );
+  await calendarDrawer.getByRole("button", { name: /^27 December 2030/ }).waitFor();
+  await calendarDrawer.getByRole("button", { name: /^2 January 2031/ }).waitFor();
   check(
-    (await calendarDrawer.getByRole("button", { name: /^27 December 2030/ }).count()) === 1 &&
+    westernState.selectedDate === "2030-12-27" &&
+      westernDateLabels.includes("27 December 2030") &&
+      westernDateLabels.includes("2 January 2031") &&
+      (await calendarDrawer.getByRole("button", { name: /^27 December 2030/ }).count()) === 1 &&
       (await calendarDrawer.getByRole("button", { name: /^2 January 2031/ }).count()) === 1,
     "a western browser time zone does not shift Trip date labels",
-    { westernDates, westernState },
+    { westernDateLabels, westernState },
   );
   await west.page.screenshot({ path: `${OUT}/desktop-en-western.png` });
   await west.context.close();
