@@ -694,6 +694,7 @@
     padding: var(--space-5) var(--space-4) var(--space-6);
   }
   .trip-home__map {
+    height: 340px;
     flex-basis: 340px;
     min-height: 340px;
     margin-top: var(--space-5);

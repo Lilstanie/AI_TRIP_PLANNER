@@ -99,6 +99,8 @@ export function TripMap({
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const root = useRef<HTMLDivElement>(null);
+  const runtimeRef = useRef<MapRuntime | undefined>(undefined);
+  const cleanups = useRef<Set<() => void>>(new Set());
   const onSelectRef = useRef(onSelect);
   const view = useRef<MapViewController | null>(null);
   const moving = useRef(false);
@@ -133,6 +135,20 @@ export function TripMap({
   centerRef.current = center;
   const quietRef = useRef(quiet);
   quietRef.current = quiet;
+  const ownCleanup = useCallback((dispose: () => void) => {
+    let active = true;
+    const cleanup = () => {
+      if (!active) return;
+      active = false;
+      cleanups.current.delete(cleanup);
+      dispose();
+    };
+    cleanups.current.add(cleanup);
+    return cleanup;
+  }, []);
+  const runCleanups = useCallback(() => {
+    for (const cleanup of [...cleanups.current]) cleanup();
+  }, []);
   const selectedStop = mapped.find((stop) => stop.place.id === selected);
   const focusDay = selectedStop?.day;
   const popupOpen = !!selectedStop && closedFor !== selected;
@@ -186,87 +202,122 @@ export function TripMap({
   useEffect(() => () => window.clearTimeout(declutterTimer.current), []);
 
   useEffect(() => {
+    const element = root.current;
+    if (!element) {
+      setLoading(false);
+      return;
+    }
     let disposed = false;
-    const listeners: { remove(): void }[] = [];
+    const controller = new AbortController();
     setError(undefined);
     setLoading(true);
-    let created: MapRuntime | undefined;
-    const host = window as unknown as { gm_authFailure?: () => void };
-    const previousAuthFailure = host.gm_authFailure;
-    host.gm_authFailure = () => {
-      if (allowOsmFallback) setForceOsm(true);
-      else setError({ key: "The map could not load. Try again." });
-      previousAuthFailure?.();
-    };
     const mock = mockData;
-    void loadRenderer(forceOsm || forceOsmProvider, allowOsmFallback)
-      .then(({ maps, provider }) => {
-        if (disposed || !root.current) return;
-        const start = positions(initialFocus.current)[0] ?? centerRef.current;
-        const map = new maps.Map(root.current, {
-          dark,
-          mock,
-          center: start ?? { lat: 0, lng: 0 },
-          zoom: positions(initialFocus.current)[0]
-            ? 12
-            : centerRef.current
-              ? HOME_ZOOM
-              : WORLD_ZOOM,
+    const start = positions(initialFocus.current)[0] ?? centerRef.current;
+    const options = {
+      dark,
+      mock,
+      center: start ?? { lat: 0, lng: 0 },
+      zoom: positions(initialFocus.current)[0] ? 12 : centerRef.current ? HOME_ZOOM : WORLD_ZOOM,
 
-          disableDefaultUI: true,
-          mapTypeControl: false,
-          streetViewControl: false,
-          fullscreenControl: false,
-          zoomControl: false,
-          cameraControl: false,
+      disableDefaultUI: true,
+      mapTypeControl: false,
+      streetViewControl: false,
+      fullscreenControl: false,
+      zoomControl: false,
+      cameraControl: false,
 
-          gestureHandling: "greedy",
-          colorScheme: "FOLLOW_SYSTEM",
-          mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
-        });
-        const next = { maps, map, provider };
-        created = next;
-        root.current.dataset.provider = provider;
-        view.current = new MapViewController(framable(next, moving));
-        const userMoved = () => {
-          if (!moving.current) view.current?.markUserMoved();
-        };
-        const labels = () => {
-          if (root.current)
-            root.current.dataset.labels = (map.getZoom() ?? 0) >= LABEL_ZOOM ? "all" : "selected";
-        };
-        labels();
-        listeners.push(
-          map.addListener("error", () => {
+      gestureHandling: "greedy",
+      colorScheme: "FOLLOW_SYSTEM",
+      mapId: process.env.NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID || "DEMO_MAP_ID",
+    };
+    const removeRenderer = () => {
+      const active = runtimeRef.current;
+      runtimeRef.current = undefined;
+      runCleanups();
+      active?.dispose();
+      view.current = null;
+      delete element.dataset.provider;
+      delete element.dataset.mapReady;
+      delete element.dataset.mapDegraded;
+      delete element.dataset.labels;
+    };
+    const fail = (cause: unknown, provider?: "google" | "osm") => {
+      if (disposed) return;
+      removeRenderer();
+      setRuntime(undefined);
+      if (provider === "google" && allowOsmFallback && !forceOsm && !forceOsmProvider) {
+        setLoading(true);
+        setForceOsm(true);
+        return;
+      }
+      if (!quietRef.current)
+        setError(errorNotice(cause, { key: "The map could not load. Try again." }));
+      setLoading(false);
+    };
+    void loadRenderer(element, options, {
+      forceOsm: forceOsm || forceOsmProvider,
+      allowFallback: allowOsmFallback,
+      signal: controller.signal,
+    })
+      .then((next) => {
+        if (disposed || controller.signal.aborted || element !== root.current) {
+          next.dispose();
+          return;
+        }
+        try {
+          runtimeRef.current = next;
+          element.dataset.provider = next.provider!;
+          view.current = new MapViewController(framable(next, moving));
+          next.onAuthFailure(() => {
+            if (disposed || runtimeRef.current !== next) return;
+            removeRenderer();
+            setRuntime(undefined);
+            if (allowOsmFallback) {
+              setError(undefined);
+              setLoading(true);
+              setForceOsm(true);
+            } else {
+              if (!quietRef.current) setError({ key: "The map could not load. Try again." });
+              setLoading(false);
+            }
+          });
+          const userMoved = () => {
+            if (!moving.current) view.current?.markUserMoved();
+          };
+          const labels = () => {
+            element.dataset.labels = (next.map.getZoom() ?? 0) >= LABEL_ZOOM ? "all" : "selected";
+          };
+          labels();
+          next.listen("error", () => {
+            element.dataset.mapDegraded = "true";
             if (!quietRef.current) setError({ key: "The map could not load. Try again." });
-          }),
-          map.addListener("dragstart", () => view.current?.markUserMoved()),
-          map.addListener("zoom_changed", () => {
+          });
+          next.listen("dragstart", () => view.current?.markUserMoved());
+          next.listen("zoom_changed", () => {
             userMoved();
             labels();
-          }),
-          map.addListener("center_changed", userMoved),
-          map.addListener("idle", () => declutterRef.current()),
-
-          map.addListener("click", () => closeRef.current()),
-        );
-        setRuntime(next);
-        setLoading(false);
+          });
+          next.listen("center_changed", userMoved);
+          next.listen("idle", () => {
+            if (next.provider === "osm") element.dataset.mapReady = "true";
+            declutterRef.current();
+          });
+          next.listen("click", () => closeRef.current());
+          if (runtimeRef.current === next) {
+            setRuntime(next);
+            setLoading(false);
+          }
+        } catch (cause) {
+          fail(cause, next.provider);
+        }
       })
       .catch((cause: unknown) => {
-        if (!disposed) {
-          if (!quietRef.current)
-            setError(errorNotice(cause, { key: "The map could not load. Try again." }));
-          setLoading(false);
-        }
+        if (!controller.signal.aborted) fail(cause);
       });
     return () => {
       disposed = true;
-      listeners.forEach((listener) => listener.remove());
-      created?.map.destroy?.();
-      host.gm_authFailure = previousAuthFailure;
-      view.current = null;
-      setRuntime(undefined);
+      controller.abort();
+      removeRenderer();
     };
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
@@ -291,10 +342,11 @@ export function TripMap({
     moving.current = true;
     runtime.map.setCenter({ lat: centerLat, lng: centerLng });
     runtime.map.setZoom(HOME_ZOOM);
-    runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
+    const settle = runtime.listenOnce("idle", () => {
       moving.current = false;
     });
-  }, [runtime, centerLat, centerLng, unfocused]);
+    return ownCleanup(() => settle.remove());
+  }, [runtime, centerLat, centerLng, unfocused, ownCleanup]);
 
   const destinationKey = destinations.map((place) => place.id).join("|");
   const placesKey = mappedPlaces.map((place) => place.id).join("|");
@@ -313,6 +365,7 @@ export function TripMap({
     const element = root.current;
     if (!runtime || !element) return;
     let frame = 0;
+    let settle: { remove(): void } | undefined;
     const observer = new ResizeObserver(() => {
       cancelAnimationFrame(frame);
       const center = runtime.map.getCenter();
@@ -322,22 +375,25 @@ export function TripMap({
         declutterRef.current();
         moving.current = true;
         runtime.map.setCenter({ lat: center.lat(), lng: center.lng() });
-        runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
+        settle?.remove();
+        settle = runtime.listenOnce("idle", () => {
           moving.current = false;
         });
       });
     });
     observer.observe(element);
-    return () => {
+    return ownCleanup(() => {
       cancelAnimationFrame(frame);
+      settle?.remove();
       observer.disconnect();
-    };
-  }, [runtime]);
+    });
+  }, [runtime, ownCleanup]);
 
   useEffect(() => {
     if (!runtime) return;
     const { maps, map } = runtime;
     const created = markers.current;
+    const markerCleanups: Array<() => void> = [];
     mapped.forEach((stop) => {
       const position = coordinate(stop.place)!;
       const content = markerContent(stop.place, stop.number, stop.day);
@@ -358,19 +414,24 @@ export function TripMap({
       };
       marker.addEventListener("gmp-click", select);
 
-      content.querySelector(".trip-map-marker__label")?.addEventListener("click", (event) => {
+      const label = content.querySelector<HTMLElement>(".trip-map-marker__label");
+      const selectLabel = (event: Event) => {
         event.stopPropagation();
         select();
-      });
+      };
+      label?.addEventListener("click", selectLabel);
       created.set(stop.place.id, { marker, content });
+      markerCleanups.push(
+        ownCleanup(() => {
+          marker.removeEventListener("gmp-click", select);
+          label?.removeEventListener("click", selectLabel);
+          marker.map = null;
+          if (created.get(stop.place.id)?.marker === marker) created.delete(stop.place.id);
+        }),
+      );
     });
-    return () => {
-      created.forEach(({ marker }) => {
-        marker.map = null;
-      });
-      created.clear();
-    };
-  }, [runtime, mapped, locale]);
+    return () => markerCleanups.forEach((cleanup) => cleanup());
+  }, [runtime, mapped, locale, ownCleanup]);
 
   useEffect(() => {
     markers.current.forEach(({ marker, content }, placeId) => {
@@ -408,11 +469,11 @@ export function TripMap({
       locale,
     });
     routeLayer.current = layer;
-    return () => {
+    return ownCleanup(() => {
       layer();
-      routeLayer.current = null;
-    };
-  }, [runtime, lines, routes, focusDay, dark, locale]);
+      if (routeLayer.current === layer) routeLayer.current = null;
+    });
+  }, [runtime, lines, routes, focusDay, dark, locale, ownCleanup]);
 
   useEffect(() => {
     routeLayer.current?.setAnimationEnabled(visible && !reducedMotion);
@@ -425,20 +486,21 @@ export function TripMap({
     moving.current = true;
     if (reducedMotion) runtime.map.setCenter(position);
     else runtime.map.panTo(position);
-    runtime.maps.event.addListenerOnce(runtime.map, "idle", () => {
+    const settle = runtime.listenOnce("idle", () => {
       moving.current = false;
     });
+    return ownCleanup(() => settle.remove());
 
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [runtime, selected, focusRequest]);
+  }, [runtime, selected, focusRequest, ownCleanup]);
 
   useEffect(() => {
     if (!popupOpen || (!focusPopup.current && !phone)) return;
     focusPopup.current = false;
 
     const timer = window.setTimeout(() => popup.current?.focus());
-    return () => window.clearTimeout(timer);
-  }, [popupOpen, selected, phone, focusRequest]);
+    return ownCleanup(() => window.clearTimeout(timer));
+  }, [popupOpen, selected, phone, focusRequest, ownCleanup]);
 
   useEffect(() => {
     if (!runtime || location.status !== "success") return;
@@ -458,10 +520,10 @@ export function TripMap({
       runtime.map.panTo(location.position);
       panOnLocate.current = false;
     }
-    return () => {
+    return ownCleanup(() => {
       marker.map = null;
-    };
-  }, [runtime, location, t]);
+    });
+  }, [runtime, location, t, ownCleanup]);
 
   const showMyLocation = useCallback(() => {
     if (runtime && location.status === "success") {
