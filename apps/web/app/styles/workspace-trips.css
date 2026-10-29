@@ -138,6 +138,10 @@
 
 .workspace-shell--trips {
   --trip-home-aside: 40%;
+  --trip-home-action-expanded-width: min(
+    calc(78% - var(--trip-home-aside)),
+    calc(920px - var(--trip-home-aside))
+  );
   display: block;
   overflow: auto;
 }

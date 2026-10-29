@@ -1,5 +1,5 @@
 "use client";
-import type { ComponentProps, ReactNode } from "react";
+import type { ComponentProps, ReactNode, RefObject } from "react";
 import { TripFactChips } from "../preferences/TripFactChips";
 import { LocaleProvider, useLocale } from "@/components/account/LocaleProvider";
 import { ChevronIcon } from "../ui/icons";
@@ -17,6 +17,8 @@ export function TripHome({
   map,
   composer,
   phone,
+  aside,
+  mainRef,
 }: {
   title: string;
   facts: ComponentProps<typeof TripFactChips>;
@@ -29,12 +31,14 @@ export function TripHome({
   map?: ReactNode;
   composer?: ReactNode;
   phone: boolean;
+  aside: boolean;
+  mainRef?: RefObject<HTMLDivElement | null>;
 }) {
   const { t } = useLocale();
   return (
-    <div className="trip-home" data-aside={map ? "true" : undefined}>
+    <div className="trip-home" data-aside={aside ? "true" : undefined}>
       <div className="trip-home__main">
-        <div className="trip-home__scroll">
+        <div ref={mainRef} className="trip-home__scroll">
           <header className="trip-home__head">
             <button
               type="button"
@@ -61,7 +65,7 @@ export function TripHome({
         </div>
         {composer && <div className="trip-home__composer">{composer}</div>}
       </div>
-      {!phone && map && (
+      {!phone && aside && (
         <aside className="trip-home__aside">
           {actions}
           {map}

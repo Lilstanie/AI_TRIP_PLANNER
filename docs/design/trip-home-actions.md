@@ -60,16 +60,23 @@ Receipts.
 
 ## Drawer behavior
 
-- On desktop, the drawer slides in from the right, covers the action cards and map, and leaves the
-  chat or Trip home main column visible.
-- On a phone, the same drawer fills the screen and slides in from the right.
-- A close button, Escape and a press outside the drawer all close it and return focus to the action
-  card that opened it.
-- Opening another action replaces the current drawer. Settings and existing nested editors keep
-  their current precedence.
+- On desktop, an action opens as a narrow right panel over the action cards. The panel starts
+  collapsed; Expand offsets the drawer so the action content sits beside the Trip map that stays in
+  the right rail, and Collapse restores the narrow panel over the action cards. The map host and its
+  canvas remain under Trip home for both states, so expansion never remounts a second renderer.
+- Inside the open panel, five tab controls switch among Itinerary, Ideas, Bookings, Trip preferences
+  and Calendar without closing first. Expansion, the open Trip, Chat, selected day and unsubmitted
+  edits survive those switches.
+- On a phone, the same drawer fills the screen and slides in from the right. Expand is desktop-only.
+- A close button, Escape and a press outside the drawer all close it, restore the Trip home scroll
+  position and return focus to the action card that opened it.
+- Nested time editors and Settings keep their own Escape and close precedence ahead of the action
+  panel.
 - Only one Trip action drawer is open at a time.
 - The drawer is a labelled dialog with a visible heading. Its content remains keyboard reachable
   and does not create a second page history entry.
+- Bookings keeps the existing non-AUD estimate and exchange-rate notice. Flights headings and
+  schedule accessible names come from the translation catalogue in English and Chinese.
 - Itinerary and the conversation Trip use one latest Plan, activity identity, selected day, pending
   edit and Undo record. A change or Undo in either entry updates the other, Calendar and the map.
   Days containing only flights or stays show as booked instead of free.
@@ -86,7 +93,9 @@ Trip home becomes one column in this order:
 6. Composer.
 
 The main page keeps a single scroll region above a fixed bottom composer, so a long Chat list leaves
-Send visible. An action drawer uses the full screen and the same close and focus rules as desktop.
+Send visible. Opening an embedded Chat on desktop turns that region into a flex column so the Chat
+transcript scrolls inside the Chat surface; list-mode Trip home keeps the page scroll. An action
+drawer uses the full screen and the same close and focus rules as desktop.
 
 ## Boundaries
 
@@ -107,8 +116,11 @@ The implementation is complete when browser E2E covers:
 - Each of the five action cards opens its drawer without leaving Trip home.
 - Home Itinerary and the conversation Trip render the same activities, flights and stays and keep
   Plan edits and Undo synchronized.
-- The desktop drawer leaves the main column visible; the phone drawer fills the screen.
-- Close, Escape and outside press restore focus to the opening card.
+- The desktop panel opens narrow, can expand beside the map and collapse again without losing
+  Trip, Chat, selected day or edit state; the phone drawer fills the screen.
+- Close, Escape and outside press restore focus to the opening card; list-mode Trip home also restores page scroll.
+- In-panel tabs switch actions without closing first, including across expand and collapse.
+- Non-AUD Bookings show the estimate notice; Flights and schedule names stay translated.
 - Choosing a day in Calendar opens Itinerary at that day and focuses the map.
 - Suggestions send a prompt into a linked Chat, and dismissal survives reload until the Plan
   changes.
