@@ -330,9 +330,12 @@ try {
           const mine = page.locator(".phone-mine");
           await mine.waitFor();
           check(
-            (await mine.locator(".trips-page__empty").count()) === 1 &&
-              (await mine.getByRole("button", { name: "New trip", exact: true }).count()) === 1,
-            "empty Mine shows one sentence and one New trip action",
+            (await mine.getByRole("button", { name: "New trip", exact: true }).count()) === 1 &&
+              (await mine.getByRole("button", { name: "New chat", exact: true }).count()) === 1 &&
+              (await mine.getByRole("heading", { name: "Trips" }).count()) === 1 &&
+              (await mine.getByRole("heading", { name: "Chats" }).count()) === 1 &&
+              (await mine.locator(".history-item").count()) === 0,
+            "empty Mine shows Trips and Chats with New trip and New chat",
           );
           await shot(page, "empty-mine");
 
