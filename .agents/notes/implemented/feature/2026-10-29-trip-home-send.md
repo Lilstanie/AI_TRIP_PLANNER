@@ -23,8 +23,10 @@ Sending immediately through the prior render's transport could target the wrong 
   Shift+Enter inserts a newline. The home composer clears its unsent draft when its Trip changes.
 - Home Send disables only while this Trip already has a writer (`writingTripIds`) or an edit is
   pending, so a pending generation in another Trip leaves this Trip's first send enabled.
-- After first send, keyboard focus moves into the embedded Chat composer. The shared composer stays
-  `readOnly` while busy so focus can land there during generation without accepting new input.
+- After first send, keyboard focus moves into the embedded Chat composer. On phones the new Chat is
+  scrolled to the top of the Trip-home scroller first, so its message and focused composer are
+  visible. The shared composer stays `readOnly` while busy so focus can land there during generation
+  without accepting new input.
 - The embedded Chat renders the existing error and Retry controls. Failure retains one Chat and
   one user message; Retry uses the same conversation and request.
 - Automatic Chat titles use the first user message, collapse whitespace and truncate at 72 Unicode

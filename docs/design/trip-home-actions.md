@@ -31,6 +31,8 @@ centre and the right rail. Returning from the conversation restores Trip home.
   There is no separate Start chat action. Focus, typing, clearing and empty submission create nothing.
   Enter sends, Shift+Enter inserts a line break, and IME confirmation does not send. Switching Trips
   clears an unsent home draft. A failed first send keeps its Chat and user message; Retry reuses both.
+- On phones, first send scrolls the new Chat to the top of the Trip-home scroller before focusing its
+  composer. The same scroll container keeps the composer reachable and operable after pointer scrolling.
 - The Chat heading shows its count. Rows show a message-derived title, localized date and forward
   affordance; manually renamed titles are preserved. Opening an older Chat keeps the Trip's newer Plan.
 - A suggestion is generated from the open Trip's current Plan. Choosing a suggestion sends its
