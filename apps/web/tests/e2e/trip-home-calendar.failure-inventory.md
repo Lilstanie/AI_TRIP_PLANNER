@@ -8,8 +8,8 @@ harness.
 2. Week ↔ Month switching clears or shifts the selected Trip day, including across month or year
    boundaries.
 3. Trip-local previous / next week navigation leaves the Trip, invents off-Trip dates, or changes the
-   selected day unexpectedly. The opening week is the calendar week containing the Trip start, so a
-   leading Monday-before-start cell is empty rather than a Trip date.
+   selected day unexpectedly. The opening week begins on the Trip's first date, so days before the
+   Trip starts never appear as Trip dates.
 4. A browser time zone shifts a Trip-local date by one day on the week or month surface.
 5. Timed activities are missing from the week time axis, or untimed activities / stays invent a clock
    time instead of staying in an explicit all-day region.

@@ -18,8 +18,9 @@ show dates outside the Trip.
 - `apps/web/lib/trip/calendar.ts` projects Trip days through the existing `itineraryActivities` and
   `dayRows` domain functions. It does not create a second source of itinerary data.
 - Calendar opens in Week view and offers Month view. Both views keep the workspace's selected Trip
-  day. Previous and Next move only through the Trip's week or month starts, so the first and last
-  periods disable their outward control and no off-Trip date is presented as a Trip date.
+  day. Previous and Next move only through the Trip's own week or month starts, so the first and last
+  periods disable their outward control and no off-Trip date is presented as a Trip date. The first
+  week begins on the Trip's first date instead of a weekday before it.
 - Dates use UTC-based calendar arithmetic and formatting, keeping literal ISO Trip dates stable when
   the browser timezone changes.
 - Timed activities show their actual ranges and overlap markers. Untimed activities, flights and
