@@ -36,7 +36,6 @@ export function TripHomeActionDrawer({
   onSelectDay,
   returnFocus,
   itinerary,
-  map,
   expandable,
   expanded,
   onToggleExpanded,
@@ -58,7 +57,6 @@ export function TripHomeActionDrawer({
   onSelectDay(day: number): void;
   returnFocus: RefObject<HTMLElement | null>;
   itinerary: ReactNode;
-  map?: ReactNode;
   expandable: boolean;
   expanded: boolean;
   onToggleExpanded(): void;
@@ -162,11 +160,6 @@ export function TripHomeActionDrawer({
           <TripHomeCalendar plan={plan} selectedDay={selectedDay} onSelectDay={onSelectDay} />
         )}
       </div>
-      {expanded && map && (
-        <div className="trip-home-action-map" role="region" aria-label={t("Trip map")}>
-          {map}
-        </div>
-      )}
     </Drawer>
   );
 }

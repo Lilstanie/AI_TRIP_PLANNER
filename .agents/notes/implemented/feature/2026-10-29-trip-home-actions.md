@@ -23,8 +23,9 @@ entry points, Plan ownership or Chat links.
   right rail. Put the title, facts, contextual suggestion, Chats and composer in a centred main
   column.
 - Open every action in a right-side drawer without leaving Trip home. The desktop panel starts
-  narrow over the rail, Expand places content beside the Trip map, and Collapse restores the narrow
-  panel while keeping one map instance. In-panel tabs switch actions without closing first and keep
+  narrow over the rail. Expand offsets the drawer beside the Trip map that stays hosted under Trip
+  home, and Collapse restores the narrow overlay. The map host and canvas keep one React parent and
+  one renderer identity across those transitions. In-panel tabs switch actions without closing first and keep
   expansion, Trip, Chat, selected day and unsubmitted edits. A phone drawer is full screen and has
   no Expand control. No Media entry is added until a real media model exists.
 - Itinerary reuses the conversation's editable Trip view and latest Plan, including activities,
@@ -74,8 +75,9 @@ The complete interaction and acceptance specification is
 - Sending from Trip home creates one new Chat linked to the same Trip and opens it.
 - Each action opens in place with correct content and one-at-a-time state.
 - Desktop starts narrow, expands beside the map and collapses without losing Trip or edit state;
-  phone uses a full-screen right drawer. Close, Escape and outside press restore focus and scroll.
-  In-panel tabs switch actions without closing first.
+  phone uses a full-screen right drawer. Expand and collapse keep the same map host and canvas
+  identity rather than moving the map into the drawer. Close, Escape and outside press restore focus
+  and scroll. In-panel tabs switch actions without closing first.
 - Calendar shows only the open Trip, and a chosen day opens the corresponding Itinerary day and
   map focus.
 - Home Itinerary and the conversation Trip use one editable Plan and one Undo history. Activity,

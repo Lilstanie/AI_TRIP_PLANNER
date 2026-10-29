@@ -24,7 +24,6 @@ export function TripHomeActionHost({
   onSwitch,
   onSelectDay,
   returnFocus,
-  map,
   expandable,
   expanded,
   onToggleExpanded,
@@ -46,7 +45,6 @@ export function TripHomeActionHost({
   onSwitch(action: TripAction): void;
   onSelectDay(day: number): void;
   returnFocus: RefObject<HTMLElement | null>;
-  map?: ReactNode;
   expandable: boolean;
   expanded: boolean;
   onToggleExpanded(): void;
@@ -81,7 +79,6 @@ export function TripHomeActionHost({
         onSwitch={onSwitch}
         onSelectDay={onSelectDay}
         returnFocus={returnFocus}
-        map={map}
         expandable={expandable}
         expanded={expanded}
         onToggleExpanded={onToggleExpanded}

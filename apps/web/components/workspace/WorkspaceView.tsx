@@ -595,6 +595,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 ? ({ "--chat-share": String(chatShare) } as CSSProperties)
                 : undefined
             }
+            data-home-action-expanded={homeAction.expanded ? "true" : undefined}
             data-home-chat={homeChatId ? "open" : undefined}
           >
             {homeTrip ? (
@@ -645,7 +646,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     />
                   ) : undefined
                 }
-                map={homeAction.expanded ? undefined : homeMap}
+                map={homeMap}
                 composer={
                   homeChatId ? undefined : (
                     <TripHomeComposer
@@ -753,7 +754,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onSwitch={homeAction.switchTo}
                 onSelectDay={chooseHomeDay}
                 returnFocus={homeAction.returnFocus}
-                map={homeAction.expanded ? homeMap : undefined}
                 expandable={homeAction.expandable && !!homeMap}
                 expanded={homeAction.expanded}
                 onToggleExpanded={homeAction.toggleExpanded}

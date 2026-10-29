@@ -61,9 +61,9 @@ Receipts.
 ## Drawer behavior
 
 - On desktop, an action opens as a narrow right panel over the action cards. The panel starts
-  collapsed; Expand widens it so the action content and the Trip map sit side by side, and Collapse
-  restores the narrow panel. While expanded, the map moves into the panel so Trip home keeps one
-  map instance.
+  collapsed; Expand offsets the drawer so the action content sits beside the Trip map that stays in
+  the right rail, and Collapse restores the narrow panel over the action cards. The map host and its
+  canvas remain under Trip home for both states, so expansion never remounts a second renderer.
 - Inside the open panel, five tab controls switch among Itinerary, Ideas, Bookings, Trip preferences
   and Calendar without closing first. Expansion, the open Trip, Chat, selected day and unsubmitted
   edits survive those switches.

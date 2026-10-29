@@ -21,10 +21,20 @@ export function useTripHomeActionPanel({
   const returnFocus = useRef<HTMLElement>(null);
   const mainRef = useRef<HTMLDivElement>(null);
   const scrollTop = useRef(0);
+  const restoreFocus = useRef(false);
 
   useEffect(() => {
     if (phone || narrow) setExpanded(false);
   }, [narrow, phone]);
+
+  useEffect(() => {
+    if (tripAction || !restoreFocus.current) return;
+    const frame = requestAnimationFrame(() => {
+      restoreFocus.current = false;
+      returnFocus.current?.focus({ preventScroll: true });
+    });
+    return () => cancelAnimationFrame(frame);
+  }, [tripAction]);
 
   return {
     mainRef,
@@ -47,10 +57,10 @@ export function useTripHomeActionPanel({
       viewTransition(() => openTripAction(action));
     },
     close() {
+      restoreFocus.current = true;
       closeTripAction();
       setExpanded(false);
       if (mainRef.current) mainRef.current.scrollTop = scrollTop.current;
-      returnFocus.current?.focus({ preventScroll: true });
     },
     toggleExpanded() {
       setExpanded((value) => !value);

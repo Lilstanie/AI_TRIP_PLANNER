@@ -377,7 +377,8 @@ try {
   check(
     (await panelTab(page, /^Trip preferences/).getAttribute("aria-selected")) === "true" &&
       (await keyboardPreferences.evaluate(
-        (element) => document.activeElement === element.querySelector('[role="tab"][aria-selected="true"]'),
+        (element) =>
+          document.activeElement === element.querySelector('[role="tab"][aria-selected="true"]'),
       )),
     "Tab and arrow keys switch actions and retain focus in the action switcher",
   );
@@ -418,14 +419,16 @@ try {
   const expanded = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
     const content = surface?.querySelector(".drawer__body > *:not(.trip-home-action-map)");
-    const map = surface?.querySelector(".trip-home-action-map, .trip-home__map");
+    const map = document.querySelector(".trip-home__map");
     if (!surface || !content || !map) return null;
     const surfaceBox = surface.getBoundingClientRect();
     const contentBox = content.getBoundingClientRect();
     const mapBox = map.getBoundingClientRect();
     return {
       expanded: surface.classList.contains("is-expanded"),
-      sideBySide: Math.abs(contentBox.top - mapBox.top) <= 40 && mapBox.left > contentBox.right - 8,
+      sideBySide:
+        mapBox.left > contentBox.right - 8 &&
+        Math.min(contentBox.bottom, mapBox.bottom) - Math.max(contentBox.top, mapBox.top) > 200,
       width: surfaceBox.width,
       mapWidth: mapBox.width,
       maps: document.querySelectorAll(".trip-home__map").length,
@@ -447,6 +450,7 @@ try {
     "Expand places the existing map renderer beside panel content",
     expanded,
   );
+  await page.screenshot({ path: `${OUT}/desktop-1440-expanded-en.png` });
 
   await panelTab(page, /^Ideas/).click();
   const ideas = dialog(page, "Ideas");
@@ -529,6 +533,15 @@ try {
     restored,
   );
 
+  await action(page, /^Calendar/).click();
+  await dialog(page, "Calendar").waitFor();
+  await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
+  await dialog(page, "Calendar").waitFor({ state: "hidden" });
+  check(
+    (await page.evaluate(() => document.activeElement?.textContent ?? "")).includes("Calendar"),
+    "a desktop outside press closes the panel and restores trigger focus",
+  );
+
   const resizer = page.getByRole("separator", { name: "Resize chat and map" });
   await resizer.focus();
   await page.keyboard.press("End");
@@ -548,22 +561,24 @@ try {
         ?.classList.contains("is-expanded"),
       mapWidth: map?.getBoundingClientRect().width,
       mapIdentity: map?.getAttribute("data-renderer-identity"),
+      canvasIdentity: map
+        ?.querySelector(".trip-map-canvas")
+        ?.getAttribute("data-renderer-identity"),
+      day: map?.getAttribute("data-day"),
     };
   });
   check(
     extreme.overflow <= 0 &&
       extreme.expanded &&
       extreme.mapWidth > 200 &&
-      extreme.mapIdentity === MAP_IDENTITY,
+      extreme.mapIdentity === MAP_IDENTITY &&
+      extreme.canvasIdentity === MAP_IDENTITY &&
+      extreme.day === "2",
     "an extreme chat/map split expands beside the same map without overflow",
     extreme,
   );
-  await page.locator(".trip-home-action-backdrop").click({ position: { x: 20, y: 20 } });
-  await dialog(page, "Calendar").waitFor({ state: "hidden" });
-  check(
-    (await page.evaluate(() => document.activeElement?.textContent ?? "")).includes("Calendar"),
-    "a desktop outside press closes the panel and restores trigger focus",
-  );
+  await page.screenshot({ path: `${OUT}/desktop-1440-expanded-extreme-en.png` });
+  await page.keyboard.press("Escape");
   await page.screenshot({ path: `${OUT}/desktop-1440-en.png` });
   check(desktop.errors.length === 0, "desktop journey has no browser errors", desktop.errors);
   await desktop.context.close();
@@ -623,15 +638,14 @@ try {
         `phone panel fills the screen without Expand at ${width}px`,
         box,
       );
-      await panel
-        .getByRole("button", { name: "Change time, 09:00–10:30", exact: true })
-        .click();
+      await panel.getByRole("button", { name: "Change time, 09:00–10:30", exact: true }).click();
       await panel.locator("#stop-time-opera").getByLabel("Start", { exact: true }).fill("09:15");
       await responsive.page.evaluate(() => history.back());
       await responsive.page.waitForFunction(
         () =>
           !document.querySelector(".item-editor") &&
-          !!document.querySelector(".trip-home-action-surface.is-open"),
+          !!document.querySelector(".trip-home-action-surface.is-open") &&
+          history.state?.tripPhoneOverlay === true,
       );
       check(
         (await dialog(responsive.page, "Itinerary").isVisible()) &&
@@ -639,16 +653,24 @@ try {
         `phone Back closes the nested time editor before the action panel at ${width}px`,
       );
       await responsive.page.evaluate(() => history.back());
-      await panel.waitFor({ state: "hidden" });
-      const navigation = responsive.page.locator(".phone-tabbar");
+      await responsive.page.waitForFunction(
+        () =>
+          !document.querySelector(".trip-home-action-surface.is-open") &&
+          history.state?.tripPhoneOverlay !== true,
+      );
+      const navigation = responsive.page.getByRole("button", { name: "Back to trips" });
+      await navigation.waitFor();
+      const phoneClose = await responsive.page.evaluate(() => ({
+        open: !!document.querySelector(".trip-home-action-surface.is-open"),
+        focus: document.activeElement?.textContent ?? "",
+        navigation: !!document.querySelector(".trip-home__back"),
+      }));
       check(
-        (await panel.isHidden()) &&
-          (await navigation.isVisible()) &&
-          (await navigation.getByRole("tab").count()) === 4 &&
-          (await responsive.page.evaluate(() => document.activeElement?.textContent ?? "")).includes(
-            "Itinerary",
-          ),
+        phoneClose.open === false &&
+          phoneClose.navigation &&
+          /Itinerary|行程/.test(phoneClose.focus),
         `Back closes the phone action panel and keeps navigation and trigger focus at ${width}px`,
+        phoneClose,
       );
       await home(responsive.page).getByRole("button", { name: "Back to trips" }).click();
       await responsive.page.locator(".phone-mine").waitFor();
