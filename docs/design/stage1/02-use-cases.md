@@ -101,7 +101,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 **Extensions**
 
 - **1a — Invalid input:** schema/date validation rejects an invalid brief or unordered dates. Correct the input; do not claim a valid plan.
-- **3a — Origin omitted:** current resolution is brief origin, then `transport.origin` memory, then Sydney. The proposal discloses the resolved origin; this fallback is not a user-confirmation step.
+- **3a — Origin omitted:** resolution uses the brief origin, then `transport.origin` memory, then the first destination. When the first destination is used, no long-haul arrival flight is planned. The proposal discloses the resolved origin; this fallback is not a user-confirmation step.
 - **3b — Traveler arranges flights:** `excludeFlights` skips flight searches/pricing and does not raise a missing-fare conflict for those self-arranged flights.
 - **3c — Required flight unavailable or empty:** retain a missing-flight conflict and an incomplete estimate; never fabricate a fallback fare.
 - **3d — No usable ground route or route cannot fit:** omit the invalid scheduled hop and record a geography/time conflict. For an unchosen, overlong inter-city ground hop, evidence gathering may first seek a flight instead; an explicit ground-mode choice is not silently overridden for this reason.
