@@ -1,12 +1,11 @@
 "use client";
-import { type RefObject } from "react";
+import { type ReactNode, type RefObject } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { Drawer } from "../ui/Drawer";
 import { useLocale } from "../account/LocaleProvider";
 import { TripHomeBookings, TripHomeIdeas } from "./TripHomeIdeasBookings";
 import { TripHomePreferences } from "./TripHomePreferences";
 import { TripHomeCalendar } from "./TripHomeCalendar";
-import { TripHomeItinerary } from "./TripHomeItinerary";
 import type { Notice } from "@/lib/i18n/notice";
 import type { TripAction } from "@/lib/workspace/layout";
 import type { Draft } from "@/lib/workspace/workspace";
@@ -35,6 +34,7 @@ export function TripHomeActionDrawer({
   onClose,
   onSelectDay,
   returnFocus,
+  itinerary,
 }: {
   action?: TripAction;
   plan: TripPlan;
@@ -51,6 +51,7 @@ export function TripHomeActionDrawer({
   onClose(): void;
   onSelectDay(day: number): void;
   returnFocus: RefObject<HTMLElement | null>;
+  itinerary: ReactNode;
 }) {
   const { t } = useLocale();
   const titleKey = TITLES[action ?? "itinerary"];
@@ -65,9 +66,7 @@ export function TripHomeActionDrawer({
       returnFocus={returnFocus}
       className="trip-home-action-surface"
     >
-      {action === "itinerary" && (
-        <TripHomeItinerary plan={plan} selectedDay={selectedDay} onSelectDay={onSelectDay} />
-      )}
+      {action === "itinerary" && itinerary}
       {action === "ideas" && (
         <TripHomeIdeas
           plan={plan}

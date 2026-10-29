@@ -5,7 +5,7 @@ import { ChatPanel } from "../chat/ChatPanel";
 import { ChatViewTabs } from "../chat/ChatViewTabs";
 import { useTrajectoryFocus } from "../chat/trajectory-focus";
 import { useTripUndo } from "../trip/useTripUndo";
-import { TripEditor } from "../trip/TripEditor";
+import { TripEditorView } from "../trip/TripEditor";
 import { useAutoSavePlaces } from "../trip/useAutoSavePlaces";
 import { useLegRoutes } from "../trip/useLegRoutes";
 import { usePlanRevision } from "../trip/plan-revision";
@@ -155,9 +155,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       : (homeConversation && latestSnapshot(catalog, homeConversation)) || homeTrip.snapshot
     : undefined;
   const homePlan = homeSnapshot?.plan;
-  const undo = useTripUndo(page === "home" ? homePlan : plan);
+  const editorPlan = page === "home" ? homePlan : plan;
+  const undo = useTripUndo(editorPlan);
   const revisions = usePlanRevision({
-    plan: page === "home" ? homePlan : plan,
+    plan: editorPlan,
     held: busy || editPending,
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
@@ -165,16 +166,16 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       session.applyEdit(next);
     },
   });
-  const chooser = useChooseCandidate(plan, revisions, session.trackEdit);
+  const chooser = useChooseCandidate(editorPlan, revisions, session.trackEdit);
 
-  const autoSaves = useAutoSavePlaces({ plan, tripPlaces, revisions });
+  const autoSaves = useAutoSavePlaces({ plan: editorPlan, tripPlaces, revisions });
 
-  const legs = useLegRoutes({ plan, revisions, onRoutes: session.showRoutes });
+  const legs = useLegRoutes({ plan: editorPlan, revisions, onRoutes: session.showRoutes });
   const { previewTrip } = session;
-  const homeEdits = useTimelineEdits({
-    plan: homePlan ?? plan!,
+  const timelineEdits = useTimelineEdits({
+    plan: editorPlan ?? plan!,
     dataMode: dataMode.mode,
-    activities: useMemo(() => itineraryActivities(homePlan), [homePlan]),
+    activities: useMemo(() => itineraryActivities(editorPlan), [editorPlan]),
     revisions,
     undo,
     onPending: session.trackEdit,
@@ -436,14 +437,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const tripContent = (
     <>
-      {plan ? (
+      {editorPlan ? (
         <TripPanel
-          key={plan.tripId}
-          plan={plan}
+          key={editorPlan.tripId}
+          plan={editorPlan}
           {...(chooser.problem ? { problem: chooser.problem } : {})}
           timeline={
-            <TripEditor
-              plan={plan}
+            <TripEditorView
+              plan={editorPlan}
               disabled={busy || editPending}
               onPending={session.trackEdit}
               tripPlaces={tripPlaces}
@@ -468,6 +469,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
               showPhotos={dataMode.mode === "live" && !!dataMode.providers?.maps}
               saves={autoSaves}
               phone={phone}
+              edits={timelineEdits}
               {...(busy || editPending || chooser.working ? {} : { onChoose: chooser.choose })}
             />
           }
@@ -665,13 +667,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   plan={homePlan!}
                   draft={homeSnapshot!.draft}
                   selectedDay={layout.mapDay}
-                  busy={busy || editPending || homeEdits.busy}
+                  busy={busy || editPending || timelineEdits.busy}
                   errors={errors}
-                  editErrors={homeEdits.errors}
-                  showEditNotice={!!homeEdits.undo}
+                  editErrors={timelineEdits.errors}
+                  showEditNotice={!!timelineEdits.undo}
                   onUndo={() => {
-                    if (homeEdits.undo)
-                      void homeEdits.edit(homeEdits.undo).then((done) => {
+                    if (timelineEdits.undo)
+                      void timelineEdits.edit(timelineEdits.undo).then((done) => {
                         if (done) undo.clear();
                       });
                   }}
@@ -679,7 +681,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   onReplan={session.planWith}
                   onSchedule={(idea, day) =>
                     idea.id
-                      ? homeEdits.edit({ kind: "schedule", id: idea.id, day }, (_, next) =>
+                      ? timelineEdits.edit({ kind: "schedule", id: idea.id, day }, (_, next) =>
                           undo.record(next, { operation: { kind: "idea", id: idea.id! } }),
                         )
                       : false
@@ -687,6 +689,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                   onClose={closeHomeAction}
                   onSelectDay={chooseHomeDay}
                   returnFocus={homeActionTarget}
+                  itinerary={
+                    catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId
+                      ? tripContent
+                      : null
+                  }
                 />
               </>
             )}

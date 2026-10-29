@@ -41,7 +41,7 @@ when it has one.
 
 | Action           | Drawer content                                                                                                             | Interaction                                                          |
 | ---------------- | -------------------------------------------------------------------------------------------------------------------------- | -------------------------------------------------------------------- |
-| Itinerary        | The Trip's current complete plan and day timeline                                                                          | Choosing a day focuses that day on the map                           |
+| Itinerary        | The same editable Trip view as the conversation, with activities, flights, stays, pending edits and Undo                   | Edit in place; choosing a day focuses that day on the map            |
 | Ideas            | Unscheduled activities and restaurant suggestions                                                                          | An item can be scheduled through the existing itinerary editing flow |
 | Bookings         | Flights, stays and other itinerary items marked as booked                                                                  | Booked items remain grouped independently of their itinerary order   |
 | Trip preferences | The existing preference editor for this Trip                                                                               | Changes use the existing save and replan behavior                    |
@@ -62,6 +62,9 @@ Receipts.
 - Only one Trip action drawer is open at a time.
 - The drawer is a labelled dialog with a visible heading. Its content remains keyboard reachable
   and does not create a second page history entry.
+- Itinerary and the conversation Trip use one latest Plan, activity identity, selected day, pending
+  edit and Undo record. A change or Undo in either entry updates the other, Calendar and the map.
+  Days containing only flights or stays show as booked instead of free.
 
 ## Phone layout
 
@@ -94,6 +97,8 @@ The implementation is complete when browser E2E covers:
 - A Trip with at least two Chats lists both Chats and opens the chosen one.
 - Sending from the Trip home starts a new Chat linked to the same Trip.
 - Each of the five action cards opens its drawer without leaving Trip home.
+- Home Itinerary and the conversation Trip render the same activities, flights and stays and keep
+  Plan edits and Undo synchronized.
 - The desktop drawer leaves the main column visible; the phone drawer fills the screen.
 - Close, Escape and outside press restore focus to the opening card.
 - Choosing a day in Calendar opens Itinerary at that day and focuses the map.

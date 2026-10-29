@@ -58,6 +58,9 @@ export type PlanRevisions = {
   ): Promise<EditResult>;
 };
 
+const samePlan = (left: TripPlan, right: TripPlan) =>
+  left === right || JSON.stringify(left) === JSON.stringify(right);
+
 export function usePlanRevision({
   plan,
   held,
@@ -109,7 +112,8 @@ export function usePlanRevision({
   const finish = useCallback(
     (job: BackgroundJob, run: { controller: AbortController }, outcome: JobOutcome) => {
       if (flight.current === run) flight.current = undefined;
-      const locallyReplaced = run.controller.signal.aborted || job.plan !== latest.current;
+      const locallyReplaced =
+        run.controller.signal.aborted || !latest.current || !samePlan(job.plan, latest.current);
       if (locallyReplaced) job.settled({ kind: "discarded" });
       else if (!isCurrentTabPlan(job.plan)) {
         refusedPlan.current = job.plan;
@@ -136,7 +140,8 @@ export function usePlanRevision({
         flight.current ||
         heldNow.current ||
         editsInFlight.current ||
-        job.plan !== latest.current ||
+        !latest.current ||
+        !samePlan(job.plan, latest.current) ||
         job.plan === refusedPlan.current
       )
         return false;
@@ -180,7 +185,8 @@ export function usePlanRevision({
             failure,
           });
           if (signal.aborted) return { kind: "superseded" };
-          if (latest.current !== base || !isCurrentTabPlan(base)) return { kind: "stale" };
+          if (!latest.current || !samePlan(latest.current, base) || !isCurrentTabPlan(base))
+            return { kind: "stale" };
           if (answer.blockers.length) return { kind: "refused", blockers: answer.blockers };
           const accepted = { ...answer, plan: answer.plan! };
           beforeApply?.(accepted);

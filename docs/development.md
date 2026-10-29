@@ -468,7 +468,7 @@ installer does nothing in CI or outside a Git checkout, and leaves a hooks path 
 On pull requests, the `protected-files` job runs `node scripts/verify-protected-files.mjs`,
 `node scripts/verify-docs.mjs`, the pair check and `node scripts/verify-branch-name.mjs <head-branch>`. The
 branch check fails when the head branch does not start with `feature/`, `fix/`, `refactor/`, `docs/`,
-`chore/` or `test/`, or contains an AI tool name; Dependabot branches are exempt.
+`chore/`, `test/` or `process/`, or contains an AI tool name; Dependabot branches are exempt.
 
 Before marking a PR ready for delivery, run the read-only preflight below with `gh` authenticated.
 It requires a clean checkout on the PR branch at the exact open PR head, a `main` base, and nonempty

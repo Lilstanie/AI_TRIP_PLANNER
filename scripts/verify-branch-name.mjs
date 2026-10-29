@@ -1,10 +1,10 @@
 #!/usr/bin/env node
 // Fails when a pull request's head branch breaks the branch-name rule in AGENTS.md:
-// - the name must start with feature/, fix/, refactor/, docs/, chore/ or test/;
+// - the name must start with feature/, fix/, refactor/, docs/, chore/, test/ or process/;
 // - the name must not contain an AI tool name, even when a harness assigned the branch.
 // Dependabot branches are exempt. Pushes to main never reach this check (CI runs it on pull requests).
 // Usage: node scripts/verify-branch-name.mjs <branch>
-const PREFIXES = ["feature/", "fix/", "refactor/", "docs/", "chore/", "test/"];
+const PREFIXES = ["feature/", "fix/", "refactor/", "docs/", "chore/", "test/", "process/"];
 const AI_TOOL_NAMES = ["claude", "codex", "copilot", "cursor", "gemini", "chatgpt", "openai"];
 
 export function branchNameProblems(branch) {

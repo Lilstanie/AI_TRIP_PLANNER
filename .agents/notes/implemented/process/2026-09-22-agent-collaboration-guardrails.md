@@ -24,7 +24,7 @@ teammates could not see them.
   that modifies, renames or deletes a frozen file, or that changes `packages/shared/src` without
   adding or updating an Agent Note.
 - Authors merge their own pull requests; no approval is required. Automatic review requests were
-  removed afterwards; see [no review requests](2026-09-22-no-review-requests.md).
+  removed afterwards; see [no review requests](../../archived/process/2026-09-22-no-review-requests.md).
 
 ## Alternatives considered
 
