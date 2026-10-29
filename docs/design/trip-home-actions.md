@@ -93,7 +93,9 @@ Trip home becomes one column in this order:
 6. Composer.
 
 The main page keeps a single scroll region above a fixed bottom composer, so a long Chat list leaves
-Send visible. An action drawer uses the full screen and the same close and focus rules as desktop.
+Send visible. Opening an embedded Chat on desktop turns that region into a flex column so the Chat
+transcript scrolls inside the Chat surface; list-mode Trip home keeps the page scroll. An action
+drawer uses the full screen and the same close and focus rules as desktop.
 
 ## Boundaries
 
@@ -116,7 +118,7 @@ The implementation is complete when browser E2E covers:
   Plan edits and Undo synchronized.
 - The desktop panel opens narrow, can expand beside the map and collapse again without losing
   Trip, Chat, selected day or edit state; the phone drawer fills the screen.
-- Close, Escape and outside press restore focus and scroll to the opening card.
+- Close, Escape and outside press restore focus to the opening card; list-mode Trip home also restores page scroll.
 - In-panel tabs switch actions without closing first, including across expand and collapse.
 - Non-AUD Bookings show the estimate notice; Flights and schedule names stay translated.
 - Choosing a day in Calendar opens Itinerary at that day and focuses the map.

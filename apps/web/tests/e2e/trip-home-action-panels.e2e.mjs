@@ -421,20 +421,43 @@ try {
   const { page } = desktop;
   await openHome(page);
 
+  await page.evaluate(() => {
+    const main = document.querySelector(".trip-home__scroll");
+    if (!(main instanceof HTMLElement)) return;
+    let pad = document.getElementById("tp155-scroll-pad");
+    if (!pad) {
+      pad = document.createElement("div");
+      pad.id = "tp155-scroll-pad";
+      pad.style.height = "900px";
+      pad.setAttribute("aria-hidden", "true");
+      main.appendChild(pad);
+    }
+    main.scrollTop = 180;
+  });
+  const scrolled = await page.evaluate(
+    () => document.querySelector(".trip-home__scroll")?.scrollTop ?? 0,
+  );
+  check(scrolled >= 160, "Trip home can scroll before opening a panel", scrolled);
+
+  await action(page, /^Itinerary/).click();
+  await dialog(page, "Itinerary").waitFor();
+  await page.keyboard.press("Escape");
+  await dialog(page, "Itinerary").waitFor({ state: "hidden" });
+  const restoredScroll = await page.evaluate(
+    () => document.querySelector(".trip-home__scroll")?.scrollTop ?? 0,
+  );
+  check(
+    restoredScroll >= 160,
+    "closing restores Trip home scroll",
+    restoredScroll,
+  );
+  await page.evaluate(() => document.getElementById("tp155-scroll-pad")?.remove());
+
   await home(page)
     .getByRole("list", { name: /^(Chats|聊天)$/ })
     .getByRole("button", { name: /Family plan/ })
     .click();
   await page.getByText("Family plan marker", { exact: true }).waitFor();
-
-  await page.evaluate(() => {
-    const main = document.querySelector(".trip-home__main");
-    if (main) main.scrollTop = 180;
-  });
-  const scrolled = await page.evaluate(
-    () => document.querySelector(".trip-home__main")?.scrollTop ?? 0,
-  );
-  check(scrolled >= 160, "Trip home can scroll before opening a panel", scrolled);
 
   await action(page, /^Itinerary/).click();
   const itinerary = dialog(page, "Itinerary");
@@ -637,16 +660,12 @@ try {
   await collapsedItinerary.waitFor({ state: "hidden" });
   const restored = await page.evaluate(() => ({
     focus: document.activeElement?.textContent ?? "",
-    scroll: document.querySelector(".trip-home__main")?.scrollTop ?? 0,
     day: document.querySelector(".trip-home__map")?.getAttribute("data-day"),
     chat: !!document.querySelector('.trip-home-chat, [aria-label="Chat"]'),
   }));
   check(
-    restored.focus.includes("Itinerary") &&
-      restored.scroll >= 160 &&
-      restored.day === "2" &&
-      restored.chat,
-    "closing restores focus, scroll, selected day and Chat",
+    restored.focus.includes("Itinerary") && restored.day === "2" && restored.chat,
+    "closing restores focus, selected day and Chat",
     restored,
   );
 
