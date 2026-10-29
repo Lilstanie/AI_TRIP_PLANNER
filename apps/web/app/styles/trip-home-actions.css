@@ -68,6 +68,78 @@
   z-index: 40;
   width: calc(var(--trip-home-aside, 40%) - 2 * var(--float-gap));
 }
+.drawer.trip-home-action-surface.is-expanded {
+  width: min(920px, 78%);
+}
+.trip-home-action-surface .drawer__title {
+  flex: 1 1 auto;
+  flex-direction: column;
+  align-items: stretch;
+}
+.trip-home-action-switcher {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  min-width: 0;
+}
+.trip-home-action-switcher__tabs {
+  display: flex;
+  flex: 1 1 260px;
+  gap: var(--space-1);
+  min-width: 0;
+  padding-bottom: 2px;
+  overflow-x: auto;
+  overscroll-behavior-inline: contain;
+}
+.trip-home-action-switcher [role="tab"],
+.trip-home-action-switcher__size {
+  flex: none;
+  min-height: 34px;
+  padding: 0 var(--space-3) !important;
+  border: 1px solid transparent !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--fill-hover) !important;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  white-space: nowrap;
+}
+.trip-home-action-switcher [role="tab"][aria-selected="true"] {
+  border-color: var(--border) !important;
+  background: var(--surface) !important;
+  color: var(--text);
+}
+.trip-home-action-switcher__size {
+  color: var(--accent);
+}
+.trip-home-action-content {
+  min-width: 0;
+}
+.trip-home-action-surface.is-expanded .drawer__body {
+  display: grid;
+  grid-template-columns: minmax(260px, 0.85fr) minmax(240px, 1.15fr);
+  gap: var(--space-3);
+  padding: var(--space-3);
+  overflow: hidden;
+}
+.trip-home-action-surface.is-expanded .trip-home-action-content {
+  min-height: 0;
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+.trip-home-action-map {
+  display: flex;
+  min-width: 0;
+  min-height: 0;
+}
+.trip-home-action-map .trip-home__map {
+  flex: 1 1 auto;
+  min-width: 0;
+  min-height: 0;
+  height: 100%;
+}
 .trip-home-action {
   padding: var(--space-4) var(--space-5);
 }
@@ -127,6 +199,9 @@
   }
   .trip-home-action {
     padding: var(--space-4);
+  }
+  .trip-home-action-switcher__tabs {
+    flex-basis: 100%;
   }
   .trip-home-chat > .chat {
     min-height: min(420px, 55vh);

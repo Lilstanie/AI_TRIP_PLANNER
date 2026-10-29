@@ -64,7 +64,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const [editorDrafts] = useState(createEditorDrafts);
   const [tripView, setTripView] = useState<"itinerary" | "map">("itinerary");
   const [homeChatId, setHomeChatId] = useState<string>();
+  const [homeActionExpanded, setHomeActionExpanded] = useState(false);
   const homeActionTarget = useRef<HTMLElement>(null);
+  const homeMain = useRef<HTMLDivElement>(null);
+  const homeActionScroll = useRef(0);
   const {
     plan,
     draft,
@@ -282,6 +285,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const openHome = (id: string) => {
     setHomeChatId(undefined);
+    setHomeActionExpanded(false);
     setCalendarTripId(undefined);
     viewTransition(() => {
       layout.openHome(id);
@@ -324,13 +328,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   };
   const openHomeAction = (action: TripAction, trigger: HTMLButtonElement) => {
     homeActionTarget.current = trigger;
+    homeActionScroll.current = homeMain.current?.scrollTop ?? 0;
+    setHomeActionExpanded(false);
     viewTransition(() => {
       if (homeTrip && catalog.activeTripId !== homeTrip.id) previewTrip(homeTrip.id);
       openTripAction(action);
     });
   };
+  const switchHomeAction = (action: TripAction) => {
+    viewTransition(() => openTripAction(action));
+  };
   const closeHomeAction = () => {
     closeTripAction();
+    setHomeActionExpanded(false);
+    if (homeMain.current) homeMain.current.scrollTop = homeActionScroll.current;
     homeActionTarget.current?.focus({ preventScroll: true });
   };
   const chooseHomeDay = (day: number) => {
@@ -356,6 +367,10 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     if (!phone || plan || mobileView !== "trip") return;
     layout.selectView("chat");
   }, [phone, plan, mobileView, layout]);
+
+  useEffect(() => {
+    if (phone || narrow) setHomeActionExpanded(false);
+  }, [narrow, phone]);
 
   const teamTurn = latestTurn(activity, busy, messages);
   const profileDefaults = draftDefaults(settings);
@@ -469,6 +484,20 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onSelectDay={layout.pickMapDay}
     />
   );
+
+  const homeMap = homePlan ? (
+    <TripHomeMap
+      plan={homePlan}
+      mode={dataMode.mode}
+      providers={dataMode.providers}
+      focusedDay={layout.mapDay}
+      focusRequest={layout.mapFocus}
+      selectedActivity={selectedActivity}
+      onSelectActivity={session.selectStop}
+      routes={sessionOwnsEditor ? mapRoutes : []}
+    />
+  ) : undefined;
+  const expandedHomeAction = !!tripAction && !phone && !narrow && homeActionExpanded;
 
   const tripContent = (
     <>
@@ -584,6 +613,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {homeTrip ? (
               <TripHome
                 phone={phone}
+                aside={!!homePlan}
+                mainRef={homeMain}
                 title={distinctTripTitles(catalog.trips, (trip) => tripName(trip, t)).get(
                   homeTrip.id,
                 )!}
@@ -627,20 +658,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     />
                   ) : undefined
                 }
-                map={
-                  homePlan ? (
-                    <TripHomeMap
-                      plan={homePlan}
-                      mode={dataMode.mode}
-                      providers={dataMode.providers}
-                      focusedDay={layout.mapDay}
-                      focusRequest={layout.mapFocus}
-                      selectedActivity={selectedActivity}
-                      onSelectActivity={session.selectStop}
-                      routes={sessionOwnsEditor ? mapRoutes : []}
-                    />
-                  ) : undefined
-                }
+                map={expandedHomeAction ? undefined : homeMap}
                 composer={
                   homeChatId ? undefined : (
                     <TripHomeComposer
@@ -755,8 +773,13 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                       : false
                   }
                   onClose={closeHomeAction}
+                  onSwitch={switchHomeAction}
                   onSelectDay={chooseHomeDay}
                   returnFocus={homeActionTarget}
+                  map={expandedHomeAction ? homeMap : undefined}
+                  expandable={!phone && !narrow && !!homeMap}
+                  expanded={expandedHomeAction}
+                  onToggleExpanded={() => setHomeActionExpanded((value) => !value)}
                   itinerary={
                     catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId
                       ? tripContent

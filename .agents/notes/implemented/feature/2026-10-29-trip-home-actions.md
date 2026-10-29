@@ -1,7 +1,7 @@
 # Agent Note: Trip home actions stay in place
 
 Status: implemented
-Owner: spec #774, tickets #775–#779, #794
+Owner: spec #774, tickets #775–#779, #794, #795
 
 ## Problem
 
@@ -22,9 +22,11 @@ entry points, Plan ownership or Chat links.
 - On desktop, put Itinerary, Ideas, Bookings, Trip preferences and Calendar above the map in a
   right rail. Put the title, facts, contextual suggestion, Chats and composer in a centred main
   column.
-- Open every action in a right-side drawer without leaving Trip home. The desktop drawer covers the
-  rail and keeps the main column visible; a phone drawer is full screen. No Media entry is added
-  until a real media model exists.
+- Open every action in a right-side drawer without leaving Trip home. The desktop panel starts
+  narrow over the rail, Expand places content beside the Trip map, and Collapse restores the narrow
+  panel while keeping one map instance. In-panel tabs switch actions without closing first and keep
+  expansion, Trip, Chat, selected day and unsubmitted edits. A phone drawer is full screen and has
+  no Expand control. No Media entry is added until a real media model exists.
 - Itinerary reuses the conversation's editable Trip view and latest Plan, including activities,
   flights, stays, pending edits, selected day or activity, unsubmitted form drafts and Undo. Changing
   either entry updates the other, Calendar and the map; the home map uses that same selected activity
@@ -34,9 +36,10 @@ entry points, Plan ownership or Chat links.
   and items marked as booked. Trip preferences reuses the existing preference editor. Calendar is a
   redesigned read-only calendar for the open Trip only; choosing a day opens Itinerary at that day
   and focuses the map.
-- Drawers close through a close button, Escape or an outside press and restore focus to the opening
-  card. Only one action drawer is open, and its state belongs to the existing workspace layout
-  reducer.
+- Drawers close through a close button, Escape or an outside press, restore the Trip home scroll
+  position and return focus to the opening card. Nested editors and Settings keep their own close
+  precedence. Only one action drawer is open, and its state belongs to the existing workspace layout
+  reducer. Bookings keeps the non-AUD estimate notice; Flights and schedule names stay translated.
 - Opening an existing Chat replaces the dashboard in the centre while the right rail stays fixed.
   Back returns to Trip home. Sending from the Trip home composer starts a new Chat linked to the
   Trip and opens it.
@@ -70,8 +73,9 @@ The complete interaction and acceptance specification is
   on Back.
 - Sending from Trip home creates one new Chat linked to the same Trip and opens it.
 - Each action opens in place with correct content and one-at-a-time state.
-- Desktop keeps the main column visible; phone uses a full-screen right drawer. Close, Escape and
-  outside press restore focus.
+- Desktop starts narrow, expands beside the map and collapses without losing Trip or edit state;
+  phone uses a full-screen right drawer. Close, Escape and outside press restore focus and scroll.
+  In-panel tabs switch actions without closing first.
 - Calendar shows only the open Trip, and a chosen day opens the corresponding Itinerary day and
   map focus.
 - Home Itinerary and the conversation Trip use one editable Plan and one Undo history. Activity,
