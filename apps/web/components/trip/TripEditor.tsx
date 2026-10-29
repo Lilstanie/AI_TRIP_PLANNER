@@ -35,7 +35,7 @@ import { BookingRow, type ChooseCandidate } from "./timeline/BookingRow";
 import { FixedTimelineRow, LegRow } from "./timeline/TimelineParts";
 import { TimelineStop } from "./timeline/TimelineStop";
 import type { TripUndo } from "./useTripUndo";
-import { useTimelineEdits } from "./timeline/useTimelineEdits";
+import { useTimelineEdits, type TimelineEdits } from "./timeline/useTimelineEdits";
 import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { DayNoteForm } from "./timeline/DayNoteForm";
 import { TripTips } from "./TripTips";
@@ -48,6 +48,31 @@ import type { LegState } from "./useLegRoutes";
 import type { EditOperation, PlanRevisions } from "./plan-revision";
 
 type Activity = TripPlaces["activities"][number];
+
+type TripEditorProps = {
+  plan: TripPlan;
+  disabled: boolean;
+  onApply(plan: TripPlan): void;
+  onPending(value: boolean): void;
+  tripPlaces: TripPlaces;
+  selected?: string;
+  day?: number;
+  onDayChange?(day: number): void;
+  onSelect(activityId: string): void;
+  onSend?(message: string): void;
+  onRoutesChange?(routes: RouteResult[]): void;
+  routes?: RouteResult[];
+  legs?: LegState;
+  onLegApplied?(plan: TripPlan, day: number): void;
+  revisions: PlanRevisions;
+  undo: TripUndo;
+  showPhotos?: boolean;
+  saves?: AutoSaveState;
+  onChoose?: ChooseCandidate;
+  onTimelineChange?(changed: boolean): void;
+  onShowMap?(day: number): void;
+  phone?: boolean;
+};
 
 function checkedAs(id: string, action: ItemAction): EditOperation | undefined {
   switch (action.kind) {
@@ -70,7 +95,23 @@ function DropLine() {
   return <li className="timeline-drop-line" aria-hidden="true" />;
 }
 
-export function TripEditor({
+export function TripEditor(props: TripEditorProps) {
+  const { dataMode, activities } = props.tripPlaces;
+  const edits = useTimelineEdits({
+    plan: props.plan,
+    dataMode,
+    activities,
+    revisions: props.revisions,
+    undo: props.undo,
+    onPending: props.onPending,
+    onRoutesChange: props.onRoutesChange,
+    onLegApplied: props.onLegApplied,
+    onTimelineChange: props.onTimelineChange,
+  });
+  return <TripEditorView {...props} edits={edits} />;
+}
+
+export function TripEditorView({
   plan,
   disabled,
   onApply,
@@ -93,55 +134,11 @@ export function TripEditor({
   onTimelineChange,
   onShowMap,
   phone = false,
-}: {
-  plan: TripPlan;
-  disabled: boolean;
-  onApply(plan: TripPlan): void;
-  onPending(value: boolean): void;
-  tripPlaces: TripPlaces;
-  selected?: string;
-  day?: number;
-  onDayChange?(day: number): void;
-  onSelect(activityId: string): void;
-  onSend?(message: string): void;
-
-  onRoutesChange?(routes: RouteResult[]): void;
-
-  routes?: RouteResult[];
-
-  legs?: LegState;
-
-  onLegApplied?(plan: TripPlan, day: number): void;
-
-  revisions: PlanRevisions;
-  undo: TripUndo;
-
-  showPhotos?: boolean;
-
-  saves?: AutoSaveState;
-
-  onChoose?: ChooseCandidate;
-
-  onTimelineChange?(changed: boolean): void;
-
-  onShowMap?(day: number): void;
-
-  phone?: boolean;
-}) {
+  edits,
+}: TripEditorProps & { edits: TimelineEdits }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const { settings } = useSettings();
   const { activities, itinerary, places, placeIdFor, locationStatus } = tripPlaces;
-  const edits = useTimelineEdits({
-    plan,
-    dataMode: tripPlaces.dataMode,
-    activities,
-    revisions,
-    undo,
-    onPending,
-    onRoutesChange,
-    onLegApplied,
-    onTimelineChange,
-  });
   const days = dayCount(plan);
   const { day, today, selectDay } = useTripDay(
     plan,
@@ -182,14 +179,16 @@ export function TripEditor({
     () =>
       labels.map((date, index) => {
         const stops = itinerary.stopsOn(index + 1).map((stop) => stop.activity);
+        const rows = dayRows(plan, index + 1, stops, locale);
         return {
           day: index + 1,
           date,
           stops: stops.length,
+          rows: rows.length,
           attention: stops.some((activity) => locationStatus(activity) !== "located"),
         };
       }),
-    [labels, itinerary, locationStatus],
+    [labels, itinerary, locale, locationStatus, plan],
   );
 
   const itemUndo = undo.step && "previous" in undo.step ? undo.step : undefined;
