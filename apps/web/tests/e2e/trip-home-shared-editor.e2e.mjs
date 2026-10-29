@@ -233,6 +233,25 @@ const conversation = {
   input: "",
   snapshot,
 };
+const olderSnapshot = structuredClone(snapshot);
+olderSnapshot.id = "older-trip";
+olderSnapshot.savedAt = "2026-10-28T00:00:00Z";
+const olderItinerary = olderSnapshot.plan.sections.find((section) => section.id === "itinerary");
+olderItinerary.proposal.items[0] = {
+  ...olderItinerary.proposal.items[0],
+  startTime: "08:00",
+  endTime: "09:30",
+};
+const olderConversation = {
+  id: "conversation:older-sydney-notes",
+  title: "Older Sydney notes",
+  renamed: true,
+  updatedAt: "2026-10-28T00:00:00Z",
+  tripId: `trip:${tripId}`,
+  messages: [],
+  input: "",
+  snapshot: olderSnapshot,
+};
 const catalog = {
   version: 4,
   activeConversationId: conversation.id,
@@ -243,11 +262,11 @@ const catalog = {
       title: "Sydney long weekend",
       renamed: true,
       updatedAt: "2026-10-29T00:00:00Z",
-      conversationIds: [conversation.id],
+      conversationIds: [conversation.id, olderConversation.id],
       snapshot,
     },
   ],
-  conversations: [conversation],
+  conversations: [conversation, olderConversation],
   layout: {
     sidebar: { collapsed: false },
     preferences: { width: 280 },
@@ -368,7 +387,7 @@ const waitForText = async (scope, text, timeout = 10_000) => {
 };
 const closeDrawer = async (page) => {
   const open = page.locator('[role="dialog"][aria-modal="true"]');
-  await open.locator(".drawer__close").click();
+  await open.getByRole("button", { name: /^Close / }).click();
   await open.waitFor({ state: "hidden" });
 };
 const openTripHome = async (page) => {
@@ -379,14 +398,14 @@ const openTripHome = async (page) => {
   await page.locator(".trip-cards .trip-card").first().click();
   await page.locator(".trip-home").waitFor();
 };
-const openWorkspaceTrip = async (page) => {
+const openConversation = async (page, title) => {
   await page
     .locator(".sidebar-nav")
     .getByRole("button", { name: /^Chats/ })
     .click();
   await page
     .locator(".chats-panel.is-open .history-item:not(.history-item--trip)")
-    .filter({ hasText: "Sydney planning" })
+    .filter({ hasText: title })
     .first()
     .locator(".history-item__open")
     .click();
@@ -395,6 +414,7 @@ const openWorkspaceTrip = async (page) => {
   if ((await toggle.getAttribute("aria-expanded")) !== "true") await toggle.click();
   await page.locator(".trip-workspace .trip-panel").waitFor();
 };
+const openWorkspaceTrip = (page) => openConversation(page, "Sydney planning");
 const stop = (scope, name) =>
   scope
     .locator(".timeline-stop")
@@ -456,10 +476,9 @@ try {
   await itinerary
     .getByLabel(/^Start/)
     .first()
-    .fill("10:00");
-  await itinerary.getByLabel(/^End/).first().fill("11:30");
-  await page.getByRole("button", { name: "Close Itinerary", exact: true }).click();
-  await itinerary.waitFor({ state: "hidden" });
+    .fill("10:15");
+  await itinerary.getByLabel(/^End/).first().fill("11:45");
+  await closeDrawer(page);
   await openWorkspaceTrip(page);
   const draftWorkspace = page.getByRole("region", { name: "Your trip" });
   await stop(draftWorkspace, "Sydney Opera House")
@@ -469,22 +488,47 @@ try {
     (await draftWorkspace
       .getByLabel(/^Start/)
       .first()
-      .inputValue()) === "10:00" &&
-      (await draftWorkspace.getByLabel(/^End/).first().inputValue()) === "11:30",
-    "unsubmitted time values survive switching editor entries",
+      .inputValue()) === "10:15" &&
+      (await draftWorkspace.getByLabel(/^End/).first().inputValue()) === "11:45",
+    "unsaved time inputs survive home to conversation Trip switching",
   );
   await draftWorkspace.getByRole("button", { name: "Cancel", exact: true }).click();
+  await stop(draftWorkspace, "Sydney Opera House").locator(".action-menu__trigger").click();
+  await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
+  await draftWorkspace.getByLabel("Place name", { exact: true }).fill("Unsaved harbour stop");
   await openTripHome(page);
   await action(page, /^Itinerary/).click();
-  await itinerary.getByRole("tab", { name: /^Day 1/ }).click();
-  await stop(itinerary, "Sydney Opera House").locator(".timeline-stop__main").click();
-  await closeDrawer(page);
-  await homeMap(page).locator(".trip-map-marker").first().waitFor();
+  await itinerary.waitFor();
+  await stop(itinerary, "Sydney Opera House").locator(".action-menu__trigger").click();
+  await page.getByRole("menuitem", { name: "Edit details", exact: true }).click();
   check(
-    (await homeMap(page).locator(".trip-map-marker.is-selected").count()) === 1,
-    "editor activity selection propagates to the home map",
+    (await itinerary.getByLabel("Place name", { exact: true }).inputValue()) ===
+      "Unsaved harbour stop",
+    "unsaved place input survives conversation Trip to home switching",
   );
+  await itinerary.getByRole("button", { name: "Cancel", exact: true }).click();
+  await itinerary.getByRole("button", { name: "Day 1 actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Edit title", exact: true }).click();
+  await itinerary.getByLabel("Day title", { exact: true }).fill("Unsaved harbour morning");
+  await closeDrawer(page);
+  await openWorkspaceTrip(page);
+  await draftWorkspace.getByRole("button", { name: "Day 1 actions", exact: true }).click();
+  await page.getByRole("menuitem", { name: "Edit title", exact: true }).click();
+  check(
+    (await draftWorkspace.getByLabel("Day title", { exact: true }).inputValue()) ===
+      "Unsaved harbour morning",
+    "unsaved day title survives switching editor entries",
+  );
+  await page.screenshot({ path: `${OUT}/unsaved-draft-conversation.png` });
+  await draftWorkspace.getByRole("button", { name: "Cancel", exact: true }).click();
+  check(
+    preview.requests.length === 0,
+    "retaining or cancelling drafts never saves them implicitly",
+  );
+  await openTripHome(page);
   await action(page, /^Itinerary/).click();
+  await itinerary.waitFor();
+
   await changeTime(itinerary, "Sydney Opera House", "11:00", "12:30");
   await changeTime(itinerary, "Sydney Opera House", "13:00", "14:30");
   await itinerary.getByRole("button", { name: "Undo last change" }).click();
@@ -565,6 +609,15 @@ try {
   );
   await closeDrawer(page);
 
+  await openConversation(page, "Older Sydney notes");
+  await workspace.getByRole("tab", { name: /^Day 1/ }).click();
+  await waitForText(workspace, "Bondi Pavilion");
+  check(
+    (await workspace.getByRole("button", { name: "Undo last change" }).count()) > 0,
+    "an older linked Chat snapshot does not replace the newer Plan or Undo",
+  );
+
+  await openTripHome(page);
   await action(page, /^Ideas/).click();
   const ideas = dialog(page, "Ideas");
   await ideas.waitFor();

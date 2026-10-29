@@ -22,11 +22,6 @@ Public seam: fixture-backed browser navigation and visible editor controls.
 - An older linked Chat snapshot replaces a newer trip snapshot after an edit.
 - Switching entries loses the selected day or associates the selected stop with another activity.
 - Changing trips leaks Undo, pending state, or selected activity into the next trip.
-- Typing time, details, comments, or a replacement-place query without submitting loses the draft
-  after closing home Itinerary and entering the conversation Trip editor.
-- A successful edit or explicit Cancel restores a previously discarded form draft on reopening.
-- Selecting an activity in either editor does not select the same marker on the home map, or a home
-  map marker selects a different activity in the editor.
-- Merely viewing another Trip home lets background route verification relink the active Chat or
-  overwrite its Plan, draft, or messages.
 - Desktop or phone dialog clips controls, traps focus, or overflows horizontally.
+- Unsaved time, place details or day title silently disappear when switching editor entries before Save; Cancel must discard the draft without a preview request.
+- Direct action switching requires focusing a covered action card instead of using a visible control in the open drawer.

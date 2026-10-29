@@ -7,7 +7,7 @@ import { useLocale } from "../../account/LocaleProvider";
 import { SearchIcon } from "../../ui/icons";
 import type { TimelineEdits } from "./useTimelineEdits";
 import { StopEditSurface } from "./StopEditSurface";
-import type { FormDrafts } from "./useFormDrafts";
+import { useEditorDraft } from "../editor-drafts";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -92,8 +92,6 @@ export function ItemForm({
   mode,
   days,
   labels,
-  drafts,
-  draftKey,
   onSubmit,
   onCancel,
 }: {
@@ -101,27 +99,27 @@ export function ItemForm({
   mode: "details" | "note" | "schedule";
   days: number;
   labels: string[];
-  drafts?: FormDrafts;
-  draftKey?: string;
   onSubmit(action: ItemAction): boolean | Promise<boolean>;
   onCancel(): void;
 }) {
   const { t } = useLocale();
-  const formKey = `${draftKey ?? activity.id}:${mode}`;
-  const stored = drafts?.get<{ detail: string; location: string; note: string; day: number }>(
-    formKey,
+  const key = `${activity.id}:${mode}`;
+  const [detail, setDetail, resetDetail] = useEditorDraft(`${key}:detail`, activity.detail);
+  const [location, setLocation, resetLocation] = useEditorDraft(
+    `${key}:location`,
+    activity.location ?? "",
   );
-  const [detail, setDetail] = useState(stored?.detail ?? activity.detail);
-  const [location, setLocation] = useState(stored?.location ?? activity.location ?? "");
-  const [note, setNote] = useState(stored?.note ?? activity.note ?? "");
-  const [day, setDay] = useState(stored?.day ?? 1);
-  const saveDraft = (next: { detail?: string; location?: string; note?: string; day?: number }) => {
-    drafts?.set(formKey, {
-      detail: next.detail ?? detail,
-      location: next.location ?? location,
-      note: next.note ?? note,
-      day: next.day ?? day,
-    });
+  const [note, setNote, resetNote] = useEditorDraft(`${key}:note`, activity.note ?? "");
+  const [day, setDay, resetDay] = useEditorDraft(`${key}:day`, 1);
+  const reset = () => {
+    resetDetail();
+    resetLocation();
+    resetNote();
+    resetDay();
+  };
+  const cancel = () => {
+    reset();
+    onCancel();
   };
   const [failed, setFailed] = useState(false);
   const validDay = mode !== "schedule" || (day >= 1 && day <= days);
@@ -139,13 +137,16 @@ export function ItemForm({
               ? { kind: "note", note }
               : { kind: "day", day };
         if (!validDay) return;
-        void Promise.resolve(onSubmit(action)).then((done) => setFailed(!done));
+        void Promise.resolve(onSubmit(action)).then((done) => {
+          if (done) reset();
+          setFailed(!done);
+        });
       }}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
-        onCancel();
+        cancel();
       }}
     >
       {mode === "details" && (
@@ -156,10 +157,7 @@ export function ItemForm({
               ref={first}
               value={location}
               maxLength={120}
-              onChange={(e) => {
-                setLocation(e.target.value);
-                saveDraft({ location: e.target.value });
-              }}
+              onChange={(e) => setLocation(e.target.value)}
             />
           </label>
           <label>
@@ -168,10 +166,7 @@ export function ItemForm({
               value={detail}
               maxLength={500}
               rows={2}
-              onChange={(e) => {
-                setDetail(e.target.value);
-                saveDraft({ detail: e.target.value });
-              }}
+              onChange={(e) => setDetail(e.target.value)}
             />
           </label>
         </>
@@ -185,10 +180,7 @@ export function ItemForm({
             maxLength={500}
             rows={2}
             placeholder={t("e.g. Book tickets a day ahead")}
-            onChange={(e) => {
-              setNote(e.target.value);
-              saveDraft({ note: e.target.value });
-            }}
+            onChange={(e) => setNote(e.target.value)}
           />
         </label>
       )}
@@ -199,10 +191,7 @@ export function ItemForm({
             ref={first}
             aria-label={t("Day")}
             value={day}
-            onChange={(e) => {
-              setDay(Number(e.target.value));
-              saveDraft({ day: Number(e.target.value) });
-            }}
+            onChange={(e) => setDay(Number(e.target.value))}
           >
             {Array.from({ length: days }, (_, index) => (
               <option key={index} value={index + 1}>
@@ -217,7 +206,7 @@ export function ItemForm({
         <button type="submit" className="primary" disabled={!validDay}>
           {mode === "schedule" ? t("Schedule") : t("Save")}
         </button>
-        <button type="button" onClick={onCancel}>
+        <button type="button" onClick={cancel}>
           {t("Cancel")}
         </button>
       </div>
@@ -226,30 +215,27 @@ export function ItemForm({
 }
 
 export function PlaceSearch({
+  draftKey = "place-search",
   label,
   locked,
   edits,
   focusOnMount = false,
   phone,
-  drafts,
-  draftKey,
   onUse,
   onCancel,
 }: {
+  draftKey?: string;
   label: string;
   locked: boolean;
   edits: TimelineEdits;
 
   focusOnMount?: boolean;
   phone: boolean;
-  drafts?: FormDrafts;
-  draftKey?: string;
   onUse(placeId: string): boolean | Promise<boolean>;
   onCancel?(): void;
 }) {
   const { t } = useLocale();
-  const searchKey = `${draftKey ?? "search"}:search`;
-  const [query, setQuery] = useState(drafts?.get<string>(searchKey) ?? "");
+  const [query, setQuery, resetQuery] = useEditorDraft(`${draftKey}:query`, "");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (focusOnMount) input.current?.focus();
@@ -267,6 +253,7 @@ export function PlaceSearch({
           if (event.key !== "Escape" || !onCancel) return;
           event.preventDefault();
           event.stopPropagation();
+          resetQuery();
           onCancel();
         }}
       >
@@ -280,10 +267,7 @@ export function PlaceSearch({
               value={query}
               placeholder={t("Search Google Maps")}
               disabled={locked}
-              onChange={(event) => {
-                setQuery(event.target.value);
-                drafts?.set(searchKey, event.target.value);
-              }}
+              onChange={(event) => setQuery(event.target.value)}
             />
           </span>
         </label>
@@ -304,7 +288,11 @@ export function PlaceSearch({
                 type="button"
                 disabled={locked}
                 aria-label={t("Use {v0}", { v0: result.displayName?.text ?? "this place" })}
-                onClick={() => void onUse(result.id)}
+                onClick={() =>
+                  void Promise.resolve(onUse(result.id)).then((done) => {
+                    if (done) resetQuery();
+                  })
+                }
               >
                 {t("Use")}
               </button>

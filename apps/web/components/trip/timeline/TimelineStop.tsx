@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useEditorDraft } from "../editor-drafts";
 import type { ProposalItem } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import type { LocationStatus } from "../../map/useTripPlaces";
@@ -25,7 +26,6 @@ import {
 import { ItemForm, PlaceSearch, TimeForm } from "./StopForms";
 import { StopPopover } from "./StopPopover";
 import type { RowDrag } from "../useItineraryDrag";
-import type { FormDrafts } from "./useFormDrafts";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -61,7 +61,6 @@ export function TimelineStop({
   status,
   saveState,
   edits,
-  drafts,
   showPhotos,
   suggestion = false,
   conflicts = [],
@@ -91,7 +90,6 @@ export function TimelineStop({
 
   saveState: "" | "saving" | "failed";
   edits: TimelineEdits;
-  drafts?: FormDrafts;
 
   showPhotos: boolean;
 
@@ -125,10 +123,8 @@ export function TimelineStop({
       : STATUS_TEXT[status]
         ? { className: "timeline-tag timeline-tag--warn", text: t(STATUS_TEXT[status]!) }
         : null;
-  const draftKey = `item:${activity.id}`;
-  const storedTime = drafts?.get<{ start: string; end: string }>(draftKey);
-  const [start, setStart] = useState(storedTime?.start ?? activity.startTime ?? "");
-  const [end, setEnd] = useState(storedTime?.end ?? activity.endTime ?? "");
+  const [start, setStart, resetStart] = useEditorDraft(`${id}:start`, activity.startTime ?? "");
+  const [end, setEnd, resetEnd] = useEditorDraft(`${id}:end`, activity.endTime ?? "");
   const [popover, setPopover] = useState<Popover>("");
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
@@ -158,12 +154,6 @@ export function TimelineStop({
     (popover === "time" ? timeButton : mainButton).current?.focus({ preventScroll: true });
     setPopover("");
   };
-  const setTime = (nextStart: string, nextEnd: string) => {
-    setStart(nextStart);
-    setEnd(nextEnd);
-    drafts?.set(draftKey, { start: nextStart, end: nextEnd });
-  };
-  const clearDraft = () => drafts?.clear(draftKey);
 
   const act = (action: ItemAction, message: Notice) => {
     return Promise.resolve(onItem(action, message)).then((done) => {
@@ -346,9 +336,6 @@ export function TimelineStop({
   };
 
   const openTime = () => {
-    const stored = drafts?.get<{ start: string; end: string }>(draftKey);
-    setStart(stored?.start ?? activity.startTime ?? "");
-    setEnd(stored?.end ?? activity.endTime ?? "");
     setPopover("time");
   };
 
@@ -487,11 +474,10 @@ export function TimelineStop({
           )}
           {searching && (
             <PlaceSearch
+              draftKey={id}
               label={confirmed || matched ? t("Replace with another place") : t("Find this place")}
               locked={locked}
               edits={edits}
-              drafts={drafts}
-              draftKey={draftKey}
               focusOnMount={panel === "search"}
               phone={phone}
               onCancel={panel === "search" ? closePanel : undefined}
@@ -527,19 +513,20 @@ export function TimelineStop({
               validTime={validTime}
               timeChanged={timeChanged}
               errors={edits.errors}
-              onStart={(value) => setTime(value, end)}
-              onEnd={(value) => setTime(start, value)}
+              onStart={setStart}
+              onEnd={setEnd}
               onSubmit={async () => {
                 const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
                 if (done) {
-                  clearDraft();
+                  resetStart();
+                  resetEnd();
                   closePopover();
                 }
                 return done;
               }}
               onCancel={() => {
-                setTime(activity.startTime ?? "", activity.endTime ?? "");
-                clearDraft();
+                resetStart();
+                resetEnd();
                 closePopover();
               }}
             />
@@ -550,13 +537,8 @@ export function TimelineStop({
               mode="details"
               days={days}
               labels={dayLabels}
-              drafts={drafts}
-              draftKey={draftKey}
               onCancel={closePopover}
-              onSubmit={(action) => {
-                clearDraft();
-                return act(action, { key: "Details saved." });
-              }}
+              onSubmit={(action) => act(action, { key: "Details saved." })}
             />
           )}
           {popover === "comment" && (
@@ -565,13 +547,8 @@ export function TimelineStop({
               mode="note"
               days={days}
               labels={dayLabels}
-              drafts={drafts}
-              draftKey={draftKey}
               onCancel={closePopover}
-              onSubmit={(action) => {
-                clearDraft();
-                return act(action, { key: "Comment saved." });
-              }}
+              onSubmit={(action) => act(action, { key: "Comment saved." })}
             />
           )}
           {popover === "day" && (
@@ -580,16 +557,13 @@ export function TimelineStop({
               mode="schedule"
               days={days}
               labels={dayLabels}
-              drafts={drafts}
-              draftKey={draftKey}
               onCancel={closePopover}
-              onSubmit={(action) => {
-                clearDraft();
-                return act(action, {
+              onSubmit={(action) =>
+                act(action, {
                   key: "{name} scheduled on Day {day}.",
                   params: { name, day: action.kind === "day" ? action.day : 0 },
-                });
-              }}
+                })
+              }
             />
           )}
         </StopPopover>
