@@ -551,9 +551,21 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     paging, skip and submit are locked, and Stop aborts the request without discarding the question
     or its draft. A failed request leaves the question answerable for retry, a late response after
     Stop is ignored, and a successful reply clears the question.
-  - Switching chat or trip, or New chat, first flushes the pending autosave, then aborts in-flight
-    requests and clears progress, errors, selection and map routes in one `opened` session event.
-    Late responses are ignored.
+  - Generation belongs to the initiating Chat while the Workspace stays mounted. Trips, Calendar,
+    Settings, another Chat, another Trip and New chat leave its request running. Returning restores
+    received progress and partial content, or the complete reply if it finished in the background.
+    Opening another Chat flushes autosave and restores only that Chat's state; replies never migrate.
+  - One Chat at a time may generate a Plan for the same Trip. A refused send retains the draft and
+    creates no user message or request. Different Trips can generate independently. Stop aborts its
+    Chat's request and shows a stopped status; failure exposes Retry, which retains the existing user
+    message and starts one request. Deleting the owner Chat or Trip, or leaving the Workspace, aborts
+    its work. Reloading or closing the browser does not provide durable background execution.
+  - Manual Plan edits remain available during generation. A late Plan whose edit-bearing fields or
+    edit version differ from the starting Plan is retained as a reply with a localized conflict
+    notice; it never overwrites newer edits. See the
+    [Chat ownership decision](../.agents/notes/implemented/architecture/2026-10-29-chat-owned-generation.md).
+    `pnpm --filter @trip/web e2e run chat-generation` covers this contract with finite state waits
+    and controlled streams, retaining per-path ownership, request history and screenshots.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
     previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
     and a timeline edit clears it. Views get these as actions from

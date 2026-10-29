@@ -20,8 +20,9 @@ import {
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { isCurrentTabPlan } from "@/lib/trip/tab-revision";
+import { isCurrentTabPlan, publishTabPlan } from "@/lib/trip/tab-revision";
 import { STORAGE_FULL } from "./workspace-helpers";
+import type { SessionState } from "@/lib/workspace/session";
 
 type WorkspaceStorageOptions = {
   restored: RestoredWorkspace;
@@ -158,6 +159,79 @@ export function useWorkspaceStorage({
     return catalogRef.current;
   }
 
+  function saveBackground(id: string, state: SessionState, applyPlan = true) {
+    const current = flushSave();
+    const conversation = current.conversations.find((item) => item.id === id);
+    if (!conversation) return;
+    if (state.plan && applyPlan) publishTabPlan(state.plan);
+    const snapshot =
+      current.trips.find((trip) => trip.id === conversation.tripId)?.snapshot ??
+      conversation.snapshot;
+    let next =
+      state.plan && applyPlan
+        ? upsertCurrent(current, {
+            version: 4,
+            id: id.replace(/^conversation:/, ""),
+            savedAt: new Date().toISOString(),
+            plan: state.plan,
+            draft: state.draft,
+            messages: state.messages,
+            input: state.input,
+            ask: state.ask,
+            previousTotal: state.previousTotal,
+          })
+        : state.plan
+          ? {
+              ...current,
+              conversations: current.conversations.map((item) =>
+                item.id === id
+                  ? {
+                      ...item,
+                      updatedAt: new Date().toISOString(),
+                      messages: state.messages,
+                      input: state.input,
+                      ask: state.ask,
+                      draft: snapshot?.draft ?? state.draft,
+                      ...(snapshot
+                        ? {
+                            snapshot: {
+                              ...snapshot,
+                              id: id.replace(/^conversation:/, ""),
+                              messages: state.messages,
+                              input: state.input,
+                              ask: state.ask,
+                            },
+                          }
+                        : {}),
+                    }
+                  : item,
+              ),
+            }
+          : upsertConversationDraft(current, {
+              id,
+              messages: state.messages,
+              input: state.input,
+              ask: state.ask,
+              draft: state.draft,
+            });
+    next = {
+      ...next,
+      activeConversationId: current.activeConversationId,
+      activeTripId: current.activeTripId,
+    };
+    catalogRef.current = next;
+    setCatalog(next);
+    if (storageEnabled) {
+      try {
+        persistCatalog(next);
+      } catch {
+        setStorageEnabled(false);
+        setSaveState("failed");
+        setStorageError(STORAGE_FULL);
+      }
+    }
+  }
+
   return {
     storageError,
     storageEnabled,
@@ -165,5 +239,6 @@ export function useWorkspaceStorage({
     setStorageError,
     setStorageEnabled,
     flushSave,
+    saveBackground,
   };
 }

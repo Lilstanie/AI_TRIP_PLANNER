@@ -828,6 +828,9 @@ export const WORKSPACE_ZH = {
   "{stop}: {reason}": "{stop}：{reason}",
   "The new plan replaced your last change to the timeline.":
     "新行程替换了你在时间线上的最后一次修改。",
+  "The plan changed while this reply was being prepared. Your edits were kept.":
+    "生成回复期间行程已更改，因此保留了你的修改。",
+  "Planning stopped.": "规划已停止。",
   "This edit is stale. Start from the current plan.": "此修改已过时，请基于当前行程重新修改。",
   "The plan changed while this change was being checked. Try the change again.":
     "此修改检查期间行程已变化，请重新尝试此修改。",
