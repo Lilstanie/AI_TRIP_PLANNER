@@ -23,6 +23,7 @@ content in both languages; commands, examples and identifiers stay unchanged.
 | [Class diagrams](design/class-diagram.md)                                        | Domain and runtime relationships                                      |
 | [Stage 1 design model](design/stage1/README.md)                                  | ELEC5620 Stage 1 report models and where each marking item is covered |
 | [Stage 2 demonstration marking criteria](design/stage2/demo-marking-criteria.md) | ELEC5620 Stage 2 demonstration marking criteria, verbatim             |
+| [Stage 2 prototype brief](design/stage2/prototype-brief.md)                      | ELEC5620 Stage 2 task sheet and contribution statement form, verbatim |
 | [Translation maintenance](i18n.md)                                               | Pair scope, terminology and synchronization checks                    |
 | [Agent setup](agents/issue-tracker.md)                                           | Issue tracker, triage labels and domain docs for AI tools             |
 
