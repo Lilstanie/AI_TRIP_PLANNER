@@ -47,12 +47,12 @@ centre and the right rail. Returning from the conversation restores Trip home.
 The action cards appear in this order. Each card opens a Trip action drawer and includes a count
 when it has one.
 
-| Action           | Drawer content                                                                                                                | Interaction                                                                     |
-| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
-| Itinerary        | The same editable Trip view as the conversation, with activities, flights, stays, pending edits and Undo                      | Edit in place; choosing a day focuses that day on the map                       |
-| Ideas            | Unscheduled activities and restaurant suggestions                                                                             | An item can be scheduled through the existing itinerary editing flow            |
-| Bookings         | Flights, stays and other itinerary items marked as booked                                                                     | Booked items remain grouped independently of their itinerary order              |
-| Trip preferences | The existing preference editor for this Trip                                                                                  | Changes use the existing save and replan behavior                               |
+| Action           | Drawer content                                                                                                                | Interaction                                                                                                      |
+| ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |
+| Itinerary        | The same editable Trip view as the conversation, with activities, flights, stays, pending edits and Undo                      | Edit in place; choosing a day focuses that day on the map                                                        |
+| Ideas            | Unscheduled activities and restaurant suggestions                                                                             | An item can be scheduled through the existing itinerary editing flow                                             |
+| Bookings         | Flights, stays and other itinerary items marked as booked                                                                     | Booked items remain grouped independently of their itinerary order                                               |
+| Trip preferences | The existing preference editor for this Trip                                                                                  | Changes use the existing save and replan behavior                                                                |
 | Calendar         | A Week/Month view for this Trip only; it groups timed activities and all-day stops, flights and stays without inventing times | Choose an activity to open it in the shared Itinerary editor; choosing a day opens Itinerary and focuses the map |
 
 Media is intentionally absent until the product has a real media model. The drawer set does not add
