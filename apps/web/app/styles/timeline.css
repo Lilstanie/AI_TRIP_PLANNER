@@ -479,7 +479,8 @@ html.is-reordering * {
   font-size: var(--font-size-meta);
 }
 .stop-editor input,
-.stop-editor select {
+.stop-editor select,
+.add-panel input:not([type="checkbox"]) {
   min-height: 36px;
   padding: 0 var(--space-2);
   border: 1px solid var(--border);
