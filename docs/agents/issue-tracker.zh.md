@@ -71,8 +71,8 @@ Jira 只认文本里出现的 `TP-16` 这类 issue key，所以每一处关联�
   之类的 smart commit 命令。
 - **Jira 能看到什么。** GitHub for Jira 应用会同步文字里带 key 的分支、提交、拉取请求、构建和部署，它们出现在
   story 的 Development 面板里。GitHub 问题不会同步，所以问题标题里的 key 只方便人工对照。
-- **状态。** 关联不会改变 story 的状态。目前还没有在合并时推进状态的 Jira Automation 规则（2026-10-25 核对：
-  TP-79 和 TP-80 的 PR 合并后仍停在 To Do），所以由合并的人把 story 移到 Done。
+- **状态。** 关联不会改变 story 的状态，也不使用 Jira Automation 规则。交付 PR 的 agent 或人负责移动：
+  PR 打开时移到 `正在进行`，合并时移到 `已完成` 并评论 PR 链接（`trip-planner-pr-delivery` 技能第 4、6 步）。
 
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 
