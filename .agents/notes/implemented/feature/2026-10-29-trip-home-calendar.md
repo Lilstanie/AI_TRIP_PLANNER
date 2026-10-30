@@ -6,6 +6,9 @@ Owner: spec #788, ticket #796
 Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) described the
 Calendar as read-only. Activities now open the shared Itinerary editor.
 
+The sidebar Calendar now uses this component with a Trip picker, replacing the all-Trips month bands, so
+the workspace has one calendar. The trade-off is no overview of several Trips in one month.
+
 ## Problem
 
 The Trip home Calendar replaced the global Trips calendar with an in-place drawer, but its read-only

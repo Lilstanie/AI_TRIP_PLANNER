@@ -171,7 +171,7 @@ async function desktop(browser, scheme) {
     `${tag}: segmented thumb is placed`,
   );
   await shot(page, `${tag}-08-calendar`);
-  await expectSolid(page, tag, "calendar grid", ".trip-calendar__grid");
+  await expectSolid(page, tag, "calendar grid", ".trip-home-calendar");
 
   await expectFallback(page, context, tag, scheme, [["sidebar", ".workspace-sidebar"]]);
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);

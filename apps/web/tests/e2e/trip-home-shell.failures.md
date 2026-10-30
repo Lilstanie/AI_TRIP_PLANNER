@@ -3,7 +3,7 @@
 Written before the code (#766, spec #765). Each line is a way the change could fail.
 
 - A trip card on the Trips page still opens the conversation instead of the Trip home.
-- A trip band on the calendar, or a trip in the Chats panel search, opens the conversation while the card opens the Trip home.
+- View trip on the calendar, or a trip in the Chats panel search, opens the conversation while the card opens the Trip home.
 - Opening a chat from the Chats panel opens the Trip home instead of the conversation.
 - Back leaves the Trip home on a different page than Trips, or returns to the Trips tab after the trip was opened from the Calendar tab.
 - The heading shows the generated title for a renamed trip, or two identical trips show the same heading.

@@ -22,6 +22,8 @@ contract-impact: none
   its rename or delete dialog is used.
 - Trip panels: Expand no longer narrows the panel on wide windows, tabs and Expand stay in the panel
   head, preferences have padding, and Chat and booking rows lose the grey pill.
+- The sidebar Calendar reuses the Trip home calendar with a Trip picker; old month bands and four
+  `calendar-*` scripts are gone.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

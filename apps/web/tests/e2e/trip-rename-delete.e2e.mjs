@@ -137,14 +137,9 @@ try {
   );
   await page.keyboard.press("Escape");
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  const bar = page.locator(".trip-calendar__trip").first();
-  await bar.waitFor();
-  check(
-    (await bar.getAttribute("aria-label")).startsWith(`${NAME}:`) &&
-      (await bar.textContent()).trim() === NAME,
-    "calendar bar shows the new name",
-    await bar.getAttribute("aria-label"),
-  );
+  const picker = page.locator(".trips-calendar__trip").first();
+  await picker.waitFor();
+  check((await picker.textContent()).trim() === NAME, "calendar picker shows the new name");
   await page.screenshot({ path: `${out}/calendar.png`, fullPage: true });
   await page.getByRole("tab", { name: "Trips", exact: true }).click();
 

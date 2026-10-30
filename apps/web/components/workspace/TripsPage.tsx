@@ -1,13 +1,14 @@
 "use client";
-import { intlLocale, type AppLocale, type MessageKey } from "@/lib/i18n/locale";
+import type { MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
-import { ChevronIcon, PlusIcon } from "../ui/icons";
+import { PlusIcon } from "../ui/icons";
+import { TripHomeCalendar } from "./TripHomeCalendar";
 import { useSegmentIndicator } from "../ui/motion";
-import { TripCover, coverColours } from "./TripCover";
+import { TripCover } from "./TripCover";
 import { TripUndo, type DeletedTrip } from "./TripUndo";
 import { HistoryMenu } from "./WorkspaceSidebar";
 
@@ -17,7 +18,6 @@ const TABS: { id: Tab; label: MessageKey }[] = [
   { id: "calendar", label: "Calendar" },
 ];
 
-const DAY = 86_400_000;
 const utc = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
 const todayUtc = () => {
   const now = new Date();
@@ -51,7 +51,7 @@ export function TripsPage({
   onTab?(tab: Tab): void;
   focusTripId?: string;
 }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const [ownTab, setOwnTab] = useState<Tab>("trips");
   const tab = controlledTab ?? ownTab;
   const setTab = (next: Tab) => {
@@ -131,7 +131,6 @@ export function TripsPage({
               trips={trips}
               allTrips={allTrips}
               onOpenTrip={onOpenTrip}
-              compact={embedded}
               focusTripId={focusTripId}
             />
           )}
@@ -213,218 +212,60 @@ function TripCards({
   ));
 }
 
-const WEEKDAYS = ["Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun"];
-const monthLabel = (year: number, month: number, locale: AppLocale) =>
-  new Intl.DateTimeFormat(intlLocale(locale), {
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  }).format(new Date(Date.UTC(year, month, 1)));
-
 function TripCalendar({
   trips,
   allTrips,
   onOpenTrip,
-  compact = false,
   focusTripId,
 }: {
   trips: TripRecord[];
   allTrips: TripRecord[];
-  compact?: boolean;
   focusTripId?: string;
   onOpenTrip(id: string): void;
 }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
-
-  const [focusStart] = useState(() => {
-    const dates = trips.find((trip) => trip.id === focusTripId)?.snapshot.plan.brief.dates;
-    return dates ? utc(dates[0]) : undefined;
-  });
-  const [cursor, setCursor] = useState(() => {
+  const [tripId, setTripId] = useState(() => {
+    if (focusTripId) return focusTripId;
     const today = todayUtc();
-    const next = trips
-      .map((trip) => trip.snapshot.plan.brief.dates)
-      .filter(([, end]) => utc(end) >= today)
-      .sort((a, b) => utc(a[0]) - utc(b[0]))[0];
-    const date = new Date(focusStart ?? (next ? Math.max(utc(next[0]), today) : today));
-    return { year: date.getUTCFullYear(), month: date.getUTCMonth() };
+    return [...trips]
+      .sort((a, b) => utc(a.snapshot.plan.brief.dates[0]) - utc(b.snapshot.plan.brief.dates[0]))
+      .find((trip) => utc(trip.snapshot.plan.brief.dates[1]) >= today)?.id;
   });
-  const [activeTime, setActiveTime] = useState(() => {
-    if (focusStart !== undefined) return focusStart;
-    const today = todayUtc();
-    const date = new Date(today);
-    return date.getUTCFullYear() === cursor.year && date.getUTCMonth() === cursor.month
-      ? today
-      : Date.UTC(cursor.year, cursor.month, 1);
-  });
-  const dateFormatter = new Intl.DateTimeFormat(intlLocale(locale), {
-    weekday: "long",
-    day: "numeric",
-    month: "long",
-    year: "numeric",
-    timeZone: "UTC",
-  });
-  const first = Date.UTC(cursor.year, cursor.month, 1);
-  const lead = (new Date(first).getUTCDay() + 6) % 7;
-  const monthDays = new Date(Date.UTC(cursor.year, cursor.month + 1, 0)).getUTCDate();
-  const cells = Math.ceil((lead + monthDays) / 7) * 7;
-  const today = todayUtc();
-  const shift = (by: number) => {
-    const date = new Date(Date.UTC(cursor.year, cursor.month + by, 1));
-    setActiveTime(date.getTime());
-    setCursor({ year: date.getUTCFullYear(), month: date.getUTCMonth() });
-  };
-
-  const moveFocus = (event: KeyboardEvent<HTMLDivElement>, time: number) => {
-    const delta =
-      event.key === "ArrowRight"
-        ? 1
-        : event.key === "ArrowLeft"
-          ? -1
-          : event.key === "ArrowDown"
-            ? 7
-            : event.key === "ArrowUp"
-              ? -7
-              : 0;
-    if (!delta) return;
-    event.preventDefault();
-    const nextTime = time + delta * DAY;
-    const nextDate = new Date(nextTime);
-    setActiveTime(nextTime);
-    setCursor({ year: nextDate.getUTCFullYear(), month: nextDate.getUTCMonth() });
-    const grid = event.currentTarget.closest(".trip-calendar__grid");
-    const selector = `[data-calendar-time="${nextTime}"]`;
-    const nextCell = grid?.querySelector<HTMLElement>(selector);
-    if (nextCell && nextDate.getUTCMonth() === new Date(time).getUTCMonth()) nextCell.focus();
-    else requestAnimationFrame(() => grid?.querySelector<HTMLElement>(selector)?.focus());
-  };
-
-  const onDay = (time: number) =>
-    trips.filter((trip) => {
-      const [start, end] = trip.snapshot.plan.brief.dates;
-      return time >= utc(start) && time <= utc(end);
-    });
-
+  const [day, setDay] = useState<number>();
+  const trip = trips.find((item) => item.id === tripId) ?? trips[0];
+  if (!trip)
+    return <p className="trips-page__empty">{t("Trips you plan will appear on the calendar.")}</p>;
   return (
-    <div className="trip-calendar">
-      <div className="trip-calendar__head">
-        <h2 aria-live="polite">{monthLabel(cursor.year, cursor.month, locale)}</h2>
-        <div className="trip-calendar__nav">
-          <button type="button" aria-label={t("Previous month")} onClick={() => shift(-1)}>
-            <span className="trip-calendar__prev">
-              <ChevronIcon />
-            </span>
-          </button>
-          <button
-            type="button"
-            className="trip-calendar__today"
-            onClick={() => {
-              const now = new Date(today);
-              setActiveTime(today);
-              setCursor({ year: now.getUTCFullYear(), month: now.getUTCMonth() });
-            }}
-          >
-            {t("Today")}
-          </button>
-          <button type="button" aria-label={t("Next month")} onClick={() => shift(1)}>
-            <span className="trip-calendar__next">
-              <ChevronIcon />
-            </span>
-          </button>
-        </div>
-      </div>
-      <div
-        className="trip-calendar__grid"
-        role="grid"
-        aria-label={monthLabel(cursor.year, cursor.month, locale)}
-      >
-        <div role="row" className="trip-calendar__weekdays">
-          {(locale === "zh" ? ["一", "二", "三", "四", "五", "六", "日"] : WEEKDAYS).map((day) => (
-            <span role="columnheader" key={day}>
-              {day}
-            </span>
+    <div className="trips-calendar">
+      <div className="trips-calendar__head">
+        <div className="trips-calendar__picker" role="group" aria-label={t("Trips")}>
+          {trips.map((item) => (
+            <button
+              type="button"
+              key={item.id}
+              className="trips-calendar__trip"
+              aria-pressed={item.id === trip.id}
+              onClick={() => {
+                setTripId(item.id);
+                setDay(undefined);
+              }}
+            >
+              {titles.get(item.id) ?? tripName(item, t)}
+            </button>
           ))}
         </div>
-        {Array.from({ length: cells / 7 }, (_, week) => (
-          <div role="row" className="trip-calendar__week" key={week}>
-            {Array.from({ length: 7 }, (_, weekday) => {
-              const index = week * 7 + weekday;
-              const time = first + (index - lead) * DAY;
-              const date = new Date(time);
-              const inMonth = index >= lead && index < lead + monthDays;
-              const here = onDay(time);
-              return (
-                <div
-                  role="gridcell"
-                  key={index}
-                  className="trip-calendar__day"
-                  aria-label={dateFormatter.format(date)}
-                  aria-current={time === today ? "date" : undefined}
-                  tabIndex={time === activeTime ? 0 : -1}
-                  data-calendar-time={time}
-                  data-outside={inMonth ? undefined : "true"}
-                  data-today={time === today ? "true" : undefined}
-                  onFocus={() => setActiveTime(time)}
-                  onKeyDown={(event) => moveFocus(event, time)}
-                >
-                  <span className="trip-calendar__date">{date.getUTCDate()}</span>
-                  {here.map((trip) => {
-                    const [start, end] = trip.snapshot.plan.brief.dates;
-                    const { destination } = trip.snapshot.plan.brief;
-                    const baseTitle = t("Trip to {destination}", { destination });
-                    const title = titles.get(trip.id) ?? baseTitle;
-                    const ordinal = compact ? title.match(/ · (\d+)$/)?.[1] : undefined;
-                    const visibleTitle = ordinal
-                      ? `${Array.from(destination).slice(0, 3).join("")}·${ordinal}`
-                      : compact && title === baseTitle
-                        ? destination
-                        : title;
-                    const labelled = time === utc(start) || weekday === 0;
-                    const span = (Math.min(utc(end), time + (6 - weekday) * DAY) - time) / DAY + 1;
-                    const [from] = coverColours(trip.snapshot.plan.brief.destination);
-                    return (
-                      <button
-                        type="button"
-                        key={trip.id}
-                        className={`trip-calendar__trip${ordinal ? " trip-calendar__trip--compact" : ""}`}
-                        data-start={time === utc(start) ? "true" : undefined}
-                        data-end={time === utc(end) ? "true" : undefined}
-                        style={{ background: from }}
-                        aria-label={t("{name}: {start} to {end}", {
-                          name: title,
-                          start: dateFormatter.format(new Date(utc(start))),
-                          end: dateFormatter.format(new Date(utc(end))),
-                        })}
-                        tabIndex={labelled ? 0 : -1}
-                        onClick={() => onOpenTrip(trip.id)}
-                      >
-                        {labelled ? (
-                          <span
-                            className={`trip-calendar__visible-label${ordinal ? " trip-calendar__visible-label--compact" : " trip-calendar__visible-label--span"}`}
-                            style={
-                              ordinal || span === 1
-                                ? undefined
-                                : { width: `calc(${span * 100}% - var(--space-2))` }
-                            }
-                          >
-                            {visibleTitle}
-                          </span>
-                        ) : (
-                          " "
-                        )}
-                      </button>
-                    );
-                  })}
-                </div>
-              );
-            })}
-          </div>
-        ))}
+        <button type="button" className="trips-calendar__open" onClick={() => onOpenTrip(trip.id)}>
+          {t("View trip")}
+        </button>
       </div>
-      {!trips.length && (
-        <p className="trips-page__empty">{t("Trips you plan will appear on the calendar.")}</p>
-      )}
+      <TripHomeCalendar
+        key={trip.id}
+        plan={trip.snapshot.plan}
+        selectedDay={day}
+        onSelectDay={setDay}
+        onSelectActivity={() => onOpenTrip(trip.id)}
+      />
     </div>
   );
 }

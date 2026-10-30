@@ -194,8 +194,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
   .sidebar-nav__item,
   .section__row,
   .rdp-day_button,
-  .fact-chip,
-  .trip-calendar__trip
+  .fact-chip
 ) {
   scale: 0.97;
 }

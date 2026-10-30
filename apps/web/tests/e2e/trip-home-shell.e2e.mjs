@@ -212,7 +212,8 @@ try {
   );
 
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  await page.locator(".trip-calendar__trip[aria-label^='Trip to Melbourne']").first().click();
+  await page.locator(".trips-calendar__trip").filter({ hasText: "Melbourne" }).click();
+  await page.getByRole("button", { name: "View trip", exact: true }).click();
   await home(page).waitFor();
   const melbourneTags = await home(page)
     .getByRole("group", { name: "Trip details" })
@@ -221,7 +222,7 @@ try {
   check(
     (await heading(page).innerText()) === "Trip to Melbourne" &&
       melbourneTags.includes("1 traveller"),
-    "a calendar band opens the Trip home, with a singular traveller count",
+    "Calendar View trip opens the Trip home, with a singular traveller count",
     melbourneTags,
   );
   await home(page).getByRole("button", { name: "Back to trips" }).click();
@@ -347,7 +348,8 @@ try {
   await home(page).getByRole("button", { name: "Back to trips" }).click();
 
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  await page.locator(".trip-calendar__trip[aria-label^='Trip to Melbourne']").first().click();
+  await page.locator(".trips-calendar__trip").filter({ hasText: "Melbourne" }).click();
+  await page.getByRole("button", { name: "View trip", exact: true }).click();
   await home(page).waitFor();
   await goTrips(page, /^Chats/).click();
   await page.getByRole("searchbox").fill("Melbourne");

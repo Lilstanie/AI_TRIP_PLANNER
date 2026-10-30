@@ -301,175 +301,6 @@
   }
 }
 
-.trip-calendar__head {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  gap: var(--space-3);
-  margin-bottom: var(--space-3);
-}
-.trip-calendar__head h2 {
-  margin: 0;
-  font-size: 18px;
-  font-weight: 600;
-}
-.trip-calendar__nav {
-  display: flex;
-  align-items: center;
-  gap: var(--space-1);
-}
-.trip-calendar__nav button {
-  display: inline-grid;
-  place-items: center;
-  min-width: 34px;
-  height: 34px;
-  min-height: 34px !important;
-  padding: 0 var(--space-2) !important;
-  border: 1px solid var(--border) !important;
-  border-radius: var(--radius-pill) !important;
-  background: transparent !important;
-  color: var(--text);
-}
-.trip-calendar__nav button:hover {
-  background: var(--surface-2) !important;
-}
-.trip-calendar__nav .icon {
-  width: 16px;
-  height: 16px;
-}
-.trip-calendar__prev {
-  display: grid;
-  transform: scaleX(-1);
-}
-.trip-calendar__next {
-  display: grid;
-}
-.trip-calendar__today {
-  font-size: var(--font-size-meta);
-  font-weight: 600;
-}
-.trip-calendar__grid {
-  overflow: hidden;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-lg);
-}
-.trip-calendar__weekdays,
-.trip-calendar__week {
-  display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
-}
-.trip-calendar__weekdays span {
-  padding: var(--space-2);
-  border-bottom: 1px solid var(--border);
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
-  font-weight: 600;
-  text-align: center;
-}
-.trip-calendar__week + .trip-calendar__week {
-  border-top: 1px solid var(--border);
-}
-.trip-calendar__day {
-  display: flex;
-  flex-direction: column;
-  gap: 2px;
-  min-height: 92px;
-  padding: var(--space-1) 0 var(--space-2);
-  min-width: 0;
-}
-.trip-calendar__day + .trip-calendar__day {
-  border-left: 1px solid var(--border);
-}
-.trip-calendar__day[data-outside="true"] {
-  background: color-mix(in srgb, var(--surface-2) 60%, transparent);
-}
-.trip-calendar__day[data-outside="true"] .trip-calendar__date {
-  color: var(--text-mut);
-  opacity: 0.6;
-}
-.trip-calendar__date {
-  align-self: flex-end;
-  display: grid;
-  min-width: 24px;
-  height: 24px;
-  margin-right: var(--space-1);
-  place-items: center;
-  border-radius: var(--radius-pill);
-  font-size: var(--font-size-meta);
-  font-variant-numeric: tabular-nums;
-}
-.trip-calendar__day[data-today="true"] .trip-calendar__date {
-  background: var(--accent-fill);
-  color: var(--on-accent);
-  font-weight: 700;
-}
-.trip-calendar__day:focus-visible {
-  position: relative;
-  z-index: 1;
-  outline: 2px solid var(--accent);
-  outline-offset: -2px;
-}
-
-.trip-calendar__trip {
-  display: block;
-  width: calc(100% + 1px);
-  height: 22px;
-  min-height: 22px !important;
-  padding: 0 var(--space-2) !important;
-  overflow: hidden;
-  border: 0 !important;
-  border-radius: 0 !important;
-  color: #fff;
-  font-size: 11px;
-  font-weight: 600;
-  line-height: 22px;
-  text-align: left;
-  white-space: nowrap;
-  text-overflow: ellipsis;
-}
-.trip-calendar__visible-label {
-  display: inline-block;
-  white-space: nowrap;
-}
-.trip-calendar__trip:has(.trip-calendar__visible-label--span) {
-  position: relative;
-  z-index: 1;
-  overflow: visible;
-}
-.trip-calendar__visible-label--span {
-  position: absolute;
-  inset-block: 0;
-  left: 0;
-  width: 100%;
-  box-sizing: border-box;
-  padding-inline: inherit;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-.trip-calendar__visible-label--compact {
-  padding: 0 1px;
-  border-radius: var(--radius-sm);
-  background: rgb(0 0 0 / 28%);
-  font-size: 12px;
-  line-height: 18px;
-}
-.trip-calendar__trip[data-start="true"] {
-  margin-left: var(--space-1);
-  width: calc(100% - var(--space-1) + 1px);
-  border-top-left-radius: var(--radius-pill) !important;
-  border-bottom-left-radius: var(--radius-pill) !important;
-}
-.trip-calendar__trip[data-end="true"] {
-  width: calc(100% - var(--space-1));
-  border-top-right-radius: var(--radius-pill) !important;
-  border-bottom-right-radius: var(--radius-pill) !important;
-}
-.trip-calendar__trip[data-start="true"][data-end="true"] {
-  width: calc(100% - var(--space-2));
-}
-.trip-calendar__trip--compact {
-  padding-inline: 1px !important;
-}
 .trip-calendar + .trips-page__empty,
 .trip-calendar > .trips-page__empty {
   margin-top: var(--space-4);
@@ -481,12 +312,6 @@
   }
   .trips-page {
     padding: var(--space-5) var(--space-4) 48px;
-  }
-  .trip-calendar__day {
-    min-height: 64px;
-  }
-  .trip-calendar__trip {
-    font-size: 0;
   }
 }
 .trip-cards > li {
@@ -721,4 +546,44 @@
   .trip-home__actions {
     margin-top: var(--space-5);
   }
+}
+
+.trips-calendar {
+  display: grid;
+  gap: var(--space-4);
+}
+.trips-calendar__head {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+}
+.trips-calendar__picker {
+  display: flex;
+  flex: 1;
+  flex-wrap: wrap;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.trips-calendar__trip {
+  max-width: 100%;
+  min-height: 32px;
+  padding: 0 var(--space-2) !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  overflow-wrap: anywhere;
+  text-align: start;
+}
+.trips-calendar__trip:hover,
+.trips-calendar__trip[aria-pressed="true"] {
+  background: var(--fill-hover) !important;
+}
+.trips-calendar__trip[aria-pressed="true"] {
+  color: var(--text);
+}
+.trips-calendar__open {
+  flex: none;
 }

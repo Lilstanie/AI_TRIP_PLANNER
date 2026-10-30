@@ -45,7 +45,6 @@ The following scripts failed on the unmodified base of the quiet itinerary panel
 | `cross-day-drag`                | 2026-10-28 |
 | `itinerary-walkthrough`         | 2026-10-28 |
 | `trip-workspace-layout`         | 2026-10-28 |
-| `calendar-trip-identity-search` | 2026-10-28 |
 | `stop-menu`                     | 2026-10-28 |
 | `drag-in-day`                   | 2026-10-28 |
 

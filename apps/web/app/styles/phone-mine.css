@@ -38,8 +38,7 @@
   .phone-mine .history-item__open,
   .phone-mine .chats-panel__action,
   .phone-mine .history-item__menu button,
-  .phone-mine .trips-page__tabs button,
-  .phone-mine .trip-calendar__nav button {
+  .phone-mine .trips-page__tabs button {
     min-width: 44px;
     min-height: 44px !important;
   }
@@ -57,29 +56,6 @@
   }
   .phone-mine .trip-cards {
     grid-template-columns: minmax(0, 1fr);
-  }
-  .phone-mine .trip-calendar__head {
-    flex-wrap: wrap;
-    gap: 8px;
-  }
-  .phone-mine .trip-calendar__weekdays span {
-    padding-inline: 0;
-  }
-  .phone-mine .trip-calendar__grid {
-    overflow-x: auto;
-  }
-  .phone-mine .trip-calendar__week,
-  .phone-mine .trip-calendar__weekdays {
-    min-width: 315px;
-  }
-  .phone-mine .trip-calendar__trip {
-    min-height: 44px !important;
-    min-width: 44px;
-    width: 100%;
-    margin-left: 0;
-    padding-inline: 2px !important;
-    line-height: 44px;
-    font-size: 12px;
   }
   .phone-mine__controls {
     display: flex;
