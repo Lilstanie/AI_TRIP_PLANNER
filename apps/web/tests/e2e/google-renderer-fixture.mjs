@@ -68,7 +68,13 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
       maps.push(this);
     }
     addListener(event, callback) {
-      if (event === "error" && fixture.authRejected) queueMicrotask(() => fixture.fail());
+      if (fixture.authRejected) {
+        if (event === "error") queueMicrotask(() => fixture.fail());
+        return undefined;
+      }
+      return this.subscribe(event, callback);
+    }
+    subscribe(event, callback) {
       const callbacks = this.listeners.get(event) ?? new Set();
       callbacks.add(callback);
       this.listeners.set(event, callbacks);
@@ -165,7 +171,7 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
       geometry: { encoding: { decodePath: () => [] } },
       event: {
         addListenerOnce(map, event, callback) {
-          const handle = map.addListener(event, () => {
+          const handle = map.subscribe(event, () => {
             handle.remove();
             callback();
           });

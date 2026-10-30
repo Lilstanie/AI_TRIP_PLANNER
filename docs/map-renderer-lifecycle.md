@@ -5,7 +5,9 @@ disposing its renderer. Each renderer owns one full-height child of the map surf
 constructor removes that child before fallback; a late SDK response cannot create a map after unmount.
 Google authentication subscriptions preserve the existing host callback, snapshot listeners before
 dispatch and restore the host callback when the last owner leaves. Their module-level set is a registry
-of active map owners that becomes empty on disposal, not a cache of failed trips.
+of active map owners that becomes empty on disposal, not a cache of failed trips. Once Google rejects
+the key, the SDK's `map.addListener` returns `undefined`; the renderer keeps no handle for it, so
+disposing that map cannot throw.
 
 Fallback belongs to the mounted map. A new mount follows the configured provider again; failed Trip
 identities are not cached. Strict Google mode keeps saved places and an explicit retry action instead
@@ -21,6 +23,7 @@ twice has one marker, which belongs to its first stop, so the later stop highlig
 ## Browser fixture
 
 `trip-home-action-panels` runs the local Google SDK fixture (`google-renderer-fixture.mjs`) and proves one
-renderer is kept when the action panel opens beside the map. SDK, constructor and authentication failures have no dedicated
-browser script. The fixture does not verify live Google services, production login, physical devices or
+renderer is kept when the action panel opens beside the map. It also rejects the key like Google does
+and leaves and reopens Trip home twice without a browser error. SDK and constructor failures have no
+dedicated browser script. The fixture does not verify live Google services, production login, physical devices or
 route duration accuracy.
