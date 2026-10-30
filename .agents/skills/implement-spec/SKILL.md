@@ -36,4 +36,4 @@ Communication to and from subagents should be sparse. Communicate primarily thro
 
 8. If a draft PR exists, mark it ready for review. Otherwise, resolve each ticket the way the issue tracker closes work, and report the integration branch. After a PR merges, check that every ticket it was meant to close is closed.
 
-9. Clean up all **implementer subagent** worktrees.
+9. Clean up all **implementer subagent** worktrees with `node scripts/worktrees.mjs --apply --worktree <path>` (one `--worktree` per implementer), and report any it kept because they hold work.
