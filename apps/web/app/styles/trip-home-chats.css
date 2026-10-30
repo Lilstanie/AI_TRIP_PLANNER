@@ -21,19 +21,17 @@
   gap: var(--space-3);
   width: 100%;
   min-height: 44px;
-  padding: var(--space-3) var(--space-4);
-  border: 1px solid var(--border);
-  border-radius: var(--radius);
-  background: var(--surface-2);
+  padding: var(--space-2) var(--space-3) !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
   color: var(--text);
+  font-weight: 400;
   text-align: start;
-  transition:
-    border-color var(--transition),
-    background-color var(--transition);
+  transition: background-color var(--transition);
 }
 .trip-home-chats__row:hover {
-  border-color: color-mix(in srgb, var(--accent) 34%, var(--border));
-  background: var(--fill-hover);
+  background: var(--fill-hover) !important;
 }
 .trip-home-chats__name {
   min-width: 0;

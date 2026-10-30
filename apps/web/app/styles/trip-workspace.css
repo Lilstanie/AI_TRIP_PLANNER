@@ -17,6 +17,7 @@
 }
 
 .trip-workspace__timeline {
+  position: relative;
   border-inline-end: 1px solid var(--border);
 }
 

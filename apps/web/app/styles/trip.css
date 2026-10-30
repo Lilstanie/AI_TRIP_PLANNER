@@ -80,8 +80,10 @@
 }
 
 .trip-workspace__open-items {
-  display: flex;
-  justify-content: flex-end;
+  position: absolute;
+  top: var(--space-3);
+  right: var(--space-5);
+  z-index: 2;
 }
 .open-items {
   position: relative;

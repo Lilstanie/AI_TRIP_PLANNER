@@ -20,6 +20,8 @@ contract-impact: none
 - UI fixes from a local review: Dismiss button layout, Trip home composer bottom gap, dialog styling,
   title menu no longer covers the Trip name, round back button, and the Chats panel stays open while
   its rename or delete dialog is used.
+- Trip panels: Expand no longer narrows the panel on wide windows, tabs and Expand stay in the panel
+  head, preferences have padding, and Chat and booking rows lose the grey pill.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

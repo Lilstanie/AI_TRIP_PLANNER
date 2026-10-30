@@ -140,10 +140,7 @@
   --trip-home-width: min(calc(100% - 48px), 1440px);
   --trip-home-inset: max(24px, calc((100% - 1440px) / 2));
   --trip-home-aside: calc(var(--trip-home-width) * 0.4);
-  --trip-home-action-expanded-width: min(
-    calc(var(--trip-home-width) * 0.78 - var(--trip-home-aside)),
-    calc(920px - var(--trip-home-aside))
-  );
+  --trip-home-action-expanded-width: calc(var(--trip-home-width) * 0.38);
   display: block;
   overflow: auto;
 }

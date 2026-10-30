@@ -64,6 +64,9 @@
 .workspace-shell--trips[data-home-action-expanded] .trip-home__actions {
   display: none;
 }
+.trip-home-action-surface .drawer__head {
+  position: relative;
+}
 .trip-home-action-surface .drawer__title {
   flex: 1 1 auto;
   flex-direction: column;
@@ -74,38 +77,44 @@
   flex-wrap: wrap;
   align-items: center;
   gap: var(--space-2);
-  width: 100%;
+  width: calc(100% + 44px);
   min-width: 0;
 }
 .trip-home-action-switcher__tabs {
   display: flex;
-  flex: 1 1 260px;
+  flex: 1 1 100%;
+  flex-wrap: wrap;
   gap: var(--space-1);
   min-width: 0;
-  padding-bottom: 2px;
-  overflow-x: auto;
-  overscroll-behavior-inline: contain;
 }
 .trip-home-action-switcher [role="tab"],
 .trip-home-action-switcher__size {
   flex: none;
-  min-height: 34px;
-  padding: 0 var(--space-3) !important;
-  border: 1px solid transparent !important;
-  border-radius: var(--radius-pill) !important;
-  background: var(--fill-hover) !important;
+  min-height: 32px;
+  padding: 0 var(--space-2) !important;
+  border: 0 !important;
+  border-radius: var(--radius-sm) !important;
+  background: transparent !important;
   color: var(--text-dim);
   font-size: var(--font-size-meta);
   font-weight: 600;
   white-space: nowrap;
 }
+.trip-home-action-switcher [role="tab"]:hover,
+.trip-home-action-switcher__size:hover {
+  background: var(--fill-hover) !important;
+}
 .trip-home-action-switcher [role="tab"][aria-selected="true"] {
-  border-color: var(--border) !important;
-  background: var(--surface) !important;
+  background: var(--fill-hover) !important;
   color: var(--text);
 }
 .trip-home-action-switcher__size {
-  color: var(--accent);
+  position: absolute;
+  top: var(--space-3);
+  right: 56px;
+}
+.trip-home-preferences {
+  padding: var(--space-4);
 }
 .trip-home-action-content {
   min-width: 0;
@@ -190,9 +199,6 @@
   }
   .trip-home-action {
     padding: var(--space-4);
-  }
-  .trip-home-action-switcher__tabs {
-    flex-basis: 100%;
   }
 }
 @media (prefers-reduced-motion: reduce) {
