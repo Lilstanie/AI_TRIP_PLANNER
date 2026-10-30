@@ -8,7 +8,7 @@
 
 TP-165（2026-10-30）删除了 136 个原始脚本：它们在 `main` 上本就失败、只守护一次旧修复，或与保留的旅程重复；对应的失败清单和不再使用的 fixture 一并删除。它们的旧条目已从本页移除；只有在说明需要它的理由后，才从 Git 历史恢复脚本。
 
-issue 线程在 `main` `fb21e61`（2026-10-30）上用 `pnpm --filter @trip/web e2e <script> --prod`、不加额外环境变量重跑了下面两个脚本。PR #782 会修改这两个脚本。
+issue 线程在 `main` `fb21e61`（2026-10-30）上用 `pnpm --filter @trip/web e2e <script> --prod`、不加额外环境变量重跑了下面两个脚本。PR #782（2026-10-30 已合并）修改了这两个脚本，它的描述仍报告两者失败。
 
 | 脚本                    | 失败内容                                                                    | Issue |
 | ----------------------- | --------------------------------------------------------------------------- | ----- |
@@ -18,6 +18,11 @@ issue 线程在 `main` `fb21e61`（2026-10-30）上用 `pnpm --filter @trip/web 
 `trajectory-tab` 在 `main` `ec70e0d` 上也会失败（2026-10-30，TP-167），命令为
 `pnpm --filter @trip/web e2e trajectory-tab`：`en-1440` 通过 59 项检查后，刷新步骤从“聊天”重新打开
 “Tokyo from Sydney”，在 `page.waitForFunction` 处等待三条 `.msg-item--agent` 消息时超时。
+
+`node apps/web/tests/e2e/run-performance.mjs` 在 `main` `8029779`（2026-10-30）上构建前就失败：
+它把 TP-165 已删除的 `map-animation-lifecycle` 传给旧运行器，运行器以
+`e2e: no script matches "map-animation-lifecycle"` 停止。日志位于
+`output/e2e/performance-acceptance/<label>/runner.log`。
 
 <a id="covered-regressions"></a>
 

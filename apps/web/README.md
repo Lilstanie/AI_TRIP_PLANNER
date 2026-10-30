@@ -1,6 +1,6 @@
 # @trip/web
 
-The Next.js workspace and its API routes: chat, preferences, trip timeline, map (Google first,
+The Next.js workspace and its API routes: chat, preferences, Trip home, trip timeline and calendar, Trajectory, map (Google first,
 OpenStreetMap fallback), saved trips with optional account sync, the installable app shell and
 `/agent-lab`. Owners: E (@WhW0591) for UI, A (@Lilstanie) for `app/api/`.
 
@@ -10,7 +10,7 @@ OpenStreetMap fallback), saved trips with optional account sync, the installable
 | ------------- | ------------------------------------------------------------------------------------------------------------------------ |
 | `app/api/`    | Thin route handlers; formats are in [api.md](../../docs/api.md)                                                          |
 | `app/styles/` | Domain stylesheets imported by `app/globals.css`                                                                         |
-| `components/` | UI by feature: `workspace`, `chat`, `trip`, `map`, `preferences`, `account`, `agent-lab`, `pwa`, `ui`                    |
+| `components/` | UI by feature: `workspace`, `chat`, `trip`, `trajectory`, `map`, `preferences`, `account`, `agent-lab`, `pwa`, `ui`      |
 | `lib/`        | Domain logic; external clients in `lib/integrations/`, Web map providers in `lib/map-provider/`                          |
 | `tests/`      | Tests mirroring `app`, `components` and `lib`; browser journeys in `e2e/`, CLI and CI acceptance in `cli-e2e/` and `ci/` |
 

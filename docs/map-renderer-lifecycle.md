@@ -15,6 +15,6 @@ of silently switching providers. OSM disables satellite controls. The phone Trip
 ## Browser fixture
 
 `trip-home-action-panels` runs the local Google SDK fixture (`google-renderer-fixture.mjs`) and proves one
-renderer survives Expand and Collapse. SDK, constructor and authentication failures have no dedicated
+renderer is kept when the action panel opens beside the map. SDK, constructor and authentication failures have no dedicated
 browser script. The fixture does not verify live Google services, production login, physical devices or
 route duration accuracy.

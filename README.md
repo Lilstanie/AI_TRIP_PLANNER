@@ -11,6 +11,12 @@ each labelled with where its data came from. The user edits the plan by chatting
 day timeline and map (Google first, OpenStreetMap when Google cannot answer), and saves trips in the
 browser, optionally synced to an account across devices.
 
+Each saved trip has a Trip home: its facts, the chats linked to it, a composer for a new chat, and
+Itinerary, Ideas, Bookings, Trip preferences and Calendar panels beside the trip map. Your trips lists
+every trip and a Week and Month calendar. In chat the traveller can @-mention any of the five
+specialists, see the Agent Team at work, and open Trajectory for a step-by-step record of
+what each agent did.
+
 The interface is available in English and Chinese, shows each trip's amounts in its own display
 currency, switches to a phone layout at narrow widths and can be installed as an app. A separate
 `/agent-lab` page compares planning strategies on fixed scenarios.
@@ -63,9 +69,9 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 
 ```text
 apps/web/                 Next.js workspace UI and API routes
-  components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
+  components/{workspace,chat,trip,trajectory,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
+  lib/{workspace,chat,trip,trajectory,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code

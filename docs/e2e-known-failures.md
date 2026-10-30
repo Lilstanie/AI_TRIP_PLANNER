@@ -12,7 +12,8 @@ repeated a kept journey, together with their failure notes and unused fixtures. 
 gone from this page; restore a script from Git history only with a reason it is needed again.
 
 The issue thread re-ran these on `main` `fb21e61` (2026-10-30) with
-`pnpm --filter @trip/web e2e <script> --prod` and no extra environment. PR #782 changes both scripts.
+`pnpm --filter @trip/web e2e <script> --prod` and no extra environment. PR #782 (merged 2026-10-30)
+changed both scripts, and its description still reports both as failing.
 
 | Script                  | What fails                                                                                                  | Issue |
 | ----------------------- | ----------------------------------------------------------------------------------------------------------- | ----- |
@@ -23,6 +24,11 @@ The issue thread re-ran these on `main` `fb21e61` (2026-10-30) with
 `pnpm --filter @trip/web e2e trajectory-tab`: after 59 passing checks at `en-1440`, the reload step
 reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` waiting for three
 `.msg-item--agent` messages.
+
+`node apps/web/tests/e2e/run-performance.mjs` fails on `main` `8029779` (2026-10-30) before it builds:
+it passes `map-animation-lifecycle`, which TP-165 deleted, to the raw runner, and the runner stops with
+`e2e: no script matches "map-animation-lifecycle"`. The log is under
+`output/e2e/performance-acceptance/<label>/runner.log`.
 
 ## Covered regressions
 
