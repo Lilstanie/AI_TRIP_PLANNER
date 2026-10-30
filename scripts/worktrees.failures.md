@@ -1,10 +1,11 @@
 # Worktree clean-up failure inventory
 
-`node scripts/worktrees.mjs [--apply] [--sizes] [--root <dir>]... [--trash <dir>]` lists the
+`node scripts/worktrees.mjs [--apply] [--sizes] [--worktree <path>]... [--idle-hours <n>] [--root <dir>]... [--trash <dir>]` lists the
 repository's worktrees and leftovers by category, and with `--apply` moves the safe ones to the Trash.
 These failures must be observable:
 
-- An unknown argument, or `--root`/`--trash` without a value: usage error, exit 2, nothing moved.
+- An unknown argument, a value flag without a value, or a non-numeric `--idle-hours`: usage error,
+  exit 2, nothing moved.
 - The command runs outside a Git repository: exit 1, nothing moved.
 - A run without `--apply` moves, prunes or deletes something.
 - A worktree with a modified tracked file, a staged-only change or an untracked file is moved; it must
@@ -14,12 +15,16 @@ These failures must be observable:
 - Removing a clean worktree deletes its branch, or leaves a stale registry entry behind.
 - A clean detached worktree whose commit is on no branch or remote ref is moved, losing that commit.
 - A locked worktree, the main worktree or the worktree the command runs from is moved.
+- Another agent's session is still using a clean worktree or clone: a scan without `--worktree` must
+  keep anything whose Git index, `HEAD` or reflog changed within `--idle-hours` (default 24).
+- `--worktree <path>` touches anything other than the named worktrees and their build output, or moves
+  a named path that is not a registered worktree of this repository.
 - A registry entry whose directory is already gone stays registered after `--apply`.
 - A build directory (`.next`, `.turbo`, under the root or `apps/web/`) is moved from the main worktree,
   or moved while it holds tracked files.
 - A directory under a scan root that holds only the agent's worktree-name marker (and `.DS_Store`)
   survives `--apply`; a directory that holds anything else is moved as marker-only.
-- Moving a worktree leaves its parent under a scan root holding only the marker.
+- Moving a worktree leaves its parent holding only the marker.
 - An unregistered clone of the same `origin` is moved while it has changes, a stash, or commits that no
   remote ref holds; a clone of a different repository is touched at all.
 - A move overwrites an existing entry in the Trash.

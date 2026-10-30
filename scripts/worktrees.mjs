@@ -1,11 +1,19 @@
 #!/usr/bin/env node
 import { spawnSync } from "node:child_process";
-import { existsSync, lstatSync, mkdirSync, readdirSync, realpathSync, renameSync } from "node:fs";
+import {
+  existsSync,
+  lstatSync,
+  mkdirSync,
+  readdirSync,
+  realpathSync,
+  renameSync,
+  statSync,
+} from "node:fs";
 import { homedir, platform } from "node:os";
 import { basename, dirname, join, relative, resolve, sep } from "node:path";
 
 const usage =
-  "usage: node scripts/worktrees.mjs [--apply] [--sizes] [--root <dir>]... [--trash <dir>]";
+  "usage: node scripts/worktrees.mjs [--apply] [--sizes] [--worktree <path>]... [--idle-hours <n>] [--root <dir>]... [--trash <dir>]";
 const MARKER = ".codex-worktree-name";
 const IGNORABLE = new Set([MARKER, ".DS_Store"]);
 const BUILD_DIRS = [".next", ".turbo", "apps/web/.next", "apps/web/.turbo"];
@@ -15,19 +23,24 @@ const args = process.argv.slice(2);
 let apply = false;
 let sizes = false;
 let trashOption;
+let idleHours = 24;
 const rootOptions = [];
+const targetOptions = [];
 for (let index = 0; index < args.length; index += 1) {
   const arg = args[index];
   if (arg === "--apply") apply = true;
   else if (arg === "--sizes") sizes = true;
-  else if (arg === "--root" || arg === "--trash") {
+  else if (["--root", "--trash", "--worktree", "--idle-hours"].includes(arg)) {
     const value = args[index + 1];
-    if (!value || value.startsWith("--")) {
+    const hours = Number(value);
+    if (!value || value.startsWith("--") || (arg === "--idle-hours" && !(hours >= 0))) {
       console.error(usage);
       process.exit(2);
     }
     index += 1;
     if (arg === "--root") rootOptions.push(resolve(value));
+    else if (arg === "--worktree") targetOptions.push(resolve(value));
+    else if (arg === "--idle-hours") idleHours = hours;
     else trashOption = resolve(value);
   } else {
     console.error(usage);
@@ -85,11 +98,14 @@ for (const block of git(current, "worktree", "list", "--porcelain").out.split(/\
 const [mainEntry, ...linked] = entries;
 const registered = new Set(entries.map((entry) => real(entry.worktree)));
 const origin = git(current, "remote", "get-url", "origin");
+const targets = new Set(targetOptions.map(real));
+const scoped = targets.size > 0;
+const idleLabel = `used in the last ${idleHours} h`;
 
 const defaultRoot = join(homedir(), ".codex", "worktrees");
-const roots = (rootOptions.length ? rootOptions : existsSync(defaultRoot) ? [defaultRoot] : []).map(
-  real,
-);
+const roots = scoped
+  ? []
+  : (rootOptions.length ? rootOptions : existsSync(defaultRoot) ? [defaultRoot] : []).map(real);
 const trashDir =
   trashOption ??
   (platform() === "darwin"
@@ -102,6 +118,20 @@ let pruneEntries = 0;
 const move = (category, path, detail = "") => moves.push({ category, path, detail });
 const keep = (category, path, detail = "") => kept.push({ category, path, detail });
 
+const recentlyUsed = (path) => {
+  if (scoped) return false;
+  const gitDir = git(path, "rev-parse", "--absolute-git-dir");
+  if (!gitDir.ok) return false;
+  const times = ["index", "HEAD", join("logs", "HEAD")].map((name) => {
+    try {
+      return statSync(join(gitDir.out, name)).mtimeMs;
+    } catch {
+      return 0;
+    }
+  });
+  return Date.now() - Math.max(...times) < idleHours * 3600 * 1000;
+};
+const status = (path) => git(path, "--no-optional-locks", "status", "--porcelain=v1");
 const reachable = (cwd, rev) =>
   git(cwd, "for-each-ref", "--contains", rev, "--count=1", "refs/heads", "refs/remotes").out !== "";
 const onlyMarker = (path) => {
@@ -110,7 +140,6 @@ const onlyMarker = (path) => {
 };
 const huskParent = (path) => {
   const parent = dirname(path);
-  if (!roots.some((root) => inside(parent, root))) return undefined;
   const names = readdirSync(parent).filter((name) => !IGNORABLE.has(name));
   return names.length === 1 && names[0] === basename(path) && exists(join(parent, MARKER))
     ? parent
@@ -125,8 +154,15 @@ const buildOutput = (worktree) => {
   }
 };
 
+for (const target of targets) {
+  if (!linked.some((entry) => real(entry.worktree) === target)) {
+    keep("named paths that are not linked worktrees of this repository", target);
+  }
+}
+
 for (const entry of linked) {
   const path = real(entry.worktree);
+  if (scoped && !targets.has(path)) continue;
   const label = entry.branch ? entry.branch.replace(/^refs\/heads\//, "") : "detached";
   if (entry.prunable || !existsSync(entry.worktree)) {
     pruneEntries += 1;
@@ -140,12 +176,16 @@ for (const entry of linked) {
     keep("the worktree this command runs from", path, label);
     continue;
   }
-  const status = git(path, "status", "--porcelain=v1");
-  if (!status.ok) {
+  if (recentlyUsed(path)) {
+    keep(`worktrees ${idleLabel}`, path, label);
+    continue;
+  }
+  const state = status(path);
+  if (!state.ok) {
     keep("worktrees Git cannot read", path, label);
     continue;
   }
-  const changes = status.out ? status.out.split("\n").length : 0;
+  const changes = state.out ? state.out.split("\n").length : 0;
   if (changes > 0) {
     keep("worktrees holding work", path, `${label}, ${changes} changed paths`);
     buildOutput(path);
@@ -162,8 +202,9 @@ for (const entry of linked) {
 const checkClone = (path) => {
   const url = git(path, "remote", "get-url", "origin");
   if (!origin.ok || !url.ok || url.out !== origin.out) return;
-  const status = git(path, "status", "--porcelain=v1");
-  if (!status.ok || status.out) return keep("unregistered clones holding work", path);
+  if (recentlyUsed(path)) return keep(`unregistered clones ${idleLabel}`, path);
+  const state = status(path);
+  if (!state.ok || state.out) return keep("unregistered clones holding work", path);
   if (git(path, "stash", "list").out) return keep("unregistered clones with a stash", path);
   const unpushed = git(path, "log", "--branches", "--not", "--remotes", "--format=%h", "-1").out;
   if (unpushed || !reachable(path, "HEAD")) {

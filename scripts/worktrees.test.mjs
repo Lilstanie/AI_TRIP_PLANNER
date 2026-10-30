@@ -1,6 +1,14 @@
 import assert from "node:assert/strict";
 import { spawnSync } from "node:child_process";
-import { existsSync, mkdirSync, mkdtempSync, readdirSync, rmSync, writeFileSync } from "node:fs";
+import {
+  existsSync,
+  mkdirSync,
+  mkdtempSync,
+  readdirSync,
+  rmSync,
+  utimesSync,
+  writeFileSync,
+} from "node:fs";
 import { tmpdir } from "node:os";
 import { join } from "node:path";
 import { fileURLToPath } from "node:url";
@@ -57,7 +65,7 @@ function run(cwd, args) {
 
 test("usage errors exit 2 and a directory outside Git exits 1", () => {
   const { repo, base } = fixture();
-  for (const args of [["--bogus"], ["--root"], ["--trash", "--apply"]]) {
+  for (const args of [["--bogus"], ["--root"], ["--trash", "--apply"], ["--idle-hours", "soon"]]) {
     assert.equal(run(repo, args).status, 2, args.join(" "));
   }
   const outside = mkdtempSync(join(tmpdir(), "worktrees-outside-"));
@@ -102,7 +110,7 @@ test("dry run moves nothing; --apply moves only safe entries to the Trash", () =
   write(join(repo, ".next/cache/b.bin"));
   write(join(trash, "clean", "older.txt"));
 
-  const args = ["--root", scan, "--trash", trash];
+  const args = ["--root", scan, "--trash", trash, "--idle-hours", "0"];
   const dry = run(repo, args);
   assert.equal(dry.status, 0, dry.stderr);
   assert.match(dry.stdout, /dry run/);
@@ -156,4 +164,48 @@ test("the worktree the command runs from is kept", () => {
   assert.equal(result.status, 0, result.stderr);
   assert.match(result.stdout, /the worktree this command runs from: 1/);
   assert.ok(existsSync(self));
+});
+
+function age(path) {
+  const gitDir = git(path, "rev-parse", "--absolute-git-dir");
+  const old = new Date(Date.now() - 48 * 3600 * 1000);
+  for (const name of ["index", "HEAD", "logs/HEAD"]) {
+    if (existsSync(join(gitDir, name))) utimesSync(join(gitDir, name), old, old);
+  }
+}
+
+test("a scan keeps worktrees and clones another session used recently", () => {
+  const { base, remote, repo, scan, trash, worktree } = fixture();
+  const fresh = worktree("fresh", "-b", "feat-fresh");
+  const idle = worktree("idle", "-b", "feat-idle");
+  git(idle, "status");
+  age(idle);
+  const freshClone = join(scan, "fresh-clone");
+  git(base, "clone", "-q", remote, freshClone);
+  const args = ["--root", scan, "--trash", trash];
+  const dry = run(repo, args);
+  assert.match(dry.stdout, /worktrees used in the last 24 h: 1/);
+  assert.match(dry.stdout, /unregistered clones used in the last 24 h: 1/);
+  const applied = run(repo, [...args, "--apply"]);
+  assert.equal(applied.status, 0, applied.stderr);
+  assert.ok(existsSync(fresh) && existsSync(freshClone));
+  assert.equal(existsSync(join(scan, "idle")), false, "the dry run must not refresh the index");
+});
+
+test("--worktree moves only the named worktrees", () => {
+  const { repo, scan, trash, worktree } = fixture();
+  const mine = worktree("mine", "-b", "feat-mine");
+  const other = worktree("other", "-b", "feat-other");
+  write(join(scan, "husk", MARKER));
+  const stray = join(scan, "stray");
+  mkdirSync(stray);
+  const result = run(repo, ["--worktree", mine, "--worktree", stray, "--trash", trash, "--apply"]);
+  assert.equal(result.status, 0, result.stderr);
+  assert.match(result.stdout, /named paths that are not linked worktrees of this repository: 1/);
+  assert.equal(existsSync(join(scan, "mine")), false);
+  assert.ok(existsSync(other) && existsSync(join(scan, "husk")) && existsSync(stray));
+  assert.equal(
+    git(repo, "branch", "--list", "--format=%(refname:short)", "feat-mine"),
+    "feat-mine",
+  );
 });
