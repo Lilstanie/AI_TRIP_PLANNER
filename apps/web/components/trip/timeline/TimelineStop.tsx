@@ -15,11 +15,11 @@ import { PlacePreview } from "../../map/PlacePreview";
 import {
   CalendarIcon,
   ChatIcon,
-  CheckIcon,
   ChevronIcon,
   CloseIcon,
   ComposeIcon,
   MapPinIcon,
+  PlusIcon,
   RouteIcon,
   SendIcon,
   SuitcaseIcon,
@@ -35,9 +35,9 @@ type Panel = "" | "search";
 type Popover = "" | "time" | "details" | "comment" | "day";
 
 const PROGRESS = {
-  planned: { action: "Mark as planned", notice: "{name} marked as planned." },
-  visited: { action: "Mark as visited", notice: "{name} marked as visited." },
-  skipped: { action: "Mark as skipped", notice: "{name} marked as skipped." },
+  planned: { action: "Planned", notice: "{name} marked as planned." },
+  visited: { action: "Visited", notice: "{name} marked as visited." },
+  skipped: { action: "Skipped", notice: "{name} marked as skipped." },
 } as const;
 
 const PROGRESS_TAG = { visited: "Visited", skipped: "Skipped" } as const;
@@ -300,11 +300,10 @@ export function TimelineStop({
       },
       {
         label: t("Add again"),
-        icon: <ComposeIcon />,
+        icon: <PlusIcon />,
         disabled: locked,
         onSelect: () => addAgain(),
       },
-      removal,
       {
         label: t("Replace place"),
         icon: <MapPinIcon />,
@@ -326,27 +325,35 @@ export function TimelineStop({
           ),
       });
     }
+    const currentProgress = activity.progress ?? "planned";
     for (const progress of ["planned", "visited", "skipped"] as const) {
       items.push({
         label: t(PROGRESS[progress].action),
-        icon: <CheckIcon />,
-        disabled: locked || (activity.progress ?? "planned") === progress,
-        onSelect: () =>
-          act({ kind: "progress", progress }, { key: PROGRESS[progress].notice, params: { name } }),
+        checked: currentProgress === progress,
+        radio: true,
+        separated: progress === "planned",
+        disabled: locked,
+        onSelect: () => {
+          if (currentProgress === progress) return;
+          act({ kind: "progress", progress }, { key: PROGRESS[progress].notice, params: { name } });
+        },
       });
     }
-    items.push({
-      label: t(activity.booked ? "Mark as not booked" : "Mark as booked"),
-      icon: <CheckIcon />,
-      disabled: locked,
-      onSelect: () =>
-        act(
-          { kind: "booked", booked: !activity.booked },
-          activity.booked
-            ? { key: "{name} marked as not booked.", params: { name } }
-            : { key: "{name} marked as booked.", params: { name } },
-        ),
-    });
+    items.push(
+      {
+        label: t("Booked"),
+        checked: Boolean(activity.booked),
+        disabled: locked,
+        onSelect: () =>
+          act(
+            { kind: "booked", booked: !activity.booked },
+            activity.booked
+              ? { key: "{name} marked as not booked.", params: { name } }
+              : { key: "{name} marked as booked.", params: { name } },
+          ),
+      },
+      removal,
+    );
     return items;
   };
 

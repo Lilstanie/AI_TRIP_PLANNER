@@ -941,10 +941,12 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   Each stop's "…" menu (`ActionMenu`, a `role="menu"`; arrow keys move, Escape closes it and returns
   focus to its trigger without closing the drawer) offers Adjust schedule, Edit details, Add a comment,
   Move to ideas, Move to previous day, Move to next day (the first is disabled on Day 1 and the second on
-  the last day), Add again and Remove, then Replace place (opens the place search in the card), Open in
+  the last day) and Add again, then Replace place (opens the place search in the card), Open in
   Maps (only when the stop's place has coordinates; it opens Google Maps directions to them in a new tab,
-  which hands off to the phone's maps app and needs no API call), the visit-progress items and Mark as
-  booked. Parked places have no row; the Ideas tab of the Add to trip panel schedules them. Adjust schedule, Edit details, Add a comment and
+  which hands off to the phone's maps app and needs no API call), the visit-progress items Planned,
+  Visited and Skipped (`menuitemradio`; only the current one carries a tick) and Booked
+  (`menuitemcheckbox`, ticked when booked), and Remove last
+  (`pnpm --filter @trip/web e2e stop-menu-state`). Parked places have no row; the Ideas tab of the Add to trip panel schedules them. Adjust schedule, Edit details, Add a comment and
   Schedule on a day open a small popover attached to the row (`StopPopover`, a `role="dialog"` named for
   the action) at every width; it takes focus, closes on Escape or a tap outside without saving what was
   typed, and returns focus to the row. Tapping the time opens the same Adjust schedule popover; tapping
