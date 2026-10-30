@@ -415,7 +415,12 @@ export function TripHomeCalendar({
               const time = visibleMonth + index * DAY_MS;
               const day = tripDay(plan, time);
               const entry = day === undefined ? undefined : days[day - 1];
-              if (!entry) return <span className="trip-home-calendar__blank" key={index + 1} />;
+              if (!entry)
+                return (
+                  <span className="trip-home-calendar__blank" key={index + 1}>
+                    {index + 1}
+                  </span>
+                );
               return (
                 <section className="trip-home-calendar__month-day" key={index + 1}>
                   <button
@@ -437,6 +442,9 @@ export function TripHomeCalendar({
                 </section>
               );
             })}
+            {Array.from({ length: (7 - ((leading + monthDays) % 7)) % 7 }, (_, index) => (
+              <span className="trip-home-calendar__blank" key={`end-${index}`} />
+            ))}
           </div>
         </section>
       )}

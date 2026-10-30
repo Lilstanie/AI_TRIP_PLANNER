@@ -1,12 +1,11 @@
 "use client";
-import { useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { COMMUNICATION_STYLES, MAX_ASSISTANT_NAME_LENGTH, type AssistantId } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import type { DataMode } from "@/lib/workspace/data-mode";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
-import { useSegmentIndicator } from "../ui/motion";
 import { ASSISTANT_ROLE_KEYS } from "../chat/assistants";
 import { ASSISTANT_ORDER, nameTaken } from "../chat/assistant-names";
 import { useAccount } from "./AccountProvider";
@@ -348,89 +347,6 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
           </p>
         )}
       </div>
-    </div>
-  );
-}
-
-function Loyalty({
-  list,
-  onChange,
-}: {
-  list: UserSettings["memberships"];
-  onChange(next: UserSettings["memberships"]): void;
-}) {
-  const { t } = useLocale();
-  const [kind, setKind] = useState<"airline" | "hotel">("airline");
-  const [program, setProgram] = useState("");
-  const [number, setNumber] = useState("");
-  return (
-    <div className="settings-form">
-      {list.length > 0 && (
-        <ul className="settings-list" aria-label={t("Your memberships")}>
-          {list.map((item, index) => (
-            <li key={`${item.program}-${index}`}>
-              <span>
-                <strong>{item.program}</strong>
-                <small>
-                  {item.kind === "airline" ? t("Airline") : t("Hotel")}
-                  {item.number ? ` · ${item.number}` : ""}
-                </small>
-              </span>
-              <button
-                type="button"
-                className="settings-pill"
-                aria-label={t("Remove {v0}", { v0: item.program })}
-                onClick={() => onChange(list.filter((_, i) => i !== index))}
-              >
-                {t("Remove")}
-              </button>
-            </li>
-          ))}
-        </ul>
-      )}
-      <form
-        className="settings-inline settings-inline--wrap"
-        onSubmit={(event) => {
-          event.preventDefault();
-          if (!program.trim()) return;
-          onChange([
-            ...list,
-            { kind, program: program.trim(), ...(number.trim() ? { number: number.trim() } : {}) },
-          ]);
-          setProgram("");
-          setNumber("");
-        }}
-      >
-        <select
-          aria-label={t("Type")}
-          value={kind}
-          onChange={(event) => setKind(event.target.value as "airline" | "hotel")}
-        >
-          <option value="airline">{t("Airline")}</option>
-          <option value="hotel">{t("Hotel")}</option>
-        </select>
-        <input
-          aria-label={t("Programme")}
-          value={program}
-          maxLength={80}
-          placeholder={t("e.g. Qantas Frequent Flyer")}
-          onChange={(event) => setProgram(event.target.value)}
-        />
-        <input
-          aria-label={t("Member number (optional)")}
-          value={number}
-          maxLength={40}
-          placeholder={t("Member number")}
-          onChange={(event) => setNumber(event.target.value)}
-        />
-        <button
-          type="submit"
-          className="settings-pill settings-pill--ink"
-          disabled={list.length >= 20 || !program.trim()}
-        >
-          {t("Add membership")}
-        </button>
-      </form>
     </div>
   );
 }
@@ -797,22 +713,6 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Accommodation")}</h3>
-      <ul className="memory-list">
-        <MemoryRow
-          icon="🏨"
-          label={t("Loyalty")}
-          value={settings.memberships.map((item) => item.program).join(", ")}
-          question={t("Any frequent-flyer or hotel loyalty programmes?")}
-        >
-          {() => (
-            <Loyalty
-              list={settings.memberships}
-              onChange={(memberships) => update({ memberships })}
-            />
-          )}
-        </MemoryRow>
-      </ul>
       <h3 className="settings-group">{t("Other preferences")}</h3>
       <ul className="memory-list">
         <MemoryRow
@@ -846,7 +746,7 @@ function PersonalizationSection() {
 
 function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   const { settings, update } = useSettings();
-  const { locale, t, notice: localizeNotice } = useLocale();
+  const { locale, t } = useLocale();
   const languageLabel = locale === "zh" ? "简体中文" : "English";
   return (
     <div className="settings-form">

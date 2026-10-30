@@ -35,6 +35,8 @@ contract-impact: none
   icon. Where, When, Who and Budget show on a blank desktop chat. Agent Team members are flat rows.
 - Settings opens as a page beside the sidebar on desktop, with hairline sections and bordered memory
   rows. Brief chips share the first top bar row.
+- Calendar Month draws the whole month with compact one-line events. The Loyalty question is removed
+  because planning never used it; stored memberships stay in the settings shape.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

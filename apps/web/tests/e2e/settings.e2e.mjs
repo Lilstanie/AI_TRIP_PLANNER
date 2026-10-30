@@ -112,16 +112,6 @@ async function run(browser, { width, height, tag }) {
   await dialog.getByPlaceholder(/Add a trip preference/).fill("Vegetarian food");
   await dialog.getByPlaceholder(/Add a trip preference/).press("Enter");
   await dialog.getByRole("button", { name: "Save preferences" }).click();
-  await answer("Loyalty");
-  await dialog.getByLabel("Programme").fill("Qantas Frequent Flyer");
-  await dialog.getByRole("button", { name: "Add membership" }).click();
-  check(
-    await dialog
-      .getByRole("list", { name: "Your memberships" })
-      .getByText("Qantas Frequent Flyer")
-      .isVisible(),
-    `${tag}: a membership is added`,
-  );
   check(
     await dialog.getByText("Home base:").locator("..").getByText("Melbourne").isVisible(),
     `${tag}: an answered fact shows its value`,
