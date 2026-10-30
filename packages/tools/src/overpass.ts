@@ -40,11 +40,6 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 export const overpassCategory = (q: PlaceQuery) =>
   !q.textQuery && q.category !== undefined && q.category in TAGS;
 
-/**
- * Tagged places inside the city's OSM area (or its bounding box when it has none), notable ones
- * only where the category needs it. Returns [] when Nominatim cannot find the city; throws when
- * Overpass fails.
- */
 export async function overpassPlaces(q: PlaceQuery): Promise<Place[]> {
   const { filters, notable } = TAGS[q.category!]!;
   const config = toolRuntimeConfig();
