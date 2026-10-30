@@ -356,12 +356,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
 
   const teamTurn = latestTurn(activity, busy, messages);
   const profileDefaults = draftDefaults(settings);
-  const briefChrome = showBriefChrome({
-    messages,
-    input,
-    draft,
-    defaults: profileDefaults,
-  });
+  const briefChrome =
+    !phone ||
+    showBriefChrome({
+      messages,
+      input,
+      draft,
+      defaults: profileDefaults,
+    });
   const untouched = isBlankUntouchedChat({
     plan,
     messages,

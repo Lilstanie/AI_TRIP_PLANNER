@@ -188,7 +188,7 @@ describe("Workspace interactions", () => {
     expect(within(map).queryByText(/Sydney|Museum/)).toBeNull();
     expect(within(chat).getByLabelText("Example trips")).toBeTruthy();
     for (const name of ["Where", "When", "Who", "Budget"])
-      expect(screen.queryByRole("button", { name })).toBeNull();
+      expect(screen.getByRole("button", { name })).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
     expect(screen.queryByRole("button", { name: "Review plan" })).toBeNull();
     await waitFor(() => {
@@ -622,7 +622,7 @@ describe("Workspace interactions", () => {
     expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
 
     for (const name of ["Where", "When", "Who", "Budget"])
-      expect(screen.queryByRole("button", { name })).toBeNull();
+      expect(screen.getByRole("button", { name })).toBeTruthy();
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
       expect(catalog.trips).toHaveLength(0);

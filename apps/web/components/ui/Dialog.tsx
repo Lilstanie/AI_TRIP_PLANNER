@@ -1,6 +1,7 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useEffect, useId, useRef, type ReactNode } from "react";
+import { CloseIcon } from "./icons";
 export function Dialog({
   title,
   onClose,
@@ -26,8 +27,13 @@ export function Dialog({
     <dialog ref={ref} className="dialog" aria-labelledby={titleId} onCancel={onClose}>
       <div className="dialog__head">
         <h2 id={titleId}>{title}</h2>
-        <button onClick={onClose} aria-label={t("Close {v0}", { v0: title })}>
-          {t("Close")}
+        <button
+          type="button"
+          className="dialog__close"
+          onClick={onClose}
+          aria-label={t("Close {v0}", { v0: title })}
+        >
+          <CloseIcon />
         </button>
       </div>
       {children}

@@ -213,10 +213,6 @@ try {
         (await page.getByRole("dialog", { name: text.where }).count()) === 0,
         `${tag}: keyboard New chat does not open Where`,
       );
-      check(
-        (await page.locator(".fact-chips").count()) === 0,
-        `${tag}: keyboard New chat does not open travel facts`,
-      );
       await within(
         page.waitForFunction(() =>
           document.activeElement?.matches?.(".composer textarea, .composer__input, textarea"),

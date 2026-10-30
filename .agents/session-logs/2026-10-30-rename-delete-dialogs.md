@@ -31,6 +31,8 @@ contract-impact: none
 - Drawers use the 450 ms Mindtrip curve, calendar events are coloured by category, and the stop menu
   appears on hover with a fine pointer.
 - Calendar Week is an hour grid that opens near the morning, with all-day items above it.
+- Settings has a quieter navigation, form fields and two-column assistant names; dialogs close with an
+  icon. Where, When, Who and Budget show on a blank desktop chat. Agent Team members are flat rows.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures
