@@ -116,8 +116,9 @@ The Trip home action area and its acceptance criteria are detailed in
     views retain the selected Trip day, and Previous and Next stay within the Trip, so the first and
     last periods disable the outward control and no off-Trip date is shown as a Trip date. Clicking an
     activity opens it in the shared Itinerary editor. Timed activities show their actual ranges and
-    overlaps, while untimed activities, flights and stays appear in the All day region without
-    invented times or drag handles. Inside the action panel, the seven-day grid scrolls horizontally
+    overlaps, while untimed activities and flights appear in the All day region without
+    invented times or drag handles. In Week view a stay is one bar under the dates that spans its
+    nights and shows the hotel and night count; Month view keeps it on each night. Inside the action panel, the seven-day grid scrolls horizontally
     so event labels remain readable without widening the page. Ideas uses the existing scheduling flow,
     Bookings groups booked items, and preferences save and replan the open Trip. There is no Media or
     Receipts card. The side
