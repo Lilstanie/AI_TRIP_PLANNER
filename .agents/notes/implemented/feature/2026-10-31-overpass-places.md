@@ -22,13 +22,13 @@ thrown, so the itinerary records the provider as unavailable. Text queries and o
 the Nominatim text search.
 
 When `GEOAPIFY_API_KEY` is set, `packages/tools/src/geoapify.ts` answers `sight`, `museum` and
-`restaurant` first: Geoapify geocoding finds the city (`type=city`, the most important of up to five
-matches, since `京都` also matches Jingdu in Shantou), then Places lists up to 500 named places of
-that category within 15 km of the city centre (`filter=circle`, `conditions=named`) and keeps the 20
-most notable: a Wikipedia link first, then a Wikidata id. The city's own boundary is not used:
-Tokyo's includes the Ogasawara islands, and a live run put every stop on Iwo Jima, about 1,200 km
-away. Nearest-first ordering is not used either: a live run then filled all 20 slots with statues
-within 1 km of Tokyo Station. A Geoapify error, a missing city or an empty list
+`restaurant` first: Nominatim finds the city centre (Geoapify's own city search put `京都`
+in Shantou or Hainan in 2 of 6 live runs), then Places lists up to 500 named places of that category
+within 15 km (`filter=circle`, `conditions=named`). It keeps 20, each name once: a Wikipedia link
+first, then a Wikidata id, then the nearest; a feature whose name is not text is skipped. The city's
+own boundary is not used: Tokyo's includes the Ogasawara islands, and a live run put every stop on
+Iwo Jima, about 1,200 km away. Pure nearest-first ordering is not used either: a live run then
+filled all 20 slots with statues within 1 km of Tokyo Station. A Geoapify error, a missing city or an empty list
 logs a warning without the key and falls back to Overpass; when both fail the error names both.
 Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
 

@@ -44,6 +44,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
   geocoded to Jingdu (Shantou) 2 of 6 times. Now rank 500 named places by Wikipedia/Wikidata and take
   the most important of five geocode matches; tests red (3), then green 15/15, tools 159/159.
 
+- Run 5: pins and placeIds fine, but a museum feature with a non-text name crashed the category,
+  京都 still geocoded abroad once, restaurants repeated a chain at the circle edge. Centre now from
+  Nominatim, non-text names skipped, names deduped, nearest breaks ties; red 9, green 17/17.
+
 ## Notes for the next person
 
 This container cannot reach Overpass; the live check runs on Joey's Mac. `.env.example` (protected)
