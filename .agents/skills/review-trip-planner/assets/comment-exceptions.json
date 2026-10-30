@@ -83,5 +83,25 @@
     "file": "apps/web/components/chat/TeamPanel.tsx",
     "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
     "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#671)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryInspector.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/TrajectoryInspector.tsx",
+    "text": "/**\n * Render the resizable inspector for the selected trajectory step or record.\n * Width state stays with the caller so it survives closing and reopening the inspector.\n * @param props - The selection, its records and the caller-owned width state.\n * @returns The inspector aside.\n */",
+    "reason": "JSDoc for a non-obvious ownership: the caller keeps the inspector width state so it survives closing and reopening (TP-167)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-kind.tsx",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trajectory/trajectory-table-records.ts",
+    "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
+    "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
   }
 ]

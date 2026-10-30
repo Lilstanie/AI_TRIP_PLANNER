@@ -6,7 +6,7 @@
 "use client";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { TrajectoryTable } from "./TrajectoryTable";
-import type { TrajectoryStep } from "./TrajectoryTable";
+import type { TrajectoryStep } from "./trajectory-table-records";
 import { TrajectoryToolbar } from "./TrajectoryToolbar";
 import { TrajectoryTimeline } from "./TrajectoryTimeline";
 import type { TrajectoryTurnModel } from "./layout";
