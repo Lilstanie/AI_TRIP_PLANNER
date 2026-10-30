@@ -1,3 +1,4 @@
+import { outboundArrival } from "@trip/agents";
 import { formatMoney } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, moneyDifference, NEGOTIATION_OVERRUN_PCT, sumMoney } from "./budget";
@@ -103,23 +104,9 @@ export function detectConflicts(
         flight.depart === brief.dates[0] &&
         flight.to.trim().toLowerCase() === brief.destination.split("&")[0]?.trim().toLowerCase(),
     );
-  const selected = arrival?.candidates.find((candidate) => candidate.id === arrival.selectedId);
-  const arrivalText = selected?.outbound?.segments.at(-1)?.arrivesAt;
-  const arrivalMatch = arrivalText?.match(
-    /^(\d{4}-\d{2}-\d{2})[ T]([01]\d|2[0-3]):([0-5]\d)(?:$|[ :])/,
-  );
-  const arrivalDate = arrivalMatch?.[1];
-  const arrivalTime = arrivalMatch ? `${arrivalMatch[2]}:${arrivalMatch[3]}` : undefined;
-  const tripStart = Date.parse(`${brief.dates[0]}T00:00:00Z`);
-  const arrived = arrivalDate ? Date.parse(`${arrivalDate}T00:00:00Z`) : NaN;
-  const arrivalDay = (arrived - tripStart) / 86400000 + 1;
-  if (
-    arrivalDate &&
-    arrivalTime &&
-    Number.isInteger(arrivalDay) &&
-    arrivalDay >= 1 &&
-    new Date(arrived).toISOString().slice(0, 10) === arrivalDate
-  ) {
+  const landing = outboundArrival(brief, proposals);
+  if (landing) {
+    const { day: arrivalDay, time: arrivalTime } = landing;
     const activities = proposals.find((proposal) => proposal.agent === "itinerary")?.items ?? [];
     for (const item of activities) {
       if (
