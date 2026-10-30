@@ -91,6 +91,7 @@ checks the frozen and shared-contract rules.
 3. Write every pull request body, on opening and on each update, with the sections of [the pull request template](.github/pull_request_template.md): Summary, Evidence, Merge Danger.
 4. Once CI passes on the current head, ask a code owner in [`.github/CODEOWNERS`](.github/CODEOWNERS) to review, and stop. Merge the pull request you opened only when the user is a code owner and tells you to; merge anyone else's only when the user explicitly says so ([team workflow](docs/team-workflow.md)).
 5. Once the pull request is open and its evidence is quoted in the body, run `pnpm clean:output` to delete the local evidence and scratch directories.
+6. Finish the work without being asked: update every skill the change made stale, and move the Jira story as the [trip-planner-pr-delivery skill](.agents/skills/trip-planner-pr-delivery/SKILL.md) describes. When a run ends, remove the clean worktrees it created with `node scripts/worktrees.mjs --apply --worktree <path>`; never remove a worktree that holds uncommitted work or that another agent or session is using.
 
 ## After editing
 
