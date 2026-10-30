@@ -111,6 +111,117 @@ const AIRPORTS: Record<string, string> = {
   "tel aviv": "TLV",
 };
 
+const CHINESE_NAMES: Record<string, string[]> = {
+  sydney: ["悉尼", "雪梨"],
+  melbourne: ["墨尔本", "墨爾本"],
+  brisbane: ["布里斯班"],
+  perth: ["珀斯", "伯斯"],
+  adelaide: ["阿德莱德", "阿德雷德"],
+  "gold coast": ["黄金海岸", "黃金海岸"],
+  canberra: ["堪培拉", "坎培拉"],
+  hobart: ["霍巴特", "荷伯特"],
+  darwin: ["达尔文", "達爾文"],
+  cairns: ["凯恩斯", "凱恩斯"],
+  auckland: ["奥克兰", "奧克蘭"],
+  wellington: ["惠灵顿", "威靈頓"],
+  christchurch: ["基督城"],
+  queenstown: ["皇后镇", "皇后鎮"],
+
+  tokyo: ["东京", "東京"],
+  osaka: ["大阪"],
+  kyoto: ["京都"],
+  nagoya: ["名古屋"],
+  sapporo: ["札幌"],
+  fukuoka: ["福冈", "福岡"],
+  okinawa: ["冲绳", "沖繩", "沖縄"],
+  seoul: ["首尔", "首爾"],
+  busan: ["釜山"],
+  beijing: ["北京"],
+  shanghai: ["上海"],
+  guangzhou: ["广州", "廣州"],
+  shenzhen: ["深圳"],
+  chengdu: ["成都"],
+  "hong kong": ["香港"],
+  taipei: ["台北", "臺北"],
+  singapore: ["新加坡"],
+  bangkok: ["曼谷"],
+  "chiang mai": ["清迈", "清邁"],
+  phuket: ["普吉岛", "普吉島", "普吉"],
+  "kuala lumpur": ["吉隆坡"],
+  jakarta: ["雅加达", "雅加達"],
+  bali: ["巴厘岛", "峇里島", "巴厘"],
+  manila: ["马尼拉", "馬尼拉"],
+  hanoi: ["河内", "河內"],
+  "ho chi minh city": ["胡志明市", "胡志明", "西贡", "西貢"],
+  "siem reap": ["暹粒"],
+
+  delhi: ["德里", "新德里"],
+  mumbai: ["孟买", "孟買"],
+  bengaluru: ["班加罗尔", "班加羅爾"],
+  dubai: ["迪拜", "杜拜"],
+  "abu dhabi": ["阿布扎比", "阿布達比"],
+  doha: ["多哈"],
+  istanbul: ["伊斯坦布尔", "伊斯坦堡"],
+
+  london: ["伦敦", "倫敦"],
+  paris: ["巴黎"],
+  amsterdam: ["阿姆斯特丹"],
+  frankfurt: ["法兰克福", "法蘭克福"],
+  munich: ["慕尼黑"],
+  berlin: ["柏林"],
+  zurich: ["苏黎世", "蘇黎世"],
+  vienna: ["维也纳", "維也納"],
+  prague: ["布拉格"],
+  rome: ["罗马", "羅馬"],
+  milan: ["米兰", "米蘭"],
+  venice: ["威尼斯"],
+  barcelona: ["巴塞罗那", "巴塞隆納"],
+  madrid: ["马德里", "馬德里"],
+  lisbon: ["里斯本"],
+  porto: ["波尔图", "波爾圖"],
+  dublin: ["都柏林"],
+  edinburgh: ["爱丁堡", "愛丁堡"],
+  copenhagen: ["哥本哈根"],
+  stockholm: ["斯德哥尔摩", "斯德哥爾摩"],
+  oslo: ["奥斯陆", "奧斯陸"],
+  helsinki: ["赫尔辛基", "赫爾辛基"],
+  reykjavik: ["雷克雅未克", "雷克雅維克"],
+  athens: ["雅典"],
+  budapest: ["布达佩斯", "布達佩斯"],
+  warsaw: ["华沙", "華沙"],
+
+  "new york": ["纽约", "紐約"],
+  "los angeles": ["洛杉矶", "洛杉磯"],
+  "san francisco": ["旧金山", "舊金山", "三藩市"],
+  seattle: ["西雅图", "西雅圖"],
+  chicago: ["芝加哥"],
+  boston: ["波士顿", "波士頓"],
+  "washington dc": ["华盛顿", "華盛頓"],
+  miami: ["迈阿密", "邁阿密"],
+  "las vegas": ["拉斯维加斯", "拉斯維加斯"],
+  honolulu: ["檀香山", "火奴鲁鲁"],
+  toronto: ["多伦多", "多倫多"],
+  vancouver: ["温哥华", "溫哥華"],
+  montreal: ["蒙特利尔", "蒙特婁"],
+  "mexico city": ["墨西哥城"],
+  "sao paulo": ["圣保罗", "聖保羅"],
+  "rio de janeiro": ["里约热内卢", "里約熱內盧"],
+  "buenos aires": ["布宜诺斯艾利斯", "布宜諾斯艾利斯"],
+  lima: ["利马", "利馬"],
+  santiago: ["圣地亚哥", "聖地牙哥"],
+
+  cairo: ["开罗", "開羅"],
+  "cape town": ["开普敦", "開普敦"],
+  johannesburg: ["约翰内斯堡", "約翰尼斯堡"],
+  nairobi: ["内罗毕", "奈洛比"],
+  marrakech: ["马拉喀什", "馬拉喀什"],
+  "tel aviv": ["特拉维夫", "特拉維夫"],
+};
+
+for (const [city, names] of Object.entries(CHINESE_NAMES)) {
+  for (const name of names) AIRPORTS[name] = AIRPORTS[city]!;
+}
+
 const PASSTHROUGH = /^[A-Z]{3}$|^\/[mg]\//;
 
 export function airportCodeFor(city: string): string | undefined {
@@ -123,7 +234,7 @@ export function airportCodeFor(city: string): string | undefined {
     .replace(/[-_]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
-  return AIRPORTS[key];
+  return AIRPORTS[key] ?? AIRPORTS[key.replace(/(?<=\p{Script=Han})市$/u, "")];
 }
 
 export const knownAirportCities = () => Object.keys(AIRPORTS).sort();
