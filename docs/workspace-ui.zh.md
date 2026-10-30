@@ -376,7 +376,7 @@ Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data�
   之后每次改动都会在片刻后保存。底部状态显示 Saving…、Synced to your account，或在无法连接账号时显示
   Saved here · sync paused。同一聊天或行程以较新的副本整体为准；未改动的空白聊天和面板布局只保留在浏览器中。退出登录后，
   当前浏览器中的副本保留。
-- **Settings & account** 打开共用对话框。对话框沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
+- **Settings & account** 打开共用对话框。桌面端在侧栏旁以页面打开，较窄宽度下以对话框打开，均沿用 Mindtrip 设置页的布局。左侧是分区列表，选中项旁有一条深色竖线；在手机上
   列表变成自动换行的标签，五个分区始终全部可见，线条在所选分区下方。右侧显示所选分区的各行，每行有标签和值，Change 在原位打开编辑器。
   **Account settings** 会打开 Your account，**Personalization** 会打开 Personalization。Mindtrip 的 Voice、Price alerts、Notifications 和 Cookie preferences
   在这里没有对应功能。
