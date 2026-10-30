@@ -50,6 +50,11 @@ Done: no duplicate PR exists, or you are working on the existing one.
 - Comment policy: commit first, then `pnpm check:comments` (CI's `added-comments` job runs the same check against the merge base; a comment it flags fails the PR).
 - Add a session log (`session-log` skill) and update en + zh docs. A `packages/shared/src` change also needs an Agent Note and `contract-impact: packages/shared`.
 - Start commit messages with the key (`TP-72 docs: ...`).
+- Keep the PR reviewable. Once its CI is green, feedback on a different area (for example Settings when
+  the PR is the Trip panel) goes on a new branch from this one as a stacked PR (step 6, Stacked PRs);
+  fixes to the PR's own area stay on it. When the PR passes about 60 files or 3,000 changed lines, ask
+  the user whether to merge it first or keep adding.
+- Run `node scripts/check-file-length.mjs`: a source file the PR touches stays under 1000 lines.
   Done: every selected command was run and its real result is written down.
 
 ## 4. Open the PR
