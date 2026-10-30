@@ -93,7 +93,6 @@ function listed(items: string[], language: InterfaceLanguage): string {
   return items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : items[0]!;
 }
 
-/** Asks for the first missing field and names the rest; undefined when no listed field is missing. */
 export function nextFieldAsk(
   missing: string[],
   known: PartialTripBrief,
