@@ -16,7 +16,7 @@ import {
   type UserPreference,
   type InterfaceLanguage,
 } from "@trip/shared";
-import { createAgent, tool } from "langchain";
+import { createAgent, tool, toolErrorMiddleware } from "langchain";
 import { z } from "zod/v4";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
 import {
@@ -372,11 +372,12 @@ async function planStays(
   const model = createRoutedChatModel("accommodation");
   if (!model) return buildStayProposal(brief, ctx, revision, allocation, board);
 
-  let evidence: StayEvidence | undefined;
+  let searching: Promise<StayEvidence> | undefined;
 
   const search = tool(
     async () => {
-      evidence = await gatherStayEvidence(brief, ctx, revision, allocation, board);
+      searching ??= gatherStayEvidence(brief, ctx, revision, allocation, board);
+      const evidence = await searching;
       return {
         stays: evidence.searched.map(({ segment, options }) => ({
           stayId: `stay-${segment.day}`,
@@ -384,14 +385,14 @@ async function planStays(
           checkIn: segment.checkIn,
           checkOut: segment.checkOut,
           nights: segment.nights,
-          rooms: evidence!.rooms,
+          rooms: evidence.rooms,
           candidates: options.map((option, index) => ({
             candidateId: candidateId(segment.day, index),
             name: option.name,
             area: option.area,
             rating: option.rating,
             freeCancellation: option.freeCancellation,
-            totalCost: stayCost(option, segment.nights, evidence!.rooms),
+            totalCost: stayCost(option, segment.nights, evidence.rooms),
           })),
         })),
         confirmedPreferences: evidence.preferences,
@@ -408,6 +409,7 @@ async function planStays(
     name: "accommodation_specialist",
     model,
     tools: [search],
+    middleware: [toolErrorMiddleware({ onError: () => undefined })],
     systemPrompt:
       "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation, remembered stay type and total cost against the traveller's brief and any revision. Treat confirmed rating and cancellation preferences as constraints; treat stay type as a preference only when candidate evidence supports it. Use only candidate fields actually provided as evidence. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
       REVISION_INTENT_RULE +
@@ -458,8 +460,8 @@ async function planStays(
       ],
     });
     const selection = readStructuredResponse("accommodation", StaySelection, result);
-    if (!evidence) throw new Error("Accommodation specialist skipped its search tool.");
-    const gathered = evidence;
+    if (!searching) throw new Error("Accommodation specialist skipped its search tool.");
+    const gathered = await searching;
 
     const chosen = new Map<number, StayOption>();
     for (const { segment, options } of gathered.searched) {
@@ -487,6 +489,7 @@ async function planStays(
     };
   } catch (error) {
     ctx.signal?.throwIfAborted();
+    const evidence = await searching;
     const reason = error instanceof Error ? error.message : "unknown model error";
     console.warn(`[accommodation] Specialist failed; using a safe local plan: ${reason}`);
     if (evidence) {
@@ -494,8 +497,8 @@ async function planStays(
         evidence,
         revision,
         (_day, options, fits) =>
-          evidence!.budgetRevision
-            ? chooseRevised(options, fits, evidence!.allocation !== undefined)
+          evidence.budgetRevision
+            ? chooseRevised(options, fits, evidence.allocation !== undefined)
             : chooseInitial(options),
         "fallback",
       );

@@ -26,6 +26,7 @@ vi.mock("../../src/models", () => ({
 }));
 vi.mock("langchain", () => ({
   tool: (search: Tool) => search,
+  toolErrorMiddleware: () => ({}),
   createAgent: ({ tools, systemPrompt }: { tools: Tool[]; systemPrompt: string }) => ({
     invoke: async (input: { messages: { content: string }[] }) => {
       behavior.seen = { prompt: systemPrompt, message: input.messages[0]!.content };
