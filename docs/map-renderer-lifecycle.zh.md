@@ -14,10 +14,14 @@ OSM 禁用卫星控件。手机 Trip 首页地图固定为 340px 高，让渲染
 
 <a id="browser-fixture"></a>
 
+<a id="stop-hover"></a>
+
 ## 站点悬停
 
 `lib/trip/stop-hover.ts` 保存当前悬停的活动 id。行程行和地图标记只在鼠标指针下写入它，`TripMap`
 直接更新标记的类名，不触发 React 渲染。同一地点去两次时只有一个标记，属于第一站，所以后一站不会高亮标记。
+
+<a id="browser-fixture"></a>
 
 ## 浏览器夹具
 
