@@ -55,8 +55,32 @@
   align-items: center;
   gap: var(--space-1);
 }
+.trip-home-calendar {
+  --calendar-activity: #0f766e;
+  --calendar-stay: #7c3aed;
+  --calendar-transport: #b45309;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .trip-home-calendar {
+    --calendar-activity: #5eead4;
+    --calendar-stay: #c4b5fd;
+    --calendar-transport: #fcd34d;
+  }
+}
+:root[data-theme="dark"] .trip-home-calendar {
+  --calendar-activity: #5eead4;
+  --calendar-stay: #c4b5fd;
+  --calendar-transport: #fcd34d;
+}
 .trip-home-calendar__legend [data-category="activity"] {
-  color: var(--accent);
+  color: var(--calendar-activity);
+}
+.trip-home-calendar__legend [data-category="stay"] {
+  color: var(--calendar-stay);
+}
+.trip-home-calendar__legend [data-category="flight"],
+.trip-home-calendar__legend [data-category="transport"] {
+  color: var(--calendar-transport);
 }
 .trip-home-calendar__period {
   display: grid;
@@ -196,10 +220,17 @@ button.trip-home-calendar__event:hover {
   background: var(--fill-hover);
 }
 .trip-home-calendar__event[data-category="activity"] {
-  color: var(--accent);
+  background: color-mix(in srgb, var(--calendar-activity) 12%, transparent);
+  color: var(--calendar-activity);
 }
 .trip-home-calendar__event[data-category="stay"] {
-  color: var(--text-dim);
+  background: color-mix(in srgb, var(--calendar-stay) 12%, transparent);
+  color: var(--calendar-stay);
+}
+.trip-home-calendar__event[data-category="flight"],
+.trip-home-calendar__event[data-category="transport"] {
+  background: color-mix(in srgb, var(--calendar-transport) 12%, transparent);
+  color: var(--calendar-transport);
 }
 .trip-home-calendar__event[data-selected="true"] {
   border-color: var(--accent);

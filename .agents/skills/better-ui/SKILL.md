@@ -35,7 +35,7 @@ When reviewing motion, slow it down in the browser's Animations panel. Anything 
 
 - **Timing comes from tokens.** State changes use `--transition` (160 ms). Arrivals use
   `--ease-spring`, settles `--ease-out`, with `--duration-fast`, `--duration` and `--duration-slow`.
-  Drawers use `--drawer-duration` (380 ms) and `--drawer-ease`. The project has no motion library,
+  Drawers use `--drawer-duration` (450 ms) and `--drawer-ease`. The project has no motion library,
   so do not add one for polish.
 - **Use the helpers in `components/ui/motion.ts`.** Swapping a whole region goes through
   `viewTransition`; a segmented control gets the `segmented` class and `useSegmentIndicator`; a

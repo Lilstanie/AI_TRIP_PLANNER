@@ -30,7 +30,7 @@ Trip home 动作区及其验收标准详见
   - 展开时，右边缘的分隔条可将宽度调整到 200–420 px。可拖动，或聚焦后使用 Left/Right（步长 16 px）、Home 和 End；双击恢复响应式默认宽度。它是带 `aria-valuenow` 的 `role="separator"` 窗口分隔控件，拖动时直接把 `--sidebar-width` 写入工作区网格，避免工作区在每次指针移动时重新渲染。只点击而不移动指针，不改变响应式默认值。
   - 用户调整大小之后，宽度才存入目录布局。在此之前遵循样式表的响应式默认值，因此缩窄窗口仍会缩窄侧边栏。折叠时保留宽度，供下次展开使用。
   - 侧边栏只包含导航：New chat、带数量的 Chats、带数量的 Trips 和 Calendar。轮廓线图标使用文字颜色；对应面板或页面打开时，图标变为填充样式，标签加粗，背景轻微强调，并带 `aria-current`。New chat 执行已有的空白聊天动作，打开普通对话且不打开 Where 编辑器。Calendar 打开 Your trips 页面的 Calendar 标签并在该页面中为当前项；在 Trips 标签上则 Trips 为当前项，页面标签与侧边栏共用同一个选中状态。折叠时显示带名称和 tooltip 的图标按钮。New chat 是侧边栏中开始对话的唯一方式；[侧边栏 New chat Agent Note](../.agents/notes/implemented/feature/2026-10-29-sidebar-new-chat.md)记录了原因。New trip 仍保留在 Your trips 页面和手机 Mine；桌面 Chats 面板只显示目的地与对话历史，不再放第二个开始行程的控件。
-  - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 380 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
+  - **Chats** 切换 Chats 面板（`aria-expanded`、`aria-controls="chats-panel"`）：它是位于侧边栏右边缘、宽 320 px 的玻璃区域，在工作区上方以 450 ms 的弹性和淡入动效出现（`prefers-reduced-motion` 下立即出现），关闭时为 `inert`。打开时聚焦搜索框；Escape 关闭面板并将焦点返回 Chats（已打开的历史菜单或对话框优先处理 Escape），点击外部也会关闭面板。[Chats 面板和 Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md) 记录了原因。
   - 面板自上而下依次为：胶囊形搜索框（“Search…”，视觉隐藏标签“Search chats and trips”，以及将焦点返回输入框的 Clear search 按钮），它同时筛选两个列表；**Trips**，每行显示目的地小封面和“Trip to <destination>”；以及 **Chats**，每行用一行显示本地化的短日期标题，下方显示关联行程名称。已重命名的聊天标题保持不变。选择任何行都会关闭面板。主入口 New chat 留在侧边栏，New trip 留在 Your trips。
   - 搜索将空格分隔的词拆开，并要求每个词都能匹配：聊天检查标题或消息，行程检查保存的标题、目的地、ISO 日期，以及行程卡片上显示的文字（带编号的标题、日期范围、天数和总价）；词序不限。数字只匹配完整的数，所以 `trip 2` 能单独找到 “Trip to Sydney · 2”。手机端行程卡片在筛选时保留完整列表里的编号。
   - 搜索通过温和的读屏通知播报匹配的行程和聊天数量。英文在一条结果时使用单数，多条时使用复数；中文保持原有数量表达。未输入搜索内容时不播报，无匹配时播报原有空状态提示。
@@ -77,7 +77,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 关闭 Trip 时，上文所述的聊天／地图分栏及其分隔条继续工作；打开 Trip 不会更改已保存的分栏比例。
   - `Drawer` 为导航和其他仍然存在的抽屉提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。桌面和平板 Trip 是主内容布局，不是覆盖式抽屉。
   - 同时最多打开一个覆盖层：导航抽屉、桌面端 Chats 面板、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他覆盖层；Settings 叠在其上方打开，关闭后回到原覆盖层。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有覆盖层都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
-  - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 380 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
+  - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 450 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
   - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
 - **窄屏（521–1000 px）。**
   - 顶栏把菜单、事实标签和 Trip 保留在一行，下方为 Chat/Map 切换。标签放不下时在自身行内横向滚动，仍有隐藏标签的一侧边缘渐隐；页面本身从不横向滚动。

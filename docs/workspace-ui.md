@@ -45,7 +45,7 @@ The Trip home action area and its acceptance criteria are detailed in
     records why. New trip remains on the Your trips page and phone Mine; the desktop Chats panel keeps
     destination and conversation history without a second trip-start control.
   - **Chats** toggles the Chats panel (`aria-expanded`, `aria-controls="chats-panel"`): a 320 px
-    glass region at the sidebar's right edge that springs and fades in over the workspace in 380 ms
+    glass region at the sidebar's right edge that springs and fades in over the workspace in 450 ms
     (instant under `prefers-reduced-motion`) and is `inert` while closed. Opening it focuses its
     search; Escape closes it and returns focus to Chats (an open history menu or dialog takes Escape
     first), and a press outside it closes it. The [Chats panel and Your trips Agent Note](../.agents/notes/implemented/feature/2026-09-24-chats-panel-and-trips-page.md)
@@ -297,7 +297,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     A reload starts with every panel closed. Closed drawers are translated fully outside the
     viewport, and the shell uses `overflow: clip` so they cannot be scrolled into view.
   - Drawers are floating Liquid Glass sheets inset by `--space-2` with `--radius-xl` corners. They
-    slide on the iOS sheet curve in 380 ms, and the backdrop fades out with them (kept mounted by
+    slide on the drawer curve in 450 ms, and the backdrop fades out with them (kept mounted by
     `usePresence`). All of it respects `prefers-reduced-motion`.
   - Opening another chat or trip, New chat, New trip and the Your trips page cross-fade the main
     column through the View Transitions API (`viewTransition`); phone tab switches use the same transition helper.

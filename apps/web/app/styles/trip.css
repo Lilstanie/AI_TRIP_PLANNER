@@ -712,6 +712,16 @@ button.action-menu__trigger {
   background: transparent !important;
   color: var(--text-dim);
 }
+@media (hover: hover) and (pointer: fine) {
+  .timeline-stop button.action-menu__trigger {
+    opacity: 0;
+  }
+  .timeline-stop:hover button.action-menu__trigger,
+  .timeline-stop:focus-within button.action-menu__trigger,
+  .timeline-stop button.action-menu__trigger[aria-expanded="true"] {
+    opacity: 1;
+  }
+}
 button.action-menu__trigger:hover,
 button.action-menu__trigger[aria-expanded="true"] {
   background: var(--fill-hover) !important;
