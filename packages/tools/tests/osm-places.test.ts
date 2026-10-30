@@ -189,7 +189,9 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(geocodeUrl!.searchParams.get("apiKey")).toBe("test-geoapify-key");
     expect(placesUrl!.pathname).toBe("/v2/places");
     expect(placesUrl!.searchParams.get("filter")).toBe("circle:139.7671,35.6812,15000");
-    expect(placesUrl!.searchParams.get("bias")).toBe("proximity:139.7671,35.6812");
+    expect(placesUrl!.searchParams.get("bias")).toBeNull();
+    expect(placesUrl!.searchParams.get("limit")).toBe("500");
+    expect(placesUrl!.searchParams.get("conditions")).toBe("named");
     expect(placesUrl!.searchParams.get("categories")).toContain("tourism.sights");
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(found).toEqual([
@@ -205,6 +207,64 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
         location: { latitude: 35.6764, longitude: 139.6993 },
       },
     ]);
+  });
+
+  it("ranks Wikipedia places, then Wikidata places, above the unremarked statues nearest the centre", async () => {
+    withGeoapify(
+      { body: geoTokyo },
+      {
+        body: {
+          features: [
+            ...Array.from({ length: 30 }, (_, index) => ({
+              properties: { name: `Statue ${index}`, lat: 35.681, lon: 139.767 },
+            })),
+            {
+              properties: {
+                name: "Meiji Jingu",
+                lat: 35.6764,
+                lon: 139.6993,
+                datasource: { raw: { wikidata: "Q1" } },
+              },
+            },
+            {
+              properties: {
+                name: "Senso-ji",
+                lat: 35.7148,
+                lon: 139.7967,
+                datasource: { raw: { wikipedia: "ja:浅草寺" } },
+              },
+            },
+          ],
+        },
+      },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.slice(0, 2).map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu"]);
+    expect(found).toHaveLength(20);
+  });
+
+  it("takes the most important city when a name matches several, not the first", async () => {
+    const fetcher = withGeoapify(
+      {
+        body: {
+          results: [
+            { city: "Jingdu", lat: 23.4, lon: 116.7, rank: { importance: 0.2 } },
+            { city: "Kyoto", lat: 35.0116, lon: 135.7681, rank: { importance: 0.75 } },
+          ],
+        },
+      },
+      { body: geoSights },
+    );
+
+    await places({ near: "京都", category: "sight" });
+
+    const geocodeUrl = new URL(String(fetcher.mock.calls[0]![0]));
+    expect(Number(geocodeUrl.searchParams.get("limit"))).toBeGreaterThan(1);
+    expect(new URL(String(fetcher.mock.calls[1]![0])).searchParams.get("filter")).toBe(
+      "circle:135.7681,35.0116,15000",
+    );
   });
 
   it("asks Geoapify for restaurants and museums by their own categories", async () => {

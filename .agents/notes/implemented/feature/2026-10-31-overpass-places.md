@@ -22,10 +22,13 @@ thrown, so the itinerary records the provider as unavailable. Text queries and o
 the Nominatim text search.
 
 When `GEOAPIFY_API_KEY` is set, `packages/tools/src/geoapify.ts` answers `sight`, `museum` and
-`restaurant` first: Geoapify geocoding finds the city (`type=city`), then Places lists that category
-within 15 km of the city centre, nearest first (`filter=circle`,
-`bias=proximity`). The city's own boundary is not used: Tokyo's includes the Ogasawara islands, and a
-live run put every stop on Iwo Jima, about 1,200 km away. A Geoapify error, a missing city or an empty list
+`restaurant` first: Geoapify geocoding finds the city (`type=city`, the most important of up to five
+matches, since `京都` also matches Jingdu in Shantou), then Places lists up to 500 named places of
+that category within 15 km of the city centre (`filter=circle`, `conditions=named`) and keeps the 20
+most notable: a Wikipedia link first, then a Wikidata id. The city's own boundary is not used:
+Tokyo's includes the Ogasawara islands, and a live run put every stop on Iwo Jima, about 1,200 km
+away. Nearest-first ordering is not used either: a live run then filled all 20 slots with statues
+within 1 km of Tokyo Station. A Geoapify error, a missing city or an empty list
 logs a warning without the key and falls back to Overpass; when both fail the error names both.
 Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
 
@@ -43,5 +46,6 @@ does not list the places inside it.
 
 - Overpass is slower than Nominatim (seconds per query) and the public instance has a daily budget,
   listed in [architecture](../../../../docs/architecture.md#free-services-limits-and-terms).
-- Geoapify needs a free account and key per deployment (3,000 credits a day).
+- Geoapify needs a free account and key per deployment (3,000 credits a day). A 500-place query
+  costs more credits than a 20-place one, so a trip uses tens of credits per city.
 - Results carry no rating; agents that rank by rating treat OSM places as unrated.
