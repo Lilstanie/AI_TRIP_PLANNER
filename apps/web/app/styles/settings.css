@@ -596,11 +596,36 @@ button.settings-chip[aria-pressed="true"] {
   padding: 0;
   list-style: none;
 }
-.memory-row.memory-row--remembered {
-  padding: var(--space-2) var(--space-3);
+.memory-list {
+  max-width: none;
+}
+.memory-row,
+.memory-row[data-empty] {
   border-color: var(--border);
   border-radius: 8px;
   background: transparent;
+}
+.memory-row[data-empty] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0 var(--space-2);
+}
+.memory-row__editor {
+  grid-column: 1 / -1;
+}
+button.memory-row__main {
+  border-radius: 8px;
+  font-size: 14px;
+}
+button.memory-row__answer {
+  justify-self: end;
+  min-height: 28px;
+  margin: 0 var(--space-2) 0 0;
+  padding-inline: var(--space-3);
+  font-size: 13px;
+}
+.memory-row.memory-row--remembered {
+  padding: var(--space-2) var(--space-3);
 }
 .memory-row--remembered .memory-row__main {
   display: block;
