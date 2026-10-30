@@ -14,6 +14,30 @@ describe("airportCodeFor", () => {
     expect(airportCodeFor("Ho Chi Minh City")).toBe("SGN");
   });
 
+  it("resolves Chinese city names, simplified and traditional, as travellers write them", () => {
+    expect(airportCodeFor("悉尼")).toBe("SYD");
+    expect(airportCodeFor("雪梨")).toBe("SYD");
+    expect(airportCodeFor("东京")).toBe("NRT");
+    expect(airportCodeFor("東京")).toBe("NRT");
+    expect(airportCodeFor(" 东京 ")).toBe("NRT");
+    expect(airportCodeFor("京都")).toBe("KIX");
+    expect(airportCodeFor("香港")).toBe("HKG");
+    expect(airportCodeFor("墨尔本")).toBe("MEL");
+    expect(airportCodeFor("首尔")).toBe("ICN");
+  });
+
+  it("ignores a trailing 市 on a Chinese city name", () => {
+    expect(airportCodeFor("东京市")).toBe("NRT");
+    expect(airportCodeFor("上海市")).toBe("PVG");
+  });
+
+  it("gives every city a Chinese name", () => {
+    const cities = knownAirportCities();
+    const codes = new Set(cities.filter((c) => /^[a-z ]+$/.test(c)).map((c) => airportCodeFor(c)));
+    const zhCodes = new Set(cities.filter((c) => /\p{Script=Han}/u.test(c)).map((c) => airportCodeFor(c)));
+    expect([...codes].filter((code) => !zhCodes.has(code))).toEqual([]);
+  });
+
   it("passes through what a provider already accepts", () => {
     expect(airportCodeFor("SYD")).toBe("SYD");
     expect(airportCodeFor("/m/02_286")).toBe("/m/02_286");
