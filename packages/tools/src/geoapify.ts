@@ -2,10 +2,13 @@ import type { Place, PlaceQuery } from "@trip/shared";
 import { findCity } from "./overpass";
 import { toolFetch, toolRuntimeConfig } from "./runtime-context";
 
-const CATEGORIES: Record<string, string> = {
-  sight: "tourism.sights,tourism.attraction",
-  museum: "entertainment.museum,entertainment.culture.gallery",
-  restaurant: "catering.restaurant,catering.cafe",
+const CATEGORIES: Record<string, string[]> = {
+  sight: [
+    "tourism.sights,tourism.attraction",
+    "religion.place_of_worship.buddhism,religion.place_of_worship.shinto,tourism.sights.place_of_worship",
+  ],
+  museum: ["entertainment.museum,entertainment.culture.gallery"],
+  restaurant: ["catering.restaurant,catering.cafe"],
 };
 
 type Feature = {
@@ -25,20 +28,32 @@ async function request<T>(path: string, params: Record<string, string>): Promise
   url.searchParams.set("apiKey", config.geoapifyApiKey!);
   const response = await toolFetch(url, {
     headers: { accept: "application/json" },
-    signal: AbortSignal.timeout(10_000),
+    signal: AbortSignal.timeout(15_000),
   });
   if (!response.ok) throw new Error(`Geoapify request failed (${response.status})`);
   return (await response.json()) as T;
 }
 
-const notability = (place: NonNullable<Feature["properties"]>) =>
-  (place.datasource?.raw?.wikipedia ? 2 : 0) + (place.datasource?.raw?.wikidata ? 1 : 0);
+const notability = ({ datasource }: NonNullable<Feature["properties"]>) => {
+  const raw = datasource?.raw ?? {};
+  return (
+    (raw.wikipedia ? 2 : 0) +
+    (raw.tourism ? 2 : 0) +
+    (raw.wikidata ? 1 : 0) +
+    (raw.image || raw.wikimedia_commons ? 1 : 0)
+  );
+};
 
 export const geoapifyCategory = (q: PlaceQuery) =>
   Boolean(toolRuntimeConfig().geoapifyApiKey) &&
   !q.textQuery &&
   q.category !== undefined &&
   q.category in CATEGORIES;
+
+const website = (place: NonNullable<Feature["properties"]>) => {
+  const official = place.datasource?.raw?.["contact:website"];
+  return typeof official === "string" && official ? official : place.website;
+};
 
 const distanceKm = (lat: number, lon: number, place: { lat?: number; lon?: number }) =>
   Math.hypot(
@@ -51,12 +66,18 @@ export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
   const lat = Number(city?.lat);
   const lon = Number(city?.lon);
   if (!city || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-  const { features = [] } = await request<{ features?: Feature[] }>("/v2/places", {
-    categories: CATEGORIES[q.category!]!,
-    filter: `circle:${lon},${lat},15000`,
-    conditions: "named",
-    limit: "500",
-  });
+  const features = (
+    await Promise.all(
+      CATEGORIES[q.category!]!.map((categories) =>
+        request<{ features?: Feature[] }>("/v2/places", {
+          categories,
+          filter: `circle:${lon},${lat},15000`,
+          conditions: "named",
+          limit: "500",
+        }),
+      ),
+    )
+  ).flatMap((page) => page.features ?? []);
   const seen = new Set<string>();
   return features
     .map((feature) => feature.properties ?? {})
@@ -81,6 +102,6 @@ export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
       ...(Number.isFinite(place.lat) && Number.isFinite(place.lon)
         ? { location: { latitude: place.lat!, longitude: place.lon! } }
         : {}),
-      ...(place.website ? { website: place.website } : {}),
+      ...(website(place) ? { website: website(place) } : {}),
     }));
 }

@@ -48,6 +48,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
   京都 still geocoded abroad once, restaurants repeated a chain at the circle edge. Centre now from
   Nominatim, non-text names skipped, names deduped, nearest breaks ties; red 9, green 17/17.
 
+- Raw probe on the Mac: 浅草寺/明治神宮/東京タワー absent from 500 `tourism.*` results; Buddhist and
+  Shinto categories list them. Sights now add that request and rank `tourism` tags; 500-row
+  requests took 5-10 s, so the timeout is 15 s. Red 2, green 18/18, tools 162/162.
+
 ## Notes for the next person
 
 This container cannot reach Overpass; the live check runs on Joey's Mac. `.env.example` (protected)
