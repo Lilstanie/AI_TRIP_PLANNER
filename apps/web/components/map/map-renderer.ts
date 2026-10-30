@@ -21,7 +21,8 @@ function runtime(
           if (!disposed) authListeners.forEach((listener) => listener());
         })
       : undefined;
-  const track = (handle: { remove(): void }) => {
+  const track = (handle: { remove(): void } | undefined) => {
+    if (!handle) return { remove() {} };
     listeners.add(handle);
     return {
       remove() {

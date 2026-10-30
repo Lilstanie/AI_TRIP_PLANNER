@@ -758,6 +758,37 @@ try {
   check(chinese.errors.length === 0, "Chinese journey has no browser errors", chinese.errors);
   await chinese.context.close();
 
+  const rejected = await open("en", { width: 1440, height: 1000 });
+  await openHome(rejected.page);
+  await markMap(rejected.page);
+  await rejected.page.evaluate(() => window.__googleRendererFixture.fail());
+  for (let visit = 0; visit < 2; visit += 1) {
+    await home(rejected.page).getByRole("button", { name: "Back to trips" }).click();
+    await rejected.page.locator(".trip-cards .trip-card").first().waitFor();
+    await openHome(rejected.page);
+    await rejected.page
+      .locator(".trip-home__map .google-map")
+      .first()
+      .waitFor({ state: "attached" });
+  }
+  await home(rejected.page).getByRole("button", { name: "Back to trips" }).click();
+  await rejected.page
+    .locator(".trip-cards .trip-card")
+    .first()
+    .waitFor({ timeout: 5_000 })
+    .catch(() => {});
+  const afterRejection = await rejected.page.evaluate(() => ({
+    crashed: /Application error/.test(document.body.innerText),
+    trips: document.querySelectorAll(".trip-cards .trip-card").length,
+  }));
+  await rejected.page.screenshot({ path: `${OUT}/google-rejected-trip-switch.png` });
+  check(
+    !afterRejection.crashed && afterRejection.trips > 0 && rejected.errors.length === 0,
+    "leaving Trip home after Google rejects the key keeps the workspace running",
+    { ...afterRejection, errors: rejected.errors },
+  );
+  await rejected.context.close();
+
   for (const width of [390, 1001]) {
     const responsive = await open("en", { width, height: width <= 520 ? 844 : 900 }, width <= 520);
     await openHome(responsive.page, "en", width);

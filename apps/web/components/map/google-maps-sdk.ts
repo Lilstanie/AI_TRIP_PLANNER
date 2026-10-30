@@ -26,7 +26,8 @@ export type MapsSDK = {
     getZoom(): number | undefined;
     setOptions(options: object): void;
     setMapTypeId(type: "roadmap" | "hybrid"): void;
-    addListener(event: string, fn: () => void): { remove(): void };
+    /** Returns undefined once Google has rejected the key: the SDK disables the map's listeners. */
+    addListener(event: string, fn: () => void): { remove(): void } | undefined;
   };
   LatLngBounds: new () => { extend(point: object): void; isEmpty(): boolean };
   event: {
