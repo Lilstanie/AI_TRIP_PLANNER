@@ -904,8 +904,8 @@ html.is-reordering .timeline[data-empty] {
 }
 .add-panel [role="tab"][aria-selected="true"],
 .add-panel__filters [aria-pressed="true"] {
-  border-color: var(--accent);
-  font-weight: 600;
+  --button-bg: var(--accent-bg);
+  color: var(--accent);
 }
 .add-panel__body {
   display: grid;
