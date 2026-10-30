@@ -77,7 +77,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 关闭 Trip 时，上文所述的聊天／地图分栏及其分隔条继续工作；打开 Trip 不会更改已保存的分栏比例。
   - `Drawer` 为导航和其他仍然存在的抽屉提供 `role="dialog"`、`aria-modal`，关闭时提供 `aria-hidden` 和 `inert`，打开时聚焦关闭按钮，支持 Tab 循环、Escape（嵌套编辑预览和原生对话框优先），并将焦点返回触发按钮。桌面和平板 Trip 是主内容布局，不是覆盖式抽屉。
   - 同时最多打开一个覆盖层：导航抽屉、桌面端 Chats 面板、手机端 Trip details 底部面板，或一个 chip 编辑器。打开其中一个会关闭其他覆盖层；Settings 叠在其上方打开，关闭后回到原覆盖层。打开什么由一个纯函数决定，即 `apps/web/lib/workspace/layout.ts` 中的 `layout()`；见[布局 Agent Note](../.agents/notes/implemented/architecture/2026-10-06-workspace-layout-reducer.md)。刷新后所有覆盖层都处于关闭状态。关闭的抽屉完全平移到视口外，shell 使用 `overflow: clip`，无法通过滚动使它们出现。
-  - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿 iOS sheet 曲线在 450 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
+  - 抽屉为悬浮 Liquid Glass sheet，四周内缩 `--space-2`，圆角为 `--radius-xl`。它们沿抽屉曲线在 450 ms 内滑动，背景遮罩同步淡出（`usePresence` 保持挂载）。所有动效都遵循 `prefers-reduced-motion`。
   - 打开其他聊天或行程、New chat、New trip 和 Your trips 页面时，通过 View Transitions API（`viewTransition`）使主栏交叉淡入淡出；手机 Tab 切换使用同一过渡辅助函数。主栏只在过渡运行时携带 `view-transition-name`：具名元素是 backdrop root，永久保留名称会导致抽屉玻璃后方的聊天仍然清晰。
 - **窄屏（521–1000 px）。**
   - 顶栏把菜单、事实标签和 Trip 保留在一行，下方为 Chat/Map 切换。标签放不下时在自身行内横向滚动，仍有隐藏标签的一侧边缘渐隐；页面本身从不横向滚动。
