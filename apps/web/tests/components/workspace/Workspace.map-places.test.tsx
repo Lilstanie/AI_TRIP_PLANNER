@@ -126,6 +126,6 @@ describe("Workspace map places", () => {
     expect(await within(map).findByText("Atlantis could not be shown on the map yet")).toBeTruthy();
     expect(within(map).getByText(/temporarily unavailable. Your plan is unchanged/)).toBeTruthy();
     expect(within(map).queryByLabelText("Google activity map")).toBeNull();
-    expect(within(drawer()).getByText(/Atlantis/)).toBeTruthy();
+    expect(document.title).toMatch(/^Atlantis/);
   });
 });

@@ -593,7 +593,7 @@ describe("Workspace interactions", () => {
     await act(async () => {
       finishChat(complete("Paris", "Louvre"));
     });
-    expect(await within(drawer("trip")).findByText(/Paris · 1.*4 Oct/)).toBeTruthy();
+    await waitFor(() => expect(document.title).toMatch(/^Paris · 1.*4 Oct/));
     await waitFor(() => expect(searches).toContain("Louvre@Paris"));
     await act(async () => {
       finishPlaces(Response.json({ places: [googlePlace] }));
@@ -671,9 +671,9 @@ describe("Workspace interactions", () => {
     await screen.findByText("Offline");
     fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(chip(/^Destination: Paris$/)).toBeTruthy();
-    expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
+    expect(document.title).toMatch(/^Sydney · 1.*4 Oct/);
     fireEvent.click(screen.getByRole("button", { name: "Retry update" }));
-    await within(drawer("trip")).findByText(/Paris · 1.*4 Oct/);
+    await waitFor(() => expect(document.title).toMatch(/^Paris · 1.*4 Oct/));
     const chatCalls = fetcher.mock.calls.filter(([url]) => url === "/api/chat");
     const first = JSON.parse((chatCalls[0]![1] as RequestInit).body as string);
     expect(first.mode).toBe("plan");
@@ -733,7 +733,7 @@ describe("Workspace interactions", () => {
     });
     fireEvent.click(screen.getByRole("button", { name: "Retry / replace workspace storage" }));
     expect(screen.getByRole("alert").textContent).toContain("unavailable or full");
-    expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
+    expect(document.title).toMatch(/^Sydney · 1.*4 Oct/);
   });
 });
 
