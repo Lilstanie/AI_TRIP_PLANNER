@@ -397,6 +397,11 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onSend={session.send}
       onResend={session.resend}
       {...(phone ? { onOpenTrip: () => selectView("trip") } : {})}
+      onOpenDay={(day: number) => {
+        layout.focusMapDay(day);
+        if (phone) selectView("trip");
+        else if (!tripOpen) openTrip();
+      }}
       ask={ask}
       onAnswer={session.answer}
       onAskProgress={session.updateAskProgress}
