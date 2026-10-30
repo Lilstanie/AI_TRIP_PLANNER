@@ -33,6 +33,11 @@ own boundary is not used: Tokyo's includes the Ogasawara islands, and a live run
 Iwo Jima, about 1,200 km away. Pure nearest-first ordering is not used either: a live run then
 filled all 20 slots with statues within 1 km of Tokyo Station. A Geoapify error, a missing city or an empty list
 logs a warning without the key and falls back to Overpass; when both fail the error names both.
+The two sight requests are settled separately: a live trip lost all its stops twice when the temple
+request passed the 15 s timeout and took the sights with it, so one answered request is enough and
+only two failures count as a Geoapify failure. A city and category's places are kept for 10 minutes
+and shared by concurrent callers, since one trip's agents asked for the same sights several times at
+8–13 s each; failed or empty lookups are not kept.
 Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
 
 ## Alternatives considered

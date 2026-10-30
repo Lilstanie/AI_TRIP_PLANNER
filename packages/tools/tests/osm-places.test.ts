@@ -1,4 +1,5 @@
 import { afterEach, describe, expect, it, vi } from "vitest";
+import { clearGeoapifyCacheForTests } from "../src/geoapify";
 import { places } from "../src/maps";
 
 const tokyo = [
@@ -49,6 +50,8 @@ const overpassQuery = (fetcher: ReturnType<typeof vi.fn>, call = 1) =>
   );
 
 afterEach(() => {
+  clearGeoapifyCacheForTests();
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
@@ -300,6 +303,74 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(categories[1]).toContain("religion.place_of_worship.shinto");
     expect(found.map((place) => place.name)).toEqual(["金龍山 浅草寺", "Memorial"]);
     expect(found[0]!.website).toBe("https://senso-ji.jp");
+  });
+
+  it("keeps the sights when the slower temple request times out", async () => {
+    withGeoapify({ body: geoTokyo }, { body: geoSights }, { status: 504, body: {} });
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu"]);
+  });
+
+  it("falls back to Overpass only when both sight requests fail", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { status: 504, body: {} },
+      { status: 504, body: {} },
+      { body: tokyo },
+      { body: sights },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(String(fetcher.mock.calls[4]![0])).toContain("/interpreter");
+    expect(found.map((place) => place.name)).toEqual(["浅草寺", "東京スカイツリー"]);
+  });
+
+  it("asks Geoapify once when several agents want the same city's sights at the same time", async () => {
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { body: geoSights },
+      { body: { features: [] } },
+    );
+
+    const [first, second] = await Promise.all([
+      places({ near: "Tokyo", category: "sight" }),
+      places({ near: "Tokyo", category: "sight" }),
+    ]);
+    const third = await places({ near: "Tokyo", category: "sight" });
+
+    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(second).toEqual(first);
+    expect(third).toEqual(first);
+  });
+
+  it("asks again after a failed lookup, and never answers another city or category from memory", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { status: 503, body: {} },
+      { body: tokyo },
+      { body: { elements: [] } },
+      { body: geoTokyo },
+      { body: geoSights },
+      { body: geoTokyo },
+      { body: { features: [] } },
+      { body: tokyo },
+      { body: { elements: [] } },
+      { body: [{ osm_type: "node", osm_id: 1, lat: "34.9858", lon: "135.7588" }] },
+      { body: { features: [] } },
+      { body: tokyo },
+      { body: { elements: [] } },
+    );
+
+    await places({ near: "Tokyo", category: "museum" });
+    expect(await places({ near: "Tokyo", category: "museum" })).toHaveLength(2);
+    expect(await places({ near: "Tokyo", category: "restaurant" })).toEqual([]);
+    expect(await places({ near: "京都", category: "museum" })).toEqual([]);
+    expect(fetcher).toHaveBeenCalledTimes(14);
   });
 
   it("centres Kyoto on the Nominatim result, which Geoapify's city search sometimes puts in China", async () => {
