@@ -128,10 +128,76 @@
   padding: 2px 2px 6px;
   overflow-x: auto;
   scroll-snap-type: x proximity;
+  scroll-padding-inline: 2px;
   scrollbar-width: none;
   list-style: none;
   max-width: 100%;
+}
+
+.plan-days-scroller {
+  position: relative;
+  max-width: 100%;
+}
+
+.plan-days-scroller[data-more-end] .plan-days {
   mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+.plan-days-scroller[data-more-start] .plan-days {
+  mask-image: linear-gradient(to right, transparent, #000 24px);
+}
+
+.plan-days-scroller[data-more-start][data-more-end] .plan-days {
+  mask-image: linear-gradient(
+    to right,
+    transparent,
+    #000 24px,
+    #000 calc(100% - 24px),
+    transparent
+  );
+}
+
+.plan-days__scroll {
+  position: absolute;
+  top: 50%;
+  display: grid;
+  width: 32px;
+  height: 32px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: 50%;
+  background: var(--surface);
+  box-shadow: var(--shadow-sm);
+  color: var(--text);
+  cursor: pointer;
+  transform: translateY(-50%);
+  transition:
+    border-color var(--duration) var(--ease-out),
+    background var(--duration) var(--ease-out);
+}
+
+.plan-days__scroll:hover {
+  border-color: var(--accent);
+  background: var(--fill-hover);
+}
+
+.plan-days__scroll--start {
+  left: 4px;
+}
+
+.plan-days__scroll--start svg {
+  transform: rotate(180deg);
+}
+
+.plan-days__scroll--end {
+  right: 4px;
+}
+
+@media (hover: none) {
+  .plan-days__scroll {
+    display: none;
+  }
 }
 
 .plan-days::-webkit-scrollbar {
@@ -219,7 +285,8 @@ button.plan-day:active {
     animation: none;
   }
 
-  button.plan-day {
+  button.plan-day,
+  .plan-days__scroll {
     transition: none;
   }
 

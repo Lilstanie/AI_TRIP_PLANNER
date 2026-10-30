@@ -402,6 +402,8 @@ export const WORKSPACE_ZH = {
   estimate: "估算",
   "Free day": "自由活动",
   "Days in this plan": "这份行程的每一天",
+  "Earlier days": "前几天",
+  "Later days": "后几天",
   "Open {v0} in the trip": "在行程中打开{v0}",
   "+{v0} more": "另有 {v0} 处",
   "no change": "无变化",
