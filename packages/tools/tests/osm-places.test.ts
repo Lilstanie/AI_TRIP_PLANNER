@@ -144,7 +144,9 @@ describe("OSM places by category", () => {
   });
 });
 
-const geoTokyo = { results: [{ place_id: "tokyo-id", city: "Tokyo" }] };
+const geoTokyo = {
+  results: [{ place_id: "tokyo-id", city: "Tokyo", lat: 35.6812, lon: 139.7671 }],
+};
 const geoSights = {
   features: [
     {
@@ -175,7 +177,7 @@ function withGeoapify(...bodies: Array<{ status?: number; body: unknown }>) {
 }
 
 describe("Geoapify places by category, with Overpass as the fallback", () => {
-  it("asks Geoapify for sights inside the city's own boundary and never calls Overpass", async () => {
+  it("asks Geoapify for sights within 15 km of the city centre, not the whole prefecture with its islands, and never calls Overpass", async () => {
     const fetcher = withGeoapify({ body: geoTokyo }, { body: geoSights });
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -186,7 +188,8 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(geocodeUrl!.searchParams.get("type")).toBe("city");
     expect(geocodeUrl!.searchParams.get("apiKey")).toBe("test-geoapify-key");
     expect(placesUrl!.pathname).toBe("/v2/places");
-    expect(placesUrl!.searchParams.get("filter")).toBe("place:tokyo-id");
+    expect(placesUrl!.searchParams.get("filter")).toBe("circle:139.7671,35.6812,15000");
+    expect(placesUrl!.searchParams.get("bias")).toBe("proximity:139.7671,35.6812");
     expect(placesUrl!.searchParams.get("categories")).toContain("tourism.sights");
     expect(fetcher).toHaveBeenCalledTimes(2);
     expect(found).toEqual([

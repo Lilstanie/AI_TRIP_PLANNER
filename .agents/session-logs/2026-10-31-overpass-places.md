@@ -36,6 +36,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
 - Joey then chose Geoapify with Overpass as the fallback. `geoapify.ts` plus six Geoapify failure
   modes written first (5 red, 1 already green), then 13/13; tools 157/157, typecheck and lint pass.
 
+- Live run with the key: every Tokyo stop was on Iwo Jima (`filter=place:` covers the whole
+  prefecture). Changed to a 15 km circle around the city centre with proximity bias; test red, then
+  green 13/13.
+
 ## Notes for the next person
 
 This container cannot reach Overpass; the live check runs on Joey's Mac. `.env.example` (protected)

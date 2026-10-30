@@ -23,7 +23,9 @@ the Nominatim text search.
 
 When `GEOAPIFY_API_KEY` is set, `packages/tools/src/geoapify.ts` answers `sight`, `museum` and
 `restaurant` first: Geoapify geocoding finds the city (`type=city`), then Places lists that category
-inside the city's boundary (`filter=place:<id>`). A Geoapify error, a missing city or an empty list
+within 15 km of the city centre, nearest first (`filter=circle`,
+`bias=proximity`). The city's own boundary is not used: Tokyo's includes the Ogasawara islands, and a
+live run put every stop on Iwo Jima, about 1,200 km away. A Geoapify error, a missing city or an empty list
 logs a warning without the key and falls back to Overpass; when both fail the error names both.
 Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
 

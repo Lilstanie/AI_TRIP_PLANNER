@@ -37,15 +37,16 @@ export const geoapifyCategory = (q: PlaceQuery) =>
   q.category in CATEGORIES;
 
 export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
-  const { results = [] } = await request<{ results?: Array<{ place_id?: string }> }>(
+  const { results = [] } = await request<{ results?: Array<{ lat?: number; lon?: number }> }>(
     "/v1/geocode/search",
     { text: q.near, type: "city", limit: "1", format: "json" },
   );
-  const city = results[0]?.place_id;
-  if (!city) return [];
+  const { lat, lon } = results[0] ?? {};
+  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
   const { features = [] } = await request<{ features?: Feature[] }>("/v2/places", {
     categories: CATEGORIES[q.category!]!,
-    filter: `place:${city}`,
+    filter: `circle:${lon},${lat},15000`,
+    bias: `proximity:${lon},${lat}`,
     limit: "40",
   });
   return features
