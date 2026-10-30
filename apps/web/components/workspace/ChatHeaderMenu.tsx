@@ -3,7 +3,16 @@
 import { useEffect, useId, useLayoutEffect, useRef, useState, type KeyboardEvent } from "react";
 import { createPortal } from "react-dom";
 import { useLocale } from "../account/LocaleProvider";
-import { ChatIcon, ChevronIcon, PencilIcon, PlusIcon, SuitcaseIcon } from "../ui/icons";
+import {
+  ChatIcon,
+  ChevronIcon,
+  CloseIcon,
+  PencilIcon,
+  PlusIcon,
+  RouteIcon,
+  SuitcaseIcon,
+  TrashIcon,
+} from "../ui/icons";
 
 export type ChatHeaderMenuProps = {
   title: string;
@@ -241,7 +250,7 @@ export function ChatHeaderMenu({
         <ChevronIcon />
       </button>
       <button type="button" role="menuitem" disabled={busy} {...branch("trips")}>
-        <SuitcaseIcon />
+        <RouteIcon />
         <span>{t("Move to another trip")}</span>
         <ChevronIcon />
       </button>
@@ -251,7 +260,7 @@ export function ChatHeaderMenu({
         disabled={busy}
         onClick={() => act(() => onMoveChat(undefined))}
       >
-        <SuitcaseIcon />
+        <CloseIcon />
         <span>{t("Remove from trip")}</span>
       </button>
       <div role="separator" className="chat-header-menu__separator" />
@@ -265,6 +274,7 @@ export function ChatHeaderMenu({
         className="chat-header-menu__delete"
         onClick={() => act(onDelete)}
       >
+        <TrashIcon />
         <span>{t("Delete chat")}</span>
       </button>
     </>

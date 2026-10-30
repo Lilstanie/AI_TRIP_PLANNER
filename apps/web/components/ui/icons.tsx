@@ -209,6 +209,12 @@ export const CopyIcon = () => (
   </Icon>
 );
 
+export const TrashIcon = () => (
+  <Icon width="16" height="16">
+    <path d="M4 7h16M9 7V4h6v3M6 7l1 13h10l1-13M10 11v5M14 11v5" />
+  </Icon>
+);
+
 export const PencilIcon = () => (
   <Icon width="16" height="16">
     <path d="M4 20h4L19 9a2.8 2.8 0 0 0-4-4L4 16z" />
