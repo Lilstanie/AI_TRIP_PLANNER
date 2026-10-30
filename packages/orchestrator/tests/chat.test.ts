@@ -236,6 +236,45 @@ describe("without a provider key", () => {
     });
   });
 
+  it("answers a follow-up it cannot read without replanning", async () => {
+    const { mem } = memoryStore();
+    const first = await offline(
+      { tripId: "blank", message: "Lisbon, 2027-11-02 to 2027-11-06, 3 people, budget $2400" },
+      mem,
+    );
+    vi.mocked(itinerary.invoke).mockClear();
+    const follow = (message: string) =>
+      offline(
+        {
+          tripId: "blank",
+          message,
+          plan: first.plan,
+          brief: first.plan.brief,
+          interfaceLanguage: "zh",
+        },
+        mem,
+      );
+
+    const english = await follow("What's the weather like on day 2?");
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+    expect(english.plan).toBe(first.plan);
+    expect(english.reply).toBe(
+      "Without the AI planner, chat can only change the destination, dates, travellers or budget. Edit stops directly in the trip.",
+    );
+    expect((await follow("第三天加一个法朵表演")).reply).toBe(
+      "当前没有 AI 规划，聊天里只能修改目的地、日期、人数或预算。地点请直接在行程里编辑。",
+    );
+    expect(itinerary.invoke).not.toHaveBeenCalled();
+
+    const shorter = await follow("Make it 3 days");
+    expect(itinerary.invoke).toHaveBeenCalled();
+    expect(shorter.plan.brief.dates).toEqual(["2027-11-02", "2027-11-04"]);
+
+    const larger = await follow("Make it 4 people");
+    expect(itinerary.invoke).toHaveBeenCalled();
+    expect(larger.plan.brief.groupSize).toBe(4);
+  });
+
   it("carries Chinese party sizes from offline chat into the planned brief", async () => {
     const { mem } = memoryStore();
     const result = await offline(
