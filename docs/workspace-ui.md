@@ -86,7 +86,11 @@ The Trip home action area and its acceptance criteria are detailed in
     retaining its Trip association. It uses the latest saved plan: when the chat's own snapshot is older than the trip's,
     the trip's plan is shown and kept, so opening an older chat never downgrades the trip, and only an edit
     changes it. The heading shows the Chat count, and every row includes a forward affordance.
-    Automatic Chat titles use the first user message; manually renamed titles stay intact.
+    A chat that opens a trip is named after it, by destination and dates in the interface language
+    (`Lisbon · 10–13 Mar 2027`); a later chat in the same trip, and a chat with no plan yet, uses its
+    first user message; manually renamed titles stay intact
+    ([Agent Note](../.agents/notes/implemented/feature/2026-10-31-chat-trip-title.md),
+    `pnpm --filter @trip/web e2e chat-trip-title`).
     The bottom input reuses Chat’s `Composer`, including its appearance, auto-growing textarea,
     upload control, agent mentions and localized accessible name. It stays visible while the list scrolls.
     Attachments belong to this Trip-home draft and accompany its first message. Its first nonempty
