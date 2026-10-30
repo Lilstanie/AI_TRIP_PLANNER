@@ -93,9 +93,9 @@
 
 .msg-open-trip {
   padding: 7px 14px;
-  border: 1px solid var(--line);
+  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--surface-1);
+  background: var(--surface);
   color: var(--accent);
   font: inherit;
   font-size: 13px;
@@ -121,9 +121,106 @@
   }
 }
 
+.plan-days {
+  display: flex;
+  gap: 8px;
+  margin: 8px 0 2px;
+  padding: 2px 2px 6px;
+  overflow-x: auto;
+  scroll-snap-type: x proximity;
+  scrollbar-width: none;
+  list-style: none;
+  max-width: 100%;
+  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+}
+
+.plan-days::-webkit-scrollbar {
+  display: none;
+}
+
+.plan-days__item {
+  flex: 0 0 168px;
+  scroll-snap-align: start;
+  animation: plan-day-in 320ms var(--ease-out) both;
+}
+
+@keyframes plan-day-in {
+  from {
+    opacity: 0;
+    transform: translateY(6px);
+  }
+}
+
+button.plan-day {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  width: 100%;
+  height: 100%;
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  background: var(--surface);
+  color: var(--text);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+  transition:
+    transform var(--duration) var(--ease-out),
+    border-color var(--duration) var(--ease-out),
+    background var(--duration) var(--ease-out);
+}
+
+button.plan-day:hover {
+  border-color: var(--accent);
+  background: var(--fill-hover);
+  transform: translateY(-2px);
+}
+
+button.plan-day:active {
+  transform: scale(0.98);
+}
+
+.plan-day__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 8px;
+  font-size: 13px;
+}
+
+.plan-day__date,
+.plan-day__more,
+.plan-day__free {
+  color: var(--text-mut);
+  font-size: 12px;
+}
+
+.plan-day__stops {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  min-width: 0;
+}
+
+.plan-day__stop {
+  overflow: hidden;
+  font-size: 13px;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 @media (prefers-reduced-motion: reduce) {
   .msg-item {
     animation: none;
+  }
+
+  .plan-days__item {
+    animation: none;
+  }
+
+  button.plan-day {
+    transition: none;
   }
 
   .msg-reveal__word {

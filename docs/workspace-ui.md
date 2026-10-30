@@ -565,6 +565,10 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     (paragraphs, lists, bold, links opening in a new tab). Both carry a small clock underneath, in
     `HH:mm` for today and a short date otherwise, and long URLs or mixed Chinese/English text wrap
     within the chat column.
+  - The latest reply that produced a plan ends with one card per trip day (day, date and up to two
+    stop names, or Free day), in a row that scrolls sideways and fades in card by card. A card opens
+    the trip on that day; on a phone it switches to the Trip view. Older replies and replies that only
+    asked a question have no cards.
   - The composer is one card at the foot of the chat: a draft that grows with its content and then
     scrolls, an upload control on the left, and one primary action on the right. The card is
     `--surface-2` (white on light, grey on dark) so it reads as an input capsule laid on the page,

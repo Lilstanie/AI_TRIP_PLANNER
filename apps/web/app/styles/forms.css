@@ -31,7 +31,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
     .thinking-choice__toggle
   ):not(.composer__add):not(.composer__primary):not(.question__icon-button):not(
     .question__option
-  ):not(.question__button):not(.attachment-chip__remove):not(.day-strip__day):not(
+  ):not(.question__button):not(.attachment-chip__remove):not(.day-strip__day):not(.plan-day):not(
     .timeline-stop__main
   ):not(.timeline-stop__time):not(.settings-chip):not(.settings-pill):not(.settings-switch):not(
     .settings-tab

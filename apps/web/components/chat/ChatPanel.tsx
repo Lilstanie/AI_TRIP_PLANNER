@@ -30,6 +30,7 @@ export function ChatPanel({
   onSend,
   onResend,
   onOpenTrip,
+  onOpenDay,
   onEdit,
   phone = false,
   showTabs = true,
@@ -63,6 +64,7 @@ export function ChatPanel({
 
   onResend?: (index: number, text: string) => boolean;
   onOpenTrip?: () => void;
+  onOpenDay?: (day: number) => void;
   onEdit: () => void;
 
   phone?: boolean;
@@ -134,6 +136,7 @@ export function ChatPanel({
   const [only, setOnly] = useState<AssistantId | undefined>();
   const [jump, setJump] = useState<TurnJump | undefined>();
   const turns = useMemo(() => messageTurns(messages), [messages]);
+  const lastPlanned = messages.map((message) => message.outcome).lastIndexOf("planned");
   useEffect(() => {
     if (!focus || !claim(focus.nonce)) return;
     if (phone) return;
@@ -229,6 +232,7 @@ export function ChatPanel({
               turn={turns[i] ?? undefined}
               animate={i === revealIndex}
               {...(phone && m.outcome === "planned" && onOpenTrip ? { onOpenTrip } : {})}
+              {...(plan && onOpenDay && i === lastPlanned ? { days: { plan, onOpenDay } } : {})}
               {...(onResend && !busy && !locked && !ask
                 ? { onResend: (text: string) => onResend(i, text) }
                 : {})}

@@ -2,11 +2,13 @@
 import { useEffect, useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
+import type { TripPlan } from "@trip/shared";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { intlLocale } from "@/lib/i18n/locale";
 import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
+import { PlanDays } from "./PlanDays";
 import { RevealedText } from "./RevealedText";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { AssistantIcon } from "./assistants";
@@ -107,12 +109,14 @@ export function MessageItem({
   turn,
   onResend,
   onOpenTrip,
+  days,
 }: {
   message: Message;
   animate?: boolean;
   turn?: number | undefined;
   onResend?: (text: string) => boolean;
   onOpenTrip?: () => void;
+  days?: { plan: TripPlan; onOpenDay: (day: number) => void };
 }) {
   const { t, locale, notice: localizeNotice } = useLocale();
   const [undone, setUndone] = useState(false);
@@ -203,6 +207,7 @@ export function MessageItem({
           {...(animate ? { animate } : {})}
         />
       </div>
+      {days && <PlanDays plan={days.plan} onOpenDay={days.onOpenDay} />}
       {message.conflictNotice && (
         <p className="msg-item__notice" role="status">
           {localizeNotice(message.conflictNotice)}
