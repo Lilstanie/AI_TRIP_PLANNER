@@ -30,6 +30,9 @@ async function request<T>(path: string, params: Record<string, string>): Promise
   return (await response.json()) as T;
 }
 
+const notability = (place: NonNullable<Feature["properties"]>) =>
+  (place.datasource?.raw?.wikipedia ? 2 : 0) + (place.datasource?.raw?.wikidata ? 1 : 0);
+
 export const geoapifyCategory = (q: PlaceQuery) =>
   Boolean(toolRuntimeConfig().geoapifyApiKey) &&
   !q.textQuery &&
@@ -37,26 +40,25 @@ export const geoapifyCategory = (q: PlaceQuery) =>
   q.category in CATEGORIES;
 
 export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
-  const { results = [] } = await request<{ results?: Array<{ lat?: number; lon?: number }> }>(
-    "/v1/geocode/search",
-    { text: q.near, type: "city", limit: "1", format: "json" },
-  );
-  const { lat, lon } = results[0] ?? {};
+  const { results = [] } = await request<{
+    results?: Array<{ lat?: number; lon?: number; rank?: { importance?: number } }>;
+  }>("/v1/geocode/search", { text: q.near, type: "city", limit: "5", format: "json" });
+  const { lat, lon } =
+    results.reduce<(typeof results)[number] | undefined>(
+      (best, city) => ((city.rank?.importance ?? 0) > (best?.rank?.importance ?? -1) ? city : best),
+      undefined,
+    ) ?? {};
   if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
   const { features = [] } = await request<{ features?: Feature[] }>("/v2/places", {
     categories: CATEGORIES[q.category!]!,
     filter: `circle:${lon},${lat},15000`,
-    bias: `proximity:${lon},${lat}`,
-    limit: "40",
+    conditions: "named",
+    limit: "500",
   });
   return features
     .map((feature) => feature.properties ?? {})
     .filter((place) => place.name?.trim())
-    .sort(
-      (a, b) =>
-        Number(Boolean(b.datasource?.raw?.wikipedia)) -
-        Number(Boolean(a.datasource?.raw?.wikipedia)),
-    )
+    .sort((a, b) => notability(b) - notability(a))
     .slice(0, 20)
     .map((place) => ({
       name: place.name!.trim(),

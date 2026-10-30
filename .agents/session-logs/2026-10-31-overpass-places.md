@@ -40,6 +40,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
   prefecture). Changed to a 15 km circle around the city centre with proximity bias; test red, then
   green 13/13.
 
+- Next live run: stops in central Tokyo but all within 1 km of Tokyo Station, no temples; 京都
+  geocoded to Jingdu (Shantou) 2 of 6 times. Now rank 500 named places by Wikipedia/Wikidata and take
+  the most important of five geocode matches; tests red (3), then green 15/15, tools 159/159.
+
 ## Notes for the next person
 
 This container cannot reach Overpass; the live check runs on Joey's Mac. `.env.example` (protected)
