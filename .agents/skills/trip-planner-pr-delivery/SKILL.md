@@ -23,7 +23,7 @@ The team tracks sprints in Jira project `TP` (https://headmastereggy.atlassian.n
 - Call shapes that work with the connector: `transitionJiraIssue` takes a top-level `transitionId` (Done is `31`), not a `transition` object. `addOrEditJiraIssueComment` takes `commentBody`, not `body`. `editJiraIssue` takes `fields`, for example `{"assignee": {"accountId": "<id>"}}`.
 - Jira list, search, transition and edit calls return the whole story by default. Pass `responseFields` (for example `summary`, `status`, `labels`), and fetch `description` for one key at a time, or the call can exceed the token limit. Do the same for GitHub: `list_issues` and `issue_read` take `minimal_output`.
 - The cloud container cannot reach atlassian.net directly (proxy 403); use the connector. Without it, ask the user to connect Atlassian MCP.
-- Do not use smart-commit commands (`#done`). No Jira Automation rule moves a story to 完成 when a PR merges, so the story is moved by hand (step 6).
+- Do not use smart-commit commands (`#done`). Jira Automation moves the story: opening the PR moves it to 正在进行, merging moves it to 完成 and comments the PR link (rules in `docs/agents/issue-tracker.md` § Automation rules). Do not transition it or post progress comments yourself; step 6 only checks the result.
 
 Done: the story exists, its reporter and assignee are right, and the GitHub ticket title starts with its key.
 
@@ -89,7 +89,7 @@ Done: every check `success`, `mergeable_state` is `clean`.
 - Mark ready with `gh api -X POST $R/pulls/<n>/ccr/ready_for_review` (GraphQL is blocked; MCP `update_pull_request` with `draft: false` also works), then `gh api -X PUT $R/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`.
 - After the merge, list the issues the PR was meant to close and close any still open (`issue_write`, `state_reason: completed`).
 - Delete the local branch and its worktree after merge. The cloud container cannot delete remote branches; once the repo owner turns on auto-delete, GitHub does it.
-- Jira, by hand after every merge: transition the story to 完成 with `transitionJiraIssue` (`transitionId` 31), add one comment naming the merged PR with `addOrEditJiraIssueComment`, and check that the assignee is right (step 0). No Automation rule does this for us.
+- Jira after every merge: read the story's status a minute later (`getJiraIssue`, `responseFields` `status`). The merge rule should have moved it to 已完成 and commented the PR. If it is still open, transition it with `transitionJiraIssue` (`transitionId` 31), add one comment naming the merged PR, and tell the user the rule did not fire. Check that the assignee is right (step 0); the rules do not set it.
 - Tell the user in one line, with the PR link.
   Done: PR merged, linked issue closed, Jira story 完成 with the right assignee, user told.
 
