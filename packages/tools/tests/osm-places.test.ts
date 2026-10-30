@@ -144,9 +144,7 @@ describe("OSM places by category", () => {
   });
 });
 
-const geoTokyo = {
-  results: [{ place_id: "tokyo-id", city: "Tokyo", lat: 35.6812, lon: 139.7671 }],
-};
+const geoTokyo = [{ osm_type: "relation", osm_id: 1543125, lat: "35.6812", lon: "139.7671" }];
 const geoSights = {
   features: [
     {
@@ -183,11 +181,11 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     const found = await places({ near: "Tokyo", category: "sight" });
 
     const [geocodeUrl, placesUrl] = fetcher.mock.calls.map(([url]) => new URL(String(url)));
-    expect(geocodeUrl!.pathname).toBe("/v1/geocode/search");
-    expect(geocodeUrl!.searchParams.get("text")).toBe("Tokyo");
-    expect(geocodeUrl!.searchParams.get("type")).toBe("city");
-    expect(geocodeUrl!.searchParams.get("apiKey")).toBe("test-geoapify-key");
+    expect(geocodeUrl!.hostname).toContain("nominatim");
+    expect(geocodeUrl!.searchParams.get("q")).toBe("Tokyo");
+    expect(geocodeUrl!.searchParams.get("apiKey")).toBeNull();
     expect(placesUrl!.pathname).toBe("/v2/places");
+    expect(placesUrl!.searchParams.get("apiKey")).toBe("test-geoapify-key");
     expect(placesUrl!.searchParams.get("filter")).toBe("circle:139.7671,35.6812,15000");
     expect(placesUrl!.searchParams.get("bias")).toBeNull();
     expect(placesUrl!.searchParams.get("limit")).toBe("500");
@@ -245,26 +243,57 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(found).toHaveLength(20);
   });
 
-  it("takes the most important city when a name matches several, not the first", async () => {
+  it("centres Kyoto on the Nominatim result, which Geoapify's city search sometimes puts in China", async () => {
     const fetcher = withGeoapify(
-      {
-        body: {
-          results: [
-            { city: "Jingdu", lat: 23.4, lon: 116.7, rank: { importance: 0.2 } },
-            { city: "Kyoto", lat: 35.0116, lon: 135.7681, rank: { importance: 0.75 } },
-          ],
-        },
-      },
+      { body: [{ osm_type: "node", osm_id: 1, lat: "34.9858", lon: "135.7588" }] },
       { body: geoSights },
     );
 
     await places({ near: "京都", category: "sight" });
 
-    const geocodeUrl = new URL(String(fetcher.mock.calls[0]![0]));
-    expect(Number(geocodeUrl.searchParams.get("limit"))).toBeGreaterThan(1);
+    expect(String(fetcher.mock.calls[0]![0])).toContain("nominatim");
     expect(new URL(String(fetcher.mock.calls[1]![0])).searchParams.get("filter")).toBe(
-      "circle:135.7681,35.0116,15000",
+      "circle:135.7588,34.9858,15000",
     );
+  });
+
+  it("skips a feature whose name is not text instead of failing the whole category", async () => {
+    withGeoapify(
+      { body: geoTokyo },
+      {
+        body: {
+          features: [
+            { properties: { name: { ja: "名前" }, lat: 35.7, lon: 139.7 } },
+            ...geoSights.features,
+          ],
+        },
+      },
+    );
+
+    const found = await places({ near: "Tokyo", category: "museum" });
+
+    expect(found.map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu"]);
+  });
+
+  it("lists each restaurant name once and the nearest first, not chains repeated at the circle's edge", async () => {
+    withGeoapify(
+      { body: geoTokyo },
+      {
+        body: {
+          features: [
+            { properties: { name: "Tully's Coffee", lat: 35.8, lon: 139.8 } },
+            { properties: { name: "Tully's Coffee", lat: 35.68, lon: 139.77 } },
+            { properties: { name: "Far Diner", lat: 35.79, lon: 139.86 } },
+            { properties: { name: "Near Ramen", lat: 35.682, lon: 139.768 } },
+          ],
+        },
+      },
+    );
+
+    const found = await places({ near: "Tokyo", category: "restaurant" });
+
+    expect(found.map((place) => place.name)).toEqual(["Near Ramen", "Tully's Coffee", "Far Diner"]);
+    expect(found[1]!.location).toEqual({ latitude: 35.68, longitude: 139.77 });
   });
 
   it("asks Geoapify for restaurants and museums by their own categories", async () => {
@@ -279,11 +308,16 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
 
   it("falls back to Overpass when Geoapify rejects the request", async () => {
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
-    const fetcher = withGeoapify({ status: 429, body: {} }, { body: tokyo }, { body: sights });
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { status: 429, body: {} },
+      { body: tokyo },
+      { body: sights },
+    );
 
     const found = await places({ near: "Tokyo", category: "sight" });
 
-    expect(String(fetcher.mock.calls[2]![0])).toContain("/interpreter");
+    expect(String(fetcher.mock.calls[3]![0])).toContain("/interpreter");
     expect(found.map((place) => place.name)).toEqual(["浅草寺", "東京スカイツリー"]);
     expect(String(warn.mock.calls[0]![0])).toContain("429");
     expect(String(warn.mock.calls[0]![0])).not.toContain("test-geoapify-key");
@@ -291,7 +325,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
   });
 
   it("falls back to Overpass when Geoapify cannot find the city or finds no places", async () => {
-    const noCity = withGeoapify({ body: { results: [] } }, { body: tokyo }, { body: sights });
+    const noCity = withGeoapify({ body: [] }, { body: tokyo }, { body: sights });
     expect(await places({ near: "Tokyo", category: "sight" })).toHaveLength(2);
     expect(String(noCity.mock.calls[2]![0])).toContain("/interpreter");
 
@@ -307,7 +341,12 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
 
   it("reports both providers when Geoapify and Overpass both fail", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
-    withGeoapify({ status: 401, body: {} }, { body: tokyo }, { status: 502, body: {} });
+    withGeoapify(
+      { body: geoTokyo },
+      { status: 401, body: {} },
+      { body: tokyo },
+      { status: 502, body: {} },
+    );
 
     await expect(places({ near: "Tokyo", category: "sight" })).rejects.toThrow(/401.*502|502.*401/);
   });

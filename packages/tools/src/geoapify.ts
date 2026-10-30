@@ -1,4 +1,5 @@
 import type { Place, PlaceQuery } from "@trip/shared";
+import { findCity } from "./overpass";
 import { toolFetch, toolRuntimeConfig } from "./runtime-context";
 
 const OSM_TYPES: Record<string, string> = { n: "node", w: "way", r: "relation" };
@@ -11,7 +12,7 @@ const CATEGORIES: Record<string, string> = {
 
 type Feature = {
   properties?: {
-    name?: string;
+    name?: unknown;
     lat?: number;
     lon?: number;
     website?: string;
@@ -41,32 +42,46 @@ export const geoapifyCategory = (q: PlaceQuery) =>
   q.category !== undefined &&
   q.category in CATEGORIES;
 
+const distanceKm = (lat: number, lon: number, place: { lat?: number; lon?: number }) =>
+  Math.hypot(
+    ((place.lat ?? lat) - lat) * 111,
+    ((place.lon ?? lon) - lon) * 111 * Math.cos((lat * Math.PI) / 180),
+  );
+
 export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
-  const { results = [] } = await request<{
-    results?: Array<{ lat?: number; lon?: number; rank?: { importance?: number } }>;
-  }>("/v1/geocode/search", { text: q.near, type: "city", limit: "5", format: "json" });
-  const { lat, lon } =
-    results.reduce<(typeof results)[number] | undefined>(
-      (best, city) => ((city.rank?.importance ?? 0) > (best?.rank?.importance ?? -1) ? city : best),
-      undefined,
-    ) ?? {};
-  if (!Number.isFinite(lat) || !Number.isFinite(lon)) return [];
+  const city = await findCity(q.near);
+  const lat = Number(city?.lat);
+  const lon = Number(city?.lon);
+  if (!city || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
   const { features = [] } = await request<{ features?: Feature[] }>("/v2/places", {
     categories: CATEGORIES[q.category!]!,
     filter: `circle:${lon},${lat},15000`,
     conditions: "named",
     limit: "500",
   });
+  const seen = new Set<string>();
   return features
     .map((feature) => feature.properties ?? {})
-    .filter((place) => place.name?.trim())
-    .sort((a, b) => notability(b) - notability(a))
+    .flatMap((place) =>
+      typeof place.name === "string" && place.name.trim()
+        ? [{ ...place, name: place.name.trim() }]
+        : [],
+    )
+    .sort(
+      (a, b) => notability(b) - notability(a) || distanceKm(lat, lon, a) - distanceKm(lat, lon, b),
+    )
+    .filter((place) => {
+      const key = place.name.toLocaleLowerCase();
+      if (seen.has(key)) return false;
+      seen.add(key);
+      return true;
+    })
     .slice(0, 20)
     .map((place) => {
       const raw = place.datasource?.raw ?? {};
       const osmType = OSM_TYPES[String(raw.osm_type)];
       return {
-        name: place.name!.trim(),
+        name: place.name,
         category: q.category!,
         ...(osmType && Number.isInteger(raw.osm_id)
           ? { placeId: `osm:${osmType}/${raw.osm_id}` }

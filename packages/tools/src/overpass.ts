@@ -15,7 +15,13 @@ const TAGS: Record<string, { filters: string[]; notable: boolean }> = {
   restaurant: { filters: ['["amenity"~"^(restaurant|cafe|food_court)$"]'], notable: false },
 };
 
-type Area = { osm_type?: string; osm_id?: number; boundingbox?: string[] };
+type Area = {
+  osm_type?: string;
+  osm_id?: number;
+  lat?: string;
+  lon?: string;
+  boundingbox?: string[];
+};
 type Element = {
   type?: string;
   id?: number;
@@ -39,15 +45,20 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
   return (await response.json()) as T;
 }
 
+export async function findCity(near: string): Promise<Area | undefined> {
+  const [area] = await request<Area[]>(
+    `${toolRuntimeConfig().nominatimBaseUrl}/search?format=jsonv2&limit=1&q=${encodeURIComponent(near)}`,
+  );
+  return area;
+}
+
 export const overpassCategory = (q: PlaceQuery) =>
   !q.textQuery && q.category !== undefined && q.category in TAGS;
 
 export async function overpassPlaces(q: PlaceQuery): Promise<Place[]> {
   const { filters, notable } = TAGS[q.category!]!;
   const config = toolRuntimeConfig();
-  const [area] = await request<Area[]>(
-    `${config.nominatimBaseUrl}/search?format=jsonv2&limit=1&q=${encodeURIComponent(q.near)}`,
-  );
+  const area = await findCity(q.near);
   if (!area) return [];
   const box = area.boundingbox?.map(Number);
   const scope =
