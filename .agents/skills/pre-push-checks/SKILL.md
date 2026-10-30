@@ -179,7 +179,8 @@ not affected.
 Delete the pull request's remote branch once it is merged or closed: GitHub keeps a Restore branch
 button on the pull request, so nothing is lost. Before deleting any other branch, confirm that no open
 pull request uses it and that `git cherry origin/main origin/<branch>` lists no unmerged commit;
-otherwise leave it and ask its owner. Delete the local checkout of the branch as well.
+otherwise leave it and ask its owner. Then run `node scripts/worktrees.mjs --apply` to move the branch's
+clean worktree and any build leftovers to the Trash.
 
 ## When to run everything
 
