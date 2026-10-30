@@ -26,7 +26,7 @@ journeys and Day map depend on them. The menu was already hidden until hover on 
 - `pnpm --filter @trip/web e2e trip-home-map --prod`: passed, including the thumbnail.
 - `pnpm --filter @trip/web exec vitest run tests/components/trip`: 3 passed.
 - `check-ui-copy` passed.
-- `trip-workspace-layout` failed on two chat header checks; see the PR for the base comparison.
+- `trip-workspace-layout` fails the same two chat header checks here and on `main`; recorded in `docs/e2e-known-failures.md`.
 
 ## Notes for the next person
 
