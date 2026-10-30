@@ -269,24 +269,42 @@ button.day-strip__day[aria-selected="true"] {
 }
 button.timeline-stop__main {
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr);
+  column-gap: var(--space-3);
+  row-gap: 2px;
+  align-content: start;
   width: 100%;
-  margin: calc(var(--space-1) * -1) calc(var(--space-2) * -1);
-  padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
   background: transparent;
   text-align: start;
   font-weight: 400;
-  box-sizing: content-box;
-  max-width: 100%;
+  box-sizing: border-box;
+  transition:
+    background 150ms ease,
+    border-color 150ms ease;
 }
-button.timeline-stop__main:hover {
-  background: var(--fill-hover);
+button.timeline-stop__main:has(.timeline-stop__thumb) {
+  grid-template-columns: 3.5rem minmax(0, 1fr);
 }
+button.timeline-stop__main:has(.timeline-stop__thumb) > :not(.timeline-stop__thumb) {
+  grid-column: 2;
+}
+.timeline-stop__thumb {
+  grid-row: 1 / span 4;
+  width: 3.5rem;
+  height: 3.5rem;
+  border-radius: var(--radius-sm);
+  object-fit: cover;
+}
+button.timeline-stop__main:hover,
 .timeline-stop.is-hovered button.timeline-stop__main {
+  border-color: var(--text-dim);
   background: var(--fill-hover);
 }
 .timeline-stop.is-selected button.timeline-stop__main {
+  border-color: var(--accent);
   background: var(--accent-bg);
 }
 .timeline-stop.is-selected .timeline-stop__node {
@@ -673,7 +691,6 @@ button.timeline-stop__time:disabled {
 .timeline-stop__head > button.timeline-stop__main {
   flex: 1 1 auto;
   min-width: 0;
-  margin: calc(var(--space-1) * -1) 0;
 }
 .timeline-stop__note {
   color: var(--text);
