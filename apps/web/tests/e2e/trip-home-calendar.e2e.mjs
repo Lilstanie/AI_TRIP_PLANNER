@@ -407,10 +407,33 @@ try {
       (await calendarDrawer.getByText("All day", { exact: true }).count()) >= 1,
     "an untimed activity is explicit in the All day region",
   );
+  const stayBars = await calendarDrawer.locator(".trip-home-calendar__week").evaluate((week) => {
+    const columns = [...week.querySelectorAll(".trip-home-calendar__week-day")].map(
+      (day) => day.getBoundingClientRect().left,
+    );
+    const lane = week.parentElement.querySelector(".trip-home-calendar__stays");
+    return {
+      repeated: week.querySelectorAll('[data-row-type="stay"]').length,
+      bars: [...(lane?.querySelectorAll(".trip-home-calendar__stay") ?? [])].map((bar) => {
+        const box = bar.getBoundingClientRect();
+        return {
+          text: bar.textContent,
+          firstColumn: columns.findIndex((left) => Math.abs(left - box.left) < 12),
+          columns: Math.round(box.width / (columns[1] - columns[0])),
+        };
+      }),
+    };
+  });
+  await calendarDrawer.screenshot({ path: resolve(OUT, "week-stay-bar.png") });
   check(
-    (await calendarDrawer.locator('[data-row-type="stay"]').first().getByText("All day").count()) >
-      0,
-    "an overnight stay is explicit as an All day region",
+    stayBars.repeated === 0 &&
+      stayBars.bars.length === 1 &&
+      stayBars.bars[0].text.includes("Harbour Hotel") &&
+      stayBars.bars[0].text.includes("5 nights") &&
+      stayBars.bars[0].firstColumn === 1 &&
+      stayBars.bars[0].columns === 5,
+    "an overnight stay is one bar across its nights, not a card on every day",
+    stayBars,
   );
   check(
     (await calendarDrawer.getByText("Unscheduled idea", { exact: true }).count()) === 0,
@@ -691,6 +714,12 @@ try {
     (await calendarDrawer.getByText("全天", { exact: true }).count()) >= 1 &&
       (await calendarDrawer.getByText("未定时间", { exact: true }).count()) >= 1,
     "Chinese all-day and untimed labels are explicit",
+  );
+  check(
+    (await calendarDrawer.locator(".trip-home-calendar__stay").first().textContent())?.includes(
+      "5 晚",
+    ),
+    "Chinese stay bar counts nights in Chinese",
   );
   check(
     (await calendarDrawer.getByRole("button", { name: /^2030年12月27日/ }).count()) === 1,
