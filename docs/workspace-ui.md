@@ -968,7 +968,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   An Add button ends every day and opens one panel under the button; the "N ideas" chip opens the same
   panel for the open day on its Ideas tab. The panel has the tabs
   Search, Ideas, Saved and Custom, a Keep open checkbox and Close. The selected tab and filter are
-  filled with the accent tint (`pnpm --filter @trip/web e2e add-panel-selected`). Search takes a place name,
+  filled with the accent tint (`pnpm --filter @trip/web e2e add-panel-selected`), and its fields
+  share the stop editor's 36 px bordered field style (`pnpm --filter @trip/web e2e add-panel-fields`).
+  Search takes a place name,
   starts near the trip destination and has the filters Places, Stays, Restaurants, Experiences and
   Events; a filter sends its kind to `/api/places/search`, which adds a query word, and narrows the
   results by their place type (amusement parks count as Experiences, a place with no type shows under
