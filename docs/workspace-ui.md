@@ -917,8 +917,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
   booking and cost, including the plan total; it does not select the next stop. Only Visited and
   Skipped show a tag on the row; Planned shows none.
-- **Quiet stop rows.** A stop row shows its time, name, one short line and the price or "Price
-  unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
+- **Quiet stop rows.** A stop row shows its time, a bordered card with the name, one short line and
+  a 56 px place photo when one exists, and the price or "Price unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
   that need action stay visible through the Open item badge and the conflict list under the row. The
   time cell, the flight, stay and transfer icons and the idea icon have no fill or ring; the time
   still changes colour on hover and while its popover is open, and keeps its focus ring. A day ends

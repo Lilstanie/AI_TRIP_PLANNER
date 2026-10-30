@@ -128,6 +128,9 @@ export function TimelineStop({
   const [end, setEnd, resetEnd] = useEditorDraft(`${id}:end`, activity.endTime ?? "");
   const [popover, setPopover] = useState<Popover>("");
   const [panel, setPanel] = useState<Panel>("");
+  const [failedPhoto, setFailedPhoto] = useState<string>();
+  const photo = showPhotos || place?.id.startsWith("osm:") ? place?.photos?.[0] : undefined;
+  const thumbnail = photo && photo.name !== failedPhoto ? photo : undefined;
   const row = useRef<HTMLLIElement>(null);
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
@@ -411,6 +414,19 @@ export function TimelineStop({
               onReorder(event.key === "ArrowUp" ? -1 : 1);
             }}
           >
+            {thumbnail && (
+              // eslint-disable-next-line @next/next/no-img-element
+              <img
+                className="timeline-stop__thumb"
+                src={`/api/places/photo?name=${encodeURIComponent(thumbnail.name)}&width=112`}
+                alt=""
+                width={56}
+                height={56}
+                loading="lazy"
+                decoding="async"
+                onError={() => setFailedPhoto(thumbnail.name)}
+              />
+            )}
             <span className="timeline-stop__name">
               {number !== undefined && (
                 <span className="sr-only">

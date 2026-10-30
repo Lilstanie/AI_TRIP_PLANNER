@@ -15,10 +15,10 @@ The issue thread re-ran these on `main` `fb21e61` (2026-10-30) with
 `pnpm --filter @trip/web e2e <script> --prod` and no extra environment. PR #782 (merged 2026-10-30)
 changed both scripts, and its description still reports both as failing.
 
-| Script                  | What fails                                                                                                  | Issue |
-| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ----- |
-| `workspace-performance` | `runPlannedStorage` times out in `page.waitForFunction` before any timing is recorded.                      | #781  |
-| `trip-workspace-layout` | It launches the `chrome` channel, so it needs Google Chrome installed; without it the launch fails at once. | #781  |
+| Script                  | What fails                                                                                                                                                                                                                                         | Issue |
+| ----------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
+| `workspace-performance` | `runPlannedStorage` times out in `page.waitForFunction` before any timing is recorded.                                                                                                                                                             | #781  |
+| `trip-workspace-layout` | It launches the `chrome` channel, so it needs Google Chrome installed; without it the launch fails at once. With Chrome, it still fails on `main`: it expects the removed `.chat-header__title` on an unlinked Chat and a single avatar at 960 px. | #781  |
 
 `trajectory-tab` also fails on `main` `ec70e0d` (2026-10-30, TP-167) with
 `pnpm --filter @trip/web e2e trajectory-tab`: after 59 passing checks at `en-1440`, the reload step
