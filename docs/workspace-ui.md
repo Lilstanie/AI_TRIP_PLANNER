@@ -101,12 +101,11 @@ The Trip home action area and its acceptance criteria are detailed in
     failure, and ignores malformed auxiliary storage without resetting Trips. It stays dismissed until the Plan
     changes. Five cards above the map open Itinerary, Ideas, Bookings, Trip preferences and Calendar
     in one right-side action panel (`TripHomeActionDrawer`) without leaving Trip home. On desktop the
-    panel starts as a narrow overlay; Expand panel moves it beside the map and Collapse restores the
-    overlay. The map stays in the Trip home aside in both states (`TripHomeActionHost`), so expanding
-    preserves the same renderer and selected activity. Five in-panel tab controls switch actions
-    without closing, with arrow-key navigation; the expanded state, current Trip and Chat, selected
-    day or activity, pending edit and unsubmitted form drafts survive those switches. Expand is
-    unavailable at tablet widths, and at phone widths the panel fills the screen. Close, Escape and
+    panel opens beside the map, which stays in the Trip home aside (`TripHomeActionHost`) with the same
+    renderer and selected activity. Five in-panel tab controls switch actions
+    without closing, with arrow-key navigation; the current Trip and Chat, selected
+    day or activity, pending edit and unsubmitted form drafts survive those switches. At tablet widths
+    the panel overlays the page, and at phone widths it fills the screen. Close, Escape and
     outside press restore both the opening card's focus and the Trip home scroll position. Itinerary
     embeds the same editable Trip view as the conversation and shares its latest Plan, pending edit,
     selected day or activity, unsubmitted form drafts and Undo; activities, flights and stays render

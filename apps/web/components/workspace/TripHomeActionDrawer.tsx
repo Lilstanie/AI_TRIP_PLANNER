@@ -38,9 +38,7 @@ export function TripHomeActionDrawer({
   selectedActivity,
   returnFocus,
   itinerary,
-  expandable,
   expanded,
-  onToggleExpanded,
 }: {
   action?: TripAction;
   plan: TripPlan;
@@ -61,9 +59,7 @@ export function TripHomeActionDrawer({
   selectedActivity?: string;
   returnFocus: RefObject<HTMLElement | null>;
   itinerary: ReactNode;
-  expandable: boolean;
   expanded: boolean;
-  onToggleExpanded(): void;
 }) {
   const { t } = useLocale();
   const id = useId();
@@ -146,16 +142,6 @@ export function TripHomeActionDrawer({
               </button>
             ))}
           </div>
-          {expandable && (
-            <button
-              type="button"
-              className="trip-home-action-switcher__size"
-              aria-expanded={expanded}
-              onClick={onToggleExpanded}
-            >
-              {t(expanded ? "Collapse panel" : "Expand panel")}
-            </button>
-          )}
         </div>
       }
     >

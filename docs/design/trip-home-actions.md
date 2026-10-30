@@ -63,14 +63,12 @@ Receipts.
 
 ## Drawer behavior
 
-- On desktop, an action opens as a narrow right panel over the action cards. The panel starts
-  collapsed; Expand offsets the drawer so the action content sits beside the Trip map that stays in
-  the right rail, and Collapse restores the narrow panel over the action cards. The map host and its
-  canvas remain under Trip home for both states, so expansion never remounts a second renderer.
+- On desktop, an action opens beside the Trip map that stays in the right rail. The map host and its
+  canvas remain under Trip home, so opening a panel never remounts a second renderer.
 - Inside the open panel, five tab controls switch among Itinerary, Ideas, Bookings, Trip preferences
-  and Calendar without closing first. Expansion, the open Trip, Chat, selected day and unsubmitted
+  and Calendar without closing first. The open Trip, Chat, selected day and unsubmitted
   edits survive those switches.
-- On a phone, the same drawer fills the screen and slides in from the right. Expand is desktop-only.
+- On a phone, the same drawer fills the screen and slides in from the right.
 - A close button, Escape and a press outside the drawer all close it, restore the Trip home scroll
   position and return focus to the action card that opened it.
 - Nested time editors and Settings keep their own Escape and close precedence ahead of the action
@@ -119,10 +117,10 @@ The implementation is complete when browser E2E covers:
 - Each of the five action cards opens its drawer without leaving Trip home.
 - Home Itinerary and the conversation Trip render the same activities, flights and stays and keep
   Plan edits and Undo synchronized.
-- The desktop panel opens narrow, can expand beside the map and collapse again without losing
-  Trip, Chat, selected day or edit state; the phone drawer fills the screen.
+- The desktop panel opens beside the map without losing Trip, Chat, selected day or edit state; the
+  phone drawer fills the screen.
 - Close, Escape and outside press restore focus to the opening card; list-mode Trip home also restores page scroll.
-- In-panel tabs switch actions without closing first, including across expand and collapse.
+- In-panel tabs switch actions without closing first.
 - Non-AUD Bookings show the estimate notice; Flights and schedule names stay translated.
 - Calendar opens in Week view, keeps the selected Trip day across Week and Month changes, and keeps
   Previous and Next inside the Trip. Choosing an activity opens that activity in the shared Itinerary

@@ -26,6 +26,7 @@ contract-impact: none
   `calendar-*` scripts are gone.
 - Copy trip and Download calendar moved into the Itinerary menu at the panel corner; the unplaced map
   state is one line.
+- Removed Expand panel: on desktop the action panel always opens beside the map.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

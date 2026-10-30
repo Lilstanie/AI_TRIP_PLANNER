@@ -460,7 +460,7 @@ try {
   await action(page, /^Itinerary/).click();
   const itinerary = dialog(page, "Itinerary");
   await itinerary.waitFor();
-  const initiallyNarrow = await page.evaluate(() => {
+  const opened = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
     return {
       expanded: surface?.classList.contains("is-expanded"),
@@ -468,9 +468,9 @@ try {
     };
   });
   check(
-    initiallyNarrow?.expanded === false && initiallyNarrow.maps === 1,
-    "an action opens in the narrow rail with one map",
-    initiallyNarrow,
+    opened?.expanded === true && opened.maps === 1,
+    "an action opens beside the map with one map",
+    opened,
   );
   const dayTwo = itinerary.getByRole("tab", { name: /^Day 2/ });
   await dayTwo.click();
@@ -547,11 +547,6 @@ try {
   );
   await panelTab(page, /^Bookings/).click();
 
-  const expand = dialog(page, "Bookings").getByRole("button", {
-    name: "Expand panel",
-    exact: true,
-  });
-  await expand.click();
   const expandedLayout = await page.evaluate(() => {
     const surface = document.querySelector(".trip-home-action-surface");
     const content = surface?.querySelector(".trip-home-action-content");
@@ -583,7 +578,7 @@ try {
       expanded.index === mapIdentity.index &&
       expanded.liveMaps === 1 &&
       expanded.connected === 1,
-    "Expand places the existing map renderer beside panel content",
+    "the panel sits beside the existing map renderer",
     expanded,
   );
   await page.screenshot({ path: `${OUT}/desktop-1440-expanded-en.png` });
@@ -597,65 +592,34 @@ try {
         .locator(".trip-home-action-surface")
         .evaluate((element) => element.classList.contains("is-expanded"))) &&
       (await page.locator(".trip-home__map").getAttribute("data-day")) === "2",
-    "switching while expanded keeps the expanded layout, Ideas content and selected day",
-  );
-
-  await ideas.getByRole("button", { name: "Collapse panel", exact: true }).click();
-  const collapsedLayout = await page.evaluate(() => {
-    const surface = document.querySelector(".trip-home-action-surface");
-    const rail = document.querySelector(".trip-home__aside");
-    if (!surface || !rail) return null;
-    const surfaceBox = surface.getBoundingClientRect();
-    const railBox = rail.getBoundingClientRect();
-    return {
-      expanded: surface.classList.contains("is-expanded"),
-      coversRail:
-        Math.abs(surfaceBox.left - railBox.left) <= 24 && surfaceBox.width <= railBox.width + 24,
-    };
-  });
-  const collapsed = { ...collapsedLayout, ...(await readMapIdentity(page)) };
-  check(
-    collapsed?.expanded === false &&
-      collapsed.coversRail &&
-      collapsed.map === MAP_IDENTITY &&
-      collapsed.canvas === MAP_IDENTITY &&
-      collapsed.host === MAP_IDENTITY &&
-      collapsed.renderer === MAP_IDENTITY &&
-      collapsed.instance === MAP_IDENTITY &&
-      collapsed.index === mapIdentity.index &&
-      collapsed.liveMaps === 1 &&
-      collapsed.connected === 1 &&
-      collapsed.day === "2",
-    "Collapse restores the narrow panel without remounting the map renderer",
-    collapsed,
+    "switching keeps the layout, Ideas content and selected day",
   );
 
   await panelTab(page, /^Itinerary/).click();
-  const collapsedItinerary = dialog(page, "Itinerary");
-  await collapsedItinerary.waitFor();
-  await collapsedItinerary
+  const itineraryAgain = dialog(page, "Itinerary");
+  await itineraryAgain.waitFor();
+  await itineraryAgain
     .getByRole("button", { name: "Change time, 10:00–11:00", exact: true })
     .click();
-  const afterCollapse = await collapsedItinerary
+  const afterSwitch = await itineraryAgain
     .locator("#stop-time-harbour")
     .getByLabel("Start", { exact: true })
     .inputValue();
   check(
-    afterCollapse === "10:30" &&
-      (await collapsedItinerary
-        .getByRole("tab", { name: /^Day 2/ })
-        .getAttribute("aria-selected")) === "true",
-    "expanding and collapsing keeps the unsubmitted edit and selected day",
-    afterCollapse,
+    afterSwitch === "10:30" &&
+      (await itineraryAgain.getByRole("tab", { name: /^Day 2/ }).getAttribute("aria-selected")) ===
+        "true",
+    "switching back keeps the unsubmitted edit and selected day",
+    afterSwitch,
   );
   await page.keyboard.press("Escape");
   check(
-    (await collapsedItinerary.isVisible()) &&
-      (await collapsedItinerary.locator("#stop-time-harbour").count()) === 0,
+    (await itineraryAgain.isVisible()) &&
+      (await itineraryAgain.locator("#stop-time-harbour").count()) === 0,
     "Escape closes the nested time editor before the action panel",
   );
   await page.keyboard.press("Escape");
-  await collapsedItinerary.waitFor({ state: "hidden" });
+  await itineraryAgain.waitFor({ state: "hidden" });
   const restored = await page.evaluate(() => ({
     focus: document.activeElement?.textContent ?? "",
     day: document.querySelector(".trip-home__map")?.getAttribute("data-day"),
@@ -803,11 +767,8 @@ try {
     if (width <= 520) {
       const box = await panel.boundingBox();
       check(
-        box &&
-          Math.abs(box.x) <= 1 &&
-          Math.abs(box.width - width) <= 1 &&
-          (await panel.getByRole("button", { name: "Expand panel" }).count()) === 0,
-        `phone panel fills the screen without Expand at ${width}px`,
+        box && Math.abs(box.x) <= 1 && Math.abs(box.width - width) <= 1,
+        `phone panel fills the screen at ${width}px`,
         box,
       );
       await panel.getByRole("button", { name: "Change time, 09:00–10:30", exact: true }).click();
@@ -882,18 +843,6 @@ try {
         `in-panel switching works at ${width}px`,
         layout,
       );
-      if (width === 1001) {
-        await dialog(responsive.page, "Bookings")
-          .getByRole("button", { name: "Expand panel" })
-          .click();
-        check(
-          (await noOverflow(responsive.page)) <= 0 &&
-            (await responsive.page
-              .locator(".trip-home-action-surface")
-              .evaluate((element) => element.classList.contains("is-expanded"))),
-          "the desktop breakpoint expands at a narrow content container without overflow",
-        );
-      }
     }
     check((await noOverflow(responsive.page)) <= 0, `no horizontal overflow at ${width}px`);
     await responsive.page.screenshot({ path: `${OUT}/panel-${width}-en.png` });

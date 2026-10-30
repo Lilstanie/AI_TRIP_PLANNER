@@ -31,12 +31,11 @@ entry points, Plan ownership or Chat links.
   right rail. Put the title, facts, contextual suggestion, Chats and composer in a centred main
   column. Cards keep their title and bare numeric count on one row, with the count aligned
   right. The bottom composer wrapper supplies spacing without another painted surface.
-- Open every action in a right-side drawer without leaving Trip home. The desktop panel starts
-  narrow over the rail. Expand offsets the drawer beside the Trip map that stays hosted under Trip
-  home, and Collapse restores the narrow overlay. The map host and canvas keep one React parent and
-  one renderer identity across those transitions. In-panel tabs switch actions without closing first and keep
-  expansion, Trip, Chat, selected day and unsubmitted edits. A phone drawer is full screen and has
-  no Expand control. No Media entry is added until a real media model exists.
+- Open every action in a right-side drawer without leaving Trip home. The desktop panel opens
+  beside the Trip map that stays hosted under Trip home; the Expand control was removed on 2026-10-30
+  because hiding the map by default was the only reason for it. The map host and canvas keep one React
+  parent and one renderer identity. In-panel tabs switch actions without closing first and keep
+  Trip, Chat, selected day and unsubmitted edits. A phone drawer is full screen. No Media entry is added until a real media model exists.
 - Itinerary reuses the conversation's editable Trip view and latest Plan, including activities,
   flights, stays, pending edits, selected day or activity, unsubmitted form drafts and Undo. Changing
   either entry updates the other, Calendar and the map; the home map uses that same selected activity
@@ -83,9 +82,9 @@ The complete interaction and acceptance specification is
   on Back.
 - Sending from Trip home creates one new Chat linked to the same Trip and opens it.
 - Each action opens in place with correct content and one-at-a-time state.
-- Desktop starts narrow, expands beside the map and collapses without losing Trip or edit state;
-  phone uses a full-screen right drawer. Expand and collapse keep the same map host and canvas
-  identity rather than moving the map into the drawer. Close, Escape and outside press restore focus
+- Desktop opens beside the map without losing Trip or edit state; phone uses a full-screen right
+  drawer. The panel keeps the same map host and canvas identity rather than moving the map into the
+  drawer. Close, Escape and outside press restore focus
   and scroll. In-panel tabs switch actions without closing first.
 - Calendar shows only the open Trip, and a chosen day opens the corresponding Itinerary day and
   map focus.

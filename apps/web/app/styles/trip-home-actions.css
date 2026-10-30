@@ -64,9 +64,6 @@
 .workspace-shell--trips[data-home-action-expanded] .trip-home__actions {
   display: none;
 }
-.trip-home-action-surface .drawer__head {
-  position: relative;
-}
 .trip-home-action-surface .drawer__title {
   flex: 1 1 auto;
   flex-direction: column;
@@ -87,8 +84,7 @@
   gap: var(--space-1);
   min-width: 0;
 }
-.trip-home-action-switcher [role="tab"],
-.trip-home-action-switcher__size {
+.trip-home-action-switcher [role="tab"] {
   flex: none;
   min-height: 32px;
   padding: 0 var(--space-2) !important;
@@ -100,18 +96,12 @@
   font-weight: 600;
   white-space: nowrap;
 }
-.trip-home-action-switcher [role="tab"]:hover,
-.trip-home-action-switcher__size:hover {
+.trip-home-action-switcher [role="tab"]:hover {
   background: var(--fill-hover) !important;
 }
 .trip-home-action-switcher [role="tab"][aria-selected="true"] {
   background: var(--fill-hover) !important;
   color: var(--text);
-}
-.trip-home-action-switcher__size {
-  position: absolute;
-  top: var(--space-3);
-  right: 56px;
 }
 .trip-home-preferences {
   padding: var(--space-4);

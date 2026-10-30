@@ -96,8 +96,6 @@ export async function checkHomeLayout(page, check) {
     await page.locator('.trip-home-card[data-card="itinerary"]').click();
     const panel = page.locator('.trip-home-action-surface[role="dialog"]');
     await panel.waitFor();
-    const expand = panel.getByRole("button", { name: /^(Expand panel|展开面板)$/ });
-    await expand.click();
     await page.waitForFunction(() => {
       const panel = document.querySelector(".trip-home-action-surface.is-expanded");
       const map = document.querySelector(".trip-home__map");
@@ -105,8 +103,7 @@ export async function checkHomeLayout(page, check) {
       const rect = panel.getBoundingClientRect();
       return rect.width > 200 && rect.right <= map.getBoundingClientRect().left + 2;
     });
-    check(true, "expanded actions stay beside the centered Trip map");
-    await panel.getByRole("button", { name: /^(Collapse panel|收起面板)$/ }).click();
+    check(true, "actions stay beside the centered Trip map");
     await page.keyboard.press("Escape");
     await panel.waitFor({ state: "hidden" });
   }

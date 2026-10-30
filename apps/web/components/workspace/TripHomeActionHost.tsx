@@ -26,9 +26,7 @@ export function TripHomeActionHost({
   onSelectActivity,
   selectedActivity,
   returnFocus,
-  expandable,
   expanded,
-  onToggleExpanded,
   itinerary,
 }: {
   action?: TripAction;
@@ -49,9 +47,7 @@ export function TripHomeActionHost({
   onSelectActivity(activityId: string, day: number): void;
   selectedActivity?: string;
   returnFocus: RefObject<HTMLElement | null>;
-  expandable: boolean;
   expanded: boolean;
-  onToggleExpanded(): void;
   itinerary: ReactNode;
 }) {
   const { t } = useLocale();
@@ -85,9 +81,7 @@ export function TripHomeActionHost({
         onSwitch={onSwitch}
         onSelectDay={onSelectDay}
         returnFocus={returnFocus}
-        expandable={expandable}
         expanded={expanded}
-        onToggleExpanded={onToggleExpanded}
         itinerary={itinerary}
       />
     </>

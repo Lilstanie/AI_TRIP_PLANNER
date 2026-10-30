@@ -302,7 +302,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     viewTransition(layout.showTrips);
   };
   const openHome = (id: string) => {
-    homeAction.reset();
     setCalendarTripId(undefined);
     viewTransition(() => {
       layout.openHome(id);
@@ -664,9 +663,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 onSelectActivity={chooseHomeActivity}
                 selectedActivity={selectedActivity}
                 returnFocus={homeAction.returnFocus}
-                expandable={homeAction.expandable && !!homeMap}
                 expanded={homeAction.expanded}
-                onToggleExpanded={homeAction.toggleExpanded}
                 itinerary={
                   catalog.activeTripId === homeTripId && plan?.tripId === homePlan.tripId
                     ? tripContent
