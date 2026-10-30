@@ -557,13 +557,12 @@ function PersonalizationSection() {
   return (
     <div className="settings-form">
       <section className="settings-block" aria-labelledby="settings-long-term-memory">
-        <h3 id="settings-long-term-memory">{t("Long-term memory")}</h3>
-        <p className="settings-hint">
-          {t("Preferences remembered from chat are used in later plans.")}
-        </p>
         <div className="settings-row-item__line">
           <div className="settings-row-item__text">
-            <strong>{t("Use long-term memory")}</strong>
+            <h3 id="settings-long-term-memory">{t("Long-term memory")}</h3>
+            <p className="settings-hint">
+              {t("Preferences remembered from chat are used in later plans.")}
+            </p>
           </div>
           <Switch
             label={t("Use long-term memory")}

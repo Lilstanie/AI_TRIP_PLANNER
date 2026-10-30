@@ -33,6 +33,8 @@ contract-impact: none
 - Calendar Week is an hour grid that opens near the morning, with all-day items above it.
 - Settings has a quieter navigation, form fields and two-column assistant names; dialogs close with an
   icon. Where, When, Who and Budget show on a blank desktop chat. Agent Team members are flat rows.
+- Settings opens as a page beside the sidebar on desktop, with hairline sections and bordered memory
+  rows. Brief chips share the first top bar row.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

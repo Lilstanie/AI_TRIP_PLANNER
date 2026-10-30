@@ -175,7 +175,6 @@ async function run(browser, { width, height, tag }) {
   await page.keyboard.press("Escape");
   await settle(page);
 
-  const chats = page.getByRole("button", { name: /^Chats/ });
   const closeWhere = async () => {
     const where = page.getByRole("dialog", { name: "Where" });
     await page.keyboard.press("Escape");
@@ -187,8 +186,11 @@ async function run(browser, { width, height, tag }) {
     } else if (width < 1000) {
       await page.getByRole("button", { name: "Open navigation" }).click();
       await settle(page);
-    } else if ((await chats.getAttribute("aria-expanded")) !== "true") {
-      await chats.click();
+    } else {
+      await page
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: /^Trips/ })
+        .click();
       await settle(page);
     }
     if (width <= 520)

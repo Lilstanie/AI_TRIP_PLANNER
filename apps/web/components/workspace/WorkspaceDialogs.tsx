@@ -87,7 +87,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
         )
       )}
       {dialog && (
-        <Dialog title={t("Settings")} onClose={closeDialog}>
+        <Dialog title={t("Settings")} onClose={closeDialog} page={!model.layout.narrow}>
           <SettingsDialog
             initial={settingsSection}
             onDataMode={dataMode.choose}
