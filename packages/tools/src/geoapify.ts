@@ -1,6 +1,6 @@
 import type { Place, PlaceQuery } from "@trip/shared";
 import { findCity } from "./overpass";
-import { toolFetch, toolRuntimeConfig } from "./runtime-context";
+import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
 const CATEGORIES: Record<string, string[]> = {
   sight: [
@@ -61,23 +61,44 @@ const distanceKm = (lat: number, lon: number, place: { lat?: number; lon?: numbe
     ((place.lon ?? lon) - lon) * 111 * Math.cos((lat * Math.PI) / 180),
   );
 
-export async function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
+const CACHE_TTL_MS = 10 * 60 * 1000;
+const cache = new Map<string, { expiresAt: number; value: Promise<Place[]> }>();
+
+export function clearGeoapifyCacheForTests(): void {
+  cache.clear();
+}
+
+export function geoapifyPlaces(q: PlaceQuery): Promise<Place[]> {
+  const key = `${q.category}|${q.near.trim().toLocaleLowerCase()}`;
+  const hit = cache.get(key);
+  if (hit && hit.expiresAt > toolNow().getTime()) return hit.value;
+  const value = lookUp(q);
+  cache.set(key, { expiresAt: toolNow().getTime() + CACHE_TTL_MS, value });
+  const forget = () => {
+    if (cache.get(key)?.value === value) cache.delete(key);
+  };
+  value.then((found) => found.length === 0 && forget(), forget);
+  return value;
+}
+
+async function lookUp(q: PlaceQuery): Promise<Place[]> {
   const city = await findCity(q.near);
   const lat = Number(city?.lat);
   const lon = Number(city?.lon);
   if (!city || !Number.isFinite(lat) || !Number.isFinite(lon)) return [];
-  const features = (
-    await Promise.all(
-      CATEGORIES[q.category!]!.map((categories) =>
-        request<{ features?: Feature[] }>("/v2/places", {
-          categories,
-          filter: `circle:${lon},${lat},15000`,
-          conditions: "named",
-          limit: "500",
-        }),
-      ),
-    )
-  ).flatMap((page) => page.features ?? []);
+  const pages = await Promise.allSettled(
+    CATEGORIES[q.category!]!.map((categories) =>
+      request<{ features?: Feature[] }>("/v2/places", {
+        categories,
+        filter: `circle:${lon},${lat},15000`,
+        conditions: "named",
+        limit: "500",
+      }),
+    ),
+  );
+  const answered = pages.flatMap((page) => (page.status === "fulfilled" ? [page.value] : []));
+  if (answered.length === 0) throw (pages[0] as PromiseRejectedResult).reason;
+  const features = answered.flatMap((page) => page.features ?? []);
   const seen = new Set<string>();
   return features
     .map((feature) => feature.properties ?? {})

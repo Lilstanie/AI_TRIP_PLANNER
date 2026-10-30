@@ -36,9 +36,7 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
 - Joey then chose Geoapify with Overpass as the fallback. `geoapify.ts` plus six Geoapify failure
   modes written first (5 red, 1 already green), then 13/13; tools 157/157, typecheck and lint pass.
 
-- Live run with the key: every Tokyo stop was on Iwo Jima (`filter=place:` covers the whole
-  prefecture). Changed to a 15 km circle around the city centre with proximity bias; test red, then
-  green 13/13.
+- Live run with the key: every Tokyo stop was on Iwo Jima (`filter=place:`); now a 15 km circle.
 
 - Next live run: stops in central Tokyo but all within 1 km of Tokyo Station, no temples; 京都
   geocoded to Jingdu (Shantou) 2 of 6 times. Now rank 500 named places by Wikipedia/Wikidata and take
@@ -51,6 +49,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
 - Raw probe on the Mac: 浅草寺/明治神宮/東京タワー absent from 500 `tourism.*` results; Buddhist and
   Shinto categories list them. Sights now add that request and rank `tourism` tags; 500-row
   requests took 5-10 s, so the timeout is 15 s. Red 2, green 18/18, tools 162/162.
+
+- Final run: probes good (浅草寺 first, 京都 3/3 in Kyoto) but the trip had 0 stops twice; the temple
+  request passed 15 s in 4 of 7 tries and `Promise.all` dropped both. Now settled separately, plus a
+  10-minute shared cache (`geoapify-sights.failures.md` first); tools 166/166.
 
 ## Notes for the next person
 
