@@ -34,7 +34,9 @@ describe("airportCodeFor", () => {
   it("gives every city a Chinese name", () => {
     const cities = knownAirportCities();
     const codes = new Set(cities.filter((c) => /^[a-z ]+$/.test(c)).map((c) => airportCodeFor(c)));
-    const zhCodes = new Set(cities.filter((c) => /\p{Script=Han}/u.test(c)).map((c) => airportCodeFor(c)));
+    const zhCodes = new Set(
+      cities.filter((c) => /\p{Script=Han}/u.test(c)).map((c) => airportCodeFor(c)),
+    );
     expect([...codes].filter((code) => !zhCodes.has(code))).toEqual([]);
   });
 
