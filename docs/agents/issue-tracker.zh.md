@@ -71,21 +71,8 @@ Jira 只认文本里出现的 `TP-16` 这类 issue key，所以每一处关联�
   之类的 smart commit 命令。
 - **Jira 能看到什么。** GitHub for Jira 应用会同步文字里带 key 的分支、提交、拉取请求、构建和部署，它们出现在
   story 的 Development 面板里。GitHub 问题不会同步，所以问题标题里的 key 只方便人工对照。
-- **状态。** 项目 `TP` 里的两条 Jira Automation 规则根据关联的拉取请求推进 story，所以不用人工移动。
-  它们作用于 PR 标题、分支或提交里出现 key 的每一张 story。
-
-<a id="automation-rules"></a>
-
-### Automation 规则
-
-在项目 `TP` 的 **项目设置 → 自动化 → 创建规则** 里建这两条；由项目管理员建一次。
-
-| 规则                 | 触发器         | 条件                        | 操作                                                                            |
-| -------------------- | -------------- | --------------------------- | ------------------------------------------------------------------------------- |
-| `PR opened → 进行中` | 已创建拉取请求 | 事务字段：状态为 `待办`     | 将事务转换为 `正在进行`                                                         |
-| `PR merged → 完成`   | 已合并拉取请求 | 事务字段：状态不是 `已完成` | 将事务转换为 `已完成`；评论 `Merged: {{pullRequest.title}} {{pullRequest.url}}` |
-
-保存后打开每条规则。规则没有触发时，原因在 **自动化 → 审计日志** 里；这时由合并的人手动移动 story 并查看日志。
+- **状态。** 关联不会改变 story 的状态，也不使用 Jira Automation 规则。交付 PR 的 agent 或人负责移动：
+  PR 打开时移到 `正在进行`，合并时移到 `已完成` 并评论 PR 链接（`trip-planner-pr-delivery` 技能第 4、6 步）。
 
 <a id="when-a-skill-says-publish-to-the-issue-tracker"></a>
 

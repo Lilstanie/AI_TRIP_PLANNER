@@ -2,21 +2,21 @@
 date: 2026-10-30
 author: Claude
 branch: docs/TP-160-jira-automation
-pr: none
+pr: 800
 area: docs, .agents/skills
 contract-impact: none
 ---
 
-# Move Jira stories with Automation rules instead of by hand
+# Make PR delivery move Jira stories every time
 
 ## What changed
 
-- `docs/agents/issue-tracker.md` (+ `.zh.md`): status section now points at two Jira Automation rules, with their trigger, condition and actions.
-- `trip-planner-pr-delivery` skill: agents no longer transition stories or post progress comments; after merge they check the status and fall back by hand only when the rule did not fire.
+- `trip-planner-pr-delivery` skill: opening the PR moves the story to 正在进行 and links the PR; merging moves it to 完成 with one `Merged:` comment. Both are now required steps with their done conditions, not optional follow-ups.
+- `docs/agents/issue-tracker.md` (+ `.zh.md`): the Status bullet says who moves the story and when.
 
 ## Why
 
-TP-159 (merged 2026-10-29) still had to be moved to Done by hand, so no rule existed. Jira Automation needs no repo secret and no `.github/**` change, unlike a GitHub Action calling the Jira API.
+Joey chose the skill over Jira Automation rules (2026-10-30): no Jira admin setup and no automation run quota.
 
 ## Validation
 
@@ -24,4 +24,4 @@ See PR evidence.
 
 ## Notes for the next person
 
-- The rules live only in Jira; a project admin creates them from the table in the doc. Assignee is not set by the rules.
+- A teammate who merges without this skill still moves the story by hand.
