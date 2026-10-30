@@ -573,6 +573,10 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     stop names, or Free day), in a row that scrolls sideways and fades in card by card. A card opens
     the trip on that day; on a phone it switches to the Trip view. Older replies and replies that only
     asked a question have no cards.
+    The row fades only on a side that hides more days. With a pointer, a round arrow button at that
+    side scrolls the row by most of its width (instantly with reduced motion); the buttons stay out of
+    the tab order, because focusing a card already scrolls it into view, and touch screens swipe instead
+    (`pnpm --filter @trip/web e2e plan-days-scroll`).
   - The composer is one card at the foot of the chat: a draft that grows with its content and then
     scrolls, an upload control on the left, and one primary action on the right. The card is
     `--surface-2` (white on light, grey on dark) so it reads as an input capsule laid on the page,
