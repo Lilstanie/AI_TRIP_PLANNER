@@ -283,6 +283,9 @@ button.timeline-stop__main {
 button.timeline-stop__main:hover {
   background: var(--fill-hover);
 }
+.timeline-stop.is-hovered button.timeline-stop__main {
+  background: var(--fill-hover);
+}
 .timeline-stop.is-selected button.timeline-stop__main {
   background: var(--accent-bg);
 }

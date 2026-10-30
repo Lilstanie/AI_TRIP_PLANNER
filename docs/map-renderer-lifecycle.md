@@ -12,6 +12,12 @@ identities are not cached. Strict Google mode keeps saved places and an explicit
 of silently switching providers. OSM disables satellite controls. The phone Trip home map has a fixed
 340px height so its renderer can fill a definite containing block.
 
+## Stop hover
+
+`lib/trip/stop-hover.ts` holds the one hovered activity id. Itinerary rows and markers write it on
+mouse pointers only, and `TripMap` repaints marker classes without a React render. A place visited
+twice has one marker, which belongs to its first stop, so the later stop highlights no marker.
+
 ## Browser fixture
 
 `trip-home-action-panels` runs the local Google SDK fixture (`google-renderer-fixture.mjs`) and proves one

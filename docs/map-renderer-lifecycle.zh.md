@@ -14,6 +14,15 @@ OSM 禁用卫星控件。手机 Trip 首页地图固定为 340px 高，让渲染
 
 <a id="browser-fixture"></a>
 
+<a id="stop-hover"></a>
+
+## 站点悬停
+
+`lib/trip/stop-hover.ts` 保存当前悬停的活动 id。行程行和地图标记只在鼠标指针下写入它，`TripMap`
+直接更新标记的类名，不触发 React 渲染。同一地点去两次时只有一个标记，属于第一站，所以后一站不会高亮标记。
+
+<a id="browser-fixture"></a>
+
 ## 浏览器夹具
 
 `trip-home-action-panels` 使用本地 Google SDK 夹具（`google-renderer-fixture.mjs`），验证操作面板在地图旁打开时保留同一个渲染器。SDK、构造和授权失败没有专门的浏览器脚本。该夹具不验证真实 Google 服务、生产登录、物理设备或路线时长准确性。
