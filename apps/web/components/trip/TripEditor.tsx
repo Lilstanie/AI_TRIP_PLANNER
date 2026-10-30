@@ -16,7 +16,9 @@ import {
 } from "@/lib/trip/day-actions";
 import { ActionMenu, type ActionMenuItem } from "../ui/ActionMenu";
 import {
+  CalendarIcon,
   CloseIcon,
+  CopyIcon,
   ComposeIcon,
   MapIcon,
   MinusIcon,
@@ -28,6 +30,7 @@ import {
 import type { LegMode } from "@/lib/trip/leg-routes";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
 import { FlowStayIcon } from "../ui/flow-icons";
+import { tripCalendar, tripText } from "@/lib/trip/export";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { placeConflicts } from "@/lib/trip/conflicts";
 import { DayStrip } from "./timeline/DayStrip";
@@ -328,7 +331,34 @@ export function TripEditorView({
   ];
   const itineraryMenu = (): ActionMenuItem[] => [
     {
+      label: t("Copy trip"),
+      icon: <CopyIcon />,
+      onSelect: async () => {
+        try {
+          await navigator.clipboard.writeText(tripText(plan, locale));
+          setAnnouncement({ key: "Trip copied" });
+        } catch {
+          setAnnouncement({ key: "Could not copy trip" });
+        }
+      },
+    },
+    {
+      label: t("Download calendar"),
+      icon: <CalendarIcon />,
+      onSelect: () => {
+        const url = URL.createObjectURL(
+          new Blob([tripCalendar(plan)], { type: "text/calendar;charset=utf-8" }),
+        );
+        const link = document.createElement("a");
+        link.href = url;
+        link.download = "trip.ics";
+        link.click();
+        setTimeout(() => URL.revokeObjectURL(url), 1000);
+      },
+    },
+    {
       label: t("Move all events to ideas"),
+      separated: true,
       icon: <SuitcaseIcon />,
       disabled: locked || !scheduledCount(plan),
       onSelect: () => runDay({ kind: "ideas" }, { key: "All events moved to Ideas." }),

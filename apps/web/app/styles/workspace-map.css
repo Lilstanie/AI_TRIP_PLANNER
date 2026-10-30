@@ -118,6 +118,31 @@
   color: var(--text-dim);
   text-align: center;
 }
+.trip-map-canvas--empty .map-placeholder {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: center;
+  gap: var(--space-1) var(--space-2);
+  max-width: 100%;
+  padding: var(--space-2) var(--space-3);
+  border: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.trip-map-canvas--empty .map-placeholder p {
+  flex-basis: 100%;
+}
+.trip-map-canvas--empty .map-placeholder__icon {
+  width: 20px;
+  height: 20px;
+  background: transparent;
+}
+.trip-map-canvas--empty .map-placeholder h2 {
+  color: var(--text-dim);
+  font-size: var(--font-size-body);
+  font-weight: 400;
+}
 .map-placeholder p {
   margin: 0;
 }

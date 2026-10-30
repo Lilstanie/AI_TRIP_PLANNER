@@ -801,7 +801,13 @@ html.is-reordering .timeline[data-empty] {
   margin-inline-start: auto;
 }
 .trip-editor__toolbar:not(:has(.timeline-ideas-chip)) {
-  margin-block: calc(-1 * var(--space-2)) 0;
+  display: contents;
+}
+.trip-editor__toolbar .action-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
 }
 .timeline-connection__directions,
 .timeline-booking__book {

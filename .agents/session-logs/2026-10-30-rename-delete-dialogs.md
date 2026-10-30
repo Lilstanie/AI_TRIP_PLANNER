@@ -24,6 +24,8 @@ contract-impact: none
   head, preferences have padding, and Chat and booking rows lose the grey pill.
 - The sidebar Calendar reuses the Trip home calendar with a Trip picker; old month bands and four
   `calendar-*` scripts are gone.
+- Copy trip and Download calendar moved into the Itinerary menu at the panel corner; the unplaced map
+  state is one line.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures

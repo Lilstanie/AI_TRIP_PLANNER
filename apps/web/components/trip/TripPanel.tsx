@@ -9,7 +9,6 @@ import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { dateRangeLabel } from "@/lib/workspace/trip-facts";
-import { tripCalendar, tripText } from "@/lib/trip/export";
 
 export type TripPanelProps = {
   plan: TripPlan;
@@ -20,7 +19,6 @@ export type TripPanelProps = {
 export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
   const { t, locale, money, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
-  const [exportMessage, setExportMessage] = useState("");
   const [budgetOpen, setBudgetOpen] = useState(false);
   const budgetManuallyChanged = useRef(false);
   const budgetTrip = useRef(plan.tripId);
@@ -78,37 +76,6 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
           {plan.brief.destination} · {dateRange} · {plan.brief.groupSize}{" "}
           {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
         </p>
-        <div className="trip-export">
-          <button
-            type="button"
-            onClick={async () => {
-              try {
-                await navigator.clipboard.writeText(tripText(plan, locale));
-                setExportMessage(t("Trip copied"));
-              } catch {
-                setExportMessage(t("Could not copy trip"));
-              }
-            }}
-          >
-            {t("Copy trip")}
-          </button>
-          <button
-            type="button"
-            onClick={() => {
-              const url = URL.createObjectURL(
-                new Blob([tripCalendar(plan)], { type: "text/calendar;charset=utf-8" }),
-              );
-              const link = document.createElement("a");
-              link.href = url;
-              link.download = "trip.ics";
-              link.click();
-              setTimeout(() => URL.revokeObjectURL(url), 1000);
-            }}
-          >
-            {t("Download calendar")}
-          </button>
-          <span role="status">{exportMessage}</span>
-        </div>
         <details
           className="disclosure trip-panel__budget-summary trip-budget"
           open={budgetOpen}
