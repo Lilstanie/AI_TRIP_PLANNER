@@ -31,6 +31,8 @@ travellers, so the panel repeated them, and the badge and menu floated beside th
 - Web `typecheck`, `lint`, `check-ui-copy`, `verify:docs`, translation pairs,
   `verify:e2e-selectors`, `verify:e2e-artifacts`, Prettier, and the existing `one-line-budget`
   and `quiet-stop-rows` E2E.
+- `pnpm --filter @trip/web test` 635/635 after moving four Workspace tests from the removed line to
+  the page title.
 
 ## Limitations
 
