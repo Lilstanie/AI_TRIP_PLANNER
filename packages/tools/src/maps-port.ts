@@ -8,6 +8,8 @@ import type {
   RouteQuery,
 } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
+import { geoapifyCategory, geoapifyPlaces } from "./geoapify";
+import { overpassCategory, overpassPlaces } from "./overpass";
 import { searchTransitSerpApi } from "./serpapi";
 import { SUPPORTED_CURRENCIES, toAud } from "@trip/shared";
 import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
@@ -313,7 +315,30 @@ async function mockPlaces(q: PlaceQuery): Promise<Place[]> {
   return [{ name: `Mock attraction near ${q.near}`, category: q.category ?? "sight", rating: 4.5 }];
 }
 
+const message = (error: unknown) => (error instanceof Error ? error.message : "unknown error");
+
+async function taggedPlaces(q: PlaceQuery): Promise<Place[]> {
+  let skipped: unknown;
+  if (geoapifyCategory(q)) {
+    try {
+      const found = await geoapifyPlaces(q);
+      if (found.length) return found;
+    } catch (error) {
+      skipped = error;
+      console.warn(
+        `[tools] Geoapify places unavailable; falling back to Overpass: ${message(error)}`,
+      );
+    }
+  }
+  try {
+    return await overpassPlaces(q);
+  } catch (error) {
+    throw skipped ? new Error(`${message(skipped)}; ${message(error)}`) : error;
+  }
+}
+
 async function osmPlaces(q: PlaceQuery): Promise<Place[]> {
+  if (overpassCategory(q)) return taggedPlaces(q);
   const base = toolRuntimeConfig().nominatimBaseUrl;
   const results = await osmRequest<
     Array<{ display_name: string; type?: string; lat?: string; lon?: string }>
