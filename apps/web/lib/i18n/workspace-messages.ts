@@ -895,12 +895,16 @@ export const WORKSPACE_ZH = {
   Bookings: "预订",
   "No bookings yet.": "还没有预订。",
   "Trip suggestion": "行程建议",
-  "{count} unscheduled ideas in {destination}. Want help placing them?":
-    "{destination}还有 {count} 个未安排的备选地点。需要我帮你安排吗？",
+  "{count} unscheduled ideas in {destination}": "{destination}还有 {count} 个未安排的备选地点",
+  "1 unscheduled idea in {destination}": "{destination}还有 1 个未安排的备选地点",
+  "Place it": "帮我安排",
+  "Place them": "帮我安排",
+  "Get a suggestion": "给我建议",
+  "Review the 1 unscheduled idea in my current {destination} plan and suggest where it fits.":
+    "查看我当前{destination}行程中的 1 个未安排备选地点，并结合现有计划建议如何安排。",
   "Review the {count} unscheduled ideas in my current {destination} plan and suggest where they fit.":
     "查看我当前{destination}行程中的 {count} 个未安排备选地点，并结合现有计划建议如何安排。",
-  "Your {days}-day {destination} plan is ready. Want a fresh suggestion?":
-    "你的{destination} {days} 天行程已准备好。需要一条新的建议吗？",
+  "Your {days}-day {destination} plan is ready": "你的{destination} {days} 天行程已准备好",
   "Suggest one improvement for my current {days}-day {destination} plan, taking the existing itinerary into account.":
     "结合现有行程，为我的{destination} {days} 天计划提出一项改进建议。",
   "{count} day": "{count} 天",

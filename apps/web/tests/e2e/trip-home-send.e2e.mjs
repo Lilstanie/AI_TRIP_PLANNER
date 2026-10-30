@@ -624,7 +624,7 @@ async function runIdeasParity(page, label) {
   );
   await page.keyboard.press("Escape");
   await ideas.waitFor({ state: "hidden" });
-  await suggestion.getByRole("button", { name: "Ask AI", exact: true }).click();
+  await suggestion.getByRole("button", { name: "Place them", exact: true }).click();
   await within(profileProxy.waitForCount(1), "suggestion request start");
   const request = profileProxy.requests[0];
   check(

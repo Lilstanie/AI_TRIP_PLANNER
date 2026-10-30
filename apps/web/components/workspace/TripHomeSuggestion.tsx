@@ -12,13 +12,22 @@ export const TRIP_SUGGESTION_DISMISSALS_KEY = "trip-home-suggestion-dismissals-v
 export function tripSuggestion(
   plan: TripPlan,
   locale: AppLocale,
-): { text: string; prompt: string } {
+): { text: string; prompt: string; action: string } {
   const t = (text: Parameters<typeof translate>[1], params?: Record<string, string | number>) =>
     translate(locale, text, params);
   const ideas = tripIdeas(plan).length;
+  if (ideas === 1)
+    return {
+      text: t("1 unscheduled idea in {destination}", { destination: plan.brief.destination }),
+      prompt: t(
+        "Review the 1 unscheduled idea in my current {destination} plan and suggest where it fits.",
+        { destination: plan.brief.destination },
+      ),
+      action: t("Place it"),
+    };
   if (ideas)
     return {
-      text: t("{count} unscheduled ideas in {destination}. Want help placing them?", {
+      text: t("{count} unscheduled ideas in {destination}", {
         count: ideas,
         destination: plan.brief.destination,
       }),
@@ -26,10 +35,11 @@ export function tripSuggestion(
         "Review the {count} unscheduled ideas in my current {destination} plan and suggest where they fit.",
         { count: ideas, destination: plan.brief.destination },
       ),
+      action: t("Place them"),
     };
   const days = dayCount(plan);
   return {
-    text: t("Your {days}-day {destination} plan is ready. Want a fresh suggestion?", {
+    text: t("Your {days}-day {destination} plan is ready", {
       days,
       destination: plan.brief.destination,
     }),
@@ -37,6 +47,7 @@ export function tripSuggestion(
       "Suggest one improvement for my current {days}-day {destination} plan, taking the existing itinerary into account.",
       { days, destination: plan.brief.destination },
     ),
+    action: t("Get a suggestion"),
   };
 }
 
@@ -93,20 +104,21 @@ export function TripHomeSuggestion({
       {!dismissed && (
         <section className="trip-home-suggestion" aria-label={t("Trip suggestion")}>
           <p>{suggestion.text}</p>
-          <div className="trip-home-suggestion__actions">
-            <button type="button" onClick={() => onChoose(suggestion.prompt)}>
-              {t("Ask AI")}
-            </button>
-            <button
-              type="button"
-              className="trip-home-suggestion__dismiss"
-              aria-label={t("Dismiss")}
-              onClick={dismiss}
-            >
-              <CloseIcon />
-              <span>{t("Dismiss")}</span>
-            </button>
-          </div>
+          <button
+            type="button"
+            className="trip-home-suggestion__action"
+            onClick={() => onChoose(suggestion.prompt)}
+          >
+            {suggestion.action}
+          </button>
+          <button
+            type="button"
+            className="trip-home-suggestion__dismiss"
+            aria-label={t("Dismiss")}
+            onClick={dismiss}
+          >
+            <CloseIcon />
+          </button>
         </section>
       )}
       {persistenceFailed && (
