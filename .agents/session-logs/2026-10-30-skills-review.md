@@ -2,7 +2,7 @@
 date: 2026-10-30
 author: Claude
 branch: docs/TP-161-skills-review
-pr: none
+pr: 803
 area: .agents/skills, docs
 contract-impact: none
 ---
