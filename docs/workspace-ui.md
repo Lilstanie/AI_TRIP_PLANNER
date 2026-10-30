@@ -266,6 +266,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - The trip title stays in the top bar at 1250 px and wider. Below that the destination chip names
     the trip and the title is kept for assistive technology only.
 - **Map on demand.** On desktop a chat with no plan shows the chat alone, centred at up to 880 px.
+  A request sent with Where filled in opens the map for that city while the plan loads.
   When the first plan arrives the map slides in from the right over 420 ms and the chat narrows to
   the split below; a new chat slides it out again. The separator is hidden while the map is hidden.
   Tablet and phone layouts are unchanged.

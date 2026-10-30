@@ -55,9 +55,10 @@ export function useTripPlaces(
   language?: "en" | "zh",
   forceOsm?: boolean,
   allowFallback = true,
+  pendingDestination = "",
 ): TripPlaces {
   const activities = useMemo(() => itineraryActivities(plan), [plan]);
-  const destination = plan?.brief.destination ?? "";
+  const destination = plan?.brief.destination ?? pendingDestination;
   const cities = useMemo(() => destinationCities(destination), [destination]);
   const [places, setPlaces] = useState<Record<string, GooglePlace>>({});
   const [outcomes, setOutcomes] = useState<Record<string, Outcome>>({});

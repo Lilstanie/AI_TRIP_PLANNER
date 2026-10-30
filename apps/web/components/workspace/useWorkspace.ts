@@ -167,6 +167,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     locale,
     mapProvider.forceOsm,
     mapProvider.allowFallback,
+    status === "running" ? draft.destination.trim() : "",
   );
   const { itinerary } = tripPlaces;
   const { day: mapDay, selectDay: setMapDay } = useTripDay(
