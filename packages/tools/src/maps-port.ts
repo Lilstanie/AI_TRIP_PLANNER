@@ -8,6 +8,7 @@ import type {
   RouteQuery,
 } from "@trip/shared";
 import { searchGooglePlacesText } from "./google-places";
+import { overpassCategory, overpassPlaces } from "./overpass";
 import { searchTransitSerpApi } from "./serpapi";
 import { SUPPORTED_CURRENCIES, toAud } from "@trip/shared";
 import { driveOption, transitOption, type GoogleRouteShape } from "./route-options";
@@ -314,6 +315,7 @@ async function mockPlaces(q: PlaceQuery): Promise<Place[]> {
 }
 
 async function osmPlaces(q: PlaceQuery): Promise<Place[]> {
+  if (overpassCategory(q)) return overpassPlaces(q);
   const base = toolRuntimeConfig().nominatimBaseUrl;
   const results = await osmRequest<
     Array<{ display_name: string; type?: string; lat?: string; lon?: string }>
