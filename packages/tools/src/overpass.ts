@@ -58,7 +58,7 @@ export async function overpassPlaces(q: PlaceQuery): Promise<Place[]> {
   const query = `[out:json][timeout:20];${scope.set}(${filters
     .map((tags) => `nwr${scope.filter}${tags}["name"]${notable ? '["wikidata"]' : ""};`)
     .join("")});out center 40;`;
-  const { elements = [] } = await request<{ elements?: Element[] }>(
+  const { elements = [], remark } = await request<{ elements?: Element[]; remark?: string }>(
     `${config.overpassBaseUrl}/interpreter`,
     {
       method: "POST",
@@ -66,6 +66,7 @@ export async function overpassPlaces(q: PlaceQuery): Promise<Place[]> {
       body: `data=${encodeURIComponent(query)}`,
     },
   );
+  if (remark?.includes("error")) throw new Error(`Overpass query failed: ${remark}`);
   return elements
     .filter((element) => element.tags?.name?.trim())
     .sort((a, b) => Number(Boolean(b.tags?.wikipedia)) - Number(Boolean(a.tags?.wikipedia)))

@@ -29,6 +29,9 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
 - `pnpm --filter @trip/tools exec vitest run tests/osm-places.test.ts` before the adapter: 4 failed,
   2 passed; after: 6/6. `pnpm --filter @trip/tools test` 150/150, `@trip/agents` 189/189,
   `pnpm typecheck` 6/6.
+- Live run on Joey's Mac: public Overpass returned 502 or timed out for the whole hour, and a mirror
+  answered a timeout as HTTP 200 with a `remark` runtime error. Added that failure mode (red, then
+  green: 7/7, tools 151/151); a timeout is now a provider failure, not "no places".
 
 ## Notes for the next person
 

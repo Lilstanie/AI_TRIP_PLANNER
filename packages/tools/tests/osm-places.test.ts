@@ -116,6 +116,20 @@ describe("OSM places by category", () => {
     await expect(places({ near: "Tokyo", category: "sight" })).rejects.toThrow("504");
   });
 
+  it("treats an Overpass runtime error reported with HTTP 200 as a failure, not as no places", async () => {
+    stub(
+      { body: tokyo },
+      {
+        body: {
+          elements: [],
+          remark: 'runtime error: Query timed out in "query" at line 1 after 21 seconds.',
+        },
+      },
+    );
+
+    await expect(places({ near: "Tokyo", category: "sight" })).rejects.toThrow("timed out");
+  });
+
   it("keeps the free-text Nominatim search for a text query or an unmapped category", async () => {
     const text = stub({ body: [] });
     await places({ near: "Tokyo", category: "restaurant", textQuery: "vegan ramen in Tokyo" });
