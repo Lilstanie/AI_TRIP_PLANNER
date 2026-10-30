@@ -25,6 +25,7 @@ const COPY = {
     examples: "Example trips",
     footer: /Estimates require verification/,
     noTrips: "No trips yet.",
+    trips: "Trips",
     newTrip: "New trip",
     newChat: "New chat",
     search: "Search chats and trips",
@@ -43,6 +44,7 @@ const COPY = {
     examples: "示例行程",
     footer: /估算都需要核实/,
     noTrips: "尚无行程。",
+    trips: "行程",
     newTrip: "新行程",
     newChat: "新聊天",
     search: "搜索聊天与行程",
@@ -188,31 +190,20 @@ try {
           await tabs.getByRole("tab", { name: copy.mine }).click();
           const mine = page.locator(".phone-mine");
           await mine.waitFor();
-          const empty = mine.locator(".trips-page__empty");
-          check(
-            (await empty.count()) === 1 && (await empty.innerText()).trim() === copy.noTrips,
-            `${stage}: Mine with no trips says one short sentence`,
-            await empty.allInnerTexts(),
-          );
-          check(
-            sentences(
-              await mine
-                .innerText()
-                .then(
-                  (text) => text.split("\n").find((line) => line.trim() === copy.noTrips) ?? "",
-                ),
-            ) === 1,
-            `${stage}: the empty line is one sentence`,
-          );
           check(
             (await mine.getByRole("button", { name: copy.newTrip, exact: true }).count()) === 1 &&
-              (await mine.getByText(copy.newTrip, { exact: true }).count()) === 1,
-            `${stage}: Mine names New trip once, as its one action`,
+              (await mine.getByRole("button", { name: copy.newChat, exact: true }).count()) === 1,
+            `${stage}: Mine with no data offers New trip and New chat once each`,
           );
           check(
-            (await mine.getByText(copy.newChat, { exact: true }).count()) === 0 &&
-              (await mine.getByRole("heading", { name: copy.chats }).count()) === 0,
-            `${stage}: Mine with no data has no blank chat row or Chats section`,
+            (await mine.getByRole("heading", { name: copy.trips }).count()) === 1 &&
+              (await mine.getByRole("heading", { name: copy.chats }).count()) === 1,
+            `${stage}: Mine with no data keeps Trips and Chats collection headings`,
+          );
+          check(
+            (await mine.locator(".history-item").count()) === 0 &&
+              !(await mine.innerText()).includes(copy.noTrips),
+            `${stage}: Mine with no data renders no blank history rows or duplicate empty sentence`,
           );
           check(
             (await mine.getByRole("searchbox", { name: copy.search }).count()) === 0 &&

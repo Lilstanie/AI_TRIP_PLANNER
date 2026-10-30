@@ -36,6 +36,7 @@ export type SessionState = {
 
   previousTotal: number | undefined;
   busy: boolean;
+  status: "idle" | "running" | "stopped" | "failed";
 
   activity: AgentProgressEvent[];
 
@@ -108,6 +109,14 @@ export type SessionEvent =
   | { kind: "askProgress"; progress: QuestionProgress }
   | { kind: "estimateDismissed" }
   | { kind: "timelineChanged"; changed: boolean }
+  | { kind: "planConflict"; outcome: Extract<TurnOutcome, { kind: "planned" }>; notice: Notice }
+  | {
+      kind: "taskRestored";
+      status: "running" | "stopped" | "failed";
+      activity: AgentProgressEvent[];
+      error?: Notice;
+      retry?: Task;
+    }
   | { kind: "replacedDismissed" };
 
 export const PREPARING_SUMMARY = "Preparing your request.";
@@ -133,6 +142,7 @@ export function idleSession(saved: SavedSession): SessionState {
     input: saved.input,
     previousTotal: saved.previousTotal,
     busy: false,
+    status: "idle",
     activity: [],
     error: undefined,
     errors: {},
@@ -166,6 +176,7 @@ function replied(state: SessionState, message: Message): SessionState {
     input: "",
     activity: [],
     busy: false,
+    status: "idle",
     ask: undefined,
   };
 }
@@ -191,6 +202,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return {
         ...state,
         busy: true,
+        status: "running",
         input: "",
         error: undefined,
         retry: undefined,
@@ -248,6 +260,22 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
     }
     case "replacedDismissed":
       return { ...state, replacedChange: undefined };
+    case "planConflict":
+      return replied(
+        state,
+        reply(event.outcome.reply, event.outcome.transcript, event.outcome.at, {
+          conflictNotice: event.notice,
+        }),
+      );
+    case "taskRestored":
+      return {
+        ...state,
+        busy: event.status === "running",
+        status: event.status,
+        activity: event.activity,
+        error: event.error,
+        retry: event.retry,
+      };
     case "planned":
       return {
         ...replied(
@@ -307,12 +335,13 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
       return {
         ...state,
         busy: false,
+        status: "failed",
         input: state.input || event.task.request.message,
         error: event.message,
         retry: event.task,
       };
     case "cancelled":
-      return { ...state, busy: false };
+      return { ...state, busy: false, status: "stopped", error: undefined, retry: undefined };
   }
 }
 

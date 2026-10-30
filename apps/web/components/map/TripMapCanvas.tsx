@@ -119,13 +119,9 @@ export function TripMapCanvas({
               ? t("Locating {v0}…", { v0: destination })
               : t("{destination} could not be shown on the map yet", { destination })}
           </h2>
-          <p>
-            {locating
-              ? t("Your itinerary stays available while places load.")
-              : unavailable || destinationsUnavailable
-                ? t("Map places are temporarily unavailable. Your plan is unchanged.")
-                : t("Your plan is unchanged. Activities appear once they have a confirmed place.")}
-          </p>
+          {!locating && (unavailable > 0 || destinationsUnavailable) && (
+            <p>{t("Map places are temporarily unavailable. Your plan is unchanged.")}</p>
+          )}
           {!locating && (unavailable > 0 || destinationsUnavailable) && (
             <button type="button" onClick={retry}>
               {t("Retry places")}

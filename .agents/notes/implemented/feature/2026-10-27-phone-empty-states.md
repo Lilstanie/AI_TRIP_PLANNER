@@ -1,6 +1,8 @@
 # Agent Note: Empty phone screens say one sentence and offer one action
 
 Status: implemented
+Superseded in part: phone Mine now offers New trip and New chat from its two collection headings; see
+the [sidebar New chat note](2026-10-29-sidebar-new-chat.md).
 Owner: spec #730, ticket #738
 
 ## Problem
@@ -19,9 +21,10 @@ estimates footer under the composer prompt before any estimate existed.
   the screen. The day's own controls (Ask AI about this day, Add place) are not empty-state actions.
 - Empty Chat keeps the composer prompt and the two example chips. The estimates footer waits until the
   chat has a message; the footer is unchanged everywhere else.
-- Mine with no trips and no saved chat shows the Trips heading, its New trip button and "No trips yet.".
-  The search field, the Trips and Calendar switch and the Chats section appear once there is a trip, a
-  saved chat or a search to act on. "Saved chat" means a chat other than the untitled blank one.
+- Mine with no trips and no saved chat shows the Trips and Chats headings with their own New trip and
+  New chat actions. The search field, the Trips and Calendar switch and history rows appear once there
+  is a trip, an explicitly created chat or a search to act on. Initial untouched state is not saved;
+  explicitly created Chats remain reachable even before a Trip or generated title exists.
 - An empty day says "Nothing planned for this day yet." on the Trip tab and the Map sheet alike, one
   string with one Chinese pair.
 - The empty Trajectory says "Each step the assistant takes will be listed here after you send a message."
@@ -38,9 +41,9 @@ estimates footer under the composer prompt before any estimate existed.
 ## Consequences
 
 The old Chinese and English strings for the two long empty lines are removed. `phone-empty-chat-hint`
-covers Chat, Mine, the empty day and the Trajectory at 390x844 and 360x800 in both languages and saves
-screenshots and `result.json`; `trajectory-empty`, `progressive-empty-workspace` and
-`short-phone-empty-chat` follow the new copy and sizes.
+covers Chat, both Mine collection actions, the empty day and the Trajectory at 390x844 and 360x800 in
+both languages and saves screenshots and `result.json`; `trajectory-empty`,
+`progressive-empty-workspace` and `short-phone-empty-chat` follow the new copy and sizes.
 
 ## Sources
 

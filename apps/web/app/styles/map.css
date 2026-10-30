@@ -4,6 +4,9 @@
   border-radius: 12px;
   background: var(--surface-2);
 }
+.google-map__renderer {
+  height: 100%;
+}
 .trip-map-controls {
   display: flex;
   flex-wrap: wrap;

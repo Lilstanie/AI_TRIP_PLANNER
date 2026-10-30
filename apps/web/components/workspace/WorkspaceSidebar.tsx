@@ -4,8 +4,9 @@ import { BrandMark } from "./BrandMark";
 import {
   CalendarIcon,
   ChatIcon,
+  ComposeIcon,
   MoreIcon,
-  NewTripIcon,
+  LedgerIcon,
   SidebarIcon,
   SuitcaseIcon,
 } from "../ui/icons";
@@ -20,6 +21,7 @@ export type HistoryItem = {
   subtitle?: string;
   destination?: string;
   active?: boolean;
+  untouched?: boolean;
 };
 
 export type WorkspacePage = "workspace" | "trips";
@@ -126,6 +128,7 @@ export function HistoryMenu({
 
   const act = (run: () => void) => {
     setOpen(false);
+    trigger.current?.focus({ preventScroll: true });
     run();
   };
 
@@ -168,7 +171,9 @@ export function WorkspaceSidebar({
   onChats,
   onTrips,
   onCalendar,
-  onNewTrip,
+  onNewChat,
+  onTrajectory,
+  trajectoryOpen = false,
   chatsButton,
   onSettings,
   saveState,
@@ -189,7 +194,9 @@ export function WorkspaceSidebar({
 
   onTrips(): void;
   onCalendar(): void;
-  onNewTrip(): void;
+  onNewChat(): void;
+  onTrajectory?(): void;
+  trajectoryOpen?: boolean;
 
   chatsButton?: Ref<HTMLButtonElement>;
 
@@ -225,10 +232,10 @@ export function WorkspaceSidebar({
 
       <nav className="sidebar-nav" aria-label={t("Workspace")}>
         <NavButton
-          icon={<NewTripIcon />}
-          label={t("New trip")}
+          icon={<ComposeIcon />}
+          label={t("New chat")}
           collapsed={isCollapsed}
-          onClick={onNewTrip}
+          onClick={onNewChat}
         />
         {onChats && (
           <NavButton
@@ -258,6 +265,15 @@ export function WorkspaceSidebar({
           current={page === "trips" && tripsView === "calendar" && !chatsOpen}
           onClick={onCalendar}
         />
+        {onTrajectory && (
+          <NavButton
+            icon={<LedgerIcon />}
+            label={t("Trajectory")}
+            collapsed={isCollapsed}
+            current={trajectoryOpen}
+            onClick={onTrajectory}
+          />
+        )}
       </nav>
 
       {children}

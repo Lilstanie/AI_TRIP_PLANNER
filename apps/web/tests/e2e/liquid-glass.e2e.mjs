@@ -122,8 +122,7 @@ async function desktop(browser, scheme) {
 
   await page.getByRole("button", { name: /^Chats/ }).click();
   await settle(page, 400);
-  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip", exact: true }).click();
-  await page.keyboard.press("Escape");
+  await page.locator(".sidebar-nav").getByRole("button", { name: "New chat", exact: true }).click();
   await settle(page, 700);
   await page.locator(".chat-empty__suggestions button").first().click();
   await page
@@ -172,7 +171,7 @@ async function desktop(browser, scheme) {
     `${tag}: segmented thumb is placed`,
   );
   await shot(page, `${tag}-08-calendar`);
-  await expectSolid(page, tag, "calendar grid", ".trip-calendar__grid");
+  await expectSolid(page, tag, "calendar grid", ".trip-home-calendar");
 
   await expectFallback(page, context, tag, scheme, [["sidebar", ".workspace-sidebar"]]);
   check(await noSideScroll(page), `${tag}: no horizontal page scroll`);

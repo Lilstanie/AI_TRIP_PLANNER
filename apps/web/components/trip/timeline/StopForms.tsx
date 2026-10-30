@@ -7,6 +7,7 @@ import { useLocale } from "../../account/LocaleProvider";
 import { SearchIcon } from "../../ui/icons";
 import type { TimelineEdits } from "./useTimelineEdits";
 import { StopEditSurface } from "./StopEditSurface";
+import { useEditorDraft } from "../editor-drafts";
 
 type Activity = ProposalItem & { id?: string };
 
@@ -102,10 +103,24 @@ export function ItemForm({
   onCancel(): void;
 }) {
   const { t } = useLocale();
-  const [detail, setDetail] = useState(activity.detail);
-  const [location, setLocation] = useState(activity.location ?? "");
-  const [note, setNote] = useState(activity.note ?? "");
-  const [day, setDay] = useState(1);
+  const key = `${activity.id}:${mode}`;
+  const [detail, setDetail, resetDetail] = useEditorDraft(`${key}:detail`, activity.detail);
+  const [location, setLocation, resetLocation] = useEditorDraft(
+    `${key}:location`,
+    activity.location ?? "",
+  );
+  const [note, setNote, resetNote] = useEditorDraft(`${key}:note`, activity.note ?? "");
+  const [day, setDay, resetDay] = useEditorDraft(`${key}:day`, 1);
+  const reset = () => {
+    resetDetail();
+    resetLocation();
+    resetNote();
+    resetDay();
+  };
+  const cancel = () => {
+    reset();
+    onCancel();
+  };
   const [failed, setFailed] = useState(false);
   const validDay = mode !== "schedule" || (day >= 1 && day <= days);
   const first = useRef<HTMLInputElement & HTMLTextAreaElement & HTMLSelectElement>(null);
@@ -122,13 +137,16 @@ export function ItemForm({
               ? { kind: "note", note }
               : { kind: "day", day };
         if (!validDay) return;
-        void Promise.resolve(onSubmit(action)).then((done) => setFailed(!done));
+        void Promise.resolve(onSubmit(action)).then((done) => {
+          if (done) reset();
+          setFailed(!done);
+        });
       }}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
         event.preventDefault();
         event.stopPropagation();
-        onCancel();
+        cancel();
       }}
     >
       {mode === "details" && (
@@ -188,7 +206,7 @@ export function ItemForm({
         <button type="submit" className="primary" disabled={!validDay}>
           {mode === "schedule" ? t("Schedule") : t("Save")}
         </button>
-        <button type="button" onClick={onCancel}>
+        <button type="button" onClick={cancel}>
           {t("Cancel")}
         </button>
       </div>
@@ -197,6 +215,7 @@ export function ItemForm({
 }
 
 export function PlaceSearch({
+  draftKey = "place-search",
   label,
   locked,
   edits,
@@ -205,6 +224,7 @@ export function PlaceSearch({
   onUse,
   onCancel,
 }: {
+  draftKey?: string;
   label: string;
   locked: boolean;
   edits: TimelineEdits;
@@ -215,7 +235,7 @@ export function PlaceSearch({
   onCancel?(): void;
 }) {
   const { t } = useLocale();
-  const [query, setQuery] = useState("");
+  const [query, setQuery, resetQuery] = useEditorDraft(`${draftKey}:query`, "");
   const input = useRef<HTMLInputElement>(null);
   useEffect(() => {
     if (focusOnMount) input.current?.focus();
@@ -233,6 +253,7 @@ export function PlaceSearch({
           if (event.key !== "Escape" || !onCancel) return;
           event.preventDefault();
           event.stopPropagation();
+          resetQuery();
           onCancel();
         }}
       >
@@ -267,7 +288,11 @@ export function PlaceSearch({
                 type="button"
                 disabled={locked}
                 aria-label={t("Use {v0}", { v0: result.displayName?.text ?? "this place" })}
-                onClick={() => void onUse(result.id)}
+                onClick={() =>
+                  void Promise.resolve(onUse(result.id)).then((done) => {
+                    if (done) resetQuery();
+                  })
+                }
               >
                 {t("Use")}
               </button>

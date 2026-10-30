@@ -1,6 +1,6 @@
 "use client";
 import { resolveMentions } from "../chat/mentions";
-import type { MutableRefObject } from "react";
+import { useRef, type MutableRefObject } from "react";
 import {
   TripPlan,
   type AssistantSettings,
@@ -10,15 +10,20 @@ import {
 } from "@trip/shared";
 import { moneyDisplay } from "@/lib/money";
 import { destinationLocationFor, knownFromDraft, parseDraft, type Draft } from "@/lib/workspace";
-import { requestTurn, type SessionEvent, type Task } from "@/lib/workspace/session";
+import {
+  requestTurn,
+  type SessionEvent,
+  type Task,
+  type TurnOutcome,
+} from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
 import { briefErrors, datesLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
-import { useRef } from "react";
 import { translate } from "@/lib/i18n/locale";
+import type { Message } from "@/lib/workspace";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
@@ -27,7 +32,14 @@ type WorkspaceTransportOptions = {
   draft: Draft;
   input: string;
   freshTripId: MutableRefObject<string>;
-  active: MutableRefObject<AbortController | null>;
+  canStart(tripId: string): boolean;
+  start(
+    task: Task,
+    controller: AbortController,
+    change?: { message: Message; brief?: boolean; rewindIndex?: number },
+  ): string | undefined;
+  progress(id: string, controller: AbortController, event: SessionEvent): void;
+  finish(id: string, controller: AbortController, outcome: TurnOutcome, task: Task): void;
 
   dispatch(event: SessionEvent): void;
 
@@ -47,12 +59,22 @@ type WorkspaceTransportOptions = {
   planDestinationLocation?: Draft["destinationLocation"];
 };
 
+type ChatSendContext = {
+  plan: TripPlan;
+  draft: Draft;
+  attachments?: PreparedAttachment[];
+  planDestinationLocation?: Draft["destinationLocation"];
+};
+
 export function useWorkspaceTransport({
   plan,
   draft,
   input,
   freshTripId,
-  active,
+  canStart,
+  start,
+  progress,
+  finish,
   dispatch,
   attachments,
   clearAttachments,
@@ -83,11 +105,11 @@ export function useWorkspaceTransport({
     });
   if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
 
-  function confirmReplacingEditedPlan() {
-    if (!plan) return true;
+  function confirmReplacingEditedPlan(currentPlan = plan) {
+    if (!currentPlan) return true;
     const hasDirectEdits =
-      (plan.editVersion ?? 0) > 0 &&
-      (originalPlan.current === undefined || editSnapshot(plan) !== originalPlan.current);
+      (currentPlan.editVersion ?? 0) > 0 &&
+      (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
     if (!hasDirectEdits) return true;
     const message = translate(
       interfaceLanguage,
@@ -96,41 +118,46 @@ export function useWorkspaceTransport({
     return window.confirm(message);
   }
 
-  async function run(task: Task, replacementConfirmed = false) {
-    if (active.current) return;
-    if (!replacementConfirmed && !confirmReplacingEditedPlan()) return;
+  function run(
+    task: Task,
+    replacementConfirmed = false,
+    change?: { message: Message; brief?: boolean; rewindIndex?: number },
+  ): boolean {
+    if (!canStart(task.request.tripId)) return false;
+    if (!replacementConfirmed && !confirmReplacingEditedPlan()) return false;
     const controller = new AbortController();
-    active.current = controller;
-    dispatch({ kind: "started" });
-    const outcome = await requestTurn(
-      task,
-      (signal) =>
-        fetch("/api/chat", {
-          method: "POST",
-          headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
-          body: JSON.stringify({
-            ...task.request,
-            ...(assistant ? { assistant } : {}),
-            interfaceLanguage,
-            displayCurrency,
+    const id = start(task, controller, change);
+    if (!id) return false;
+    void (async () => {
+      const outcome = await requestTurn(
+        task,
+        (signal) =>
+          fetch("/api/chat", {
+            method: "POST",
+            headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
+            body: JSON.stringify({
+              ...task.request,
+              ...(assistant ? { assistant } : {}),
+              interfaceLanguage,
+              displayCurrency,
+            }),
+            signal,
           }),
-          signal,
-        }),
-      {
-        signal: controller.signal,
-        onProgress: (event) => {
-          if (active.current === controller) dispatch({ kind: "progress", event });
+        {
+          signal: controller.signal,
+          onProgress: (event) => {
+            progress(id, controller, { kind: "progress", event });
+          },
         },
-      },
-    );
+      );
 
-    if (active.current !== controller) return;
-    active.current = null;
-    dispatch(outcome);
+      finish(id, controller, outcome, task);
+    })();
+    return true;
   }
 
   function submit(next: Draft = draft): boolean {
-    if (active.current) return false;
+    if (!canStart(plan?.tripId ?? freshTripId.current)) return false;
     const parsed = parseDraft(next, plan?.brief ?? { tripId: freshTripId.current });
     if (!parsed.success) {
       const fields = briefErrors(parsed.error.issues);
@@ -168,12 +195,7 @@ export function useWorkspaceTransport({
       : locale === "zh"
         ? `规划${brief.destination}行程，${dates}，${brief.groupSize} 位旅行人员，总预算 ${amount}。`
         : `Plan ${brief.destination}, ${dates}, for ${brief.groupSize} travellers with a total budget of ${amount}.`;
-    dispatch({
-      kind: "sent",
-      message: { role: "user", text: message, at: Date.now() },
-      brief: true,
-    });
-    void run(
+    return run(
       {
         kind: "chat",
         request: {
@@ -192,70 +214,82 @@ export function useWorkspaceTransport({
         },
       },
       true,
+      {
+        message: { role: "user", text: message, at: Date.now() },
+        brief: true,
+      },
     );
-    return true;
   }
 
-  function send(override?: string, rewindIndex?: number) {
-    const message = (override ?? input).trim();
-
-    if ((!message && attachments.length === 0) || active.current) return false;
-    if (!confirmReplacingEditedPlan()) return false;
-    if (rewindIndex !== undefined) dispatch({ kind: "rewound", index: rewindIndex });
-
-    const files = attachments;
+  function prepareChat(override?: string, context?: ChatSendContext) {
+    const currentPlan = context?.plan ?? plan;
+    const currentDraft = context?.draft ?? draft;
+    const message = (override ?? (context ? "" : input)).trim();
+    const files = context ? (context.attachments ?? []) : attachments;
+    if (
+      (!message && files.length === 0) ||
+      !canStart(currentPlan?.tripId ?? freshTripId.current) ||
+      !confirmReplacingEditedPlan(currentPlan)
+    )
+      return;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
       name,
       mediaType,
       kind,
       data,
     }));
-    if (files.length) clearAttachments();
-    dispatch({
-      kind: "sent",
-      message: {
-        role: "user",
-        text: message,
-        at: Date.now(),
-        ...(files.length ? { attachments: storedAttachments(files) } : {}),
-      },
-    });
-
     const mentions = resolveMentions(message, assistant?.names);
-    void run(
-      {
-        kind: "chat",
+    const destination = currentPlan?.brief.destination ?? currentDraft.destination;
+    const location = destinationLocationFor(
+      destination,
+      context?.planDestinationLocation ??
+        (currentPlan?.tripId === plan?.tripId ? planDestinationLocation : undefined),
+      currentDraft.destinationLocation,
+    );
+    return {
+      task: {
+        kind: "chat" as const,
         request: {
-          ...(plan
-            ? { tripId: plan.tripId, message, brief: plan.brief, plan }
-            : { tripId: freshTripId.current, message, known: knownFromDraft(draft) }),
-          ...(mentions.length ? { mentions } : {}),
-          ...(destinationLocationFor(
-            plan?.brief.destination ?? draft.destination,
-            planDestinationLocation,
-            draft.destinationLocation,
-          )
+          ...(currentPlan
             ? {
-                destinationLocation: destinationLocationFor(
-                  plan?.brief.destination ?? draft.destination,
-                  planDestinationLocation,
-                  draft.destinationLocation,
-                ),
+                tripId: currentPlan.tripId,
+                message,
+                brief: currentPlan.brief,
+                plan: currentPlan,
               }
-            : {}),
+            : { tripId: freshTripId.current, message, known: knownFromDraft(currentDraft) }),
+          ...(mentions.length ? { mentions } : {}),
+          ...(location ? { destinationLocation: location } : {}),
           ...(sent.length ? { attachments: sent } : {}),
         },
       },
-      true,
-    );
-    return true;
+      change: {
+        message: {
+          role: "user" as const,
+          text: message,
+          at: Date.now(),
+          ...(files.length ? { attachments: storedAttachments(files) } : {}),
+        },
+      },
+      usesAttachments: files.length > 0,
+    };
+  }
+
+  function send(override?: string, rewindIndex?: number, context?: ChatSendContext) {
+    const prepared = prepareChat(override, context);
+    if (!prepared) return false;
+    const started = run(prepared.task, true, {
+      ...prepared.change,
+      ...(rewindIndex === undefined ? {} : { rewindIndex }),
+    });
+    if (started && prepared.usesAttachments) clearAttachments();
+    return started;
   }
 
   function answer(answers: QuestionAnswer[]) {
-    if (!ask || active.current) return;
+    if (!ask || !canStart((ask.plan ?? plan)?.tripId ?? freshTripId.current)) return;
     if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
-    dispatch({ kind: "sent", message: { role: "user", text: message, at: Date.now() } });
     const current = ask.plan ?? plan;
     const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
     const destination = current?.brief.destination ?? known?.destination;
@@ -264,7 +298,7 @@ export function useWorkspaceTransport({
       planDestinationLocation,
       draft.destinationLocation,
     );
-    void run(
+    run(
       {
         kind: "chat",
         request: {
@@ -285,7 +319,8 @@ export function useWorkspaceTransport({
         },
       },
       true,
+      { message: { role: "user", text: message, at: Date.now() } },
     );
   }
-  return { run, submit, send, answer };
+  return { run, submit, prepareChat, send, answer };
 }

@@ -14,14 +14,16 @@ import type { TripPlan } from "@trip/shared";
 import { CURRENT_KEY, type Draft, type Message, type Snapshot } from "@/lib/workspace";
 import {
   CATALOG_KEY,
+  isUntouchedConversation,
   serializeCatalog,
   upsertConversationDraft,
   upsertCurrent,
   type RestoredWorkspace,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { isCurrentTabPlan } from "@/lib/trip/tab-revision";
+import { isCurrentTabPlan, publishTabPlan } from "@/lib/trip/tab-revision";
 import { STORAGE_FULL } from "./workspace-helpers";
+import type { SessionState } from "@/lib/workspace/session";
 
 type WorkspaceStorageOptions = {
   restored: RestoredWorkspace;
@@ -31,6 +33,7 @@ type WorkspaceStorageOptions = {
   input: string;
   ask: PendingAsk | undefined;
   previousTotal: number | undefined;
+  defaults: Draft;
   catalog: WorkspaceCatalog;
   setCatalog: Dispatch<SetStateAction<WorkspaceCatalog>>;
   activeConversation: MutableRefObject<string>;
@@ -44,6 +47,7 @@ export function useWorkspaceStorage({
   input,
   ask,
   previousTotal,
+  defaults,
   catalog,
   setCatalog,
   activeConversation,
@@ -73,6 +77,26 @@ export function useWorkspaceStorage({
       try {
         let nextCatalog: WorkspaceCatalog;
         if (!plan) {
+          const stored = catalogRef.current.conversations.find(
+            (item) => item.id === conversationId,
+          );
+          if (
+            !stored &&
+            isUntouchedConversation(
+              {
+                id: conversationId,
+                title: "",
+                updatedAt: "",
+                messages,
+                input,
+                draft,
+              },
+              defaults,
+            )
+          ) {
+            setSaveState("saved");
+            return;
+          }
           nextCatalog = upsertConversationDraft(catalogRef.current, {
             id: conversationId,
             messages,
@@ -136,6 +160,7 @@ export function useWorkspaceStorage({
     input,
     ask,
     previousTotal,
+    defaults,
     activeConversation,
     setCatalog,
     persistCatalog,
@@ -155,6 +180,78 @@ export function useWorkspaceStorage({
 
   function flushSave() {
     pendingSave.current?.();
+    return catalogRef.current;
+  }
+
+  function saveBackground(id: string, state: SessionState, applyPlan = true) {
+    const current = flushSave();
+    const conversation = current.conversations.find((item) => item.id === id);
+    if (!conversation) return;
+    if (state.plan && applyPlan) publishTabPlan(state.plan);
+    const authority =
+      current.trips.find((trip) => trip.id === conversation.tripId)?.snapshot ??
+      conversation.snapshot;
+    let next: WorkspaceCatalog;
+    if (state.plan && applyPlan) {
+      next = upsertCurrent(current, {
+        version: 4,
+        id: id.replace(/^conversation:/, ""),
+        savedAt: new Date().toISOString(),
+        plan: state.plan,
+        draft: state.draft,
+        messages: state.messages,
+        input: state.input,
+        ask: state.ask,
+        previousTotal: state.previousTotal,
+      });
+    } else if (authority?.plan) {
+      next = {
+        ...current,
+        conversations: current.conversations.map((item) =>
+          item.id === id
+            ? {
+                ...item,
+                updatedAt: new Date().toISOString(),
+                messages: state.messages,
+                input: state.input,
+                ask: state.ask,
+                draft: authority.draft ?? state.draft,
+                snapshot: {
+                  ...authority,
+                  id: id.replace(/^conversation:/, ""),
+                  messages: state.messages,
+                  input: state.input,
+                  ask: state.ask,
+                },
+              }
+            : item,
+        ),
+      };
+    } else {
+      next = upsertConversationDraft(current, {
+        id,
+        messages: state.messages,
+        input: state.input,
+        ask: state.ask,
+        draft: state.draft,
+      });
+    }
+    next = {
+      ...next,
+      activeConversationId: current.activeConversationId,
+      activeTripId: current.activeTripId,
+    };
+    catalogRef.current = next;
+    setCatalog(next);
+    if (storageEnabled) {
+      try {
+        persistCatalog(next);
+      } catch {
+        setStorageEnabled(false);
+        setSaveState("failed");
+        setStorageError(STORAGE_FULL);
+      }
+    }
   }
 
   return {
@@ -164,5 +261,6 @@ export function useWorkspaceStorage({
     setStorageError,
     setStorageEnabled,
     flushSave,
+    saveBackground,
   };
 }

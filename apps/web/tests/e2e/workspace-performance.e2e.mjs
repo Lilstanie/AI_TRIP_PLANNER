@@ -248,12 +248,11 @@ async function run(size, viewport) {
         .getByRole("button", { name: /^Chats\b/ })
         .first()
         .click();
-      await page.getByRole("button", { name: "New trip", exact: true }).waitFor();
+      await page.getByRole("button", { name: "New chat", exact: true }).waitFor();
       await page.clock.install();
       await input.fill("flushed before switching");
       await page.clock.runFor(50);
-      await page.getByRole("button", { name: "New trip", exact: true }).click();
-      await page.keyboard.press("Escape");
+      await page.getByRole("button", { name: "New chat", exact: true }).click();
       assert.equal(
         await page.evaluate(
           (key) =>
@@ -273,8 +272,10 @@ async function run(size, viewport) {
       await page
         .getByRole("button", { name: "Actions for Performance fixture", exact: true })
         .click();
-      page.once("dialog", (dialog) => dialog.accept("Renamed performance fixture"));
       await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+      const renameDialog = page.getByRole("dialog", { name: "Rename chat" });
+      await renameDialog.getByRole("textbox").fill("Renamed performance fixture");
+      await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
       await page.waitForFunction(
         (key) =>
           JSON.parse(localStorage.getItem(key)).conversations.some(

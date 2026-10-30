@@ -49,10 +49,7 @@ export function ChatsPanel({
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
   const nothingSaved =
-    collectionActions &&
-    !searching &&
-    !trips.length &&
-    chats.every((item) => item.title === "New chat" && !item.subtitle);
+    collectionActions && !searching && !trips.length && chats.every((item) => item.untouched);
 
   return (
     <div className="chats-panel__content">
@@ -119,66 +116,69 @@ export function ChatsPanel({
             : ""}
         </p>
         {deletedTrip && <TripUndo deleted={deletedTrip} />}
-        {tripsContent ?? (
-          <div className="history-list">
-            {trips.map((item) => (
-              <article
-                className={`history-item history-item--trip${item.active ? " history-item--active" : ""}`}
-                key={item.id}
-              >
-                <button
-                  type="button"
-                  className="history-item__open"
-                  aria-current={item.active ? "true" : undefined}
-                  title={item.title}
-                  onClick={() => onOpenTrip(item.id)}
+        {!nothingSaved &&
+          (tripsContent ?? (
+            <div className="history-list">
+              {trips.map((item) => (
+                <article
+                  className={`history-item history-item--trip${item.active ? " history-item--active" : ""}`}
+                  key={item.id}
                 >
-                  <TripCover destination={item.destination ?? item.title} size="thumb" />
-                  <span className="history-item__title">{item.title}</span>
-                </button>
-                <HistoryMenu
-                  title={item.title}
-                  onRename={() => onRenameTrip(item.id)}
-                  onDelete={() => onDeleteTrip(item.id)}
-                />
-              </article>
-            ))}
-            {!trips.length && (
-              <p className="history-empty">
-                {searching ? t("No matching trips.") : t("No trips yet. Start one with New trip.")}
-              </p>
-            )}
-          </div>
-        )}
+                  <button
+                    type="button"
+                    className="history-item__open"
+                    aria-current={item.active ? "true" : undefined}
+                    title={item.title}
+                    onClick={() => onOpenTrip(item.id)}
+                  >
+                    <TripCover destination={item.destination ?? item.title} size="thumb" />
+                    <span className="history-item__title">{item.title}</span>
+                  </button>
+                  <HistoryMenu
+                    title={item.title}
+                    onRename={() => onRenameTrip(item.id)}
+                    onDelete={() => onDeleteTrip(item.id)}
+                  />
+                </article>
+              ))}
+              {!trips.length && (
+                <p className="history-empty">
+                  {searching
+                    ? t("No matching trips.")
+                    : t("No trips yet. Start one with New trip.")}
+                </p>
+              )}
+            </div>
+          ))}
       </section>
 
-      {!nothingSaved && (
-        <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>
-          <div className="chats-panel__section-head">
-            <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
-              {t("Chats")}
-            </h2>
-            {collectionActions && (
-              <button type="button" className="chats-panel__action" onClick={onNewChat}>
-                <ComposeIcon />
-                <span>{t("New chat")}</span>
-              </button>
-            )}
-          </div>
-          <p
-            className="sr-only"
-            role="status"
-            aria-live="polite"
-            aria-label={t("Chat search results")}
-          >
-            {searching
-              ? chats.length
-                ? t(chats.length === 1 ? "{count} chat found" : "{count} chats found", {
-                    count: chats.length,
-                  })
-                : t("No matching chats.")
-              : ""}
-          </p>
+      <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>
+        <div className="chats-panel__section-head">
+          <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
+            {t("Chats")}
+          </h2>
+          {collectionActions && (
+            <button type="button" className="chats-panel__action" onClick={onNewChat}>
+              <ComposeIcon />
+              <span>{t("New chat")}</span>
+            </button>
+          )}
+        </div>
+        <p
+          className="sr-only"
+          role="status"
+          aria-live="polite"
+          aria-label={t("Chat search results")}
+        >
+          {searching
+            ? chats.length
+              ? t(chats.length === 1 ? "{count} chat found" : "{count} chats found", {
+                  count: chats.length,
+                })
+              : t("No matching chats.")
+            : ""}
+        </p>
+        {!nothingSaved && (
           <div className="history-list">
             {chats.map((item) => (
               <article
@@ -209,8 +209,8 @@ export function ChatsPanel({
               </p>
             )}
           </div>
-        </section>
-      )}
+        )}
+      </section>
     </div>
   );
 }

@@ -196,8 +196,8 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
 }
 
 .workspace-app {
-  --drawer-ease: cubic-bezier(0.32, 0.72, 0, 1);
-  --drawer-duration: 380ms;
+  --drawer-ease: cubic-bezier(0.22, 1, 0.36, 1);
+  --drawer-duration: 450ms;
 }
 .workspace-drawer-backdrop {
   transition: opacity var(--drawer-duration) var(--ease-out);

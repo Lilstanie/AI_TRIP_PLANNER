@@ -40,14 +40,21 @@ screenshots and other evidence remain available. This protects the integrations 
 network egress firewall, and new credential names must be added to the CLI's deny list before their
 integration is covered.
 
-The supported journeys are `agent-lab-single-agent`, `agent-lab-replay` and `pending-ask-refresh`.
+The supported journeys are `agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation`, `new-chat` and
+`trip-home-send`.
 Smoke runs only
 `agent-lab-single-agent`: a complete desktop and phone browser run of the registered Agent Lab fixture.
 Its assertions cover fixture provenance, the completed API artifact, the rendered plan, keyboard access,
 workspace storage preservation and browser errors. `agent-lab-replay` runs the tight-budget fixture and
 checks artifact download, replay, comparison, invalid artifact handling, and the resulting UI and status.
 `pending-ask-refresh` restores a pending question across reload and keeps it answerable after a failed
-submission.
+submission. `trip-home-send` verifies first send, retry, IME, Chat identity, Ideas parity, dismissal
+storage failures, and EN/ZH desktop, tablet, phone and breakpoint layouts, retaining screenshots and
+assertion summaries. `chat-generation` is a controlled multi-Chat and multi-Trip browser journey that covers
+navigation while generation continues, failure Retry, Stop followed by a new send, same-Trip writer
+exclusion, different-Trip isolation, deletion and Workspace teardown cancellation, and late Plan
+conflicts that preserve newer manual edits.
+`new-chat` covers the sidebar primary New chat entry, plain Conversation-only sends, Trip association after a saveable Plan, Trips-page New trip, and concurrent Chat isolation.
 `agent-lab-live-gate` remains unsupported because it needs two additional servers and skips internally
 when they are unavailable. Other journeys remain unsupported until their complete fixture path and server
 requirements are verified. An unsupported explicit selection and any failed, timed-out or blocked journey
@@ -128,7 +135,8 @@ each check has an id, status and summary, with remediation when blocked.
 
 `list` shows every raw E2E script with its support status, known prerequisites and an exclusion reason.
 Its JSON object includes `supported`, the unsupported count and a `scripts` array. Only
-`agent-lab-single-agent`, `agent-lab-replay` and `pending-ask-refresh` are supported. Replay covers a tight-budget fixture,
+`agent-lab-single-agent`, `agent-lab-replay`, `pending-ask-refresh`, `chat-generation`, `new-chat` and `trip-home-send` are supported.
+Replay covers a tight-budget fixture,
 artifact download and replay, comparisons, invalid artifacts, and resulting UI and status. Smoke runs
 only the single-agent journey. `leg-mode-choice` remains excluded because one
 model-dependent scenario can skip while the script still exits successfully. `agent-lab-live-gate`

@@ -79,6 +79,12 @@
   display: none;
 }
 
+.trip-workspace__open-items {
+  position: absolute;
+  top: var(--space-3);
+  right: 64px;
+  z-index: 2;
+}
 .open-items {
   position: relative;
   flex: none;
@@ -461,6 +467,24 @@
 }
 .dialog__head h2 {
   margin: 0;
+  font-size: var(--font-size-title);
+  font-weight: 700;
+}
+button.dialog__close {
+  display: inline-grid;
+  place-items: center;
+  width: 32px;
+  min-height: 32px;
+  padding: 0;
+  background: transparent;
+  color: var(--text-dim);
+}
+button.dialog__close:hover {
+  background: var(--fill-hover);
+}
+button.dialog__close .icon {
+  width: 16px;
+  height: 16px;
 }
 .agent-activity details {
   border-top: 1px solid var(--border);
@@ -706,6 +730,16 @@ button.action-menu__trigger {
   background: transparent !important;
   color: var(--text-dim);
 }
+@media (hover: hover) and (pointer: fine) {
+  .timeline-stop button.action-menu__trigger {
+    opacity: 0;
+  }
+  .timeline-stop:hover button.action-menu__trigger,
+  .timeline-stop:focus-within button.action-menu__trigger,
+  .timeline-stop button.action-menu__trigger[aria-expanded="true"] {
+    opacity: 1;
+  }
+}
 button.action-menu__trigger:hover,
 button.action-menu__trigger[aria-expanded="true"] {
   background: var(--fill-hover) !important;
@@ -797,19 +831,4 @@ button.action-menu__trigger[aria-expanded="true"] {
   .item-undo button {
     min-height: 44px !important;
   }
-}
-.trip-export {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-  align-items: center;
-}
-
-.trip-export button {
-  min-height: 44px;
-  padding-inline: var(--space-3);
-  border: 1px solid var(--border);
-  border-radius: var(--radius-pill);
-  background: var(--surface-2);
-  color: var(--text);
 }

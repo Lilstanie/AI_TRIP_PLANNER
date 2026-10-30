@@ -1,0 +1,53 @@
+# Agent Note: Give each browser map runtime explicit lifecycle ownership
+
+Status: implemented
+
+## Problem
+
+The browser map mounted directly into the Trip map host. A Google constructor failure could therefore
+leave its error DOM in the host before MapLibre mounted, and renderer callbacks outlived their map.
+The global `gm_authFailure` hook was also assigned once per component, so two mounted maps could
+replace each other's callback. An SDK response completing after unmount could create an orphan map.
+
+## Decision
+
+`loadRenderer` creates one full-height renderer child and returns a `MapRuntime` that owns the map,
+its event handles, one-shot callbacks, Google authentication subscription and disposal. A failed
+constructor removes that child before fallback. Disposal removes tracked callbacks before destroying
+the renderer and restoring the previous authentication hook when the final Google map leaves.
+
+The module-level Google authentication set is an active-owner registry, not a failure cache. It lets
+overlapping maps share one host callback without replacing each other and becomes empty when the last
+runtime disposes. The host callback snapshots both the previous handler and its listeners before
+dispatch because a listener can synchronously dispose itself and remove the final owner. The final
+owner restores the exact previous handler and clears the module state even if another script replaced
+the host callback in the meantime.
+
+`TripMap` aborts a pending SDK load when its mount is disposed and disposes any result that completes
+after that point. Authentication failure belongs to the mounted runtime: automatic fallback changes
+the provider for that mount, while strict Google mode keeps saved places and an explicit retry action.
+The phone Trip home map has a definite 340px height so the renderer cannot collapse under a percentage
+height.
+
+## Alternatives considered
+
+- Clear the host after each constructor error: this hides the visible layer but still lets callbacks
+  and a late SDK response outlive the component.
+- Track one global authentication callback in `TripMap`: overlapping maps replace each other's callback
+  and the final unmount cannot reliably restore the host hook.
+- Cache Google failure by Trip identity: this makes provider availability depend on a previous visit
+  rather than the current runtime and deployment configuration.
+- Dispatch the mutable owner registry or reread the mutable previous handler: synchronous disposal
+  can remove the final owner and lose an existing host callback.
+
+## Consequences
+
+Every renderer must return event handles that can be removed and implement idempotent disposal.
+Fallback is scoped to one mount, so same-origin navigation retries the configured provider. The
+browser fixture proves constructor, authentication, script, delayed-load and breakpoint behavior;
+live Google availability, production login and physical-device rendering remain separate evidence.
+
+## Sources
+
+- Issues #789 / TP-149 and parent spec #788; continuation PR #782.
+- [Map renderer lifecycle](../../../../docs/map-renderer-lifecycle.md).

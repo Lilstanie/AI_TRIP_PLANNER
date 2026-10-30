@@ -57,6 +57,7 @@
   color: var(--text);
   font: inherit;
   line-height: 1.5;
+  field-sizing: content;
   resize: none;
   outline: none;
   caret-color: var(--accent);
@@ -72,7 +73,8 @@
   box-shadow: none;
 }
 
-.composer__input:disabled {
+.composer__input:disabled,
+.composer__input:read-only {
   color: var(--text-dim);
   cursor: default;
 }

@@ -1,0 +1,485 @@
+.trip-home-calendar {
+  min-width: 0;
+  padding: var(--space-4) var(--space-5) var(--space-5);
+  overflow-x: hidden;
+  color: var(--text);
+}
+.trip-home-calendar__toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  margin-bottom: var(--space-3);
+}
+.trip-home-calendar__views {
+  display: inline-flex;
+  flex: 0 0 auto;
+  padding: 3px;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+}
+.trip-home-calendar__views button {
+  min-width: 64px;
+  min-height: 38px;
+  padding: 0 var(--space-3);
+  border: 0;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text-dim);
+  font: inherit;
+  font-size: var(--font-size-meta);
+}
+.trip-home-calendar__views button[aria-pressed="true"] {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.trip-home-calendar__views button:focus-visible,
+.trip-home-calendar__period button:focus-visible,
+.trip-home-calendar__date:focus-visible,
+.trip-home-calendar__event:focus-visible {
+  outline: 2px solid var(--accent);
+  outline-offset: 2px;
+}
+.trip-home-calendar__legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+  min-width: 0;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.trip-home-calendar__legend > span {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+}
+.trip-home-calendar {
+  --calendar-activity: #0f766e;
+  --calendar-stay: #7c3aed;
+  --calendar-transport: #b45309;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .trip-home-calendar {
+    --calendar-activity: #5eead4;
+    --calendar-stay: #c4b5fd;
+    --calendar-transport: #fcd34d;
+  }
+}
+:root[data-theme="dark"] .trip-home-calendar {
+  --calendar-activity: #5eead4;
+  --calendar-stay: #c4b5fd;
+  --calendar-transport: #fcd34d;
+}
+.trip-home-calendar__legend [data-category="activity"] {
+  color: var(--calendar-activity);
+}
+.trip-home-calendar__legend [data-category="stay"] {
+  color: var(--calendar-stay);
+}
+.trip-home-calendar__legend [data-category="flight"],
+.trip-home-calendar__legend [data-category="transport"] {
+  color: var(--calendar-transport);
+}
+.trip-home-calendar__period {
+  display: grid;
+  grid-template-columns: 44px minmax(0, 1fr) 44px;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-3);
+}
+.trip-home-calendar__period h3 {
+  min-width: 0;
+  margin: 0;
+  overflow: hidden;
+  font-size: var(--font-size-title);
+  font-weight: 600;
+  line-height: var(--line-height-title);
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trip-home-calendar__period button {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: var(--radius-pill);
+  background: var(--surface);
+  color: var(--text);
+  font-size: 24px;
+}
+.trip-home-calendar__period button:disabled {
+  opacity: 0.38;
+}
+.trip-home-calendar__week-scroll {
+  --calendar-hour: 44px;
+  --calendar-gutter: 44px;
+  overflow-x: auto;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface);
+  overscroll-behavior-inline: contain;
+}
+.trip-home-calendar__week,
+.trip-home-calendar__timeline {
+  display: grid;
+  grid-template-columns: var(--calendar-gutter) repeat(7, minmax(132px, 1fr));
+  min-width: calc(var(--calendar-gutter) + 7 * 132px);
+}
+.trip-home-calendar__week {
+  border-bottom: 1px solid var(--border);
+}
+.trip-home-calendar__week::before {
+  content: "";
+}
+.trip-home-calendar__week-day {
+  min-width: 0;
+  padding: var(--space-1);
+  border-inline-start: 1px solid var(--border);
+}
+.trip-home-calendar__timeline {
+  max-height: min(56dvh, 520px);
+  overflow-y: auto;
+  scrollbar-width: none;
+}
+.trip-home-calendar__hours {
+  display: grid;
+  grid-auto-rows: var(--calendar-hour);
+  color: var(--text-dim);
+  font-size: 10px;
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.trip-home-calendar__timeline-day {
+  position: relative;
+  height: calc(24 * var(--calendar-hour));
+  border-inline-start: 1px solid var(--border);
+  background: repeating-linear-gradient(
+    to bottom,
+    var(--border) 0 1px,
+    transparent 1px var(--calendar-hour)
+  );
+}
+.trip-home-calendar__slot {
+  position: absolute;
+  top: calc(var(--start) / 60 * var(--calendar-hour));
+  left: calc(var(--lane) / var(--lanes) * 100%);
+  width: calc(100% / var(--lanes));
+  height: calc(var(--length) / 60 * var(--calendar-hour));
+  padding: 1px;
+}
+.trip-home-calendar__slot .trip-home-calendar__event {
+  height: 100%;
+  min-height: 0;
+}
+.trip-home-calendar__weekday {
+  display: block;
+  overflow: hidden;
+  padding: var(--space-1) 0;
+  color: var(--text-dim);
+  font-size: 11px;
+  font-weight: 600;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trip-home-calendar__date {
+  display: grid;
+  width: 44px;
+  height: 44px;
+  place-items: center;
+  margin: 0 auto var(--space-1);
+  padding: 0;
+  border: 1px solid transparent;
+  border-radius: var(--radius-pill);
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+}
+.trip-home-calendar__date:hover {
+  background: var(--fill-hover);
+}
+.trip-home-calendar__date[aria-pressed="true"] {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.trip-home-calendar__outside {
+  display: block;
+  min-height: 1px;
+}
+.trip-home-calendar__entries {
+  display: grid;
+  gap: var(--space-2);
+  min-width: 0;
+}
+.trip-home-calendar__row {
+  display: grid;
+  gap: var(--space-1);
+  min-width: 0;
+}
+.trip-home-calendar__row h4 {
+  margin: 0;
+  padding: var(--space-1) 2px;
+  color: var(--text-dim);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+.trip-home-calendar__row--timed {
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--border);
+}
+.trip-home-calendar__event {
+  display: grid;
+  gap: 3px;
+  width: 100%;
+  min-width: 0;
+  min-height: 44px;
+  padding: var(--space-1) 3px;
+  overflow: hidden;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--text) 4%, transparent);
+  color: var(--text-dim);
+  font: inherit;
+  font-size: 10px;
+  line-height: 1.25;
+  text-align: start;
+}
+button.trip-home-calendar__event:hover {
+  border-color: var(--border);
+  background: var(--fill-hover);
+}
+.trip-home-calendar__event[data-category="activity"] {
+  background: color-mix(in srgb, var(--calendar-activity) 12%, transparent);
+  color: var(--calendar-activity);
+}
+.trip-home-calendar__event[data-category="stay"] {
+  background: color-mix(in srgb, var(--calendar-stay) 12%, transparent);
+  color: var(--calendar-stay);
+}
+.trip-home-calendar__event[data-category="flight"],
+.trip-home-calendar__event[data-category="transport"] {
+  background: color-mix(in srgb, var(--calendar-transport) 12%, transparent);
+  color: var(--calendar-transport);
+}
+.trip-home-calendar__event[data-selected="true"] {
+  border-color: var(--accent);
+  background: var(--accent-bg);
+}
+.trip-home-calendar__event-head {
+  display: grid;
+  grid-template-columns: 12px minmax(0, 1fr);
+  align-items: start;
+  gap: 3px;
+  min-width: 0;
+}
+.trip-home-calendar__event-head .flow-icon {
+  margin-top: 1px;
+}
+.trip-home-calendar__event-title {
+  display: -webkit-box;
+  min-width: 0;
+  overflow: hidden;
+  overflow-wrap: anywhere;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+.trip-home-calendar__event-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 2px 5px;
+  color: var(--text-dim);
+  font-size: 9px;
+  font-variant-numeric: tabular-nums;
+}
+.trip-home-calendar__event-meta > span:not(:last-child)::after {
+  content: " ·";
+}
+.trip-home-calendar__month {
+  min-width: 0;
+}
+.trip-home-calendar__weekdays,
+.trip-home-calendar__grid {
+  display: grid;
+  grid-template-columns: repeat(7, minmax(0, 1fr));
+}
+.trip-home-calendar__weekdays {
+  margin-bottom: var(--space-1);
+}
+.trip-home-calendar__weekdays span {
+  min-width: 0;
+  padding: var(--space-1);
+  overflow: hidden;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  text-align: center;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trip-home-calendar__grid {
+  gap: var(--space-1);
+}
+.trip-home-calendar__month-day,
+.trip-home-calendar__blank {
+  min-width: 0;
+  min-height: 132px;
+}
+.trip-home-calendar__month-day {
+  padding: 2px;
+  border: 1px solid transparent;
+  border-radius: var(--radius-sm);
+  background: var(--surface);
+}
+.trip-home-calendar__blank {
+  display: block;
+}
+@media (max-width: 760px) {
+  .trip-home-calendar__legend {
+    display: none;
+  }
+}
+@media (max-width: 520px) {
+  .trip-home-calendar {
+    padding: var(--space-3);
+  }
+  .trip-home-calendar__toolbar {
+    margin-bottom: var(--space-2);
+  }
+  .trip-home-calendar__views {
+    width: 100%;
+  }
+  .trip-home-calendar__views button {
+    flex: 1 1 50%;
+    min-height: 44px;
+  }
+  .trip-home-calendar__period {
+    grid-template-columns: 44px minmax(0, 1fr) 44px;
+    gap: var(--space-1);
+  }
+  .trip-home-calendar__period h3 {
+    font-size: var(--font-size-meta);
+  }
+  .trip-home-calendar__week {
+    border-radius: var(--radius-sm);
+  }
+  .trip-home-calendar__week-day {
+    padding: 2px;
+  }
+  .trip-home-calendar__slot {
+    min-height: 46px;
+  }
+  .trip-home-calendar__weekday {
+    padding: 2px 0;
+    font-size: 9px;
+  }
+  .trip-home-calendar__date {
+    width: 44px;
+    height: 44px;
+  }
+  .trip-home-calendar__event {
+    min-height: 44px;
+    padding: 3px 2px;
+    font-size: 9px;
+  }
+  .trip-home-calendar__event-head {
+    grid-template-columns: 12px minmax(0, 1fr);
+    gap: 2px;
+  }
+  .trip-home-calendar__event-meta {
+    font-size: 8px;
+  }
+  .trip-home-calendar__grid {
+    gap: 2px;
+  }
+  .trip-home-calendar__month-day,
+  .trip-home-calendar__blank {
+    min-height: 92px;
+  }
+}
+@media (forced-colors: active) {
+  .trip-home-calendar__date[aria-pressed="true"],
+  .trip-home-calendar__event[data-selected="true"] {
+    outline: 2px solid Highlight;
+    outline-offset: -3px;
+  }
+}
+
+.trip-home-calendar__grid {
+  grid-auto-rows: minmax(76px, auto);
+  gap: 1px;
+  overflow: hidden;
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--border);
+}
+.trip-home-calendar__month-day,
+.trip-home-calendar__blank {
+  min-width: 0;
+  min-height: 0;
+  padding: var(--space-1);
+  border: 0;
+  border-radius: 0;
+  background: var(--surface);
+}
+.trip-home-calendar__blank {
+  color: var(--text-mut);
+  font-size: var(--font-size-meta);
+  font-variant-numeric: tabular-nums;
+  text-align: center;
+}
+.trip-home-calendar__month-day {
+  padding: 2px;
+}
+.trip-home-calendar__month-day .trip-home-calendar__date {
+  width: 24px;
+  height: 24px;
+  margin-bottom: 2px;
+}
+.trip-home-calendar__month-day .trip-home-calendar__entries,
+.trip-home-calendar__month-day .trip-home-calendar__row {
+  gap: 2px;
+}
+.trip-home-calendar__month-day .trip-home-calendar__row--timed {
+  padding-top: 0;
+  border-top: 0;
+}
+.trip-home-calendar__month-day .trip-home-calendar__row h4,
+.trip-home-calendar__month-day .trip-home-calendar__event-meta,
+.trip-home-calendar__month-day .trip-home-calendar__event-head .flow-icon {
+  display: none;
+}
+.trip-home-calendar__month-day .trip-home-calendar__event {
+  min-height: 18px;
+  padding: 1px 2px;
+  border-inline-start: 2px solid currentColor;
+  border-radius: 3px;
+}
+.trip-home-calendar__month-day .trip-home-calendar__event-head {
+  display: block;
+  min-width: 0;
+}
+.trip-home-calendar__month-day .trip-home-calendar__event-title {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+@media (max-width: 520px) {
+  .trip-home-calendar__month-day .trip-home-calendar__date {
+    width: 44px;
+    height: 44px;
+  }
+  .trip-home-calendar__month-day .trip-home-calendar__event {
+    min-height: 44px;
+  }
+}

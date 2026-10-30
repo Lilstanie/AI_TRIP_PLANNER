@@ -177,8 +177,8 @@ try {
     "trips card opens the Trip home with the title heading",
   );
   const tags = await home(page)
-    .getByRole("list", { name: "Trip details" })
-    .locator("li")
+    .getByRole("group", { name: "Trip details" })
+    .locator(".fact-chip__value")
     .allInnerTexts();
   check(
     tags.length === 4 &&
@@ -198,7 +198,7 @@ try {
     { before: before.activeConversationId, after: afterOpen.activeConversationId },
   );
   check(
-    (await page.locator(".workspace-topbar .fact-chips, .composer textarea").count()) === 0,
+    (await page.locator(".workspace-topbar .fact-chips, .chat-header").count()) === 0,
     "the Trip home replaces the conversation view",
   );
   await page.screenshot({ path: `${OUT}/home-1440-en.png` });
@@ -212,16 +212,17 @@ try {
   );
 
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  await page.locator(".trip-calendar__trip[aria-label^='Trip to Melbourne']").first().click();
+  await page.locator(".trips-calendar__trip").filter({ hasText: "Melbourne" }).click();
+  await page.getByRole("button", { name: "View trip", exact: true }).click();
   await home(page).waitFor();
   const melbourneTags = await home(page)
-    .getByRole("list", { name: "Trip details" })
-    .locator("li")
+    .getByRole("group", { name: "Trip details" })
+    .locator(".fact-chip__value")
     .allInnerTexts();
   check(
     (await heading(page).innerText()) === "Trip to Melbourne" &&
       melbourneTags.includes("1 traveller"),
-    "a calendar band opens the Trip home, with a singular traveller count",
+    "Calendar View trip opens the Trip home, with a singular traveller count",
     melbourneTags,
   );
   await home(page).getByRole("button", { name: "Back to trips" }).click();
@@ -263,21 +264,23 @@ try {
   await goTrips(page, /^Trips/).click();
   await cards(page, /^Trip to Sydney/).click();
   await home(page).waitFor();
-  page.once("dialog", (dialog) => dialog.dismiss());
   await home(page)
     .getByRole("button", { name: /^Actions for/ })
     .click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
-  await page.waitForTimeout(200);
+  const renameDialog = page.getByRole("dialog", { name: "Rename trip" });
+  await renameDialog.getByRole("button", { name: "Cancel", exact: true }).click();
+  await renameDialog.waitFor({ state: "detached" });
   check(
     (await heading(page).innerText()) === "Trip to Sydney",
     "cancelling the rename prompt keeps the heading",
   );
-  page.once("dialog", (dialog) => dialog.accept("Harbour holiday"));
   await home(page)
     .getByRole("button", { name: /^Actions for/ })
     .click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
+  await renameDialog.getByRole("textbox").fill("Harbour holiday");
+  await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
   await page.getByRole("heading", { name: "Harbour holiday", level: 1 }).waitFor();
   const renamed = (await stored(page)).trips.find((trip) => trip.id === sydney.trip.id);
   check(
@@ -345,7 +348,8 @@ try {
   await home(page).getByRole("button", { name: "Back to trips" }).click();
 
   await page.getByRole("tab", { name: "Calendar", exact: true }).click();
-  await page.locator(".trip-calendar__trip[aria-label^='Trip to Melbourne']").first().click();
+  await page.locator(".trips-calendar__trip").filter({ hasText: "Melbourne" }).click();
+  await page.getByRole("button", { name: "View trip", exact: true }).click();
   await home(page).waitFor();
   await goTrips(page, /^Chats/).click();
   await page.getByRole("searchbox").fill("Melbourne");
@@ -374,11 +378,13 @@ try {
     .first()
     .click();
   await home(zh.page).waitFor();
-  const zhTags = await home(zh.page).locator(".trip-home__tags li").allInnerTexts();
-  const zhTagList = await home(zh.page).locator(".trip-home__tags").getAttribute("aria-label");
+  const zhTags = await home(zh.page).locator(".fact-chip__value").allInnerTexts();
+  const zhTagList = await home(zh.page)
+    .getByRole("group", { name: "行程信息" })
+    .getAttribute("aria-label");
   check(
     (await home(zh.page).getByRole("button", { name: "返回行程" }).count()) === 1 &&
-      zhTags.includes("2 位旅客") &&
+      zhTags.includes("2 位旅行人员") &&
       zhTagList === "行程信息",
     "Chinese back button, tag list name and traveller tag are translated",
     { zhTags, zhTagList },

@@ -184,8 +184,8 @@ async function open(language, viewport = { width: 1440, height: 1000 }) {
 const home = (page) => page.locator(".trip-home");
 const list = (page) => home(page).getByRole("list", { name: /^(Chats|聊天)$/ });
 const rows = (page) => list(page).getByRole("button");
-const box = (page) => home(page).getByRole("textbox", { name: /^(New chat|新聊天)$/ });
-const start = (page) => home(page).getByRole("button", { name: /^(Start chat|开始聊天)$/ });
+const box = (page) => home(page).locator(".composer textarea");
+const send = (page) => home(page).getByRole("button", { name: /^(Send|发送)$/ });
 const rowTitles = async (page) =>
   (await rows(page).locator(".trip-home-chats__name").allInnerTexts()).map((text) => text.trim());
 const sidebar = (page, name) => page.locator(".sidebar-nav").getByRole("button", { name });
@@ -241,12 +241,12 @@ try {
 
   await openHome(page, /^Trip to Sydney/);
   await box(page).fill("Where should we eat?");
-  await start(page).click();
+  await send(page).click();
   await page.locator(".composer textarea").waitFor();
   check(
-    (await page.locator(".composer textarea").inputValue()) === "Where should we eat?" &&
+    (await page.getByText("Where should we eat?", { exact: true }).count()) >= 1 &&
       (await home(page).count()) === 0,
-    "the box opens a new chat with its text in the composer",
+    "the first send opens a linked Chat",
   );
   const afterStart = await storedWhen(
     page,
@@ -270,27 +270,19 @@ try {
   await openHome(page, /^Trip to Sydney/);
   const second = await rowTitles(page);
   check(
-    second.length === 4 && /Sydney/.test(second[0]) && second[1] === "Harbour ideas",
+    second.length === 4 && second[0] === "Where should we eat?" && second[1] === "Harbour ideas",
     "the new chat leads the list",
     second,
   );
-  await start(page).click();
-  await page.locator(".composer textarea").waitFor();
-  const empty = await storedWhen(
-    page,
-    (value) => value.conversations.filter((item) => item.tripId === sydney.trip.id).length === 5,
-  );
   check(
-    (await page.locator(".composer textarea").inputValue()) === "" &&
-      empty.conversations.filter((item) => item.tripId === sydney.trip.id).length === 5 &&
-      empty.trips.length === 3,
-    "an empty box still starts a chat on the trip",
+    (await page.getByRole("button", { name: /^(Start chat|开始聊天)$/ }).count()) === 0 &&
+      (await send(page).isDisabled()),
+    "Trip home has no Start chat action and disables empty Send",
   );
 
   await sidebar(page, /^Chats/).click();
   await page.getByRole("searchbox").fill("");
   const panel = page.locator(".chats-panel.is-open");
-  page.once("dialog", (dialog) => dialog.accept("Renamed chat"));
   await panel
     .locator(".history-item:not(.history-item--trip)")
     .filter({ hasText: "Sydney chat" })
@@ -298,6 +290,10 @@ try {
     .locator(".history-item__more")
     .click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
+  const renameDialog = page.getByRole("dialog", { name: "Rename chat" });
+  await renameDialog.getByRole("textbox").fill("Renamed chat");
+  await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
+  await renameDialog.waitFor({ state: "detached" });
   await page.keyboard.press("Escape");
   await openHome(page, /^Trip to Sydney/);
   check(
@@ -305,7 +301,6 @@ try {
     "a chat renamed in the Chats panel shows its new title",
   );
   await sidebar(page, /^Chats/).click();
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .locator(".chats-panel.is-open .history-item:not(.history-item--trip)")
     .filter({ hasText: "Harbour ideas" })
@@ -313,13 +308,15 @@ try {
     .locator(".history-item__more")
     .click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
-  await page.waitForTimeout(300);
+  const deleteDialog = page.getByRole("dialog", { name: "Delete chat" });
+  await deleteDialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await deleteDialog.waitFor({ state: "detached" });
   await page.keyboard.press("Escape");
   const afterDelete = await rowTitles(page);
   check(
     (await home(page).count()) === 1 &&
       !afterDelete.includes("Harbour ideas") &&
-      afterDelete.length === 4,
+      afterDelete.length === 3,
     "a chat deleted while the page is open leaves the list",
     afterDelete,
   );
@@ -329,19 +326,21 @@ try {
     (await list(page).count()) === 0 &&
       (await page.locator(".trip-home__main").getByRole("heading", { level: 2 }).count()) === 0 &&
       (await box(page).count()) === 1 &&
-      (await start(page).count()) === 1,
-    "a trip with no chats shows only the box",
+      (await send(page).count()) === 1,
+    "a trip with no chats shows only the composer",
   );
   await page.screenshot({ path: `${OUT}/home-no-chats-1440-en.png` });
-  await start(page).click();
+  await box(page).fill("Hobart first question");
+  await send(page).click();
   await page.locator(".composer textarea").waitFor();
-  const hobartState = await storedWhen(page, (value) =>
-    value.conversations.some((item) => item.tripId === hobart.trip.id),
+  const hobartState = await storedWhen(
+    page,
+    (value) => value.conversations.filter((item) => item.tripId === hobart.trip.id).length === 1,
   );
   check(
     hobartState.conversations.filter((item) => item.tripId === hobart.trip.id).length === 1 &&
       hobartState.trips.find((trip) => trip.id === hobart.trip.id).conversationIds.length === 1,
-    "the box on a trip with no chats creates its first chat",
+    "the first send on a trip with no chats creates its first chat",
   );
 
   let release;
@@ -360,7 +359,7 @@ try {
   await page.waitForFunction(() => document.body.innerText.includes("Add a laneway walk"));
   await openHome(page, /^Trip to Sydney/);
   await box(page).fill("Fresh question");
-  await start(page).click();
+  await send(page).click();
   await page.locator(".composer textarea").waitFor();
   release();
   await page.waitForTimeout(1500);
@@ -373,8 +372,7 @@ try {
     chatRequests >= 1 &&
       melbourneChat.messages.some((message) => message.text === "Add a laneway walk") &&
       fresh.tripId === sydney.trip.id &&
-      fresh.messages.length === 0 &&
-      (await page.locator(".composer textarea").inputValue()) === "Fresh question",
+      fresh.messages.some((message) => message.text === "Fresh question"),
     "a chat started while the assistant runs on another chat keeps both chats apart",
     { requests: chatRequests, fresh: fresh.messages.length },
   );
@@ -399,7 +397,7 @@ try {
     return {
       overflow: document.documentElement.scrollWidth - innerWidth,
       rows: [...document.querySelectorAll(".trip-home-chats__row")].every(inView),
-      box: inView(document.querySelector(".trip-home-chats__box")),
+      box: inView(document.querySelector(".trip-home__composer")),
     };
   });
   check(
@@ -422,16 +420,24 @@ try {
   await openHome(tie.page, /^Trip to Melbourne/);
   for (const text of ["First tie", "Second tie"]) {
     await box(tie.page).fill(text);
-    await start(tie.page).click();
+    await send(tie.page).click();
     await tie.page.locator(".composer textarea").waitFor();
     await storedWhen(tie.page, (value) =>
-      value.conversations.some((item) => item.input === text && item.tripId === melbourne.trip.id),
+      value.conversations.some(
+        (item) =>
+          item.tripId === melbourne.trip.id &&
+          item.messages.some((message) => message.text === text),
+      ),
     );
     await tie.page.waitForTimeout(500);
     await openHome(tie.page, /^Trip to Melbourne/);
   }
   const stamps = (await stored(tie.page)).conversations
-    .filter((item) => item.input.endsWith(" tie"))
+    .filter((item) =>
+      item.messages.some(
+        (message) => typeof message.text === "string" && message.text.endsWith(" tie"),
+      ),
+    )
     .map((item) => item.updatedAt);
   check(
     stamps.length === 2 && stamps[0] === stamps[1],
@@ -441,7 +447,7 @@ try {
   await rows(tie.page).first().click();
   await tie.page.locator(".composer textarea").waitFor();
   check(
-    (await tie.page.locator(".composer textarea").inputValue()) === "Second tie",
+    (await tie.page.getByText("Second tie", { exact: true }).count()) >= 1,
     "of two chats with the same timestamp the one started last leads the list",
   );
   check(tie.errors.length === 0, "tie run has no page or console errors", tie.errors);
@@ -453,13 +459,13 @@ try {
   check(
     (await list(zh.page).count()) === 1 &&
       (await box(zh.page).count()) === 1 &&
-      (await start(zh.page).count()) === 1 &&
+      (await send(zh.page).count()) === 1 &&
       (await zh.page
         .locator(".trip-home")
         .getByRole("heading", { name: "聊天", level: 2 })
         .count()) === 1 &&
       zhDates.every((text) => /2026年/.test(text)),
-    "Chinese list name, box name, button and dates are translated",
+    "Chinese list name, box name, Send and dates are translated",
     zhDates,
   );
   await zh.page.screenshot({ path: `${OUT}/home-1440-zh.png` });

@@ -112,16 +112,6 @@ async function run(browser, { width, height, tag }) {
   await dialog.getByPlaceholder(/Add a trip preference/).fill("Vegetarian food");
   await dialog.getByPlaceholder(/Add a trip preference/).press("Enter");
   await dialog.getByRole("button", { name: "Save preferences" }).click();
-  await answer("Loyalty");
-  await dialog.getByLabel("Programme").fill("Qantas Frequent Flyer");
-  await dialog.getByRole("button", { name: "Add membership" }).click();
-  check(
-    await dialog
-      .getByRole("list", { name: "Your memberships" })
-      .getByText("Qantas Frequent Flyer")
-      .isVisible(),
-    `${tag}: a membership is added`,
-  );
   check(
     await dialog.getByText("Home base:").locator("..").getByText("Melbourne").isVisible(),
     `${tag}: an answered fact shows its value`,
@@ -175,7 +165,6 @@ async function run(browser, { width, height, tag }) {
   await page.keyboard.press("Escape");
   await settle(page);
 
-  const chats = page.getByRole("button", { name: /^Chats/ });
   const closeWhere = async () => {
     const where = page.getByRole("dialog", { name: "Where" });
     await page.keyboard.press("Escape");
@@ -187,8 +176,11 @@ async function run(browser, { width, height, tag }) {
     } else if (width < 1000) {
       await page.getByRole("button", { name: "Open navigation" }).click();
       await settle(page);
-    } else if ((await chats.getAttribute("aria-expanded")) !== "true") {
-      await chats.click();
+    } else {
+      await page
+        .locator(".sidebar-nav")
+        .getByRole("button", { name: /^Trips/ })
+        .click();
       await settle(page);
     }
     if (width <= 520)

@@ -440,7 +440,7 @@ try {
     "popover floats and the timeline stays visible",
   );
   const popoverBox = await popover.boundingBox();
-  const titleBox = await page.locator(".topbar-title").boundingBox();
+  const titleBox = await page.locator(".chat-header__title").boundingBox();
   const badgeBox = await badge.boundingBox();
   check(
     popoverBox !== null &&

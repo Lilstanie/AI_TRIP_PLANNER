@@ -3,6 +3,10 @@
 Status: implemented
 Owner: spec #765, ticket #770
 
+Superseded in part: [Trip home actions stay in place](2026-10-29-trip-home-actions.md) replaces the
+three navigation cards with five in-place actions and keeps Chat selection inside Trip home.
+[Trip home sends the first message](2026-10-29-trip-home-send.md) supersedes empty Start chat creation.
+
 ## Problem
 
 Opening a trip dropped the traveller into one chat. Spec #765 added a Trip home in four tickets (#766 to
@@ -30,8 +34,7 @@ chat from the page could overwrite the trip's plan.
 - On a phone the Calendar card opens Mine on its Calendar tab at the trip's month, and Back returns to Mine on
   the tab it came from; `PhoneMine` takes the Trips page tab and focus trip from `WorkspaceView`, as the
   desktop Trips page does.
-- Verification is one walkthrough, `trip-home-walkthrough` (desktop 1440, 390 touch phone, Chinese on both),
-  which leaves screenshots and `result.json`; `trip-home-older-chat` checks the stored plans.
+- Verification is `trip-home-shell` and `trip-home-send`; `trip-home-older-chat` checks the stored plans.
 
 ## Alternatives considered
 
@@ -46,7 +49,7 @@ chat from the page could overwrite the trip's plan.
 - A chat's snapshot can lag its trip's until the chat is opened and saved; the Trip home reads the trip's.
 - `restoreWorkspace` applies the same rule to a restored chat with a pending question.
 - The phone Mine panel keeps the Calendar tab until another is chosen, as the Trips page tab does on desktop.
-- An empty Start chat reuses the trip's untouched empty chat, and a save that changes nothing (same plan, draft,
-  messages and trip plan) is skipped, so opening a chat does not move the trip snapshot forward.
+- Trip home creates a linked Chat only on its first nonempty send. A save that changes nothing (same plan,
+  draft, messages and trip plan) is skipped, so opening a chat does not move the trip snapshot forward.
 - Deleting the active trip from its home does not start a blank chat; the home leaves through one effect.
 - The Trip home is not restored after a reload.

@@ -17,6 +17,24 @@ export const LOCAL_JOURNEYS = [
     description:
       "Restores a pending question across reload and keeps it answerable after a failed submission.",
   },
+  {
+    name: "chat-generation",
+    smoke: false,
+    description:
+      "Chat-owned generation across navigation, multiple Chats and Trips, control states, conflicts, deletion, and workspace teardown.",
+  },
+  {
+    name: "new-chat",
+    smoke: false,
+    description:
+      "Sidebar primary New chat entry, plain-chat Conversation-only sends, Trip association after Plan, and concurrent Chat isolation.",
+  },
+  {
+    name: "trip-home-send",
+    smoke: false,
+    description:
+      "Trip-home first-send atomicity, IME and keyboard handling, Chat identity, navigation state, and responsive sticky composer.",
+  },
 ];
 
 export const SMOKE_JOURNEYS = LOCAL_JOURNEYS.filter((journey) => journey.smoke).map(

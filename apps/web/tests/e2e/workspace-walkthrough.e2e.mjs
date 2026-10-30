@@ -330,9 +330,12 @@ try {
           const mine = page.locator(".phone-mine");
           await mine.waitFor();
           check(
-            (await mine.locator(".trips-page__empty").count()) === 1 &&
-              (await mine.getByRole("button", { name: "New trip", exact: true }).count()) === 1,
-            "empty Mine shows one sentence and one New trip action",
+            (await mine.getByRole("button", { name: "New trip", exact: true }).count()) === 1 &&
+              (await mine.getByRole("button", { name: "New chat", exact: true }).count()) === 1 &&
+              (await mine.getByRole("heading", { name: "Trips" }).count()) === 1 &&
+              (await mine.getByRole("heading", { name: "Chats" }).count()) === 1 &&
+              (await mine.locator(".history-item").count()) === 0,
+            "empty Mine shows Trips and Chats with New trip and New chat",
           );
           await shot(page, "empty-mine");
 
@@ -359,7 +362,7 @@ try {
           await expectGlass(page, "team capsule", ".team-trigger", theme);
           await shot(page, "empty-workspace");
           const nav = page.locator(".sidebar-nav");
-          for (const name of ["New trip", "Chats", "Trips", "Calendar"])
+          for (const name of ["New chat", "Chats", "Trips", "Calendar"])
             check(
               (await nav.getByRole("button", { name: new RegExp(`^${name}`) }).count()) === 1,
               `sidebar has ${name}`,
@@ -367,11 +370,12 @@ try {
           await nav.getByRole("button", { name: /^Calendar/ }).click();
           await page.getByRole("tab", { name: "Calendar", selected: true }).waitFor();
           await shot(page, "sidebar-calendar");
-          await nav.getByRole("button", { name: /^New trip/ }).click();
-          await page.getByRole("dialog").first().waitFor();
-          await shot(page, "sidebar-new-trip");
-          await page.keyboard.press("Escape");
-          await page.getByRole("dialog").first().waitFor({ state: "detached" });
+          await nav.getByRole("button", { name: /^New chat/ }).click();
+          check(
+            (await page.getByRole("dialog").count()) === 0,
+            "sidebar New chat opens a blank Chat without Where",
+          );
+          await shot(page, "sidebar-new-chat");
           check(
             (await page
               .locator(".workspace-panel--map")
@@ -440,7 +444,9 @@ try {
           capsuleBox,
         );
         const titleRow = await page.evaluate((phone) => {
-          const title = document.querySelector(phone ? ".phone-topbar__title" : ".topbar-title");
+          const title = document.querySelector(
+            phone ? ".phone-topbar__title" : ".chat-header__title",
+          );
           const team = document.querySelector(".team-trigger, .phone-topbar__team");
           const bar = document.querySelector(".workspace-topbar");
           if (!title || !team || !bar) return null;
@@ -584,7 +590,7 @@ try {
         await badge.waitFor();
         const count = Number((await badge.innerText()).trim());
         check(count > 0, "open-items badge shows a count", count);
-        const title = config.phone ? ".phone-topbar__title" : ".topbar-title";
+        const title = config.phone ? ".phone-topbar__title" : ".chat-header__title";
         const titleBox = await page.locator(title).first().boundingBox();
         const badgeBox = await badge.boundingBox();
         check(

@@ -599,6 +599,8 @@ The browser tries Google first, then loads MapLibre with OpenFreeMap vector tile
 authorization fails. Explicit OSM selection bypasses Google. Both renderers share framing, numbered
 markers, selection, nearby routes, responsive resizing and theme controls; satellite is Google-only.
 MapLibre workers are bundled locally. Mock fallback maps use a tile-free local style.
+Renderer ownership and the isolated browser fixture are documented in
+[map renderer lifecycle](map-renderer-lifecycle.md).
 
 Photon searches are scoped to the resolved destination. Photon failures use Nominatim; valid empty
 answers stay empty. Chinese requests use Nominatim with `accept-language=zh`. Nominatim search and

@@ -79,7 +79,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
   const empty = ledger.turns.length === 0;
   const shown: Mode = empty ? "full" : mode;
   const fullJumpNow = jump ?? fullJump;
-  if (phone && only === undefined && ledger.turns.length === 0) {
+  if (only === undefined && empty) {
     return (
       <div className="trajectory-tab">
         <div className="trajectory-empty">

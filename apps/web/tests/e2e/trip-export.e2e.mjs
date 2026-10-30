@@ -166,7 +166,8 @@ try {
       const button = page.getByRole("button", { name: "Open your trip", exact: true });
       if ((await button.getAttribute("aria-expanded")) !== "true") await button.click();
     }
-    await page.getByRole("button", { name: "Copy trip" }).click();
+    await page.getByRole("button", { name: "Itinerary actions" }).click();
+    await page.getByRole("menuitem", { name: "Copy trip" }).click();
     const text = await page.evaluate(() => navigator.clipboard.readText());
     check(
       text.includes("2030-10-03 · Day 3\nHarbour Hotel"),
@@ -181,7 +182,8 @@ try {
       `copy scheduled stops at ${width}px ${colorScheme}`,
     );
     const downloaded = page.waitForEvent("download");
-    await page.getByRole("button", { name: "Download calendar" }).click();
+    await page.getByRole("button", { name: "Itinerary actions" }).click();
+    await page.getByRole("menuitem", { name: "Download calendar" }).click();
     const download = await downloaded;
     const chunks = [];
     for await (const chunk of await download.createReadStream()) chunks.push(chunk);

@@ -25,6 +25,33 @@
     gap: 8px;
     padding: 8px 12px;
   }
+  .workspace-app:not([data-phone]) .workspace-topbar {
+    gap: 4px 8px;
+    min-height: 0;
+    padding: 6px 12px;
+  }
+  .workspace-app:not([data-phone]) .topbar-views button {
+    min-height: 32px;
+    padding-block: 4px;
+  }
+  .workspace-app:not([data-phone]) .fact-chips__scroller {
+    min-height: 30px !important;
+    padding: 2px;
+  }
+  .workspace-app:not([data-phone]) .fact-chip {
+    min-height: 28px !important;
+  }
+  .workspace-app:not([data-phone]) .workspace-notices {
+    padding-bottom: 4px;
+  }
+  .workspace-app:not([data-phone]) .workspace-notices .estimate-notice,
+  .workspace-app:not([data-phone]) .workspace-notices .replaced-notice {
+    padding: 4px 10px 4px 12px;
+  }
+  .workspace-app:not([data-phone]) .workspace-notices .estimate-notice button,
+  .workspace-app:not([data-phone]) .workspace-notices .replaced-notice button {
+    min-height: 32px;
+  }
   .topbar-icon-button {
     grid-area: menu;
   }
@@ -83,11 +110,6 @@
     overflow: hidden;
     clip: rect(0, 0, 0, 0);
     white-space: nowrap;
-  }
-  .topbar-actions .trip-trigger__count {
-    position: absolute;
-    top: -4px;
-    right: -4px;
   }
   .topbar-button.trip-trigger {
     position: relative;

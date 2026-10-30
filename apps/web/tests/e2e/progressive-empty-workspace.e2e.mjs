@@ -206,8 +206,7 @@ try {
   await page.screenshot({ path: `${OUT}/desktop-messaged.png` });
 
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page.locator(".sidebar-nav").getByRole("button", { name: "New trip", exact: true }).click();
-  await page.keyboard.press("Escape");
+  await page.locator(".sidebar-nav").getByRole("button", { name: "New chat", exact: true }).click();
   await page.locator(".chat-empty__suggestions").waitFor();
   await page.locator(".chat-empty__suggestions button").first().click();
   await page.getByRole("button", { name: "Open your trip" }).waitFor({ timeout: 15000 });

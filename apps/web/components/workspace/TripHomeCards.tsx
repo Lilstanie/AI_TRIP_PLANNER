@@ -1,50 +1,72 @@
 "use client";
+import type { ComponentType } from "react";
+import { RouteIcon, MapPinIcon, SuitcaseIcon, SlidersIcon, CalendarIcon } from "../ui/icons";
 import { useLocale } from "@/components/account/LocaleProvider";
+import type { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
-import type { TripRecord } from "@/lib/workspace/catalog";
+import { tripIdeas } from "@/lib/trip/ideas";
+import { dayCount } from "@/lib/trip/timeline";
+import type { Draft } from "@/lib/workspace/workspace";
 import { draftPreferences } from "@/lib/workspace/workspace";
+import type { TripAction } from "@/lib/workspace/layout";
 
 export function TripHomeCards({
-  trip,
-  onItinerary,
-  onCalendar,
-  onPreferences,
+  plan,
+  draft,
+  onOpen,
 }: {
-  trip: TripRecord;
-  onItinerary(): void;
-  onCalendar(): void;
-  onPreferences(): void;
+  plan: TripPlan;
+  draft: Draft;
+  onOpen(action: TripAction, trigger: HTMLButtonElement): void;
 }) {
   const { t } = useLocale();
-  const { plan, draft } = trip.snapshot;
-  if (!plan) return null;
-  const stops = buildItinerary(plan, () => undefined).stopCount;
+  const itinerary = buildItinerary(plan, () => undefined);
+  const stops = itinerary.stopCount;
+  const ideas = tripIdeas(plan).length;
   const preferences = draftPreferences(draft).length;
   const cards = [
     {
       id: "itinerary",
+      icon: RouteIcon,
       label: t("Itinerary"),
-      count: stops > 0 ? `${stops} ${t(stops === 1 ? "stop" : "stops")}` : "",
-      open: onItinerary,
+      count: stops > 0 ? String(stops) : "",
     },
-    { id: "calendar", label: t("Calendar"), count: "", open: onCalendar },
+    {
+      id: "ideas",
+      icon: MapPinIcon,
+      label: t("Ideas"),
+      count: ideas > 0 ? String(ideas) : "",
+    },
+    {
+      id: "bookings",
+      icon: SuitcaseIcon,
+      label: t("Bookings"),
+      count: "",
+    },
     {
       id: "preferences",
-      label: t("Preferences"),
-      count:
-        preferences > 0
-          ? t(preferences === 1 ? "{count} preference" : "{count} preferences", {
-              count: preferences,
-            })
-          : "",
-      open: onPreferences,
+      icon: SlidersIcon,
+      label: t("Trip preferences"),
+      count: preferences > 0 ? String(preferences) : "",
     },
-  ];
+    {
+      id: "calendar",
+      icon: CalendarIcon,
+      label: t("Calendar"),
+      count: String(dayCount(plan)),
+    },
+  ] satisfies { id: TripAction; label: string; count: string; icon: ComponentType }[];
   return (
-    <ul className="trip-home-cards" aria-label={t("Trip sections")}>
+    <ul className="trip-home-cards trip-home__actions" aria-label={t("Trip actions")}>
       {cards.map((card) => (
         <li key={card.id}>
-          <button type="button" className="trip-home-card" data-card={card.id} onClick={card.open}>
+          <button
+            type="button"
+            className="trip-home-card"
+            data-card={card.id}
+            onClick={(event) => onOpen(card.id, event.currentTarget)}
+          >
+            <card.icon />
             <span className="trip-home-card__label">{card.label}</span>
             {card.count && <span className="trip-home-card__count">{card.count}</span>}
           </button>

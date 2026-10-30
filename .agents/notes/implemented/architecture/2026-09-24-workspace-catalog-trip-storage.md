@@ -27,9 +27,9 @@ Catalog records use schema version 5. Version 4 catalogs remain readable and are
 version 5 on the next write; pending-question progress is optional, so existing saved questions
 remain valid without a data rewrite. There is no Save trip button, Saved trips dialog, `save`, `loadSaved` or `restore`, and no
 `SAVED_KEY` or `parseSaved`. The app neither reads nor deletes `trip-saved-v1`: data a browser
-already holds there stays untouched, and nothing migrates it. Switching or starting a trip aborts
-the in-flight request and drops its controller, so a late response cannot overwrite the trip now
-open.
+already holds there stays untouched, and nothing migrates it. Generation now belongs to its initiating Chat across navigation, with late Plan conflict protection;
+see [Chat-owned generation](2026-10-29-chat-owned-generation.md). This replaces the former
+navigation-abort behavior while preserving the catalog's ownership of saved chats and Trips.
 
 This supersedes [browser-local trip storage](../../archived/architecture/2026-09-16-browser-local-trip-storage.md);
 the catalog remains the browser's working store, and signed-in travellers also sync it to their

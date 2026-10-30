@@ -100,7 +100,7 @@ describe("Structured questions in the workspace", () => {
     await screen.findByRole("heading", { name: "How busy should each day be?" });
     fireEvent.click(
       within(document.querySelector<HTMLElement>(".workspace-sidebar")!).getByRole("button", {
-        name: "New trip",
+        name: "New chat",
       }),
     );
     await waitFor(() => expect(screen.getByLabelText("Message AI Trip Planner")).toBeTruthy());

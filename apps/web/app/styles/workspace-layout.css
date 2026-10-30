@@ -62,6 +62,16 @@
   }
 }
 
+@container workspace-main (min-width: 1041px) and (max-width: 1280px) {
+  .workspace-app:not([data-phone]) .workspace-topbar {
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-areas: "leading facts actions";
+  }
+  .fact-chips {
+    justify-self: center;
+  }
+}
+
 @container workspace-main (min-width: 921px) and (max-width: 1040px) {
   .workspace-app:not([data-phone]) .workspace-topbar {
     grid-template-columns: auto minmax(0, 1fr) auto;
@@ -132,6 +142,7 @@
   flex: none;
   align-items: center;
   gap: 8px;
+  margin-inline-start: auto;
 }
 .topbar-control-cluster {
   display: inline-flex;
@@ -149,17 +160,6 @@
 }
 .topbar-actions .trip-trigger {
   border-color: var(--text) !important;
-}
-.trip-trigger__count {
-  display: grid;
-  min-width: 20px;
-  height: 20px;
-  padding-inline: 5px;
-  place-items: center;
-  border-radius: var(--radius-pill);
-  background: var(--accent-fill);
-  color: var(--on-accent);
-  font-size: 11px;
 }
 .topbar-views {
   display: inline-flex;

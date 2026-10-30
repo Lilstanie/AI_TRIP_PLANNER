@@ -1,10 +1,10 @@
 "use client";
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, type ReactNode } from "react";
 import { factLabels, type FactKey } from "@/lib/workspace/trip-facts";
 import { useLocale } from "../account/LocaleProvider";
 import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../preferences/TripFactsSheet";
 import type { CloseReason } from "../preferences/FactPopover";
-import { ChevronIcon } from "../ui/icons";
+import { ChevronIcon, SlidersIcon } from "../ui/icons";
 import { usePresence } from "../ui/motion";
 import type { WorkspaceModel } from "./useWorkspace";
 
@@ -18,7 +18,13 @@ export function usePhoneTripTitle(
   return [name ?? labels.where, range].filter(Boolean).join(" · ") || t("New trip");
 }
 
-export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
+export function PhoneTripTitle({
+  model,
+  chatHeader,
+}: {
+  model: WorkspaceModel;
+  chatHeader?: ReactNode;
+}) {
   const { t } = useLocale();
   const { draft, plan } = model.session;
   const title = usePhoneTripTitle(model.session, model.history.activeTripName);
@@ -28,6 +34,7 @@ export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
   const open = model.layout.surface.sheet === "facts";
 
   const sheet = usePresence(open || undefined, 220);
+  const Title = chatHeader ? "div" : "h1";
 
   const editing = useRef(openFact);
   useEffect(() => {
@@ -49,7 +56,10 @@ export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
 
   return (
     <>
-      <h1 className="topbar-title phone-topbar__title">
+      {chatHeader}
+      <Title
+        className={`topbar-title phone-topbar__title${chatHeader ? " phone-topbar__details" : ""}`}
+      >
         <button
           ref={button}
           type="button"
@@ -60,10 +70,16 @@ export function PhoneTripTitle({ model }: { model: WorkspaceModel }) {
           aria-controls={open ? TRIP_FACTS_SHEET_ID : undefined}
           onClick={open ? closeFactsSheet : openFactsSheet}
         >
-          <span className="phone-topbar__title-text">{title}</span>
-          <ChevronIcon />
+          {chatHeader ? (
+            <SlidersIcon />
+          ) : (
+            <>
+              <span className="phone-topbar__title-text">{title}</span>
+              <ChevronIcon />
+            </>
+          )}
         </button>
-      </h1>
+      </Title>
       {sheet.value && (
         <TripFactsSheet
           key={sheet.leaving ? "leaving" : "open"}

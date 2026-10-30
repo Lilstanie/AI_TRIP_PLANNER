@@ -498,6 +498,7 @@ specialist 与编排、端口与适配器、带用例的类模型、综合架构
 ### 完整免费地图路径
 
 浏览器先尝试 Google；密钥、SDK 或授权失败时，加载 MapLibre 和 OpenFreeMap 矢量瓦片。明确选择 OSM 会跳过 Google。两个渲染器共用取景、编号标记、选择、附近路线、响应式调整和主题控制；卫星图仅适用于 Google。MapLibre worker 在本地打包。模拟回退地图使用不请求瓦片的本地样式。
+渲染器所有权及隔离浏览器夹具见[地图渲染器生命周期](map-renderer-lifecycle.zh.md)。
 
 Photon 搜索限定在已解析的目的地范围内。Photon 失败时使用 Nominatim；有效空结果保持为空。中文请求使用 Nominatim 并携带 `accept-language=zh`。Nominatim 搜索和详情共用进程级队列，请求启动间隔至少一秒，成功结果缓存十分钟，并发送项目联系信息。地点详情也接收界面语言，缓存键包含该语言。多实例部署需要共享限流器或自建端点。相关设置为 `PHOTON_BASE_URL`、`NOMINATIM_BASE_URL` 和 `OSM_USER_AGENT`。
 

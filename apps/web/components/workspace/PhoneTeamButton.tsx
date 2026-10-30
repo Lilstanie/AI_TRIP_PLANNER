@@ -1,4 +1,5 @@
 "use client";
+import { CloseIcon } from "../ui/icons";
 import { useEffect, useRef } from "react";
 import { useLocale } from "../account/LocaleProvider";
 import { TeamAvatars } from "../chat/TeamControl";
@@ -94,7 +95,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
             onClick={closeTeamSheet}
             aria-label={t("Close {v0}", { v0: t("Trajectory") })}
           >
-            {t("Close")}
+            <CloseIcon />
           </button>
         </header>
         <details ref={roster} className="phone-trajectory__team">

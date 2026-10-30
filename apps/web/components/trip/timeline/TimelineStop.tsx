@@ -1,5 +1,6 @@
 "use client";
 import { useEffect, useRef, useState } from "react";
+import { useEditorDraft } from "../editor-drafts";
 import type { ProposalItem } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
 import type { LocationStatus } from "../../map/useTripPlaces";
@@ -122,8 +123,8 @@ export function TimelineStop({
       : STATUS_TEXT[status]
         ? { className: "timeline-tag timeline-tag--warn", text: t(STATUS_TEXT[status]!) }
         : null;
-  const [start, setStart] = useState(activity.startTime ?? "");
-  const [end, setEnd] = useState(activity.endTime ?? "");
+  const [start, setStart, resetStart] = useEditorDraft(`${id}:start`, activity.startTime ?? "");
+  const [end, setEnd, resetEnd] = useEditorDraft(`${id}:end`, activity.endTime ?? "");
   const [popover, setPopover] = useState<Popover>("");
   const [panel, setPanel] = useState<Panel>("");
   const row = useRef<HTMLLIElement>(null);
@@ -335,8 +336,6 @@ export function TimelineStop({
   };
 
   const openTime = () => {
-    setStart(activity.startTime ?? "");
-    setEnd(activity.endTime ?? "");
     setPopover("time");
   };
 
@@ -475,6 +474,7 @@ export function TimelineStop({
           )}
           {searching && (
             <PlaceSearch
+              draftKey={id}
               label={confirmed || matched ? t("Replace with another place") : t("Find this place")}
               locked={locked}
               edits={edits}
@@ -517,10 +517,18 @@ export function TimelineStop({
               onEnd={setEnd}
               onSubmit={async () => {
                 const done = await edits.edit({ kind: "time", id, startTime: start, endTime: end });
-                if (done) closePopover();
+                if (done) {
+                  resetStart();
+                  resetEnd();
+                  closePopover();
+                }
                 return done;
               }}
-              onCancel={closePopover}
+              onCancel={() => {
+                resetStart();
+                resetEnd();
+                closePopover();
+              }}
             />
           )}
           {popover === "details" && (

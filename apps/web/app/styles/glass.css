@@ -72,8 +72,7 @@
 
 .chat-empty,
 .map-placeholder,
-.trip-card__text,
-.trip-calendar__grid {
+.trip-card__text {
   border: 1px solid var(--border);
   background: var(--surface);
   box-shadow: var(--shadow-sm);
@@ -509,13 +508,6 @@
 }
 .trip-card__meta {
   color: var(--text);
-}
-.trip-calendar__grid {
-  border-radius: var(--radius-xl);
-}
-.trip-calendar__nav button {
-  border: 0 !important;
-  background: var(--fill-hover) !important;
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

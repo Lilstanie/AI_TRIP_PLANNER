@@ -177,7 +177,10 @@ assert.equal(listing.command, "list");
 assert.deepEqual(listing.supported, [
   "agent-lab-replay",
   "agent-lab-single-agent",
+  "chat-generation",
+  "new-chat",
   "pending-ask-refresh",
+  "trip-home-send",
 ]);
 const script = (name) => listing.scripts.find((entry) => entry.name === name);
 assert.equal(script("agent-lab-single-agent").status, "supported");

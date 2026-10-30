@@ -209,9 +209,10 @@ button.day-strip__day[aria-selected="true"] {
   width: 100%;
   min-height: 0;
   margin: 0;
-  padding: 0;
+  padding: 0 !important;
   border: 0;
-  background: transparent;
+  border-radius: 0 !important;
+  background: transparent !important;
   color: inherit;
   font: inherit;
   text-align: start;
@@ -794,11 +795,19 @@ html.is-reordering .timeline[data-empty] {
   display: flex;
   align-items: center;
   justify-content: space-between;
-  min-height: 44px;
-  margin-block: var(--space-2);
+  margin-block: var(--space-1);
 }
 .trip-editor__toolbar > :last-child {
   margin-inline-start: auto;
+}
+.trip-editor__toolbar:not(:has(.timeline-ideas-chip)) {
+  display: contents;
+}
+.trip-editor__toolbar .action-menu {
+  position: absolute;
+  top: 0;
+  right: 0;
+  z-index: 3;
 }
 .timeline-connection__directions,
 .timeline-booking__book {

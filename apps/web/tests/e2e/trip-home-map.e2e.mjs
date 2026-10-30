@@ -380,7 +380,7 @@ try {
     await home(p).waitFor();
     await settled(mapRegion(p), 2);
     const head = await box(p.locator(".trip-home__head"));
-    const tags = await box(p.locator(".trip-home__tags"));
+    const tags = await box(p.locator(".trip-home .fact-chips"));
     const map = await box(mapRegion(p));
     const wide = await p.evaluate(() => ({
       overflow: document.documentElement.scrollWidth - innerWidth,
