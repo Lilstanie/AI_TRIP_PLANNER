@@ -362,7 +362,7 @@ describe("ToolGateway provider matrix", () => {
       }
       if (url.includes("engine=google_flights")) {
         return Response.json({
-          best_flights: [{ price: 450, flights: [{ airline: "Qantas" }] }],
+          best_flights: [{ price: 900, flights: [{ airline: "Qantas" }] }],
         });
       }
       throw new Error(`unexpected provider request: ${url}`);

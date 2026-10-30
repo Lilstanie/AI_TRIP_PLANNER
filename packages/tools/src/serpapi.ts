@@ -265,10 +265,9 @@ export async function searchFlightsSerpApi(q: {
         const token = departureToken(flight);
         const durationMin = Number(flight.total_duration);
 
-        const perPassenger = Number(flight.price);
         return {
           carrier: typeof airline === "string" ? airline.trim() : "",
-          price: perPassenger * q.passengers,
+          price: Number(flight.price),
           stops: Array.isArray(flight.layovers) ? flight.layovers.length : 0,
           ...(Number.isFinite(durationMin) ? { durationMin } : {}),
           ...(outbound ? { outbound } : {}),

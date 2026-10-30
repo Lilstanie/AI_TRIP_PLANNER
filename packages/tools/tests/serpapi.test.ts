@@ -111,11 +111,11 @@ describe("searchHotelsSerpApi", () => {
 });
 
 describe("searchFlightsSerpApi", () => {
-  it("scales SerpApi's per-passenger price to this project's whole-group-total convention", async () => {
+  it("keeps SerpApi's price as the group total, since Google Flights already prices every adult", async () => {
     stub(200, {
       best_flights: [
         {
-          price: 450,
+          price: 900,
           total_duration: 600,
           layovers: [{ name: "Singapore" }],
           flights: [{ airline: "Qantas" }],
