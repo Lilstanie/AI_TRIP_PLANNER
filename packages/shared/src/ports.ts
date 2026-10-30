@@ -35,6 +35,7 @@ export interface PlaceQuery {
 }
 export interface Place {
   name: string;
+  placeId?: string;
   category: string;
   rating?: number;
   location?: GeoPoint;

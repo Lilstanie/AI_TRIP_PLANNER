@@ -2,6 +2,8 @@ import type { Place, PlaceQuery } from "@trip/shared";
 import { findCity } from "./overpass";
 import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
+const OSM_TYPES: Record<string, string> = { n: "node", w: "way", r: "relation" };
+
 const CATEGORIES: Record<string, string[]> = {
   sight: [
     "tourism.sights,tourism.attraction",
@@ -117,12 +119,19 @@ async function lookUp(q: PlaceQuery): Promise<Place[]> {
       return true;
     })
     .slice(0, 20)
-    .map((place) => ({
-      name: place.name,
-      category: q.category!,
-      ...(Number.isFinite(place.lat) && Number.isFinite(place.lon)
-        ? { location: { latitude: place.lat!, longitude: place.lon! } }
-        : {}),
-      ...(website(place) ? { website: website(place) } : {}),
-    }));
+    .map((place) => {
+      const raw = place.datasource?.raw ?? {};
+      const osmType = OSM_TYPES[String(raw.osm_type)];
+      return {
+        name: place.name,
+        category: q.category!,
+        ...(osmType && Number.isInteger(raw.osm_id)
+          ? { placeId: `osm:${osmType}/${raw.osm_id}` }
+          : {}),
+        ...(Number.isFinite(place.lat) && Number.isFinite(place.lon)
+          ? { location: { latitude: place.lat!, longitude: place.lon! } }
+          : {}),
+        ...(website(place) ? { website: website(place) } : {}),
+      };
+    });
 }
