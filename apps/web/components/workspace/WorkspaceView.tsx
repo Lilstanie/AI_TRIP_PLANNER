@@ -355,6 +355,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   }, [phone, plan, mobileView, layout]);
 
   const teamTurn = latestTurn(activity, busy, messages);
+  const mapDestination = plan?.brief.destination ?? (busy ? draft.destination.trim() : "");
   const profileDefaults = draftDefaults(settings);
   const briefChrome =
     !phone ||
@@ -835,7 +836,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             data-preferences-open={preferencesOpen}
             data-trip-open={tripOpen}
             data-mobile-view={mobileView}
-            data-map={plan ? "shown" : "hidden"}
+            data-map={mapDestination ? "shown" : "hidden"}
           >
             {tripOpen && !phone ? (
               <section
@@ -875,8 +876,12 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 {!narrow && <SplitResizer share={chatShare} onChange={layout.resizeChat} />}
                 <div className="workspace-panel workspace-panel--map" {...phonePanel("map")}>
                   <TripMapCanvas
-                    destination={plan?.brief.destination}
-                    viewKey={plan ? `${plan.tripId}|${plan.brief.destination}` : undefined}
+                    destination={mapDestination}
+                    viewKey={
+                      plan
+                        ? `${plan.tripId}|${plan.brief.destination}`
+                        : mapDestination || undefined
+                    }
                     tripPlaces={tripPlaces}
                     selectedActivity={selectedActivity}
                     onSelectActivity={session.showStop}

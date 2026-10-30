@@ -28,6 +28,7 @@ const within = (promise, label, timeout = WAIT) =>
   });
 
 const results = [];
+const mapState = (page) => page.locator(".workspace-shell").getAttribute("data-map");
 const browserErrors = [];
 const externalRequests = [];
 const check = (ok, name, observed) => {
@@ -356,6 +357,10 @@ try {
   await proxy.waitForCount(1);
   const plainRequest = proxy.requests[0];
   await waitForControlledProgress(plain.page);
+  check(
+    (await mapState(plain.page)) === "hidden",
+    "a request without a known destination keeps the map hidden",
+  );
   plainRequest.releaseNeedsInfo("What city are you asking about?", {});
   await within(plainRequest.settled, "plain needs_info");
   await plain.page.getByText("What city are you asking about?", { exact: true }).waitFor({
@@ -387,10 +392,33 @@ try {
 
   proxy.reset();
   const planned = await openPage();
+  await planned.page.route("**/api/places/search", (route) =>
+    route.fulfill({
+      json: {
+        places: [
+          {
+            id: "lisbon",
+            displayName: { text: "Lisbon" },
+            location: { latitude: 38.72, longitude: -9.14 },
+          },
+        ],
+      },
+    }),
+  );
   await entry(planned.page, "New chat").click();
-  await send(planned.page, "Plan two days in Lisbon for two people, budget 3000");
+  await planned.page.getByRole("button", { name: /^Where/ }).click();
+  const whereFact = planned.page.getByRole("dialog", { name: "Where", exact: true });
+  await whereFact.locator("#fact-destination").fill("Lisbon");
+  await whereFact.locator("#fact-destination").press("Enter");
+  await whereFact.getByRole("button", { name: "Save" }).click();
+  await whereFact.waitFor({ state: "detached", timeout: WAIT });
+  check((await mapState(planned.page)) === "hidden", "the map stays hidden before sending");
+  await send(planned.page, "Plan two days for two people, budget 3000");
   await proxy.waitForCount(1);
   const plannedRequest = proxy.requests[0];
+  await planned.page.locator(".workspace-panel--map .google-map").waitFor({ timeout: WAIT });
+  check(true, "a chosen destination shows the map while the plan is still loading");
+  await planned.page.screenshot({ path: `${OUT}/early-map-1440-en.png` });
   const plannedTripId = plannedRequest.body.tripId;
   const completed = plan({
     id: plannedTripId,
