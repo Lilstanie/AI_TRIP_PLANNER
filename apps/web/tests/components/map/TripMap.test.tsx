@@ -12,6 +12,7 @@ type MapProps = Omit<Parameters<typeof TripMap>[0], "userLocation" | "stops"> & 
 function Map({ places, days = [], ...props }: MapProps) {
   const userLocation = useUserLocation();
   const stops: MapStop[] = places.map((place, index) => ({
+    activityId: place.id,
     place,
     number: index + 1,
     day: days[index],

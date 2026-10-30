@@ -303,6 +303,26 @@ try {
     "the home map has the same controls as the workspace map and no others",
     { home: homeControls, workspace: workspaceControls },
   );
+  await page.getByRole("button", { name: "Open your trip" }).click();
+  const firstStop = page.locator(".timeline-stop").filter({ hasText: "Sydney Opera House" });
+  await firstStop.waitFor();
+  const tripMap = page.locator(".trip-workspace__map");
+  await settled(tripMap, 2);
+  await firstStop.hover();
+  await tripMap
+    .locator(".trip-map-marker.is-hovered")
+    .filter({ hasText: "Sydney Opera House" })
+    .waitFor();
+  await tripMap.locator(".trip-map-marker").filter({ hasText: "Bondi Beach" }).hover();
+  await page.locator(".timeline-stop.is-hovered").filter({ hasText: "Bondi Beach" }).waitFor();
+  check(
+    (await tripMap.locator(".trip-map-marker.is-hovered").count()) === 1 &&
+      (await page.locator(".timeline-stop.is-hovered").count()) === 1,
+    "hovering a stop highlights its marker, and hovering a marker highlights its stop",
+  );
+  await page.screenshot({ path: `${OUT}/hover-link-1440-en.png` });
+  await page.mouse.move(0, 0);
+  await page.locator(".timeline-stop.is-hovered").waitFor({ state: "detached" });
 
   await page
     .locator(".sidebar-nav")

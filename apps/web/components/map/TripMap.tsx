@@ -9,6 +9,7 @@ import { MapViewController } from "@/lib/map/map-view";
 import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 import { PlacePreview } from "./PlacePreview";
 import { framable, type MapMarker, type MapRuntime } from "./google-maps-sdk";
+import { hoveredStop, hoverStop, subscribeStopHover } from "@/lib/trip/stop-hover";
 import {
   declutterLabels,
   drawItineraryRoutes,
@@ -25,7 +26,7 @@ import { loadRenderer } from "./map-renderer";
 
 type Coordinate = { lat: number; lng: number };
 
-export type MapStop = { place: GooglePlace; number: number; day?: number };
+export type MapStop = { activityId: string; place: GooglePlace; number: number; day?: number };
 
 const LABEL_ZOOM = 12;
 const HOME_ZOOM = 9;
@@ -105,7 +106,9 @@ export function TripMap({
   const view = useRef<MapViewController | null>(null);
   const moving = useRef(false);
   const panOnLocate = useRef(false);
-  const markers = useRef(new Map<string, { marker: MapMarker; content: HTMLElement }>());
+  const markers = useRef(
+    new Map<string, { marker: MapMarker; content: HTMLElement; activityId: string }>(),
+  );
   const routeLayer = useRef<ReturnType<typeof drawItineraryRoutes> | null>(null);
   const popup = useRef<HTMLDivElement>(null);
   const focusPopup = useRef(false);
@@ -420,11 +423,19 @@ export function TripMap({
         select();
       };
       label?.addEventListener("click", selectLabel);
-      created.set(stop.place.id, { marker, content });
+      const hover = (event: PointerEvent) => {
+        if (event.pointerType === "mouse") hoverStop(stop.activityId);
+      };
+      const leave = () => hoverStop(undefined);
+      content.addEventListener("pointerenter", hover);
+      content.addEventListener("pointerleave", leave);
+      created.set(stop.place.id, { marker, content, activityId: stop.activityId });
       markerCleanups.push(
         ownCleanup(() => {
           marker.removeEventListener("gmp-click", select);
           label?.removeEventListener("click", selectLabel);
+          content.removeEventListener("pointerenter", hover);
+          content.removeEventListener("pointerleave", leave);
           marker.map = null;
           if (created.get(stop.place.id)?.marker === marker) created.delete(stop.place.id);
         }),
@@ -434,14 +445,27 @@ export function TripMap({
   }, [runtime, mapped, locale, ownCleanup]);
 
   useEffect(() => {
-    markers.current.forEach(({ marker, content }, placeId) => {
-      const isSelected = placeId === selected;
-      const day = content.dataset.day ? Number(content.dataset.day) : undefined;
-      content.classList.toggle("is-selected", isSelected);
-      content.classList.toggle("is-muted", focusDay !== undefined && day !== focusDay);
-      marker.zIndex = isSelected ? 1000 : focusDay !== undefined && day === focusDay ? 10 : 1;
-    });
+    const paint = () => {
+      const hovered = hoveredStop();
+      markers.current.forEach(({ marker, content, activityId }, placeId) => {
+        const isSelected = placeId === selected;
+        const isHovered = activityId === hovered;
+        const day = content.dataset.day ? Number(content.dataset.day) : undefined;
+        content.classList.toggle("is-selected", isSelected);
+        content.classList.toggle("is-hovered", isHovered);
+        content.classList.toggle("is-muted", focusDay !== undefined && day !== focusDay);
+        marker.zIndex = isHovered
+          ? 1001
+          : isSelected
+            ? 1000
+            : focusDay !== undefined && day === focusDay
+              ? 10
+              : 1;
+      });
+    };
+    paint();
     declutterRef.current();
+    return subscribeStopHover(paint);
   }, [runtime, mapped, selected, focusDay]);
 
   const lines = useMemo(

@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { useEditorDraft } from "../editor-drafts";
 import type { ProposalItem } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
@@ -8,6 +8,7 @@ import type { TimelineEdits } from "./useTimelineEdits";
 import type { MessageKey } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 import type { ItemAction } from "@/lib/trip/item-actions";
+import { hoveredStop, hoverStop, subscribeStopHover } from "@/lib/trip/stop-hover";
 import { useLocale } from "../../account/LocaleProvider";
 import { ActionMenu, type ActionMenuItem } from "../../ui/ActionMenu";
 import { PlacePreview } from "../../map/PlacePreview";
@@ -131,6 +132,17 @@ export function TimelineStop({
   const timeButton = useRef<HTMLButtonElement>(null);
   const mainButton = useRef<HTMLButtonElement>(null);
 
+  const linked = useSyncExternalStore(
+    subscribeStopHover,
+    () => hoveredStop() === id,
+    () => false,
+  );
+  useEffect(
+    () => () => {
+      if (hoveredStop() === id) hoverStop(undefined);
+    },
+    [id],
+  );
   useEffect(() => {
     if (!selected) {
       setPanel("");
@@ -343,9 +355,13 @@ export function TimelineStop({
   return (
     <li
       ref={row}
+      onPointerEnter={(event) => {
+        if (event.pointerType === "mouse") hoverStop(id);
+      }}
+      onPointerLeave={() => hoverStop(undefined)}
       className={`timeline-row timeline-stop${idea ? " timeline-stop--idea" : ""}${
         selected ? " is-selected" : ""
-      }${edits.changed.has(id) ? " is-changed" : ""}`}
+      }${linked ? " is-hovered" : ""}${edits.changed.has(id) ? " is-changed" : ""}`}
       {...(locked ? {} : drag)}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || event.defaultPrevented || !selected) return;

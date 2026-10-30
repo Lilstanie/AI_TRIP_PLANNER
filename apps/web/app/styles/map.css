@@ -87,6 +87,10 @@
   background: var(--accent-bg);
 }
 
+.trip-map-marker.is-hovered {
+  --marker-size: 2.125rem;
+}
+
 .trip-map-marker.is-muted .trip-map-marker__badge {
   background: var(--text-dim);
   box-shadow: var(--shadow-sm);
@@ -95,6 +99,16 @@
 .trip-map-marker.is-crowded .trip-map-marker__label,
 .google-map[data-labels="selected"] .trip-map-marker:not(.is-selected) .trip-map-marker__label {
   display: none;
+}
+.trip-map-marker.is-hovered .trip-map-marker__badge {
+  background: var(--accent);
+  outline: 2px solid var(--text);
+  outline-offset: 1px;
+}
+.trip-map-marker.is-hovered .trip-map-marker__label {
+  display: inline-flex;
+  max-width: 26ch;
+  border-color: var(--accent);
 }
 .trip-map-user-marker {
   display: grid;

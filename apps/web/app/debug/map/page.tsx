@@ -19,7 +19,7 @@ const place = (
     primaryType,
   }) as GooglePlace;
 
-const STOPS: MapStop[] = [
+const PLACES: Omit<MapStop, "activityId">[] = [
   {
     place: place("qvb", "Queen Victoria Building", -33.8718, 151.2067, "shopping_mall"),
     number: 1,
@@ -49,6 +49,7 @@ const STOPS: MapStop[] = [
   { place: place("bondi", "Bondi Beach", -33.8908, 151.2743, "beach"), number: 7, day: 3 },
   { place: place("coogee", "Coogee Beach", -33.9205, 151.2577, "beach"), number: 8, day: 3 },
 ];
+const STOPS: MapStop[] = PLACES.map((stop) => ({ ...stop, activityId: stop.place.id }));
 
 export default function MapDebugPage() {
   if (process.env.NODE_ENV === "production") notFound();
