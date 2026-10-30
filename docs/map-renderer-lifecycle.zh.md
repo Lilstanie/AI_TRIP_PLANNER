@@ -16,24 +16,4 @@ OSM 禁用卫星控件。手机 Trip 首页地图固定为 340px 高，让渲染
 
 ## 浏览器夹具
 
-从仓库根目录执行，并清空真实凭据：
-
-```bash
-env -u BASE_URL LABEL=map-lifecycle-check \
-  DEEPSEEK_API_KEY= MINIMAX_API_KEY= MAPS_API_KEY= \
-  NEXT_PUBLIC_GOOGLE_MAPS_API_KEY=fixture-only NEXT_PUBLIC_GOOGLE_MAPS_MAP_ID= \
-  SERPAPI_KEY= WEATHER_API_KEY= NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY= CLERK_SECRET_KEY= \
-  DATABASE_URL= KV_REST_API_URL= KV_REST_API_TOKEN= \
-  UPSTASH_REDIS_REST_URL= UPSTASH_REDIS_REST_TOKEN= \
-  DATA_MODE=mock USE_MOCK_TOOLS=true E2E_SCRIPT_TIMEOUT_MS=420000 \
-  pnpm --filter @trip/web e2e map-renderer-lifecycle --prod
-```
-
-现有 raw runner 管理隔离的生产构建和服务。Google SDK 使用本地浏览器夹具；MapLibre 是真实
-渲染器，使用空的本地样式。浏览器外部 HTTP 请求均被拦截。合成浏览器密钥不是凭据。
-场景涵盖 SDK、构造和授权失败、严格模式重试、Google 成功渲染、卸载后的延迟加载、
-键盘打开标记详情，以及中英文界面下的 520/521 断点切换。
-
-截图和断言保存在 `output/playwright/map-renderer-lifecycle/<LABEL>/`；runner 结果保存在
-`output/e2e/runner/`。换标签重跑时保留红色证据。这些夹具不验证真实 Google 服务、
-生产登录、物理设备或路线时长准确性。
+`trip-home-action-panels` 使用本地 Google SDK 夹具（`google-renderer-fixture.mjs`），验证展开和收起时渲染器保持不变。SDK、构造和授权失败没有专门的浏览器脚本。该夹具不验证真实 Google 服务、生产登录、物理设备或路线时长准确性。

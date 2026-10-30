@@ -128,8 +128,7 @@ The Trip home action area and its acceptance criteria are detailed in
     workspace and its adjustable chat/map split on desktop. At 820 px and below the page stacks; at 520 px and below the action panel is
     fullscreen. A trip whose places cannot be found keeps the map's own notice instead of markers. The
     [Trip home actions Agent Note](../.agents/notes/implemented/feature/2026-10-29-trip-home-actions.md)
-    records the behavior; `trip-home-action-panels`, `trip-home-send`, `trip-home-calendar`,
-    `trip-home-ideas-bookings` and `trip-home-shared-editor` are its E2Es.
+    records the behavior; `trip-home-action-panels`, `trip-home-send` and `trip-home-calendar` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for

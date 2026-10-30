@@ -21,7 +21,8 @@ contract-impact: none
   title menu no longer covers the Trip name, round back button, and the Chats panel stays open while
   its rename or delete dialog is used.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
-  `trip-home-action-rail` and `trip-home-preferences`. The null dismissal record and quota failures
+  `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
+  `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures
   moved into the CI-registered `trip-home-send`.
 
 ## Why

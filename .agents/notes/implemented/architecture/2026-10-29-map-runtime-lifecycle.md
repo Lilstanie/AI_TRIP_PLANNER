@@ -51,4 +51,3 @@ live Google availability, production login and physical-device rendering remain 
 
 - Issues #789 / TP-149 and parent spec #788; continuation PR #782.
 - [Map renderer lifecycle](../../../../docs/map-renderer-lifecycle.md).
-- [Failure inventory](../../../../apps/web/tests/e2e/map-renderer-lifecycle.failures.md).

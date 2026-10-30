@@ -36,4 +36,3 @@ cancelled edit leaves the stored Trip unchanged.
 - After Save, the chips can show a draft value that the current Plan was not built from until the
   traveller replans. Save and Replan are visibly separate controls.
 - Merging changed fields prevents an open editor from overwriting another fact saved meanwhile.
-- `trip-fact-editors.e2e.mjs` covers English desktop and Chinese phone journeys.
