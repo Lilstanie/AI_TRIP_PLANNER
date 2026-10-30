@@ -781,11 +781,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {estimateChange !== undefined && (
               <div className="estimate-notice" role="status">
                 <span>
-                  {Math.abs(estimateChange) < 0.005
-                    ? t("Estimate unchanged from the previous plan.")
-                    : t("Estimate changed by {change} from the previous plan.", {
-                        change: delta(estimateChange),
-                      })}
+                  {t("Estimate changed by {change} from the previous plan.", {
+                    change: delta(estimateChange),
+                  })}
                 </span>
                 <button type="button" onClick={session.dismissEstimate}>
                   {t("Dismiss")}

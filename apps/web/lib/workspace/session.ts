@@ -196,6 +196,11 @@ function sameDates(previous: TripPlan | undefined, next: TripPlan): boolean {
   );
 }
 
+function estimateMoved(previous: TripPlan | undefined, next: TripPlan) {
+  const change = previous ? next.estTotal - previous.estTotal : 0;
+  return Math.abs(change) < 0.005 ? undefined : change;
+}
+
 export function session(state: SessionState, event: SessionEvent): SessionState {
   switch (event.kind) {
     case "started":
@@ -288,7 +293,7 @@ export function session(state: SessionState, event: SessionEvent): SessionState 
         ),
         previousTotal: state.plan?.estTotal,
 
-        estimateChange: state.plan ? event.plan.estTotal - state.plan.estTotal : undefined,
+        estimateChange: estimateMoved(state.plan, event.plan),
 
         replacedChange: state.timelineChanges && state.plan ? true : undefined,
         timelineChanges: undefined,

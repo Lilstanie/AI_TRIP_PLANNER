@@ -146,7 +146,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - Workspace 挂载期间，生成任务属于发起它的 Chat。打开 Trips、Calendar、设置、另一个 Chat、另一个 Trip 或 New chat 都会继续请求。返回后恢复已收到的进度和部分内容；后台已完成时显示完整回复。打开其他 Chat 前先落盘自动保存，只恢复该 Chat 的状态，回复不会串到其他 Chat。
   - 同一 Trip 同时只允许一个 Chat 生成 Plan。被拒绝的发送保留草稿，不新增用户消息或请求；不同 Trip 可独立生成。Stop 中止所属 Chat 的请求并显示已停止状态；失败后可 Retry，保留已有用户消息并只启动一个新请求。删除所属 Chat 或 Trip，或离开 Workspace 时中止任务。刷新或关闭浏览器后不提供持久后台执行。
   - 生成期间仍可手动编辑 Plan。迟到 Plan 对应的起始 Plan 与当前 Plan 的可编辑字段或编辑版本不同时，保留回复并显示本地化冲突提示，不覆盖较新的手动修改。见[Chat 任务归属决策](../.agents/notes/implemented/architecture/2026-10-29-chat-owned-generation.md)。`pnpm --filter @trip/web e2e run chat-generation` 通过有限状态等待和受控流验证该契约，保留逐路径归属、请求历史和截图。
-  - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价。聊天重新规划会把 `estimateChange` 设为相对被替换方案的带符号变化，时间线编辑则清除它。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
+  - 从行程列表或时间线应用修改即调用 `applyEdit(next)`，它记录上一次总价。聊天重新规划使估算总价变化时，会把 `estimateChange` 设为相对被替换方案的带符号变化；总价不变的回合不显示提示，时间线编辑则清除它。视图从 `useWorkspace` 获得这些操作，而不是状态 setter（[架构](architecture.zh.md#workspace-state)）。
 - **存储。**
   - 所有内容仅保存在浏览器中，侧边栏显示经过防抖的自动保存状态。自动保存已经落盘的同一个目录对象，不会再由目录 effect 重复序列化和写入；布局、历史记录和账号同步变化仍会落盘，失败的写入仍可重试。
   - 目录（`trip-workspace-catalog-v3`）分别保存对话和行程，关联稳定，并可带对话 `draft`。目录写入版本 5，也可读取版本 4 并规范化为版本 5；版本 3（AUD）快照仍可读取，草稿预算与方案一致时恢复原始预算来源。AUD 之前的版本 1、2 仍被拒绝；存储键不变。
