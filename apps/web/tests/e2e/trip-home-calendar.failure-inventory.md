@@ -33,3 +33,7 @@ harness.
 
 The repeatable artifact is `trip-home-calendar.e2e.mjs`, which writes screenshots and `summary.json`
 under `output/playwright/trip-home-calendar/`.
+
+- Week events ignore their clock time, overlapping events cover each other, or the hour grid opens at
+  midnight and hides the morning.
+- All-day flights and stays scroll away with the hour grid.

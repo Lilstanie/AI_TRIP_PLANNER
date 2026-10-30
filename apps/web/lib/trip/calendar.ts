@@ -151,6 +151,24 @@ function interval(entry: CalendarEntry) {
   };
 }
 
+export function timedLayout(day: CalendarDay) {
+  const items = day.entries
+    .flatMap((entry) => {
+      const range = entry.allDay ? undefined : interval(entry);
+      if (!range) return [];
+      const end = entry.endTime ? Math.max(range.end, range.start + 30) : range.start + 60;
+      return [{ entry, start: range.start, end: Math.min(end, 1440), lane: 0 }];
+    })
+    .sort((a, b) => a.start - b.start);
+  const laneEnds: number[] = [];
+  for (const item of items) {
+    const free = laneEnds.findIndex((end) => end <= item.start);
+    item.lane = free < 0 ? laneEnds.length : free;
+    laneEnds[item.lane] = item.end;
+  }
+  return { items, lanes: Math.max(1, laneEnds.length) };
+}
+
 export function calendarDays(plan: TripPlan, locale: AppLocale = "en"): CalendarDay[] {
   const scheduled = itineraryActivities(plan).filter((item) => item.day !== undefined);
   return Array.from({ length: dayCount(plan) }, (_, index) => {

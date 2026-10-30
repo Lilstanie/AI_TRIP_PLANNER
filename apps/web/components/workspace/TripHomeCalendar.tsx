@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type CSSProperties } from "react";
 import type { TripPlan } from "@trip/shared";
 import {
   DAY_MS,
@@ -7,6 +7,7 @@ import {
   dateTime,
   monthStart,
   monthStarts,
+  timedLayout,
   tripDay,
   weekStart,
   weekStarts,
@@ -98,19 +99,63 @@ function CalendarEvent({
   );
 }
 
-function CalendarEntries({
+function TimelineDay({
   day,
   locale,
   selectedActivity,
   onSelectActivity,
 }: {
-  day: CalendarDay;
+  day?: CalendarDay;
   locale: AppLocale;
   selectedActivity?: string;
   onSelectActivity(activityId: string, day: number): void;
 }) {
+  const layout = day ? timedLayout(day) : undefined;
+  return (
+    <section
+      className="trip-home-calendar__timeline-day"
+      aria-label={translate(locale, "Timed activities")}
+    >
+      {layout?.items.map(({ entry, start, end, lane }) => (
+        <div
+          className="trip-home-calendar__slot"
+          key={entry.key}
+          style={
+            {
+              "--start": start,
+              "--length": end - start,
+              "--lane": lane,
+              "--lanes": layout.lanes,
+            } as CSSProperties
+          }
+        >
+          <CalendarEvent
+            entry={entry}
+            locale={locale}
+            selected={!!entry.activity?.id && entry.activity.id === selectedActivity}
+            onSelect={onSelectActivity}
+          />
+        </div>
+      ))}
+    </section>
+  );
+}
+
+function CalendarEntries({
+  day,
+  locale,
+  allDayOnly = false,
+  selectedActivity,
+  onSelectActivity,
+}: {
+  day: CalendarDay;
+  locale: AppLocale;
+  allDayOnly?: boolean;
+  selectedActivity?: string;
+  onSelectActivity(activityId: string, day: number): void;
+}) {
   const allDay = day.entries.filter((entry) => entry.allDay);
-  const timed = day.entries.filter((entry) => !entry.allDay);
+  const timed = allDayOnly ? [] : day.entries.filter((entry) => !entry.allDay);
   return (
     <div className="trip-home-calendar__entries">
       {allDay.length > 0 && (
@@ -177,6 +222,16 @@ export function TripHomeCalendar({
   const [view, setView] = useState<CalendarView>("week");
   const [visibleWeek, setVisibleWeek] = useState(selectedWeek);
   const [visibleMonth, setVisibleMonth] = useState(selectedMonth);
+  const timeline = useRef<HTMLDivElement>(null);
+  const openingMinute = useMemo(
+    () => Math.min(480, ...days.flatMap((day) => timedLayout(day).items.map((item) => item.start))),
+    [days],
+  );
+
+  useLayoutEffect(() => {
+    const node = timeline.current;
+    if (node) node.scrollTop = (openingMinute / 1440) * node.scrollHeight;
+  }, [openingMinute, view, visibleWeek]);
 
   useEffect(() => {
     setVisibleWeek(selectedWeek);
@@ -288,40 +343,62 @@ export function TripHomeCalendar({
       </div>
 
       {view === "week" ? (
-        <div className="trip-home-calendar__week" role="list">
-          {weekDays.map((time) => {
-            const day = tripDay(plan, time);
-            const entry = day === undefined ? undefined : days[day - 1];
-            return (
-              <section className="trip-home-calendar__week-day" role="listitem" key={time}>
-                <span className="trip-home-calendar__weekday">
-                  {weekdays.format(new Date(time))}
-                </span>
-                {entry ? (
-                  <>
-                    <button
-                      type="button"
-                      className="trip-home-calendar__date"
-                      data-day={entry.day}
-                      aria-pressed={selected === entry.day}
-                      aria-label={fullDate.format(new Date(time))}
-                      onClick={() => onSelectDay(entry.day)}
-                    >
-                      {new Date(time).getUTCDate()}
-                    </button>
-                    <CalendarEntries
-                      day={entry}
-                      locale={locale}
-                      selectedActivity={selectedActivity}
-                      onSelectActivity={onSelectActivity}
-                    />
-                  </>
-                ) : (
-                  <span className="trip-home-calendar__outside" aria-hidden="true" />
-                )}
-              </section>
-            );
-          })}
+        <div className="trip-home-calendar__week-scroll">
+          <div className="trip-home-calendar__week" role="list">
+            {weekDays.map((time) => {
+              const day = tripDay(plan, time);
+              const entry = day === undefined ? undefined : days[day - 1];
+              return (
+                <section className="trip-home-calendar__week-day" role="listitem" key={time}>
+                  <span className="trip-home-calendar__weekday">
+                    {weekdays.format(new Date(time))}
+                  </span>
+                  {entry ? (
+                    <>
+                      <button
+                        type="button"
+                        className="trip-home-calendar__date"
+                        data-day={entry.day}
+                        aria-pressed={selected === entry.day}
+                        aria-label={fullDate.format(new Date(time))}
+                        onClick={() => onSelectDay(entry.day)}
+                      >
+                        {new Date(time).getUTCDate()}
+                      </button>
+                      <CalendarEntries
+                        day={entry}
+                        locale={locale}
+                        allDayOnly
+                        selectedActivity={selectedActivity}
+                        onSelectActivity={onSelectActivity}
+                      />
+                    </>
+                  ) : (
+                    <span className="trip-home-calendar__outside" aria-hidden="true" />
+                  )}
+                </section>
+              );
+            })}
+          </div>
+          <div className="trip-home-calendar__timeline" ref={timeline}>
+            <div className="trip-home-calendar__hours" aria-hidden="true">
+              {Array.from({ length: 24 }, (_, hour) => (
+                <span key={hour}>{`${String(hour).padStart(2, "0")}:00`}</span>
+              ))}
+            </div>
+            {weekDays.map((time) => {
+              const day = tripDay(plan, time);
+              return (
+                <TimelineDay
+                  key={time}
+                  day={day === undefined ? undefined : days[day - 1]}
+                  locale={locale}
+                  selectedActivity={selectedActivity}
+                  onSelectActivity={onSelectActivity}
+                />
+              );
+            })}
+          </div>
         </div>
       ) : (
         <section className="trip-home-calendar__month" aria-label={monthLabel.format(visibleMonth)}>

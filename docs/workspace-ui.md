@@ -112,7 +112,7 @@ The Trip home action area and its acceptance criteria are detailed in
     in both entries, and booking-only days are not free days. Background place saves and route checks
     run only while the active Chat owns that Trip, so viewing another Trip home cannot rewrite the
     open Chat. Itinerary and Calendar select a day and focus it on the map, and the home map uses the
-    same selected activity and routes. Calendar opens in Week view with a Week/Month switch. Both
+    same selected activity and routes. Calendar opens in Week view, an hour grid scrolled to the morning with all-day items above it, with a Week/Month switch. Both
     views retain the selected Trip day, and Previous and Next stay within the Trip, so the first and
     last periods disable the outward control and no off-Trip date is shown as a Trip date. Clicking an
     activity opens it in the shared Itinerary editor. Timed activities show their actual ranges and

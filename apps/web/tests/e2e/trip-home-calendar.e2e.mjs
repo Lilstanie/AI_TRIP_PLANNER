@@ -369,6 +369,23 @@ try {
     (await calendarDrawer.locator(".trip-home-calendar__week-day").count()) === 7,
     "the week surface renders seven day columns",
   );
+  const hourGrid = await calendarDrawer
+    .locator(".trip-home-calendar__timeline")
+    .evaluate((node) => {
+      const hour = node.scrollHeight / 24;
+      const slots = [...node.querySelectorAll(".trip-home-calendar__slot")];
+      return {
+        opened: node.scrollTop > 0 && node.scrollTop <= 8 * hour,
+        placed:
+          slots.length > 0 &&
+          slots.every((slot) => slot.getBoundingClientRect().height >= hour / 2),
+      };
+    });
+  check(
+    hourGrid.opened && hourGrid.placed,
+    "the week opens on an hour grid near the morning",
+    hourGrid,
+  );
   check(
     (await calendarDrawer.getByRole("button", { name: /^27 December 2030/ }).count()) === 1 &&
       (await calendarDrawer.getByRole("button", { name: /^26 December 2030/ }).count()) === 0,
