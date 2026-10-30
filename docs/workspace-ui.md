@@ -612,8 +612,8 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     `pnpm --filter @trip/web e2e run chat-generation` covers this contract with finite state waits
     and controlled streams, retaining per-path ownership, request history and screenshots.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
-    previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
-    and a timeline edit clears it. Views get these as actions from
+    previous total. A chat replan that moves the estimated total sets `estimateChange` to the signed change from the
+    plan it replaced; a turn that leaves the total as it was shows no notice, and a timeline edit clears it. Views get these as actions from
     `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.

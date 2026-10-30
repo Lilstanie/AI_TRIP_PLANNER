@@ -61,8 +61,12 @@ try {
     await page.goto(BASE, { waitUntil: "networkidle" });
     const planned = await send(page, "Lisbon, 2027-11-02 to 2027-11-06, 2 people, budget $3000");
     const question = await send(page, journey.question);
+    question.notice = await page.locator(".estimate-notice").count();
     await page.screenshot({ path: resolve(out, `${journey.label}-question.png`) });
     const resized = await send(page, journey.resize);
+    resized.notice = (await page.locator(".estimate-notice").count())
+      ? (await page.locator(".estimate-notice span").innerText()).trim()
+      : "";
     const facts = (
       await page
         .locator(".fact-chips")
@@ -87,6 +91,16 @@ try {
       !journey.noChange.test(resized.reply) && resized.reply !== planned.reply,
       `${journey.label}: a traveller change still replans`,
       resized.reply,
+    );
+    check(
+      question.notice === 0,
+      `${journey.label}: a turn that changed nothing shows no estimate notice`,
+      question.notice,
+    );
+    check(
+      /\d/.test(resized.notice),
+      `${journey.label}: a replan that moved the total says by how much`,
+      resized.notice,
     );
     check(pageErrors.length === 0, `${journey.label}: no page errors`, pageErrors);
     await context.close();
