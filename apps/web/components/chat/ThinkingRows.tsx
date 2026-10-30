@@ -398,17 +398,17 @@ export function RoundHeading({
 const RUNNING_LABEL = "Deep diving";
 
 export function RunningLine({ elapsedMs }: { elapsedMs: number }) {
+  const { t } = useLocale();
+  const label = t(RUNNING_LABEL);
   const showClock = elapsedMs >= CLOCK_DELAY_MS;
   return (
     <p className="thinking-running" role="status" aria-live="polite">
       <span
         className="thinking-running__label"
         data-text-shimmer
-        style={
-          { "--thinking-text-shimmer-spread": `${RUNNING_LABEL.length * 8}px` } as CSSProperties
-        }
+        style={{ "--thinking-text-shimmer-spread": `${label.length * 8}px` } as CSSProperties}
       >
-        {RUNNING_LABEL}
+        {label}
       </span>
       {showClock && (
         <span className="thinking-running__clock" aria-hidden="true">

@@ -450,6 +450,12 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
       { count: waiting },
     );
   }
+  for (let index = activity.length - 1; index >= 0; index -= 1) {
+    const event = activity[index]!;
+    if (event.type === "coordinator" && event.summary) return event.summary;
+    if (event.type === "agent_completed" && event.summary)
+      return `${translate(locale, labels[event.agent])} · ${event.summary}`;
+  }
   return translate(locale, "Preparing your request.");
 }
 
