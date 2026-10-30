@@ -186,11 +186,40 @@ describe("without a provider key", () => {
   const offline = (request: Parameters<typeof runTripChat>[0], mem: MemoryStore) =>
     runTripChat(request, { specialists: [itinerary], tools, mem });
 
-  it("reports missing fields as a plain list", async () => {
+  it("asks for the next missing field and names the place it already knows", async () => {
     const { mem } = memoryStore();
     await expect(
       offline({ tripId: "blank", message: "I want to visit Lisbon" }, mem),
-    ).rejects.toThrow("include the start and end dates, number of travellers, total budget");
+    ).rejects.toThrow(
+      "When are you travelling to Lisbon? Add how many are travelling and a budget too, and I'll start planning.",
+    );
+  });
+
+  it("asks a Chinese traveller in Chinese and never takes 旅游 as the destination", async () => {
+    const { mem } = memoryStore();
+    const failure = await offline({ tripId: "blank", message: "我想去旅游" }, mem).catch(
+      (error: unknown) => error,
+    );
+    expect(failure).toBeInstanceOf(IncompleteBriefError);
+    const incomplete = failure as IncompleteBriefError;
+    expect(incomplete.known.destination).toBeUndefined();
+    expect(incomplete.message).toBe("你想去哪里？再告诉我出行日期、同行人数、预算，我就开始规划。");
+  });
+
+  it("follows the message language over the interface language", async () => {
+    const { mem } = memoryStore();
+    await expect(
+      offline({ tripId: "blank", message: "I want a holiday", interfaceLanguage: "zh" }, mem),
+    ).rejects.toThrow(
+      "Where would you like to go? Add your dates, how many are travelling and a budget too, and I'll start planning.",
+    );
+  });
+
+  it("asks only the last missing field without a trailing clause", async () => {
+    const { mem } = memoryStore();
+    await expect(
+      offline({ tripId: "blank", message: "Lisbon, 2027-11-02 to 2027-11-06, 3 people" }, mem),
+    ).rejects.toThrow(/^What's your total budget\?$/);
   });
 
   it("plans from what the patterns can read", async () => {

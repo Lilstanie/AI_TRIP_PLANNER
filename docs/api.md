@@ -191,9 +191,11 @@ Optional `mode` values:
   brief or uses `"start"`.
 - `"plan"`: `brief` is required and is planned as submitted, without extraction.
 - `"start"`: a blank conversation. `brief` is omitted and the destination, dates, traveller count and
-  total budget must all be stated in `message`. Missing fields are reported in an `error` frame
-  (for example “To start planning, include the start and end dates …”) and are never borrowed from a
-  demo or a previous trip.
+  total budget must all be stated in `message`. Missing fields are reported in an `error` frame as one
+  question for the first missing field, in the message's language, followed by the rest (for example
+  “When are you travelling to Lisbon? Add how many are travelling and a budget too …”). They are never
+  borrowed from a demo or a previous trip, and a generic word such as “holiday” or “旅游” is never read
+  as the destination.
 
 The response is `application/x-ndjson`, one JSON object per line:
 
