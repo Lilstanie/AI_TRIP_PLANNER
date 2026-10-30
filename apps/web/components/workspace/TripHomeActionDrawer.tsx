@@ -1,5 +1,13 @@
 "use client";
-import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import {
+  useEffect,
+  useId,
+  useRef,
+  useState,
+  type KeyboardEvent,
+  type ReactNode,
+  type RefObject,
+} from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { Drawer } from "../ui/Drawer";
 import { useLocale } from "../account/LocaleProvider";
