@@ -52,29 +52,37 @@ try {
     page.locator(".chats-panel.is-open").getByRole("button", { name: `Actions for ${name}` });
   check(await tripMenu(original).count(), "trip row has an Actions menu");
 
-  page.once("dialog", (dialog) => dialog.dismiss());
+  const renameDialog = page.getByRole("dialog", { name: "Rename trip" });
   await tripMenu(original).click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
-  page.once("dialog", (dialog) => dialog.accept("   "));
+  await renameDialog.getByRole("button", { name: "Cancel", exact: true }).click();
   await tripMenu(original).click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
+  await renameDialog.getByRole("textbox").fill("   ");
+  check(
+    await renameDialog.getByRole("button", { name: "Save", exact: true }).isDisabled(),
+    "a blank name cannot be saved",
+  );
+  await page.keyboard.press("Escape");
+  await renameDialog.waitFor({ state: "detached" });
   check(
     (await tripRow.locator(".history-item__title").textContent()).trim() === original,
     "cancelling or a blank name keeps the name",
   );
 
-  page.once("dialog", (dialog) => dialog.accept(NAME));
   await tripMenu(original).click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
+  await renameDialog.getByRole("textbox").fill(NAME);
+  await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
   await settle(page, 300);
   check(
     (await tripRow.locator(".history-item__title").textContent()).trim() === NAME,
     "Trips list shows the new name",
   );
   check(
-    (await page.locator(".topbar-title").first().textContent()).trim() === NAME,
+    (await page.locator(".chat-header__trip-name").textContent()).trim() === NAME,
     "top title shows the new name",
-    await page.locator(".topbar-title").first().textContent(),
+    await page.locator(".chat-header__trip-name").textContent(),
   );
 
   const budgetBefore = await page.evaluate(() => {
@@ -185,7 +193,7 @@ try {
     .click();
   await settle(page, 800);
   check(
-    (await page.locator(".topbar-title").first().textContent()).trim() === NAME &&
+    (await page.locator(".chat-header__trip-name").textContent()).trim() === NAME &&
       (await page.locator(".msg-item--agent").count()) > 0,
     "after a reload, the restored trip opens with its chat",
   );

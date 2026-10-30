@@ -7,6 +7,10 @@ Superseded in part:
 [Trip home Calendar reuses the itinerary projection](2026-10-29-trip-home-calendar.md) replaces the
 read-only Calendar with Week/Month editing and all-day regions.
 
+The embedded-Chat navigation below is superseded by
+[Trip home opens the normal Chat workspace](2026-10-30-trip-home-chat-navigation.md).
+The remaining Trip actions and first-send ownership decisions still apply.
+
 ## Problem
 
 The current Trip home already groups the Trip's Chats and shows its map, but its Itinerary, Calendar
@@ -25,7 +29,8 @@ entry points, Plan ownership or Chat links.
   Chats linked by `tripId`. Do not choose one Chat merely to open the Trip.
 - On desktop, put Itinerary, Ideas, Bookings, Trip preferences and Calendar above the map in a
   right rail. Put the title, facts, contextual suggestion, Chats and composer in a centred main
-  column.
+  column. Cards keep their title and bare numeric count on one row, with the count aligned
+  right. The bottom composer wrapper supplies spacing without another painted surface.
 - Open every action in a right-side drawer without leaving Trip home. The desktop panel starts
   narrow over the rail. Expand offsets the drawer beside the Trip map that stays hosted under Trip
   home, and Collapse restores the narrow overlay. The map host and canvas keep one React parent and

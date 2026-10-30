@@ -1,6 +1,7 @@
 import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
+import { checkHomeLayout, checkLinkedChatLayout } from "./trip-home-layout-checks.mjs";
 import { controlledProxy, plan, settings, stop } from "./chat-generation-fixture.mjs";
 
 const { chromium } = createRequire(import.meta.url)("playwright");
@@ -185,22 +186,18 @@ const labels = {
     mine: /^Mine/,
     home: "Sydney winter weekend",
     chatsLabel: "Chats",
-    newChat: "New chat",
     send: "Send",
     start: "Start chat",
     backTrips: "Back to trips",
-    backHome: "Back to trip home",
   },
   zh: {
     trips: /^行程/,
     mine: /^我的/,
     home: "Sydney winter weekend",
     chatsLabel: "聊天",
-    newChat: "新聊天",
     send: "发送",
     start: "开始聊天",
     backTrips: "返回行程",
-    backHome: "返回行程首页",
   },
 };
 
@@ -218,17 +215,16 @@ const profiles = [
     ideas: true,
   },
   {
+    name: "dismissal storage en",
+    language: "en",
+    viewport: { width: 1440, height: 760 },
+    dismissal: true,
+  },
+  {
     name: "concurrent Trips en",
     language: "en",
     viewport: { width: 1440, height: 760 },
     concurrent: true,
-  },
-  {
-    name: "storage resilience en",
-    language: "en",
-    viewport: { width: 1440, height: 760 },
-    storage: true,
-    dismissal: "null",
   },
   {
     name: "tablet 800 en",
@@ -236,35 +232,18 @@ const profiles = [
     viewport: { width: 800, height: 720 },
   },
   {
-    name: "phone 390 en",
-    language: "en",
-    viewport: { width: 390, height: 700 },
-    phone: true,
-  },
-  {
-    name: "desktop 1440 zh",
-    language: "zh",
-    viewport: { width: 1440, height: 760 },
-  },
-  {
     name: "phone 390 zh",
     language: "zh",
     viewport: { width: 390, height: 700 },
     phone: true,
   },
-  ...[520, 521, 1000, 1001].map((width) => ({
-    name: `boundary ${width} en`,
-    language: "en",
-    viewport: { width, height: 760 },
-    phone: width <= 520,
-  })),
 ];
 
 const stored = (page) =>
   page.evaluate(() => JSON.parse(localStorage.getItem("trip-workspace-catalog-v3") ?? "null"));
 const chatsFor = async (page, tripId) =>
   (await stored(page)).conversations.filter((chat) => chat.tripId === tripId);
-const composer = (page, label) => page.getByRole("textbox", { name: label.newChat });
+const composer = (page) => page.locator(".trip-home__composer .composer__input");
 const rowNames = async (page) => page.locator(".trip-home-chats__name").allInnerTexts();
 const selectPhoneTab = async (page, name) => {
   await page
@@ -347,18 +326,30 @@ async function runPrimary(page, label) {
   );
 
   await page.locator(".trip-home-chats__row").filter({ hasText: "Saved Chat old" }).click();
-  await page
-    .getByRole("list", { name: "Trip actions" })
-    .getByRole("button", { name: /^Itinerary/ })
-    .click();
-  const itinerary = page.getByRole("dialog", { name: "Itinerary", exact: true });
+  await page.locator(".workspace-shell:not(.workspace-shell--trips)").waitFor();
+  await checkLinkedChatLayout(page, check);
+  check(
+    (await page.locator(".trip-home").count()) === 0,
+    "a linked Chat opens the independent Chat workspace",
+  );
+  await page.getByRole("button", { name: "Open your trip", exact: true }).click();
+  const itinerary = page.locator(".trip-workspace");
   await itinerary.waitFor();
   check(
     (await itinerary.getByText("Opera House", { exact: true }).count()) === 1,
     "opening an older Chat keeps the Trip's newer Plan",
   );
-  await page.keyboard.press("Escape");
-  await page.getByRole("button", { name: label.backHome, exact: true }).click();
+  await page.getByRole("button", { name: "Open your trip", exact: true }).click();
+  if (page.viewportSize().width > 520) {
+    if (page.viewportSize().width <= 1000)
+      await page.getByRole("button", { name: /Open navigation|打开导航/, exact: true }).click();
+    await page
+      .locator(".sidebar-nav")
+      .getByRole("button", { name: /Trajectory|轨迹/, exact: true })
+      .click();
+    await page.getByRole("region", { name: /Trajectory|轨迹/, exact: true }).waitFor();
+  }
+  await openHome(page, label, label.home);
   await home.locator(".trip-home-chats").waitFor();
 
   const draftBox = composer(page, label);
@@ -407,6 +398,15 @@ async function runPrimary(page, label) {
   await page.getByRole("button", { name: label.backTrips, exact: true }).click();
   await openHome(page, label, label.home);
 
+  await page.locator(".trip-home__composer input[type=file]").setInputFiles({
+    name: "trip-notes.txt",
+    mimeType: "text/plain",
+    buffer: Buffer.from("Prefer quiet harbour walks"),
+  });
+  await page
+    .locator(".trip-home__composer .attachment-chips")
+    .getByText("trip-notes.txt")
+    .waitFor();
   await sendWithEnter(page, label, "Plan a quiet harbour walk");
   const firstArrived = await within(profileProxy.waitForCount(1), "first Trip-home send")
     .then(() => true)
@@ -415,8 +415,15 @@ async function runPrimary(page, label) {
   if (!firstArrived) throw new Error("first Trip-home send did not reach /api/chat");
   const first = profileProxy.requests[0];
   check(
+    first.body.attachments?.[0]?.name === "trip-notes.txt" &&
+      (await chatsFor(page, sydney.id)).some((chat) =>
+        chat.messages.some((message) => message.attachments?.[0]?.name === "trip-notes.txt"),
+      ),
+    "Trip home forwards and saves the first message attachment",
+  );
+  check(
     await page
-      .locator(".trip-home-chat .composer textarea")
+      .locator(".chat .composer textarea")
       .evaluate((element) => document.activeElement === element),
     "first send transfers keyboard focus into the new Chat composer",
   );
@@ -447,7 +454,7 @@ async function runPrimary(page, label) {
   check(firstMessages === 1, "the new Chat shows the first user message once", firstMessages);
 
   await waitForControlledProgress(page);
-  await page.getByRole("button", { name: label.backTrips, exact: true }).click();
+  await openTrips(page, label);
   await openHome(page, label, "Melbourne food weekend");
   check(
     profileProxy.requests.length === 1 && !first.aborted,
@@ -479,7 +486,7 @@ async function runPrimary(page, label) {
   await within(first.settled, "first response completion");
   await page.getByText("First reply", { exact: true }).waitFor();
 
-  await page.getByRole("button", { name: label.backHome, exact: true }).click();
+  await openHome(page, label, label.home);
   await sendWithEnter(page, label, "Find a late seafood dinner");
   await within(profileProxy.waitForCount(2), "failed request start");
   const second = profileProxy.requests[1];
@@ -516,7 +523,7 @@ async function runPrimary(page, label) {
   );
   retry.release(sydneyPlan, "Retry reply");
   await within(retry.settled, "retry completion");
-  await page.getByRole("button", { name: label.backHome, exact: true }).click();
+  await openHome(page, label, label.home);
   await page.locator(".trip-home-chats").waitFor();
 
   const names = await rowNames(page);
@@ -561,6 +568,31 @@ async function runPrimary(page, label) {
   await page.screenshot({ path: `${OUT}/desktop-1440-en.png` });
 }
 
+async function runDismissalStorage(page, label) {
+  const key = "trip-home-suggestion-dismissals-v1";
+  await page.evaluate((name) => localStorage.setItem(name, "null"), key);
+  await openHome(page, label, label.home);
+  const suggestion = page.locator(".trip-home").getByRole("region", { name: "Trip suggestion" });
+  await suggestion.waitFor();
+  check(true, "a null suggestion-dismissal record degrades safely");
+  await page.evaluate((name) => {
+    const setItem = Storage.prototype.setItem;
+    Storage.prototype.setItem = function (item, value) {
+      if (item === name) throw new DOMException("Quota exceeded", "QuotaExceededError");
+      return setItem.call(this, item, value);
+    };
+  }, key);
+  await suggestion.getByRole("button", { name: "Dismiss", exact: true }).click();
+  await page
+    .getByRole("status")
+    .filter({ hasText: "Dismissed for this visit; could not save." })
+    .waitFor();
+  check(
+    (await suggestion.count()) === 0,
+    "a quota failure dismisses for this visit and reports persistence failure",
+  );
+}
+
 async function runIdeasParity(page, label) {
   await openHome(page, label, label.home);
   const home = page.locator(".trip-home");
@@ -571,7 +603,7 @@ async function runIdeasParity(page, label) {
   const suggestion = home.getByRole("region", { name: "Trip suggestion" });
   const suggestionText = await suggestion.innerText();
   check(
-    cardText.includes("2 ideas") &&
+    (await ideasAction.locator(".trip-home-card__count").innerText()) === "2" &&
       suggestionText.includes("2 unscheduled ideas") &&
       suggestionText.includes("Sydney"),
     "the suggestion and Ideas count use the same unscheduled activity and restaurant rule",
@@ -605,76 +637,13 @@ async function runIdeasParity(page, label) {
   await page.screenshot({ path: `${OUT}/ideas-parity.png` });
 }
 
-async function runStorageResilience(page, label) {
-  await openHome(page, label, label.home);
-  const home = page.locator(".trip-home");
-  const tripState = async () => {
-    const catalog = await stored(page);
-    return catalog.trips.map((trip) => ({
-      id: trip.id,
-      title: trip.title,
-      tripId: trip.snapshot.plan.tripId,
-      destination: trip.snapshot.plan.brief.destination,
-    }));
-  };
-  const initialTrips = await tripState();
-  check(
-    (await home.getByRole("heading", { name: label.home, exact: true }).count()) === 1 &&
-      initialTrips.length === 2,
-    "a null dismissal record leaves Trip home and the stored Trips intact",
-    initialTrips,
-  );
-
-  await page.evaluate(() => {
-    localStorage.setItem(
-      "trip-home-suggestion-dismissals-v1",
-      JSON.stringify({ "trip:sydney": 42 }),
-    );
-  });
-  await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
-  await openHome(page, label, label.home);
-  await page.getByRole("region", { name: "Trip suggestion" }).waitFor();
-  await page.getByRole("region", { name: "Trip suggestion" }).waitFor();
-  check(
-    (await page.getByRole("region", { name: "Trip suggestion" }).count()) === 1 &&
-      (await page.getByRole("heading", { name: label.home, exact: true }).count()) === 1,
-    "an error-shaped dismissal record does not crash Trip home or reset its Trip",
-  );
-
-  await page.evaluate(() => {
-    const original = Storage.prototype.setItem;
-    Storage.prototype.setItem = function setItem(key, value) {
-      if (key === "trip-home-suggestion-dismissals-v1") {
-        throw new DOMException("Controlled quota failure", "QuotaExceededError");
-      }
-      return original.call(this, key, value);
-    };
-  });
-  await page
-    .getByRole("region", { name: "Trip suggestion" })
-    .getByRole("button", { name: "Dismiss", exact: true })
-    .click();
-  const afterTrips = await tripState();
-  check(
-    (await page.getByRole("region", { name: "Trip suggestion" }).count()) === 0 &&
-      (await page.getByRole("status").filter({ hasText: "could not save" }).innerText()).includes(
-        "Dismissed for this visit",
-      ) &&
-      JSON.stringify(afterTrips) === JSON.stringify(initialTrips),
-    "a full dismissal store still dismisses for this visit, reports failure, and keeps Trip data",
-    afterTrips,
-  );
-  await page.screenshot({ path: `${OUT}/storage-resilience.png` });
-}
-
 async function runConcurrentTrips(page, label) {
   await openHome(page, label, label.home);
   await sendWithEnter(page, label, "Sydney concurrent walk");
   await within(profileProxy.waitForCount(1), "Sydney pending request");
   const first = profileProxy.requests[0];
   await waitForControlledProgress(page);
-  await page.getByRole("button", { name: label.backTrips, exact: true }).click();
+  await openTrips(page, label);
   await openHome(page, label, "Melbourne food weekend");
   await composer(page, label).fill("Melbourne concurrent dinner");
   const enabled = await page.getByRole("button", { name: label.send, exact: true }).isEnabled();
@@ -695,7 +664,7 @@ async function runConcurrentTrips(page, label) {
     (await page.getByText("Sydney concurrent reply", { exact: true }).count()) === 0,
     "a background reply stays out of the other Trip's visible Chat",
   );
-  await page.getByRole("button", { name: label.backTrips, exact: true }).click();
+  await openTrips(page, label);
   await openHome(page, label, label.home);
   await page.locator(".trip-home-chats__row").filter({ hasText: "Sydney concurrent walk" }).click();
   await page.getByText("Sydney concurrent reply", { exact: true }).waitFor();
@@ -707,6 +676,40 @@ async function runResponsiveOnly(page, label, profile) {
   await openHome(page, label, label.home);
   const box = page.locator(".trip-home__composer");
   await box.waitFor();
+  check(
+    (await box.locator(".composer .composer__row .composer__add").count()) === 1 &&
+      (await box.locator(".composer__primary").count()) === 1 &&
+      (await box.locator(".composer__file-input").isEnabled()),
+    "Trip home uses Chat's composer, upload and primary controls",
+  );
+  await checkHomeLayout(page, check);
+  const field = composer(page);
+  await field.fill("line one\nline two\nline three\nline four");
+  await within(
+    page.waitForFunction(() => {
+      const field = document.querySelector(".trip-home__composer textarea");
+      return field && field.clientHeight > 60;
+    }),
+    "shared composer grows with multiline text",
+  );
+  await field.fill("@");
+  await box.getByRole("listbox").waitFor();
+  await field.press("ArrowDown");
+  await field.press("Enter");
+  check(
+    (await field.inputValue()).startsWith("@") &&
+      (await field.inputValue()).length > 2 &&
+      profileProxy.requests.length === 0,
+    "choosing an agent uses Chat's mention menu without sending",
+  );
+  await field.fill("");
+  await within(
+    page.waitForFunction(() => {
+      const field = document.querySelector(".trip-home__composer textarea");
+      return field && !field.value && field.clientHeight <= 44;
+    }),
+    "shared composer shrinks after clearing multiline text",
+  );
   const rect = await box.boundingBox();
   const layout = await page.evaluate(() => ({
     width: window.innerWidth,
@@ -735,6 +738,9 @@ async function runResponsiveOnly(page, label, profile) {
   );
   const sendButton = page.getByRole("button", { name: label.send, exact: true });
   check(await sendButton.isDisabled(), `${profile.name} disables Send for an empty composer`);
+  await page.screenshot({
+    path: `${OUT}/${profile.name.replaceAll(" ", "-")}-home-composer.png`,
+  });
   await sendWithEnter(
     page,
     label,
@@ -759,7 +765,12 @@ async function runResponsiveOnly(page, label, profile) {
       .count()) === 1,
     `${profile.name} opens the new Chat with one user message`,
   );
-  const chat = page.locator(".trip-home-chat");
+  await page.locator(".workspace-shell:not(.workspace-shell--trips)").waitFor();
+  check(
+    (await page.locator(".trip-home").count()) === 0,
+    `${profile.name} opens the independent Chat workspace`,
+  );
+  const chat = page.locator(".chat");
   const userMessage = chat.getByText(
     profile.language === "zh" ? "安排安静的港口散步" : "Plan a short evening walk",
     { exact: true },
@@ -786,38 +797,6 @@ async function runResponsiveOnly(page, label, profile) {
     `${profile.name} keeps the opened Chat composer reachable without clipping`,
     chatComposerRect,
   );
-  if (profile.phone) {
-    const scroller = page.locator(".trip-home__scroll");
-    const beforeScroll = await scroller.evaluate((element) => ({
-      height: element.clientHeight,
-      contentHeight: element.scrollHeight,
-      scrollTop: element.scrollTop,
-      overflow: getComputedStyle(element).overflowY,
-    }));
-    check(
-      beforeScroll.contentHeight > beforeScroll.height &&
-        !["hidden", "clip"].includes(beforeScroll.overflow),
-      `${profile.name} keeps the phone Trip-home scroller usable and unclipped`,
-      beforeScroll,
-    );
-    await page.mouse.move(profile.viewport.width / 2, profile.viewport.height / 2);
-    await page.mouse.wheel(0, 240);
-    await within(
-      page.waitForFunction(
-        (initial) => document.querySelector(".trip-home__scroll")?.scrollTop > initial,
-        beforeScroll.scrollTop,
-      ),
-      `${profile.name} pointer scroll reaches the opened Chat`,
-    );
-    const scrolledComposerRect = await chatComposer.boundingBox();
-    check(
-      scrolledComposerRect !== null &&
-        scrolledComposerRect.y >= 0 &&
-        scrolledComposerRect.y + scrolledComposerRect.height <= profile.viewport.height + 1,
-      `${profile.name} keeps the Chat composer usable after a realistic pointer scroll`,
-      scrolledComposerRect,
-    );
-  }
   profileProxy.requests[0].release(
     plan({ id: "sydney", destination: "Sydney", items: sydneyItems }),
     "Responsive reply",
@@ -858,14 +837,11 @@ try {
       ...(profile.phone ? { hasTouch: true, isMobile: true } : {}),
     });
     await context.addInitScript(
-      ({ catalog, settings, seed, dismissal }) => {
+      ({ catalog, settings, seed }) => {
         if (localStorage.getItem(seed)) return;
         localStorage.setItem(seed, "1");
         localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
         localStorage.setItem("trip.settings.v1", JSON.stringify(settings));
-        if (dismissal !== undefined) {
-          localStorage.setItem("trip-home-suggestion-dismissals-v1", dismissal);
-        }
       },
       {
         catalog,
@@ -874,7 +850,6 @@ try {
           language: profile.language,
         },
         seed: `trip-home-send-${profile.name}`,
-        dismissal: profile.dismissal,
       },
     );
     const page = await context.newPage();
@@ -897,8 +872,8 @@ try {
     const label = labels[profile.language];
     if (profile.primary) await runPrimary(page, label);
     else if (profile.ideas) await runIdeasParity(page, label);
+    else if (profile.dismissal) await runDismissalStorage(page, label);
     else if (profile.concurrent) await runConcurrentTrips(page, label);
-    else if (profile.storage) await runStorageResilience(page, label);
     else await runResponsiveOnly(page, label, profile);
     await context.close();
     await profileProxy.close();

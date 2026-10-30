@@ -444,7 +444,9 @@ try {
           capsuleBox,
         );
         const titleRow = await page.evaluate((phone) => {
-          const title = document.querySelector(phone ? ".phone-topbar__title" : ".topbar-title");
+          const title = document.querySelector(
+            phone ? ".phone-topbar__title" : ".chat-header__title",
+          );
           const team = document.querySelector(".team-trigger, .phone-topbar__team");
           const bar = document.querySelector(".workspace-topbar");
           if (!title || !team || !bar) return null;
@@ -588,7 +590,7 @@ try {
         await badge.waitFor();
         const count = Number((await badge.innerText()).trim());
         check(count > 0, "open-items badge shows a count", count);
-        const title = config.phone ? ".phone-topbar__title" : ".topbar-title";
+        const title = config.phone ? ".phone-topbar__title" : ".chat-header__title";
         const titleBox = await page.locator(title).first().boundingBox();
         const badgeBox = await badge.boundingBox();
         check(

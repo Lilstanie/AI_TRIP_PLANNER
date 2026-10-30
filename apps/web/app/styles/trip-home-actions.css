@@ -1,10 +1,3 @@
-.trip-home-chat {
-  display: flex;
-  flex: 1 1 auto;
-  flex-direction: column;
-  min-height: 0;
-  margin-top: var(--space-4);
-}
 .trip-home-suggestion {
   margin-top: var(--space-5);
   padding-block: var(--space-3);
@@ -23,6 +16,9 @@
   margin-top: var(--space-3);
 }
 .trip-home-suggestion__actions button {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
   min-width: 44px;
   min-height: 44px;
   padding: var(--space-2) var(--space-4);
@@ -41,19 +37,6 @@
   margin-top: var(--space-3);
   color: var(--danger, var(--text-dim));
 }
-.trip-home-chat__back {
-  align-self: flex-start;
-  min-width: 44px;
-  min-height: 44px !important;
-  margin-bottom: var(--space-2);
-  padding: 0 !important;
-  background: transparent !important;
-  color: var(--accent);
-}
-.trip-home-chat > .chat {
-  flex: 1 1 auto;
-  min-height: 420px;
-}
 .trip-home-action-backdrop {
   position: absolute;
   z-index: 30;
@@ -66,14 +49,17 @@
 }
 .drawer.trip-home-action-surface {
   z-index: 40;
+  right: calc(var(--trip-home-inset) + var(--float-gap));
   width: calc(var(--trip-home-aside, 40%) - 2 * var(--float-gap));
 }
 .drawer.trip-home-action-surface.is-expanded {
-  right: calc(var(--trip-home-aside, 40%) + var(--float-gap));
+  right: calc(var(--trip-home-inset) + var(--trip-home-aside) + var(--float-gap));
   width: var(--trip-home-action-expanded-width);
 }
 .workspace-shell--trips[data-home-action-expanded] .trip-home-action-backdrop {
-  right: calc(var(--trip-home-aside, 40%) + var(--trip-home-action-expanded-width));
+  right: calc(
+    var(--trip-home-inset) + var(--trip-home-aside) + var(--trip-home-action-expanded-width)
+  );
 }
 .workspace-shell--trips[data-home-action-expanded] .trip-home__actions {
   display: none;
@@ -207,9 +193,6 @@
   }
   .trip-home-action-switcher__tabs {
     flex-basis: 100%;
-  }
-  .trip-home-chat > .chat {
-    min-height: min(420px, 55vh);
   }
 }
 @media (prefers-reduced-motion: reduce) {

@@ -2,6 +2,15 @@
 
 The browser journey `trip-home-send.e2e.mjs` must fail before the implementation if:
 
+- Trip home loses its spacious columns or lacks modest symmetric desktop insets.
+- An action card lacks its leading icon or pushes its numeric count onto a second row.
+- Selecting a linked Chat or sending from Trip keeps the conversation embedded inside Trip home.
+- The home composer sits inside a second painted white frame, border or shadow.
+- Action counts include unit labels or sit below their titles instead of at the right edge.
+- Trip home uses a separate input instead of Chat's Composer, losing its shared appearance,
+  auto-growing textarea, upload control or keyboard-operated agent mentions.
+- Clearing multiline text leaves the shared composer taller than its empty Chat counterpart.
+- An attachment selected on Trip home disappears from the first request or its saved user message.
 - Trip home still exposes a separate Start chat action.
 - Focus, typing, clearing, whitespace, IME confirmation or Shift+Enter creates a Chat.
 - Enter leaves the text in a newly opened Chat instead of starting exactly one request.
@@ -33,3 +42,6 @@ The browser journey `trip-home-send.e2e.mjs` must fail before the implementation
 The fixture journey starts with a long same-day Chat history, includes an older Chat snapshot and
 unscheduled activity and restaurant Ideas, uses a controlled local NDJSON proxy, blocks external
 requests, and records per-profile screenshots plus `summary.json`.
+
+- First send after entering Trip home from Trajectory must reveal Conversation, rather than retain
+  the hidden ledger. This precondition is part of the existing first-send journey.

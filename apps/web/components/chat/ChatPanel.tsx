@@ -194,7 +194,11 @@ export function ChatPanel({
         id="chat-panel-conversation"
         ref={stream}
         hidden={showTrajectory}
-        {...(phone ? {} : { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" })}
+        {...(phone
+          ? {}
+          : showTabs
+            ? { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" }
+            : { role: "region", "aria-label": t("Conversation") })}
         aria-busy={busy}
         onScroll={(event) => {
           lastTop.current = event.currentTarget.scrollTop;
@@ -227,8 +231,9 @@ export function ChatPanel({
         <div
           className="chat__trajectory"
           id="chat-panel-trajectory"
-          role="tabpanel"
-          aria-labelledby="chat-tab-trajectory"
+          role={showTabs ? "tabpanel" : "region"}
+          aria-labelledby={showTabs ? "chat-tab-trajectory" : undefined}
+          aria-label={showTabs ? undefined : t("Trajectory")}
         >
           <TrajectoryTab
             key={conversationId}

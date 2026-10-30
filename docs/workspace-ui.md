@@ -13,11 +13,11 @@ The Trip home action area and its acceptance criteria are detailed in
 
 | Area              | Content                                                                                                                                                                                                                                                                                                                                    | Implementation                                                                                                                          |
 | ----------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------- |
-| Sidebar           | Logo, New chat, Chats, Trips, Calendar, save or sync status, Settings & account                                                                                                                                                                                                                                                            | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                                            |
+| Sidebar           | Logo, New chat, Chats, Trips, Calendar, Trajectory, save or sync status, Settings & account                                                                                                                                                                                                                                                | `WorkspaceSidebar`, `BrandMark`, `icons.tsx`                                                                                            |
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                                                | `ChatsPanel`, `TripCover`                                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                                                         | `TripsPage`, `TripCover`                                                                                                                |
 | Trip home         | Opened by choosing a trip card, a calendar band or a trip in the Chats search: trip title, facts, linked chats, new-chat composer, a contextual suggestion, five in-panel actions and the trip map                                                                                                                                         | `TripHome`, `TripHomeChats`, `TripHomeCards`, `TripHomeActionHost`, `TripHomeActionDrawer`, `TripHomeMap`, `TripsPage`, `WorkspaceView` |
-| Top bar           | Desktop: Conversation \| Trajectory and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip only with a Plan. Language only in Settings.                                                                                                                                                | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatViewTabs`, `PhoneTeamButton`                                                      |
+| Top bar           | Chat title menu, linked Trip subtitle and Agent Team on the left; Brief chips only after the traveller has started; data mode on the right; Trip at the far right with no count, only with a Plan. Language only in Settings.                                                                                                              | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatHeaderMenu`, `PhoneTeamButton`                                                    |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                                                | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`                             |
 | Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                                                           | `ChatPanel`                                                                                                                             |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                                                | `TripMapCanvas`, `TripMap`                                                                                                              |
@@ -83,13 +83,16 @@ The Trip home action area and its acceptance criteria are detailed in
     list is edited separately. Opening a home fact activates that Trip before Save or Replan. Under the tags, `TripHomeChats`
     lists the trip's chats under a "Chats" heading, newest first by last update (chats saved in the same
     millisecond list the one started last first), each row a button with
-    the chat title and its date in the interface language. Choosing a row replaces only the main column
-    with that chat, leaving the Trip action rail and map mounted. It uses the latest saved plan: when the chat's own snapshot is older than the trip's,
+    the chat title and its date in the interface language. Choosing a row navigates to that Chat in the normal conversation workspace,
+    retaining its Trip association. It uses the latest saved plan: when the chat's own snapshot is older than the trip's,
     the trip's plan is shown and kept, so opening an older chat never downgrades the trip, and only an edit
     changes it. The heading shows the Chat count, and every row includes a forward affordance.
     Automatic Chat titles use the first user message; manually renamed titles stay intact.
-    A bottom composer named "New chat" stays visible while the list scrolls. Its first nonempty
-    send creates one linked Chat and sends one request using the Trip's current Plan immediately.
+    The bottom input reuses Chat’s `Composer`, including its appearance, auto-growing textarea,
+    upload control, agent mentions and localized accessible name. It stays visible while the list scrolls.
+    Attachments belong to this Trip-home draft and accompany its first message. Its first nonempty
+    send creates one linked Chat, sends one request using the Trip's current Plan immediately,
+    and opens the normal Chat workspace with its composer focused.
     Focus, typing, clearing and empty submission create nothing. Enter sends, Shift+Enter adds a
     line break, and IME confirmation does not send. Switching Trips discards an unsent home draft.
     Failed sends keep the Chat and message and offer Retry in that Chat without duplication.
@@ -116,16 +119,17 @@ The Trip home action area and its acceptance criteria are detailed in
     last periods disable the outward control and no off-Trip date is shown as a Trip date. Clicking an
     activity opens it in the shared Itinerary editor. Timed activities show their actual ranges and
     overlaps, while untimed activities, flights and stays appear in the All day region without
-    invented times or drag handles. Ideas uses the existing scheduling flow, Bookings groups booked
-    items, and preferences save and replan the open Trip. There is no Media or Receipts card. The side
+    invented times or drag handles. Inside the action panel, the seven-day grid scrolls horizontally
+    so event labels remain readable without widening the page. Ideas uses the existing scheduling flow,
+    Bookings groups booked items, and preferences save and replan the open Trip. There is no Media or
+    Receipts card. The side
     column holds the trip map (`TripHomeMap`): the existing `TripMapCanvas` uses the open Trip's latest
-    Plan, including a selected Chat's newer snapshot. An open Chat retains the adjustable chat/map
-    split on desktop. At 820 px and below the page stacks; at 520 px and below the action panel is
+    Plan, including a selected Chat's newer snapshot. A Chat opened from Trip uses the normal
+    workspace and its adjustable chat/map split on desktop. At 820 px and below the page stacks; at 520 px and below the action panel is
     fullscreen. A trip whose places cannot be found keeps the map's own notice instead of markers. The
     [Trip home actions Agent Note](../.agents/notes/implemented/feature/2026-10-29-trip-home-actions.md)
-    records the behavior; `trip-home-action-panels`, `trip-home-send`, `trip-home-action-rail`,
-    `trip-home-calendar`, `trip-home-ideas-bookings`, `trip-home-preferences`,
-    `trip-home-shared-editor` and `trip-home-walkthrough` are its E2Es.
+    records the behavior; `trip-home-action-panels`, `trip-home-send`, `trip-home-calendar`,
+    `trip-home-ideas-bookings` and `trip-home-shared-editor` are its E2Es.
   - Trips keep no photos, so a cover is a gradient chosen by hashing the destination, with its
     initial; the same destination always gets the same colours.
   - A chat row's second line names its trip with the same title the Trips list uses, so two chats for
@@ -384,6 +388,20 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Conversations, trips and storage
 
+A Chat that shares its Trip with other Chats has a title menu with View trip, Switch chat, Move to another trip, Remove from trip,
+Rename chat and Delete chat. A plain New chat, a Chat outside a Trip and the only Chat of a Trip show a
+plain title; rename and delete them from Chats. The subtitle names the linked Trip, while View trip navigates to its home. Switch chat lists other Chats in the same Trip and its
+count excludes the current Chat; New chat there creates an empty linked Chat. Desktop branches open
+beside the menu, while phone branches replace its contents; Escape closes the menu and restores focus.
+
+Move and Remove retain messages and both Trips' itineraries. A running Chat, pending question or
+edit blocks reassociation; a Trip with an active writer cannot receive another Chat. New trip from
+the menu copies the current Plan under a fresh Trip identity and keeps the Chat; without a Plan it
+opens the destination editor. Removing or deleting a Chat keeps its Trip. Phone facts remain available
+through the compact Trip details button; the existing Agent Team entry still opens phone Trajectory.
+When its last Chat leaves, opening the retained Trip uses a fresh empty Chat identity; it cannot reuse
+the departed Chat’s snapshot identity, messages, draft input or pending question.
+
 - **Start state.**
   - The page always opens on a blank planning entry and never loads a demo plan or reopens the last
     trip.
@@ -416,7 +434,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     after a reload). English specialist summaries, assumptions and progress lines count in the
     singular for one and the plural for more ("1 transport option", "2 rooms"), never with "(s)". So
     does the stay price detail ("1 room × 3 nights × AUD 230.00 per room/night").
-  - **Agent Team** is a button in the desktop top-left beside Conversation | Trajectory (and left of Trip once a Plan exists). It is a compact capsule of
+  - **Agent Team** is a button in the desktop top-left beside the Chat title menu (and left of Trip once a Plan exists). It is a compact capsule of
     three stacked avatars, working specialists first (a working one bobs), and, while planning, "N working".
     The six-row panel it opens is unchanged. When the usable top bar is at most 1280 px, it hides the label
     and shows the working count compactly; at most 920 px it reduces the avatar stack to one icon. The
@@ -614,11 +632,11 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Trajectory tab
 
-The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
+The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Choosing Trajectory from the sidebar, Return to chat from the Chat title menu, or a specialist in Agent Team dispatches `show-chat-view`, which closes any navigation or Trip drawer and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
 
 The Trajectory chrome uses the glass tokens on floating surfaces only: the Simple and Full view switch, the full view toolbar and the record inspector (`glass-float`, `glass-float--raised`, so reduced transparency and high contrast give the solid surface). Rows, the timeline and the ledger stay solid. Secondary text is the primary text colour mixed 74% into the surface, which keeps 4.5:1 on glass in light and dark. Data, search, jumps and the two views are unchanged. The `trajectory-restyle` E2E script stores before and after screenshots at 1440 and 390 px in English and Chinese under `output/playwright/trajectory-restyle/` and checks glass, contrast, overflow and reduced transparency. See the [Trajectory glass restyle note](../.agents/notes/implemented/feature/2026-10-28-trajectory-glass-restyle.md).
 
-On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
+On desktop the sidebar toggles Trajectory; Return to chat in the Chat title menu also restores Conversation. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
 On a phone, the Agent Team entry opens Trajectory (轨迹) in a full-screen modal. It shows the same ledger,
 search and filter bar without the timeline overview, and the record inspector opens over the whole
@@ -718,8 +736,7 @@ Restaurant suggestions are excluded from the meals count; a scheduled restaurant
 itinerary Stop. The unpriced count includes all categories and an unquoted transport estimate, so it can
 exceed the activity count. Published zero fares remain zero. The category amounts add up to the known
 total. The summary starts collapsed and is at least 44 px tall on a phone.
-A count badge next to the trip title
-(top bar on desktop and tablet, phone top bar on phone) lists open items: scheduled overlaps,
+A count badge at the top of the Trip panel lists open items: scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
 there are none. Tapping it opens a glass

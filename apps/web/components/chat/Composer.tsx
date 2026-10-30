@@ -101,7 +101,14 @@ export function Composer({
 
   useEffect(() => {
     const field = inputRef.current;
-    if (!field) return;
+    if (
+      !field ||
+      (typeof CSS !== "undefined" &&
+        typeof CSS.supports === "function" &&
+        CSS.supports("field-sizing", "content"))
+    ) {
+      return;
+    }
     field.style.height = "auto";
     field.style.height = `${Math.min(Math.max(field.scrollHeight, MIN_HEIGHT_PX), MAX_HEIGHT_PX)}px`;
   }, [value, inputRef]);

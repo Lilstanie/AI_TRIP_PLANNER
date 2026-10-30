@@ -184,7 +184,7 @@ async function open(language, viewport = { width: 1440, height: 1000 }) {
 const home = (page) => page.locator(".trip-home");
 const list = (page) => home(page).getByRole("list", { name: /^(Chats|聊天)$/ });
 const rows = (page) => list(page).getByRole("button");
-const box = (page) => home(page).getByRole("textbox", { name: /^(New chat|新聊天)$/ });
+const box = (page) => home(page).locator(".composer textarea");
 const send = (page) => home(page).getByRole("button", { name: /^(Send|发送)$/ });
 const rowTitles = async (page) =>
   (await rows(page).locator(".trip-home-chats__name").allInnerTexts()).map((text) => text.trim());
@@ -245,8 +245,8 @@ try {
   await page.locator(".composer textarea").waitFor();
   check(
     (await page.getByText("Where should we eat?", { exact: true }).count()) >= 1 &&
-      (await home(page).count()) === 1,
-    "the first send opens a linked Chat without leaving Trip home",
+      (await home(page).count()) === 0,
+    "the first send opens a linked Chat",
   );
   const afterStart = await storedWhen(
     page,
@@ -270,7 +270,7 @@ try {
   await openHome(page, /^Trip to Sydney/);
   const second = await rowTitles(page);
   check(
-    second.length === 4 && /Sydney/.test(second[0]) && second[1] === "Harbour ideas",
+    second.length === 4 && second[0] === "Where should we eat?" && second[1] === "Harbour ideas",
     "the new chat leads the list",
     second,
   );
@@ -283,7 +283,6 @@ try {
   await sidebar(page, /^Chats/).click();
   await page.getByRole("searchbox").fill("");
   const panel = page.locator(".chats-panel.is-open");
-  page.once("dialog", (dialog) => dialog.accept("Renamed chat"));
   await panel
     .locator(".history-item:not(.history-item--trip)")
     .filter({ hasText: "Sydney chat" })
@@ -291,6 +290,10 @@ try {
     .locator(".history-item__more")
     .click();
   await page.getByRole("menuitem", { name: "Rename" }).click();
+  const renameDialog = page.getByRole("dialog", { name: "Rename chat" });
+  await renameDialog.getByRole("textbox").fill("Renamed chat");
+  await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
+  await renameDialog.waitFor({ state: "detached" });
   await page.keyboard.press("Escape");
   await openHome(page, /^Trip to Sydney/);
   check(
@@ -298,7 +301,6 @@ try {
     "a chat renamed in the Chats panel shows its new title",
   );
   await sidebar(page, /^Chats/).click();
-  page.once("dialog", (dialog) => dialog.accept());
   await page
     .locator(".chats-panel.is-open .history-item:not(.history-item--trip)")
     .filter({ hasText: "Harbour ideas" })
@@ -306,12 +308,15 @@ try {
     .locator(".history-item__more")
     .click();
   await page.getByRole("menuitem", { name: "Delete" }).click();
+  const deleteDialog = page.getByRole("dialog", { name: "Delete chat" });
+  await deleteDialog.getByRole("button", { name: "Delete", exact: true }).click();
+  await deleteDialog.waitFor({ state: "detached" });
   await page.keyboard.press("Escape");
   const afterDelete = await rowTitles(page);
   check(
     (await home(page).count()) === 1 &&
       !afterDelete.includes("Harbour ideas") &&
-      afterDelete.length === 4,
+      afterDelete.length === 3,
     "a chat deleted while the page is open leaves the list",
     afterDelete,
   );

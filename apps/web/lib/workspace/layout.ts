@@ -81,6 +81,7 @@ export function restoreLayout(view: unknown, media: Media): Surface {
 
 export function layout(surface: Surface, event: LayoutEvent, media: Media): Surface {
   const next = step(surface, event, media);
+  if (event.type === "chat-opened" || event.type === "chat-started") return next;
   return surface.chatView && !next.chatView ? { ...next, chatView: surface.chatView } : next;
 }
 
@@ -150,7 +151,7 @@ function step(surface: Surface, event: LayoutEvent, media: Media): Surface {
       return strip({ ...surface, tripId: undefined, page: "workspace", view: event.view });
     case "show-chat-view":
       return strip({
-        ...(surface.drawer === "trip" ? without(surface, "drawer") : surface),
+        ...without(surface, "drawer"),
         tripId: undefined,
         page: "workspace",
         view: media.phone ? surface.view : "chat",

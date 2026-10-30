@@ -21,12 +21,15 @@ harness.
 9. Clicking a calendar activity does not open the shared itinerary editor on that activity and day.
 10. Clicking a month date no longer opens Itinerary on that day or fails to focus the map day.
 11. After an edit or Undo, Calendar, home Itinerary, conversation Trip and the map disagree about the
-    Plan, selected day or selected activity, including Undo refusing after an untimed stop is given
-    a time or failing to put it back in the All day region.
+    Plan, selected day or selected activity. Edit a duplicate-named activity in Trip home, enter the
+    linked Chat before Undo, undo in its Trip editor, then return home and verify Calendar restores
+    only the intended activity while the map retains the selected day. Also cover Undo refusing after
+    an untimed stop is given a time or failing to put it back in the All day region.
 12. Calendar builds a second Plan projection instead of reusing the Trip domain day / booking rules,
     so flights, overnight stays, Ideas or empty days diverge from Itinerary.
 13. Acceptance depends on the expanded combined drawer / map state from ticket #797.
 14. English / Chinese labels, keyboard activation, phone hit areas or drawer overflow regress.
+15. Global button defaults override selected fills or squeeze event titles to zero width.
 
 The repeatable artifact is `trip-home-calendar.e2e.mjs`, which writes screenshots and `summary.json`
 under `output/playwright/trip-home-calendar/`.

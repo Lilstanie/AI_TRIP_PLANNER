@@ -8,6 +8,10 @@ Partly supersedes the separate Start chat step and destination-only titles in
 [Trip home page](2026-10-28-trip-home-page.md). The
 [in-place action rail](2026-10-29-trip-home-actions.md) continues to own the page and drawer layout.
 
+The embedded-Chat navigation below is superseded by
+[Trip home opens the normal Chat workspace](2026-10-30-trip-home-chat-navigation.md).
+The remaining Trip actions and first-send ownership decisions still apply.
+
 ## Problem
 
 Starting a Trip-home Chat previously copied input into another composer without sending it.
@@ -21,6 +25,9 @@ Sending immediately through the prior render's transport could target the wrong 
   Preparation checks existing planning concurrency and edited-Plan confirmation before creating a Chat.
 - Empty input, focus, typing, clearing and IME confirmation create nothing. Enter sends and
   Shift+Enter inserts a newline. The home composer clears its unsent draft when its Trip changes.
+- Trip home renders Chat's `Composer` directly, sharing its styling, textarea growth, file controls
+  and agent mentions. Its attachments stay with the home draft and enter the explicit Trip request
+  and saved user message, including attachment-only sends.
 - Home Send disables only while this Trip already has a writer (`writingTripIds`) or an edit is
   pending, so a pending generation in another Trip leaves this Trip's first send enabled.
 - After first send, keyboard focus moves into the embedded Chat composer. On phones the new Chat is

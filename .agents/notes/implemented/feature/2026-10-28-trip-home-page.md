@@ -34,8 +34,7 @@ chat from the page could overwrite the trip's plan.
 - On a phone the Calendar card opens Mine on its Calendar tab at the trip's month, and Back returns to Mine on
   the tab it came from; `PhoneMine` takes the Trips page tab and focus trip from `WorkspaceView`, as the
   desktop Trips page does.
-- Verification is one walkthrough, `trip-home-walkthrough` (desktop 1440, 390 touch phone, Chinese on both),
-  which leaves screenshots and `result.json`; `trip-home-older-chat` checks the stored plans.
+- Verification is `trip-home-shell` and `trip-home-send`; `trip-home-older-chat` checks the stored plans.
 
 ## Alternatives considered
 

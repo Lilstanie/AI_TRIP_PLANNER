@@ -226,7 +226,7 @@ try {
     "wide timeline and map occupy adjacent regions",
     geometry,
   );
-  const desktopIdentity = await page.locator(".topbar-title").evaluate((title) => ({
+  const desktopIdentity = await page.locator(".chat-header__title").evaluate((title) => ({
     width: title.getBoundingClientRect().width,
     scrollWidth: title.scrollWidth,
     visibleAvatars: [...document.querySelectorAll(".team-trigger__avatars > *")].filter(
@@ -248,11 +248,13 @@ try {
     const tripRow = page.locator(".trip-cards > li").first();
     await tripRow.waitFor({ state: "visible" });
     await tripRow.locator(".history-item__more").click();
-    page.once("dialog", (dialog) => dialog.accept(title));
     await page.getByRole("menuitem").first().click();
+    const renameDialog = page.getByRole("dialog");
+    await renameDialog.getByRole("textbox").fill(title);
+    await renameDialog.locator('button[type="submit"]').click();
     await tripRow.getByText(title, { exact: true }).waitFor({ state: "visible" });
     await tripRow.locator(".trip-card").click();
-    await page.locator(".topbar-title").waitFor({ state: "visible" });
+    await page.locator(".chat-header__trip-name").waitFor({ state: "visible" });
     const openTrip = page.locator(".trip-trigger");
     if ((await openTrip.count()) && (await openTrip.getAttribute("aria-expanded")) !== "true") {
       await openTrip.click();
@@ -264,7 +266,7 @@ try {
   await page.locator(".history-item--trip").waitFor({ state: "visible" });
   const longEnglishTitle = "Sydney harbour, beaches, gardens and family food itinerary";
   await renameActiveTrip(longEnglishTitle);
-  const englishTitleLayout = await page.locator(".topbar-title").evaluate((title) => ({
+  const englishTitleLayout = await page.locator(".chat-header__trip-name").evaluate((title) => ({
     text: title.textContent?.trim(),
     width: title.getBoundingClientRect().width,
     scrollWidth: title.scrollWidth,
@@ -292,7 +294,7 @@ try {
   await switchLocale("zh");
   const longChineseTitle = "悉尼海港海滩花园与亲子美食行程规划";
   await renameActiveTrip(longChineseTitle);
-  const chineseTitleLayout = await page.locator(".topbar-title").evaluate((title) => ({
+  const chineseTitleLayout = await page.locator(".chat-header__trip-name").evaluate((title) => ({
     text: title.textContent?.trim(),
     width: title.getBoundingClientRect().width,
     scrollWidth: title.scrollWidth,
@@ -444,8 +446,8 @@ try {
     () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "true",
   );
   check(
-    await page.locator(".topbar-chat-tabs").isVisible(),
-    "compact header keeps Conversation and Trajectory reachable",
+    await page.locator(".chat-header").isVisible(),
+    "compact header keeps the Chat title menu reachable",
   );
   const team = page.getByRole("button", { name: /Agent Team/ });
   await team.waitFor({ state: "visible" });

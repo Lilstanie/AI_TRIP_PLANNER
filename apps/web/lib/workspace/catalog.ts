@@ -557,3 +557,64 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   }
   return result;
 }
+
+export function withoutConversation(source: WorkspaceCatalog, id: string): WorkspaceCatalog {
+  return {
+    ...source,
+    activeConversationId:
+      source.activeConversationId === id ? undefined : source.activeConversationId,
+    conversations: source.conversations.filter((item) => item.id !== id),
+    trips: source.trips.map((item) => ({
+      ...item,
+      conversationIds: item.conversationIds.filter((conversationId) => conversationId !== id),
+    })),
+  };
+}
+
+export function movedConversation(
+  catalog: WorkspaceCatalog,
+  id: string,
+  target: TripRecord | undefined,
+  state: Pick<ConversationRecord, "messages" | "input" | "draft">,
+): ConversationRecord {
+  const saved = catalog.conversations.find((item) => item.id === id);
+  return {
+    ...saved,
+    id,
+    title: saved?.title ?? "New chat",
+    updatedAt: new Date().toISOString(),
+    messages: state.messages,
+    input: state.input,
+    draft: target?.snapshot.draft ?? state.draft,
+    ask: undefined,
+    tripId: target?.id,
+    snapshot: target
+      ? {
+          ...target.snapshot,
+          id: id.replace(/^conversation:/, ""),
+          messages: state.messages,
+          input: state.input,
+          ask: undefined,
+        }
+      : undefined,
+  };
+}
+
+export function relinkConversation(
+  catalog: WorkspaceCatalog,
+  record: ConversationRecord,
+): WorkspaceCatalog {
+  return {
+    ...catalog,
+    activeConversationId: record.id,
+    activeTripId: record.tripId,
+    conversations: [...catalog.conversations.filter((item) => item.id !== record.id), record],
+    trips: catalog.trips.map((trip) => ({
+      ...trip,
+      conversationIds: [
+        ...trip.conversationIds.filter((id) => id !== record.id),
+        ...(trip.id === record.tripId ? [record.id] : []),
+      ],
+    })),
+  };
+}

@@ -44,6 +44,7 @@ const labels = {
     chats: "Chats",
     trips: "Trips",
     calendar: "Calendar",
+    trajectory: "Trajectory",
     newTrip: "New trip",
     nav: "Open navigation",
     mine: "Mine",
@@ -55,6 +56,7 @@ const labels = {
     chats: "聊天",
     trips: "行程",
     calendar: "日历",
+    trajectory: "轨迹",
     newTrip: "新行程",
     nav: "打开导航",
     mine: "我的",
@@ -179,7 +181,7 @@ try {
       }
       await page.waitForFunction(
         ({ selector, count }) => document.querySelectorAll(selector).length === count,
-        { selector: ".sidebar-nav button", count: 4 },
+        { selector: ".sidebar-nav button", count: 5 },
         { timeout: WAIT },
       );
       const order = await nav(page)
@@ -188,11 +190,11 @@ try {
           nodes.map((node) => node.getAttribute("aria-label") ?? node.textContent.trim()),
         );
       check(
-        order.length === 4 &&
-          [text.newChat, text.chats, text.trips, text.calendar].every((name, index) =>
-            order[index].startsWith(name),
+        order.length === 5 &&
+          [text.newChat, text.chats, text.trips, text.calendar, text.trajectory].every(
+            (name, index) => order[index].startsWith(name),
           ),
-        `${tag}: sidebar entries are New chat, Chats, Trips, Calendar`,
+        `${tag}: sidebar entries are New chat, Chats, Trips, Calendar, Trajectory`,
         order,
       );
       if (collapsed) {
@@ -262,14 +264,20 @@ try {
     const mine = phone.page.locator(".phone-mine");
     await mine.waitFor();
     check(
-      (await mine.getByRole("button", { name: text.newChat, exact: true }).count()) === 1 &&
+      (await mine
+        .locator(".chats-panel__section-head")
+        .getByRole("button", { name: text.newChat, exact: true })
+        .count()) === 1 &&
         (await mine.getByRole("button", { name: text.newTrip, exact: true }).count()) === 1,
       `${language} phone Mine: Chats and Trips keep their own create actions`,
     );
     await phone.page.screenshot({
       path: `${OUT}/${language}-phone-mine-actions.png`,
     });
-    await mine.getByRole("button", { name: text.newChat, exact: true }).click();
+    await mine
+      .locator(".chats-panel__section-head")
+      .getByRole("button", { name: text.newChat, exact: true })
+      .click();
     await phone.page
       .getByRole("tab", { name: text.chat })
       .waitFor({ state: "visible", timeout: WAIT });
@@ -303,7 +311,10 @@ try {
     const phoneRequest = proxy.requests[0];
     await waitForControlledProgress(phone.page);
     await phone.page.getByRole("tab", { name: text.mine }).click();
-    await mine.getByRole("button", { name: text.newChat, exact: true }).click();
+    await mine
+      .locator(".chats-panel__section-head")
+      .getByRole("button", { name: text.newChat, exact: true })
+      .click();
     await phone.page.getByRole("tab", { name: text.mine }).click();
     const originalChat = mine.locator(
       ".history-item:not(.history-item--active) .history-item__open",

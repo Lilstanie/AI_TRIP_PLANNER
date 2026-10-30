@@ -298,7 +298,6 @@ describe("Workspace interactions", () => {
   });
   it("does not bring a blank chat back when the open one is deleted", async () => {
     vi.stubGlobal("fetch", withPlaceRequests());
-    vi.spyOn(window, "confirm").mockReturnValue(true);
     render(<Workspace initialPlan={plan} />);
     await waitFor(() =>
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
@@ -310,6 +309,15 @@ describe("Workspace interactions", () => {
     const deleted = parseCatalog(localStorage.getItem(CATALOG_KEY)).activeConversationId;
     fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Delete" }));
+    fireEvent.click(
+      within(screen.getByRole("dialog", { name: "Delete chat", hidden: true })).getByRole(
+        "button",
+        {
+          name: "Delete",
+          hidden: true,
+        },
+      ),
+    );
 
     await waitFor(() => {
       const catalog = parseCatalog(localStorage.getItem(CATALOG_KEY));
@@ -344,10 +352,13 @@ describe("Workspace interactions", () => {
       expect(parseCatalog(localStorage.getItem(CATALOG_KEY)).trips).toHaveLength(1),
     );
     startBlank();
-    const prompt = vi.spyOn(window, "prompt").mockReturnValue("Later ideas");
     fireEvent.click(screen.getByRole("button", { name: "Actions for New chat" }));
     fireEvent.click(screen.getByRole("menuitem", { name: "Rename" }));
-    prompt.mockRestore();
+    const dialog = within(screen.getByRole("dialog", { name: "Rename chat", hidden: true }));
+    fireEvent.change(dialog.getByRole("textbox", { hidden: true }), {
+      target: { value: "Later ideas" },
+    });
+    fireEvent.click(dialog.getByRole("button", { name: "Save", hidden: true }));
     await waitFor(() =>
       expect(
         parseCatalog(localStorage.getItem(CATALOG_KEY)).conversations.map((item) => item.title),
@@ -477,6 +488,7 @@ describe("Workspace interactions", () => {
     ).toBeNull();
 
     fireEvent.click(historyButton(/^Sydney · 1.*4 Oct/));
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(chip(/^Destination: Sydney$/)).toBeTruthy();
   });
   it("sends the current plan with a chat message so a question need not rebuild it", async () => {
@@ -601,7 +613,7 @@ describe("Workspace interactions", () => {
     render(<Workspace />);
 
     expect(fetcher.mock.calls.map(([url]) => String(url))).not.toContain("/api/chat");
-    expect(screen.getByRole("tab", { name: "Conversation" })).toBeTruthy();
+    expect(within(sidebar()).getByRole("button", { name: "Trajectory" })).toBeTruthy();
     expect(screen.getByRole("button", { name: "Agent Team" })).toBeTruthy();
     expect(screen.getByLabelText("Example trips")).toBeTruthy();
     expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
@@ -632,14 +644,15 @@ describe("Workspace interactions", () => {
     );
     view.unmount();
     render(<Workspace />);
-    expect(screen.getByRole("tab", { name: "Conversation" })).toBeTruthy();
+    expect(within(sidebar()).getByRole("button", { name: "Trajectory" })).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
     expect(within(drawer("trip")).queryByText(/Sydney/)).toBeNull();
     fireEvent.click(historyButton(/^Sydney · 1.*4 Oct/));
-    expect(screen.getByRole("heading", { name: "Sydney" })).toBeTruthy();
+    expect(screen.getByRole("heading", { name: /^Sydney ·/ })).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe(
       "unfinished request",
     );
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(chip(/^Budget: AUD\s2,000\.00$/)).toBeTruthy();
     expect(historyButton(/^Sydney · 1.*4 Oct/).getAttribute("aria-current")).toBe("true");
     expect(historyButton(/^Trip to Sydney$/).getAttribute("aria-current")).toBe("true");
@@ -656,6 +669,7 @@ describe("Workspace interactions", () => {
     fireEvent.change(screen.getByLabelText("Add a destination"), { target: { value: "Paris" } });
     fireEvent.click(screen.getByRole("button", { name: "Replan trip" }));
     await screen.findByText("Offline");
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(chip(/^Destination: Paris$/)).toBeTruthy();
     expect(within(drawer("trip")).getByText(/Sydney · 1.*4 Oct/)).toBeTruthy();
     fireEvent.click(screen.getByRole("button", { name: "Retry update" }));
@@ -698,6 +712,7 @@ describe("Workspace interactions", () => {
     await act(async () => {
       finish!(complete("Obsolete result"));
     });
+    fireEvent.click(screen.getByRole("button", { name: "Open your trip" }));
     expect(chip(/^Destination: Melbourne$/)).toBeTruthy();
     expect(screen.queryByText(/^Updated$/)).toBeNull();
     expect(screen.queryByText(/^Obsolete result$/)).toBeNull();
@@ -955,7 +970,7 @@ describe("Workspace navigation", () => {
     expect(
       within(map).queryByRole("button", { name: /Open (your trip|trip preferences)/ }),
     ).toBeNull();
-    expect(within(topbar).getByRole("heading", { name: "Sydney" })).toBeTruthy();
+    expect(within(topbar).getByRole("heading", { name: "New chat" })).toBeTruthy();
     const facts = within(topbar).getByRole("group", { name: "Trip details" });
     for (const name of [
       /^Destination: Sydney$/,

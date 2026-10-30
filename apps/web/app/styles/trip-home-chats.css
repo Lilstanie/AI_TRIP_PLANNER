@@ -61,35 +61,8 @@
   height: 16px;
 }
 .trip-home__composer-form {
-  display: flex;
-  align-items: flex-end;
-  gap: var(--space-2);
   width: min(100%, 860px);
   margin-inline: auto;
-}
-.trip-home__composer-form textarea {
-  flex: 1 1 auto;
-  min-width: 0;
-  min-height: 48px;
-  max-height: 132px;
-  padding: var(--space-3) var(--space-4);
-  resize: none;
-}
-.trip-home__composer-form button {
-  display: inline-grid;
-  flex: none;
-  width: 48px;
-  height: 48px;
-  min-height: 48px !important;
-  padding: 0 !important;
-  place-items: center;
-  border-radius: 50% !important;
-  background: var(--text) !important;
-  color: var(--surface);
-}
-.trip-home__composer-form button:disabled {
-  background: var(--fill-hover) !important;
-  color: var(--text-mut);
 }
 @media (prefers-reduced-motion: reduce) {
   .trip-home-chats__row {

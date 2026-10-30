@@ -14,7 +14,7 @@ The journey must fail when any of these outcomes regress:
 8. Non-AUD Bookings prices omit the established estimate/exchange-rate notice.
 9. Schedule accessible names or the Flights heading bypass the translation catalogue in English or Chinese.
 10. Arrow-key switching fails to move selection and focus together.
-11. Zoom, a narrow content container, an extreme chat/map split or a responsive breakpoint clips the panel, traps focus or creates horizontal overflow.
+11. Zoom, a narrow content container, a responsive breakpoint clips the panel, traps focus or creates horizontal overflow.
 12. Browser console or page errors occur during the journey.
 13. Saving Trip preferences after an outside Budget edit restores the older Budget or drops the unsubmitted preference.
 

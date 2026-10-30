@@ -17,6 +17,33 @@
   flex: 1;
   min-block-size: 44px;
 }
+.edit-discard__actions .danger {
+  color: var(--danger);
+}
+.dialog:has(.rename-dialog),
+.dialog:has(.confirm-dialog) {
+  width: min(420px, calc(100% - 24px));
+}
+.confirm-dialog {
+  margin-block: var(--space-3);
+  overflow-wrap: anywhere;
+}
+.rename-dialog {
+  display: grid;
+  gap: var(--space-3);
+  margin-block-start: var(--space-3);
+}
+.rename-dialog input {
+  inline-size: 100%;
+  min-block-size: 44px;
+  padding-inline: var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+}
+.rename-dialog button[type="submit"]:not(:disabled) {
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
 .fact-popover--stop .item-editor,
 .fact-popover--stop .stop-editor__time {
   margin: 0;

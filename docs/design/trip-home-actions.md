@@ -10,7 +10,8 @@ and opens each action without leaving Trip home.
 
 ## Layout
 
-On desktop, selecting a Trip opens Trip home with a centred main column and a right rail.
+On desktop, selecting a Trip opens Trip home with spacious main and right columns centered together.
+The pair has 24px outer insets and a 1440px maximum width; tablet and phone retain their full width.
 
 | Area       | Content                                                                                                |
 | ---------- | ------------------------------------------------------------------------------------------------------ |
@@ -18,21 +19,21 @@ On desktop, selecting a Trip opens Trip home with a centred main column and a ri
 | Right rail | Five action cards followed by the embedded Trip map                                                    |
 | Overlay    | A right-side drawer for the chosen action; it covers the right rail and leaves the main column visible |
 
-The centre can grow from the dashboard into a conversation while the right rail stays in place.
-When a conversation is open, the existing adjustable chat/map split remains available between the
-centre and the right rail. Returning from the conversation restores Trip home.
+Opening a Chat navigates to the normal conversation workspace with its existing chat/map split.
+Trip home is the dashboard for selecting Chats and managing the Trip; its conversations are not
+embedded inside it.
 
 ## Chats and suggestions
 
 - Trip home lists every Chat whose `tripId` is the open Trip. One Trip can have any number of Chats.
-- Choosing a Chat replaces the dashboard in the centre with that conversation. The action cards and
-  map remain on the right, and Back returns to Trip home.
+- Choosing a Chat opens it in the normal Chat workspace, retaining its Trip association.
+  The first send and contextual suggestions navigate to that same workspace after creating the Chat.
 - The first nonempty send creates one linked Chat and sends once with the current Trip Plan.
   There is no separate Start chat action. Focus, typing, clearing and empty submission create nothing.
   Enter sends, Shift+Enter inserts a line break, and IME confirmation does not send. Switching Trips
   clears an unsent home draft. A failed first send keeps its Chat and user message; Retry reuses both.
-- On phones, first send scrolls the new Chat to the top of the Trip-home scroller before focusing its
-  composer. The same scroll container keeps the composer reachable and operable after pointer scrolling.
+- First send focuses the normal Chat composer. The conversation uses its own scroll region and
+  preserves the existing phone Chat tab navigation.
 - The Chat heading shows its count. Rows show a message-derived title, localized date and forward
   affordance; manually renamed titles are preserved. Opening an older Chat keeps the Trip's newer Plan.
 - A suggestion is generated from the open Trip's current Plan. Choosing a suggestion sends its
@@ -44,8 +45,10 @@ centre and the right rail. Returning from the conversation restores Trip home.
 
 ## Actions
 
-The action cards appear in this order. Each card opens a Trip action drawer and includes a count
-when it has one.
+The action cards appear in this order, each with a leading decorative icon. Each card opens a Trip action drawer and includes a count
+when it has one. Counts are bare numbers aligned at the right of the title on the same row,
+without unit labels. The bottom composer uses Chat's surface directly; its layout wrapper adds no
+background, border or shadow.
 
 | Action           | Drawer content                                                                                                                | Interaction                                                                                                      |
 | ---------------- | ----------------------------------------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------------- |

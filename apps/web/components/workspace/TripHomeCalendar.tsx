@@ -236,6 +236,7 @@ export function TripHomeCalendar({
           {(["week", "month"] as const).map((value) => (
             <button
               type="button"
+              className="trip-home-calendar-button"
               key={value}
               aria-pressed={view === value}
               onClick={() => setView(value)}
@@ -257,6 +258,7 @@ export function TripHomeCalendar({
       <div className="trip-home-calendar__period">
         <button
           type="button"
+          className="trip-home-calendar-button"
           disabled={!canPrevious}
           aria-label={translate(locale, previousLabel)}
           onClick={() => {
@@ -273,6 +275,7 @@ export function TripHomeCalendar({
         </h3>
         <button
           type="button"
+          className="trip-home-calendar-button"
           disabled={!canNext}
           aria-label={translate(locale, nextLabel)}
           onClick={() => {

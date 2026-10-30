@@ -6,6 +6,7 @@ import {
   ChatIcon,
   ComposeIcon,
   MoreIcon,
+  LedgerIcon,
   SidebarIcon,
   SuitcaseIcon,
 } from "../ui/icons";
@@ -127,6 +128,7 @@ export function HistoryMenu({
 
   const act = (run: () => void) => {
     setOpen(false);
+    trigger.current?.focus({ preventScroll: true });
     run();
   };
 
@@ -170,6 +172,8 @@ export function WorkspaceSidebar({
   onTrips,
   onCalendar,
   onNewChat,
+  onTrajectory,
+  trajectoryOpen = false,
   chatsButton,
   onSettings,
   saveState,
@@ -191,6 +195,8 @@ export function WorkspaceSidebar({
   onTrips(): void;
   onCalendar(): void;
   onNewChat(): void;
+  onTrajectory?(): void;
+  trajectoryOpen?: boolean;
 
   chatsButton?: Ref<HTMLButtonElement>;
 
@@ -259,6 +265,15 @@ export function WorkspaceSidebar({
           current={page === "trips" && tripsView === "calendar" && !chatsOpen}
           onClick={onCalendar}
         />
+        {onTrajectory && (
+          <NavButton
+            icon={<LedgerIcon />}
+            label={t("Trajectory")}
+            collapsed={isCollapsed}
+            current={trajectoryOpen}
+            onClick={onTrajectory}
+          />
+        )}
       </nav>
 
       {children}

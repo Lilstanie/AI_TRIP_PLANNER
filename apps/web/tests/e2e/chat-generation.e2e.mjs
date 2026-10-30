@@ -608,7 +608,6 @@ try {
   await send(deleteChatJourney.page, "Delete this Chat");
   await proxy.waitForCount(1);
   const deleteChat = proxy.requests[0];
-  deleteChatJourney.page.once("dialog", (dialog) => dialog.accept());
   const chats = deleteChatJourney.page
     .locator(".sidebar-nav")
     .getByRole("button", { name: /^Chats/ });
@@ -619,6 +618,10 @@ try {
     .first();
   await alphaRow.locator(".history-item__more").click();
   await deleteChatJourney.page.getByRole("menuitem", { name: "Delete", exact: true }).click();
+  await deleteChatJourney.page
+    .getByRole("dialog", { name: "Delete chat" })
+    .getByRole("button", { name: "Delete", exact: true })
+    .click();
   await within(deleteChat.settled, "deleted Chat aborts its request");
   check(deleteChat.aborted, "deleting the owning Chat aborts generation");
   deleteChat.release(completedPlan, "Deleted Chat late reply");
@@ -634,7 +637,6 @@ try {
   await send(deleteTripJourney.page, "Delete this Trip");
   await proxy.waitForCount(1);
   const deleteTrip = proxy.requests[0];
-  deleteTripJourney.page.once("dialog", (dialog) => dialog.accept());
   await deleteTripJourney.page
     .locator(".sidebar-nav")
     .getByRole("button", { name: /^Trips/ })

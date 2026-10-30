@@ -1,4 +1,6 @@
 "use client";
+import type { ComponentType } from "react";
+import { RouteIcon, MapPinIcon, SuitcaseIcon, SlidersIcon, CalendarIcon } from "../ui/icons";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
@@ -25,35 +27,35 @@ export function TripHomeCards({
   const cards = [
     {
       id: "itinerary",
+      icon: RouteIcon,
       label: t("Itinerary"),
-      count: stops > 0 ? `${stops} ${t(stops === 1 ? "stop" : "stops")}` : "",
+      count: stops > 0 ? String(stops) : "",
     },
     {
       id: "ideas",
+      icon: MapPinIcon,
       label: t("Ideas"),
-      count: ideas > 0 ? t(ideas === 1 ? "1 idea" : "{v0} ideas", { v0: ideas }) : "",
+      count: ideas > 0 ? String(ideas) : "",
     },
     {
       id: "bookings",
+      icon: SuitcaseIcon,
       label: t("Bookings"),
       count: "",
     },
     {
       id: "preferences",
+      icon: SlidersIcon,
       label: t("Trip preferences"),
-      count:
-        preferences > 0
-          ? t(preferences === 1 ? "{count} preference" : "{count} preferences", {
-              count: preferences,
-            })
-          : "",
+      count: preferences > 0 ? String(preferences) : "",
     },
     {
       id: "calendar",
+      icon: CalendarIcon,
       label: t("Calendar"),
-      count: t(dayCount(plan) === 1 ? "{count} day" : "{count} days", { count: dayCount(plan) }),
+      count: String(dayCount(plan)),
     },
-  ] satisfies { id: TripAction; label: string; count: string }[];
+  ] satisfies { id: TripAction; label: string; count: string; icon: ComponentType }[];
   return (
     <ul className="trip-home-cards trip-home__actions" aria-label={t("Trip actions")}>
       {cards.map((card) => (
@@ -64,6 +66,7 @@ export function TripHomeCards({
             data-card={card.id}
             onClick={(event) => onOpen(card.id, event.currentTarget)}
           >
+            <card.icon />
             <span className="trip-home-card__label">{card.label}</span>
             {card.count && <span className="trip-home-card__count">{card.count}</span>}
           </button>

@@ -1,8 +1,11 @@
 "use client";
-import { useState, type FormEvent, type KeyboardEvent } from "react";
+import { useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { intlLocale } from "@/lib/i18n/locale";
-import { ChevronIcon, SendIcon } from "../ui/icons";
+import { ChevronIcon } from "../ui/icons";
+import { Composer } from "../chat/Composer";
+import type { PreparedAttachment } from "@/lib/chat/attachments";
+import { useComposerAttachments } from "./useComposerAttachments";
 
 export type TripHomeChat = { id: string; title: string; updatedAt: string };
 
@@ -49,37 +52,37 @@ export function TripHomeComposer({
   onSend,
 }: {
   disabled?: boolean;
-  onSend(text: string): boolean;
+  onSend(text: string, attachments: PreparedAttachment[]): boolean;
 }) {
   const { t } = useLocale();
   const [text, setText] = useState("");
+  const inputRef = useRef<HTMLTextAreaElement>(null);
+  const files = useComposerAttachments();
 
-  const submit = (event: FormEvent) => {
-    event.preventDefault();
+  const submit = () => {
     const message = text.trim();
-    if (!message || disabled || !onSend(message)) return;
+    if ((!message && !files.attachments.length) || disabled) return;
+    if (!onSend(message, files.attachments)) return;
     setText("");
-  };
-  const onKeyDown = (event: KeyboardEvent<HTMLTextAreaElement>) => {
-    if (event.key !== "Enter" || event.shiftKey) return;
-    if (event.nativeEvent.isComposing || event.nativeEvent.keyCode === 229) return;
-    event.preventDefault();
-    const message = text.trim();
-    if (!message || disabled || !onSend(message)) return;
-    setText("");
+    files.clearAttachments();
   };
   return (
-    <form className="trip-home__composer-form" onSubmit={submit}>
-      <textarea
-        rows={1}
+    <div className="trip-home__composer-form">
+      <Composer
         value={text}
-        aria-label={t("New chat")}
-        onChange={(event) => setText(event.target.value)}
-        onKeyDown={onKeyDown}
+        placeholder={t("Tell me what to change…")}
+        busy={false}
+        canSend={!disabled && (Boolean(text.trim()) || files.attachments.length > 0)}
+        canCancel={false}
+        inputRef={inputRef}
+        onInput={setText}
+        onSend={submit}
+        onAttachFiles={files.addFiles}
+        attachments={files.attachments}
+        onRemoveAttachment={files.removeAttachment}
+        canAttach={!disabled && files.canAttach}
+        attachNotices={files.notices}
       />
-      <button type="submit" aria-label={t("Send")} disabled={disabled || !text.trim()}>
-        <SendIcon />
-      </button>
-    </form>
+    </div>
   );
 }

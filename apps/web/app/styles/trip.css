@@ -79,6 +79,10 @@
   display: none;
 }
 
+.trip-workspace__open-items {
+  display: flex;
+  justify-content: flex-end;
+}
 .open-items {
   position: relative;
   flex: none;

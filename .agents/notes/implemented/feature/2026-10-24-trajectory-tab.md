@@ -1,6 +1,9 @@
 # Agent Note: a Trajectory tab copies DeepSeek Harness's ledger and maps stored chats onto it
 
 Status: implemented
+
+The desktop tab entry is partly superseded by
+[Chat header navigation](2026-10-30-chat-header-navigation.md); ledger and phone behavior remain.
 Owner: spec #667, tickets #668 and #669
 
 ## Problem

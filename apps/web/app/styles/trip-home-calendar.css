@@ -93,18 +93,22 @@
 }
 .trip-home-calendar__week {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(112px, 1fr));
   align-items: stretch;
-  overflow: hidden;
+  overflow-x: auto;
+  overflow-y: hidden;
   border: 1px solid var(--border);
   border-radius: var(--radius);
   background: var(--surface);
+  overscroll-behavior-inline: contain;
+  scroll-snap-type: inline proximity;
 }
 .trip-home-calendar__week-day {
   min-width: 0;
   min-height: 340px;
   padding: var(--space-1);
   border-inline-start: 1px solid var(--border);
+  scroll-snap-align: start;
 }
 .trip-home-calendar__week-day:first-child {
   border-inline-start: 0;

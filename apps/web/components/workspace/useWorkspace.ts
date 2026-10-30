@@ -8,9 +8,12 @@ import { useTripPlaces } from "../map/useTripPlaces";
 import { effectiveCurrency, type TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { QuestionProgress } from "@/lib/workspace/ask-user";
-import { blankDraft, type Draft } from "@/lib/workspace";
+import { blankDraft, type Draft, type Message } from "@/lib/workspace";
 import {
   isUntouchedConversation,
+  withoutConversation,
+  movedConversation,
+  relinkConversation,
   reusableBlankConversation,
   conversationTitle,
   latestSnapshot,
@@ -50,7 +53,7 @@ import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
 import { destinationCities } from "@/lib/map/place-query";
 import type { Notice } from "@/lib/i18n/notice";
-import type { Message } from "@/lib/workspace";
+import type { PreparedAttachment } from "@/lib/chat/attachments";
 
 type BackgroundTurn = {
   conversationId: string;
@@ -126,6 +129,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     trip: TripRecord;
     linked: ConversationRecord[];
     name: string;
+  }>();
+  const [catalogDialog, setCatalogDialog] = useState<{
+    kind: "rename-chat" | "rename-trip" | "delete-chat";
+    id: string;
+    title: string;
   }>();
 
   const {
@@ -528,19 +536,15 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     const trip = savedCatalog.trips.find((item) => item.id === id);
     if (!trip) return false;
     const conversation = tripConversations(savedCatalog, id)[0];
-    open(
-      {
-        ...((conversation && latestSnapshot(savedCatalog, conversation)) ?? trip.snapshot),
-        ...(conversation ? { messages: conversation.messages, input: conversation.input } : {}),
-      },
-      conversation?.id ?? `conversation:${trip.snapshot.id}`,
-    );
-    setCatalog((current) =>
-      updateCatalog(current, {
-        activeTripId: id,
-        ...(conversation ? { activeConversationId: conversation.id } : {}),
-      }),
-    );
+    const saved = {
+      ...((conversation && latestSnapshot(savedCatalog, conversation)) ?? trip.snapshot),
+      id: conversation?.id.replace(/^conversation:/, "") ?? crypto.randomUUID(),
+      messages: conversation?.messages ?? [],
+      input: conversation?.input ?? "",
+      ask: conversation?.ask,
+    };
+    open(saved, `conversation:${saved.id}`);
+    setCatalog((current) => upsertCurrent(current, saved));
     return true;
   }
   function selectTrip(id: string) {
@@ -548,15 +552,21 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     layout({ type: "trip-opened" });
   }
 
-  function sendTripChat(tripId: string, text: string, navigate = true) {
+  function sendTripChat(
+    tripId: string,
+    text: string,
+    navigate = true,
+    attachments: PreparedAttachment[] = [],
+  ) {
     const message = text.trim();
-    if (!message) return undefined;
+    if (!message && !attachments.length) return undefined;
     const savedCatalog = flushSave();
     const trip = savedCatalog.trips.find((item) => item.id === tripId);
     if (!trip) return undefined;
     const prepared = prepareChat(message, {
       plan: trip.snapshot.plan,
       draft: trip.snapshot.draft,
+      attachments,
     });
     if (!prepared) return undefined;
     const id = crypto.randomUUID();
@@ -641,40 +651,119 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   }
   function renameChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
-    if (!existing) return;
-    const title = window.prompt(t("Rename chat"), existing.title)?.trim();
-    if (!title) return;
-    setCatalog((current) => ({
-      ...current,
-      conversations: current.conversations.map((item) =>
-        item.id === id
-          ? { ...item, title, renamed: true, updatedAt: new Date().toISOString() }
-          : item,
-      ),
-    }));
+    if (existing) setCatalogDialog({ kind: "rename-chat", id, title: existing.title });
   }
-  function withoutConversation(source: WorkspaceCatalog, id: string): WorkspaceCatalog {
-    return {
-      ...source,
-      activeConversationId:
-        source.activeConversationId === id ? undefined : source.activeConversationId,
-      conversations: source.conversations.filter((item) => item.id !== id),
-      trips: source.trips.map((item) => ({
-        ...item,
-        conversationIds: item.conversationIds.filter((conversationId) => conversationId !== id),
+  function saveName(title: string) {
+    const target = catalogDialog;
+    if (!target) return;
+    setCatalogDialog(undefined);
+    const renamed = <T extends { id: string }>(item: T) =>
+      item.id === target.id
+        ? { ...item, title, renamed: true, updatedAt: new Date().toISOString() }
+        : item;
+    setCatalog((current) =>
+      target.kind === "rename-chat"
+        ? { ...current, conversations: current.conversations.map(renamed) }
+        : { ...current, trips: current.trips.map(renamed) },
+    );
+  }
+  function newLinkedChat() {
+    const current = flushSave();
+    const conversation = current.conversations.find(
+      (item) => item.id === activeConversation.current,
+    );
+    const trip = current.trips.find((item) => item.id === conversation?.tripId);
+    if (!trip) {
+      startBlankChat();
+      return;
+    }
+    const snapshot = {
+      ...trip.snapshot,
+      id: crypto.randomUUID(),
+      savedAt: new Date().toISOString(),
+      messages: [],
+      input: "",
+      ask: undefined,
+    };
+    open(snapshot, `conversation:${snapshot.id}`);
+    setCatalog((current) => upsertCurrent(current, snapshot));
+    layout({ type: "chat-started" });
+    requestAnimationFrame(() =>
+      document.querySelector<HTMLTextAreaElement>(".composer textarea")?.focus(),
+    );
+  }
+
+  function moveChat(tripId?: string) {
+    if (
+      backgroundTurns.current.get(activeConversation.current)?.state.status === "running" ||
+      stateRef.current.ask ||
+      editPending
+    )
+      return;
+    const current = flushSave();
+    const id = activeConversation.current;
+    const target = current.trips.find((trip) => trip.id === tripId);
+    if (tripId && (!target || !canStart(target.snapshot.plan.tripId))) return;
+    const record = movedConversation(current, id, target, stateRef.current);
+    abortTurns((turn) => turn.conversationId !== id);
+    open(
+      {
+        plan: target?.snapshot.plan,
+        previousTotal: target?.snapshot.previousTotal,
+        draft: record.draft!,
+        messages: record.messages,
+        input: record.input,
+      },
+      id,
+    );
+    if (!target) freshTripId.current = crypto.randomUUID();
+    setCatalog(relinkConversation(current, record));
+    layout({ type: "chat-started" });
+  }
+
+  function newTripForChat() {
+    if (
+      backgroundTurns.current.get(activeConversation.current)?.state.status === "running" ||
+      editPending ||
+      stateRef.current.ask
+    )
+      return;
+    const current = flushSave();
+    const id = activeConversation.current;
+    if (!plan) {
+      openPreferences("where");
+      return;
+    }
+    const tripId = crypto.randomUUID();
+    const snapshot = {
+      version: 4 as const,
+      id: id.replace(/^conversation:/, ""),
+      savedAt: new Date().toISOString(),
+      plan: { ...plan, tripId, brief: { ...plan.brief, tripId } },
+      draft,
+      messages,
+      input,
+    };
+    abortTurns((turn) => turn.conversationId !== id);
+    open(snapshot, id);
+    const next = {
+      ...current,
+      trips: current.trips.map((trip) => ({
+        ...trip,
+        conversationIds: trip.conversationIds.filter((conversationId) => conversationId !== id),
       })),
     };
+    setCatalog(upsertCurrent(next, snapshot));
+    layout({ type: "chat-started" });
   }
   function deleteChat(id: string) {
     const existing = catalog.conversations.find((item) => item.id === id);
-    if (
-      !existing ||
-      !window.confirm(
-        t("Delete “{title}”? The linked trip will be kept.", { title: existing.title }),
-      )
-    )
-      return;
-
+    if (existing) setCatalogDialog({ kind: "delete-chat", id, title: existing.title });
+  }
+  function confirmDeleteChat() {
+    const id = catalogDialog?.id;
+    setCatalogDialog(undefined);
+    if (!id) return;
     abortTurns((turn) => turn.conversationId !== id);
     if (activeConversation.current === id) startBlankChat(withoutConversation(catalog, id));
     else setCatalog((current) => withoutConversation(current, id));
@@ -682,17 +771,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
   function renameTrip(id: string) {
     const existing = catalog.trips.find((item) => item.id === id);
-    if (!existing) return;
-    const title = window.prompt(t("Rename trip"), tripName(existing, t))?.trim();
-    if (!title) return;
-    setCatalog((current) => ({
-      ...current,
-      trips: current.trips.map((item) =>
-        item.id === id
-          ? { ...item, title, renamed: true, updatedAt: new Date().toISOString() }
-          : item,
-      ),
-    }));
+    if (existing) setCatalogDialog({ kind: "rename-trip", id, title: tripName(existing, t) });
   }
   function deleteTrip(id: string) {
     const trip = catalog.trips.find((item) => item.id === id);
@@ -848,11 +927,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       },
       selectTrip,
       selectConversation,
-      openTripConversation: (id: string) => loadConversation(id),
       previewTrip: (id: string) => loadTrip(id),
       newChat: () => startBlankChat(),
       newTripChat: sendTripChat,
-      sendHomeTripChat: (tripId: string, text: string) => sendTripChat(tripId, text, false),
+      sendHomeTripChat: (tripId: string, text: string, attachments: PreparedAttachment[] = []) =>
+        sendTripChat(tripId, text, true, attachments),
 
       newTrip: () => startBlankChat(undefined, "trip"),
     },
@@ -901,6 +980,13 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       ...stable.history,
       rename: renameChat,
       delete: deleteChat,
+      catalogDialog,
+      closeCatalogDialog: () => setCatalogDialog(undefined),
+      saveName,
+      confirmDeleteChat,
+      newLinkedChat,
+      moveChat,
+      newTripForChat,
       renameTrip,
       deleteTrip,
       deletedTrip: deletedTrip && { name: deletedTrip.name, undo: undoDeleteTrip },

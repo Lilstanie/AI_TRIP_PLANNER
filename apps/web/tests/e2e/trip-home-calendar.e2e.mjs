@@ -295,6 +295,27 @@ const openCalendar = async (page, language = "en") => {
     .waitFor();
   return drawer;
 };
+const checkCalendarPresentation = async (drawer, language = "en") => {
+  const presentation = await drawer.locator(".trip-home-calendar").evaluate((node) => {
+    const selected = node.querySelector('button[aria-pressed="true"]');
+    const unselected = node.querySelector('button[aria-pressed="false"]');
+    return {
+      selectedFill: getComputedStyle(selected).backgroundColor,
+      unselectedFill: getComputedStyle(unselected).backgroundColor,
+      titles: [...node.querySelectorAll(".trip-home-calendar__event-title")].map((title) => {
+        const box = title.getBoundingClientRect();
+        return { text: title.textContent, width: box.width, height: box.height };
+      }),
+    };
+  });
+  check(
+    presentation.selectedFill !== presentation.unselectedFill &&
+      presentation.titles.length > 0 &&
+      presentation.titles.every((title) => title.width >= 40 && title.height > 0),
+    `${language} Calendar selected controls and event titles remain visible`,
+    presentation,
+  );
+};
 const closeDrawer = async (page) => {
   await page.locator('[role="dialog"][aria-modal="true"] .drawer__close').click();
   await page.locator('[role="dialog"][aria-modal="true"]').waitFor({ state: "hidden" });
@@ -332,6 +353,7 @@ try {
   browser = await chromium.launch({ headless: true });
   const { context, page } = await open();
   let calendarDrawer = await openCalendar(page);
+  await checkCalendarPresentation(calendarDrawer);
 
   check(
     (await calendarDrawer.locator('[data-view="week"]').count()) === 1,
@@ -510,50 +532,26 @@ try {
     "Calendar reflects the shared Plan edit",
     editedCalendarLabel,
   );
-  await activityButton(calendarDrawer, "walk-late").click();
-  const afterCalendar = dialog(page, "Itinerary");
-  await afterCalendar.getByRole("button", { name: "Undo last change" }).click();
-  await afterCalendar
-    .locator(".timeline-stop.is-selected")
-    .getByRole("button", { name: "Change time, 10:00–12:00" })
-    .waitFor();
-  check(true, "Undo restores the previous shared Plan time");
   await closeDrawer(page);
-  check(
-    (await page.locator(".trip-home__map").getAttribute("data-day")) === "4",
-    "Undo keeps Calendar selection aligned with the home map day",
-  );
-
-  calendarDrawer = await openCalendar(page);
-  const restoredCalendarLabel = await activityButton(calendarDrawer, "walk-late").getAttribute(
-    "aria-label",
-  );
-  check(
-    restoredCalendarLabel?.includes("10:00–12:00") === true,
-    "Calendar reflects Undo immediately",
-    restoredCalendarLabel,
-  );
-  check(
-    (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "untimed",
-    "Undo preserves unrelated untimed activities",
-  );
-  await closeDrawer(page);
-
   await openConversationTrip(page);
   const workspace = page.getByRole("region", { name: "Your trip" });
+  const chatEditedTime = workspace.getByRole("button", {
+    name: "Change time, 12:30–13:30",
+    exact: true,
+  });
+  await chatEditedTime.waitFor();
   check(
     (await workspace.getByRole("tab", { name: /^Day 4/ }).getAttribute("aria-selected")) === "true",
     "the conversation Trip entry preserves the Calendar selected day",
   );
   check(
     (await workspace.locator(".timeline-stop").filter({ hasText: "Harbour walk" }).count()) === 2 &&
-      (await workspace
-        .locator(".timeline-stop")
-        .filter({ hasText: "Harbour walk" })
-        .getByRole("button", { name: "Change time, 10:00–12:00", exact: true })
-        .count()) === 1,
-    "the conversation Trip entry reflects the Calendar edit and Undo by stable activity identity",
+      (await chatEditedTime.count()) === 1,
+    "the linked Chat receives the Trip home edit before Undo",
   );
+  await workspace.getByRole("button", { name: "Undo last change", exact: true }).click();
+  await workspace.getByRole("button", { name: "Change time, 10:00–12:00", exact: true }).waitFor();
+  check(true, "Undo in the linked Chat restores the previous shared Plan time");
 
   await page
     .locator(".sidebar-nav")
@@ -561,7 +559,27 @@ try {
     .click();
   await page.locator(".trip-cards .trip-card").first().click();
   await page.locator(".trip-home").waitFor();
+  check(
+    (await page.locator(".trip-home__map").getAttribute("data-day")) === "4",
+    "returning home after Chat Undo preserves the selected map day",
+  );
   calendarDrawer = await openCalendar(page);
+  const restoredCalendarLabel = await activityButton(calendarDrawer, "walk-late").getAttribute(
+    "aria-label",
+  );
+  check(
+    restoredCalendarLabel?.includes("10:00–12:00") === true &&
+      (await activityButton(calendarDrawer, "walk-early").getAttribute("aria-label"))?.includes(
+        "09:00–11:00",
+      ) === true &&
+      (await calendarDrawer.locator('[data-selected-day="4"]').count()) === 1,
+    "Chat Undo reaches Calendar by stable activity identity and preserves the selected day",
+    restoredCalendarLabel,
+  );
+  check(
+    (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "untimed",
+    "Chat Undo preserves unrelated untimed activities",
+  );
   await activityButton(calendarDrawer, "markets").click();
   const untimedStop = dialog(page, "Itinerary").locator(".timeline-stop.is-selected");
   await untimedStop.waitFor();
@@ -644,6 +662,7 @@ try {
     viewport: { width: 390, height: 844 },
   });
   calendarDrawer = await openCalendar(zh.page, "zh");
+  await checkCalendarPresentation(calendarDrawer, "zh");
   check(
     (await calendarDrawer
       .getByRole("button", { name: "周", exact: true })

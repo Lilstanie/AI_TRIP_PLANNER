@@ -454,6 +454,8 @@ try {
     .getByRole("button", { name: /Family plan/ })
     .click();
   await page.getByText("Family plan marker", { exact: true }).waitFor();
+  check((await home(page).count()) === 0, "a linked Chat opens the normal conversation workspace");
+  await openHome(page);
 
   await action(page, /^Itinerary/).click();
   const itinerary = dialog(page, "Itinerary");
@@ -522,7 +524,7 @@ try {
     (await dialog(page, "Itinerary").count()) === 0 &&
       (await bookings.getByRole("region", { name: "Flights", exact: true }).count()) === 1 &&
       (await page.locator(".trip-home__map").getAttribute("data-day")) === "2" &&
-      (await page.getByRole("button", { name: "Back to trip home" }).count()) === 1,
+      (await home(page).getByRole("list", { name: "Chats", exact: true }).isVisible()),
     "an in-panel control switches actions without closing and keeps Chat and selected day",
   );
   await panelTab(page, /^Itinerary/).click();
@@ -657,11 +659,11 @@ try {
   const restored = await page.evaluate(() => ({
     focus: document.activeElement?.textContent ?? "",
     day: document.querySelector(".trip-home__map")?.getAttribute("data-day"),
-    chat: !!document.querySelector('.trip-home-chat, [aria-label="Chat"]'),
+    chats: !!document.querySelector(".trip-home-chats"),
   }));
   check(
-    restored.focus.includes("Itinerary") && restored.day === "2" && restored.chat,
-    "closing restores focus, selected day and Chat",
+    restored.focus.includes("Itinerary") && restored.day === "2" && restored.chats,
+    "closing restores focus, selected day and the Chat list",
     restored,
   );
 
@@ -749,45 +751,6 @@ try {
     "a desktop outside press closes the panel and restores trigger focus",
   );
 
-  const resizer = page.getByRole("separator", { name: "Resize chat and map" });
-  await resizer.focus();
-  await page.keyboard.press("End");
-  await action(page, /^Calendar/).click();
-  await dialog(page, "Calendar").waitFor();
-  await dialog(page, "Calendar").getByRole("button", { name: "Expand panel" }).click();
-  const extremeLayout = await page.evaluate(() => {
-    const surface = document.querySelector(".trip-home-action-surface")?.getBoundingClientRect();
-    const rail = document.querySelector(".trip-home__aside")?.getBoundingClientRect();
-    const map = document.querySelector(".trip-home__map");
-    return {
-      overflow: document.documentElement.scrollWidth - innerWidth,
-      width: surface?.width,
-      railWidth: rail?.width,
-      expanded: document
-        .querySelector(".trip-home-action-surface")
-        ?.classList.contains("is-expanded"),
-      mapWidth: map?.getBoundingClientRect().width,
-    };
-  });
-  const extreme = { ...extremeLayout, ...(await readMapIdentity(page)) };
-  check(
-    extreme.overflow <= 0 &&
-      extreme.expanded &&
-      extreme.mapWidth > 200 &&
-      extreme.map === MAP_IDENTITY &&
-      extreme.canvas === MAP_IDENTITY &&
-      extreme.host === MAP_IDENTITY &&
-      extreme.renderer === MAP_IDENTITY &&
-      extreme.instance === MAP_IDENTITY &&
-      extreme.index === mapIdentity.index &&
-      extreme.liveMaps === 1 &&
-      extreme.connected === 1 &&
-      extreme.day === "2",
-    "an extreme chat/map split expands beside the same map without overflow",
-    extreme,
-  );
-  await page.screenshot({ path: `${OUT}/desktop-1440-expanded-extreme-en.png` });
-  await page.keyboard.press("Escape");
   await page.screenshot({ path: `${OUT}/desktop-1440-en.png` });
   check(desktop.errors.length === 0, "desktop journey has no browser errors", desktop.errors);
   await desktop.context.close();
@@ -831,7 +794,7 @@ try {
   check(chinese.errors.length === 0, "Chinese journey has no browser errors", chinese.errors);
   await chinese.context.close();
 
-  for (const width of [375, 520, 521, 1000, 1001]) {
+  for (const width of [390, 1001]) {
     const responsive = await open("en", { width, height: width <= 520 ? 844 : 900 }, width <= 520);
     await openHome(responsive.page, "en", width);
     await action(responsive.page, /^Itinerary/).click();

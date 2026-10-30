@@ -272,8 +272,10 @@ async function run(size, viewport) {
       await page
         .getByRole("button", { name: "Actions for Performance fixture", exact: true })
         .click();
-      page.once("dialog", (dialog) => dialog.accept("Renamed performance fixture"));
       await page.getByRole("menuitem", { name: "Rename", exact: true }).click();
+      const renameDialog = page.getByRole("dialog", { name: "Rename chat" });
+      await renameDialog.getByRole("textbox").fill("Renamed performance fixture");
+      await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
       await page.waitForFunction(
         (key) =>
           JSON.parse(localStorage.getItem(key)).conversations.some(

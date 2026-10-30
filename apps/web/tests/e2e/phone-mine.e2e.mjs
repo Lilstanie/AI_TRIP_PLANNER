@@ -201,15 +201,22 @@ try {
       await mine.getByRole("menuitem", { name: "Delete" }).isVisible(),
       `${width}: Delete available`,
     );
-    page.once("dialog", (dialog) => dialog.accept("Renamed notes"));
     await mine.getByRole("menuitem", { name: "Rename" }).click();
+    const renameDialog = page.getByRole("dialog", { name: "Rename chat" });
+    await renameDialog.getByRole("textbox").fill("Renamed notes");
+    await renameDialog.getByRole("button", { name: "Save", exact: true }).click();
+    await mine.getByText("Renamed notes", { exact: true }).waitFor();
     check(
       await mine.getByText("Renamed notes", { exact: true }).isVisible(),
       `${width}: rename saved`,
     );
     await mine.getByRole("button", { name: "Actions for Renamed notes" }).click();
-    page.once("dialog", (dialog) => dialog.accept());
     await mine.getByRole("menuitem", { name: "Delete" }).click();
+    await page
+      .getByRole("dialog", { name: "Delete chat" })
+      .getByRole("button", { name: "Delete", exact: true })
+      .click();
+    await mine.getByText("Renamed notes", { exact: true }).waitFor({ state: "detached" });
     check(
       !(await mine.getByText("Renamed notes", { exact: true }).count()),
       `${width}: delete saved`,
