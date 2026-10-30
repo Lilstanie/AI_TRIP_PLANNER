@@ -7,12 +7,16 @@ function amount(value: string): number | undefined {
   return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
 }
 
+const NOT_A_PLACE =
+  /^(?:旅游|旅行|度假|玩|玩玩|走走|逛逛|散心|出游|出去玩|休假|(?:a\s+)?(?:holiday|vacation|trip|break|getaway))$/iu;
+
 function cleanDestination(value: string): string {
-  return value
+  const place = value
     .trim()
     .replace(/\s+(?:trip|travel|holiday)$/i, "")
     .replace(/[，,。.]+$/, "")
     .trim();
+  return NOT_A_PLACE.test(place) ? "" : place;
 }
 
 const CHINESE_DIGITS: Record<string, number> = {

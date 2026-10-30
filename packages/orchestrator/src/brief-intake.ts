@@ -15,6 +15,7 @@ import { localCalendarDate } from "@trip/tools";
 import { mergeBriefPatch, type BriefPatch } from "./brief";
 import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
 import { addDays } from "./dates";
+import { replyLanguage } from "./reply-language";
 
 export class IncompleteBriefError extends Error {
   constructor(
@@ -56,6 +57,58 @@ const FIELD_LABELS: Record<string, string> = {
   groupSize: "number of travellers",
   budgetTotal: "total budget",
 };
+
+const NEXT_QUESTION: Record<InterfaceLanguage, Record<string, (place?: string) => string>> = {
+  en: {
+    destination: () => "Where would you like to go?",
+    "start and end dates": (place) =>
+      place ? `When are you travelling to ${place}?` : "When are you travelling?",
+    "number of travellers": () => "How many people are travelling?",
+    "total budget": () => "What's your total budget?",
+  },
+  zh: {
+    destination: () => "你想去哪里？",
+    "start and end dates": (place) =>
+      place ? `打算哪天去${place}，哪天回来？` : "打算哪天出发，哪天回来？",
+    "number of travellers": () => "一共几个人出行？",
+    "total budget": () => "总预算大概多少？",
+  },
+};
+
+const ALSO_NEEDED: Record<InterfaceLanguage, Record<string, string>> = {
+  en: {
+    "start and end dates": "your dates",
+    "number of travellers": "how many are travelling",
+    "total budget": "a budget",
+  },
+  zh: {
+    "start and end dates": "出行日期",
+    "number of travellers": "同行人数",
+    "total budget": "预算",
+  },
+};
+
+function listed(items: string[], language: InterfaceLanguage): string {
+  if (language === "zh") return items.join("、");
+  return items.length > 1 ? `${items.slice(0, -1).join(", ")} and ${items.at(-1)}` : items[0]!;
+}
+
+/** Asks for the first missing field and names the rest; undefined when no listed field is missing. */
+export function nextFieldAsk(
+  missing: string[],
+  known: PartialTripBrief,
+  language: InterfaceLanguage,
+): string | undefined {
+  const [first, ...rest] = missing;
+  const ask = first ? NEXT_QUESTION[language][first] : undefined;
+  if (!ask) return undefined;
+  const question = ask(known.destination);
+  const others = rest.flatMap((field) => ALSO_NEEDED[language][field] ?? []);
+  if (!others.length) return question;
+  return language === "zh"
+    ? `${question}再告诉我${listed(others, language)}，我就开始规划。`
+    : `${question} Add ${listed(others, language)} too, and I'll start planning.`;
+}
 
 export function missingFields(known: BriefPatch, tripId: string): string[] {
   const result = TripBriefSchema.safeParse({ ...known, tripId });
@@ -253,10 +306,20 @@ export class BriefIntake {
   }
 
   requireReady(question?: string): TripBrief {
+    const { request } = this;
     const result = this.readiness();
     if (result.status === "ready") return result.brief;
     if (result.status === "incomplete")
-      throw new IncompleteBriefError(result.missing, result.known, question);
+      throw new IncompleteBriefError(
+        result.missing,
+        result.known,
+        question ??
+          nextFieldAsk(
+            result.missing,
+            result.known,
+            replyLanguage(request.message, request.interfaceLanguage),
+          ),
+      );
     throw new AskUserError(
       result.askUser,
       result.status === "historical_dates" ? result.pending : undefined,
