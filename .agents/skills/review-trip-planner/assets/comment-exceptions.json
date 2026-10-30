@@ -5,9 +5,9 @@
     "reason": "E2E discovery and legacy runner read this directive to skip credential-dependent acceptance when its required environment is absent."
   },
   {
-    "file": "apps/web/tests/e2e/mention-menu.e2e.mjs",
-    "text": "// e2e-selectors: absent",
-    "reason": "scripts/verify-e2e-selectors.mjs reads this directive to accept a selector that checks the removed assistant chip row stays gone."
+    "file": "apps/web/tests/e2e/guide-budget-evidence.e2e.mjs",
+    "text": "// requires-env: DEEPSEEK_BASE_URL, DEEPSEEK_API_KEY",
+    "reason": "E2E discovery and legacy runner read this directive to skip the stub-model acceptance unless the server is pointed at the script's stub."
   },
   {
     "file": "apps/web/components/trajectory/layout.ts",

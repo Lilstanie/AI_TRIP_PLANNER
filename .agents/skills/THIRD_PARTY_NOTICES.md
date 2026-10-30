@@ -104,7 +104,7 @@ Copyright (c) 2026 Jakub Antalik; the complete MIT licence is preserved in
 
 ## Matt Pocock skills
 
-`ask-matt`, `grill-with-docs`, `to-spec`, `to-tickets`, `implement-spec`, `tdd`, `pr` and `retro` are adapted from
+`ask-matt`, `to-spec`, `to-tickets`, `implement-spec`, `tdd` and `retro` are adapted from
 [mattpocock/skills](https://github.com/mattpocock/skills) (v1.3.0; `ask-matt` from v1.3.1). Each entrypoint is the
 account copy installed for this project, with its description, where needed, rewritten so it states when to use the skill
-("Use when the user explicitly asks (/name) ..."), which `pnpm verify:docs` requires. Instructions are otherwise unchanged.
+("Use when the user explicitly asks (/name) ..."), which `pnpm verify:docs` requires. Since 2026-10-30 `ask-matt` routes only to skills in this repository, `tdd` and `implement-spec` add the repository's E2E-first rule, and `retro` points at the repository's review skill and checks instead of `CODING_STANDARDS.md`; the other instructions are unchanged.

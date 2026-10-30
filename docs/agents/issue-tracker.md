@@ -65,9 +65,9 @@ Jira only sees issue keys such as `TP-16` that appear in text, so every link is 
 - **What Jira shows.** The GitHub for Jira app syncs branches, commits, pull requests, builds and
   deployments whose text carries the key; they appear in the story's Development panel. GitHub issues are
   not synced, so a key in an issue title only helps people match the two by hand.
-- **Status.** Linking does not move the story. No Jira Automation rule moves it on merge yet (checked
-  2026-10-25: TP-79 and TP-80 stayed in To Do after their PRs merged), so whoever merges moves the story
-  to Done.
+- **Status.** Linking does not move the story, and no Jira Automation rule is used. The agent or person
+  delivering the PR moves it: to `正在进行` when the PR opens, to `已完成` with a comment naming the
+  PR when it merges (`trip-planner-pr-delivery` skill, steps 4 and 6).
 
 ## When a skill says "publish to the issue tracker"
 

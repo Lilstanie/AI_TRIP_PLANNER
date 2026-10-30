@@ -328,7 +328,7 @@ const broken = fixture();
 broken.checkpoint();
 broken.write(
   ".agents/skills/skill-maintenance/SKILL.md",
-  "Missing `apps/web/missing.ts` and `pnpm missing-command`.\n",
+  'Missing `apps/web/missing.ts`, `docs/missing.md` and `pnpm missing-command`. Examples: `feature/TP-72-trajectory-tab`, `+additions/-deletions`, `fetch("/orders`.\n',
 );
 broken.commit("Partial edit with broken references");
 const drift = broken.run(
@@ -337,7 +337,7 @@ const drift = broken.run(
   ["--json"],
   "check-skills.mjs",
 );
-assert.deepEqual(drift.skills[0].missingPaths, ["apps/web/missing.ts"]);
+assert.deepEqual(drift.skills[0].missingPaths, ["apps/web/missing.ts", "docs/missing.md"]);
 assert.equal(drift.skills[0].brokenScripts.length, 1);
 assert.match(
   broken.run("drift human reports missing path", 1, [], "check-skills.mjs"),

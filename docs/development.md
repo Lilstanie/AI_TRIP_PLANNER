@@ -226,7 +226,7 @@ within those rules. The current E2E runner remains the execution entry point. In
 does not add npm dependencies or configure `@playwright/test`. Source revisions, local adaptations and
 update rules are recorded in the [integration decision](../.agents/notes/implemented/process/2026-10-11-framework-reference-skills.md).
 
-Use `review-trip-planner` for repository-specific risks. The global `code-review-standards-spec` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
+Use `review-trip-planner` for repository-specific risks. The account `code-review` skill coordinates Standards and Spec review. OCR plugin skills keep their own `open-code-review` and `open-code-review-delegate` names.
 
 [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md) owns the review handoff packet
 and the added-comment gate. Its references describe the CLI, explicit file scope,
@@ -240,14 +240,14 @@ rationale. Reports and regression summaries are retained for seven days. The job
 without lifecycle scripts and needs no browser. Required-check settings are configured separately.
 Its acceptance covers JSX text boundaries and files recreated after staged deletion.
 
-| Area                                    | Skills                                                                                                                                                                                                                                                                                                                                                                                                 |
-| --------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------ |
-| React and browser test references       | [vercel-react-best-practices](../.agents/skills/vercel-react-best-practices/SKILL.md), [playwright-best-practices](../.agents/skills/playwright-best-practices/SKILL.md)                                                                                                                                                                                                                               |
-| Interface design and effects            | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md)                                                                                          |
-| Feature and provider implementation     | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                                                                                                         |
-| Review and verification                 | [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md), [e2e-maintenance](../.agents/skills/e2e-maintenance/SKILL.md)                 |
-| Documentation and decisions             | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md), [skill-maintenance](../.agents/skills/skill-maintenance/SKILL.md)                                                                                              |
-| Planning and delivery (Matt Pocock set) | [ask-matt](../.agents/skills/ask-matt/SKILL.md), [grill-with-docs](../.agents/skills/grill-with-docs/SKILL.md), [to-spec](../.agents/skills/to-spec/SKILL.md), [to-tickets](../.agents/skills/to-tickets/SKILL.md), [implement-spec](../.agents/skills/implement-spec/SKILL.md), [tdd](../.agents/skills/tdd/SKILL.md), [pr](../.agents/skills/pr/SKILL.md), [retro](../.agents/skills/retro/SKILL.md) |
+| Area                                    | Skills                                                                                                                                                                                                                                                                                                                                                                                 |
+| --------------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| React and browser test references       | [vercel-react-best-practices](../.agents/skills/vercel-react-best-practices/SKILL.md), [playwright-best-practices](../.agents/skills/playwright-best-practices/SKILL.md)                                                                                                                                                                                                               |
+| Interface design and effects            | [better-layout](../.agents/skills/better-layout/SKILL.md), [better-ui](../.agents/skills/better-ui/SKILL.md), [better-accessibility](../.agents/skills/better-accessibility/SKILL.md), [better-writing](../.agents/skills/better-writing/SKILL.md), [libraries-dev](../.agents/skills/libraries-dev/SKILL.md)                                                                          |
+| Feature and provider implementation     | [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md), [api-scout](../.agents/skills/api-scout/SKILL.md), [add-provider](../.agents/skills/add-provider/SKILL.md), [agent-experience](../.agents/skills/agent-experience/SKILL.md)                                                                                                                         |
+| Review and verification                 | [review-trip-planner](../.agents/skills/review-trip-planner/SKILL.md), [find-simplifications](../.agents/skills/find-simplifications/SKILL.md), [break](../.agents/skills/break/SKILL.md), [ui-verification](../.agents/skills/ui-verification/SKILL.md), [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md), [e2e-maintenance](../.agents/skills/e2e-maintenance/SKILL.md) |
+| Documentation and decisions             | [prose-standard](../.agents/skills/prose-standard/SKILL.md), [translate-docs](../.agents/skills/translate-docs/SKILL.md), [agent-notes](../.agents/skills/agent-notes/SKILL.md), [session-log](../.agents/skills/session-log/SKILL.md), [skill-maintenance](../.agents/skills/skill-maintenance/SKILL.md)                                                                              |
+| Planning and delivery (Matt Pocock set) | [ask-matt](../.agents/skills/ask-matt/SKILL.md), [to-spec](../.agents/skills/to-spec/SKILL.md), [to-tickets](../.agents/skills/to-tickets/SKILL.md), [implement-spec](../.agents/skills/implement-spec/SKILL.md), [tdd](../.agents/skills/tdd/SKILL.md), [retro](../.agents/skills/retro/SKILL.md)                                                                                     |
 
 Use [e2e-maintenance](../.agents/skills/e2e-maintenance/SKILL.md) when diagnosing or repairing the test itself. It compares equivalent baseline/current runs, checks assertions and process results, and retains successful and deliberate-failure controls through the existing runner. Application UI acceptance stays with [ui-verification](../.agents/skills/ui-verification/SKILL.md); outgoing check selection stays with [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md).
 
@@ -325,7 +325,7 @@ a free port, runs each named script against it from the repository root and stop
 started:
 
 ```bash
-pnpm --filter @trip/web e2e timeline display-currency     # names without .e2e.mjs; 'phone-*' works
+pnpm --filter @trip/web e2e trip-export one-line-budget    # names without .e2e.mjs; 'phone-*' works
 pnpm --filter @trip/web e2e phone-shell --prod            # next build + next start, for scripts that ask for it
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
@@ -381,7 +381,7 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package.
 
-`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). Each script's header lists the failure inventory it was written from and
+`output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). `node scripts/worktrees.mjs` lists worktrees and leftovers by category: clean worktrees, `.next` and `.turbo` build output in kept worktrees, directories under `~/.codex/worktrees` that hold only the worktree-name marker, and unregistered clean clones of the same `origin`. It is a dry run until `--apply`, which moves them to the Trash and runs `git worktree prune`; it keeps anything with changes, a stash, unpushed or unreachable commits, a lock, the main worktree and the one it runs from, and never deletes a branch. Without `--worktree` it also keeps any worktree or clone whose Git index, `HEAD` or reflog changed within `--idle-hours` (default 24), so it does not pull a worktree from under another session. `--worktree <path>` limits it to the named worktrees, which is how a run removes its own worktree when it ends. `--root <dir>` replaces the scan root, `--trash <dir>` the Trash, and `--sizes` sizes only the listed entries; use it instead of `du` over the whole disk or `git status --untracked-files=all`. Its failure inventory is [scripts/worktrees.failures.md](../scripts/worktrees.failures.md). Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
 Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
 (see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
@@ -390,22 +390,12 @@ reduced motion). Release smoke keeps `provider-empty-result` as the representati
 `agent-lab-failures` owns all five registered fault profiles, their outcomes, downloads and offline replay,
 plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
 
-`auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
+`plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
 day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Every 44 px touch-target check uses its
 `touchSized(pixels)`, which rounds sub-pixel layout sizes first; call it in Node, not inside `evaluate`. Each script owns its scenario
 assertions, request interception, held responses and screenshots; concurrency and cancellation setup
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.
-
-`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` runs the whole Mindtrip itinerary interaction in one
-journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and onto the ideas
-chip, every Stop, Day and Itinerary menu item, the Add to trip panel from a day and from the ideas chip on
-each tab, Undo after each change, Leg distances and Directions. Screenshots and
-`result.json` land in `output/playwright/itinerary-walkthrough/after/`. It includes Edit title and Add note on a day.
-
-```bash
-pnpm --filter @trip/web e2e itinerary-walkthrough --prod
-```
 
 `apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` runs the whole quiet itinerary panel of spec #755 on one saved
 Trip at desktop, phone and in Chinese: budget line, ideas chip, days and folded Travel tips in that order, the

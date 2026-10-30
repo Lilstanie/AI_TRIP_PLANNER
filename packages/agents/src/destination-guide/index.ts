@@ -172,7 +172,8 @@ function createMiniMaxGenerator(): DestinationGuideGenerator | undefined {
 
   return {
     async generate(input) {
-      const evidence = tool(async () => input, {
+      const { budgetTotal: _budgetTotal, budgetSource: _budgetSource, ...brief } = input.brief;
+      const evidence = tool(async () => ({ ...input, brief }), {
         name: "read_destination_evidence",
         description:
           "Read the validated trip brief, travel month, grounded map candidates, confirmed preferences and dated forecast or historical climate evidence, including unavailable dates.",

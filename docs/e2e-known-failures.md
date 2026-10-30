@@ -7,48 +7,17 @@ registered fixture journeys. A raw script can fail on `main` before anyone notic
 before deciding whether a failing script is your regression; update it when you find a script that fails on
 `main` or fix one. Each entry says when it was last checked and what fails.
 
-| Script         | Checked on `main` | What fails                                                                                                                              | Issue    |
-| -------------- | ----------------- | --------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `thinking-orb` | 2026-10-09        | "running subagents show orbs (0)" at 1440 light: no `.thinking-row__leading canvas.thinking-orb` appears, then the next wait times out. | none yet |
+TP-165 (2026-10-30) deleted 136 raw scripts that failed on `main`, guarded one old fix each, or
+repeated a kept journey, together with their failure notes and unused fixtures. Their old entries are
+gone from this page; restore a script from Git history only with a reason it is needed again.
 
-The following failures also reproduce on unchanged baseline `42fded7` (2026-10-10), using a production
-server with `DATA_MODE=mock`, `USE_MOCK_TOOLS=true`, and blank `MOCK_GOOGLE_MAPS`, model and Clerk variables:
+The issue thread re-ran these on `main` `fb21e61` (2026-10-30) with
+`pnpm --filter @trip/web e2e <script> --prod` and no extra environment. PR #782 changes both scripts.
 
-| Script     | What fails                                                                                                                                                                                                                    | Issue    |
-| ---------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | -------- |
-| `timeline` | The fare-decimals console check reports four 404 responses for fixture place details. The fixture uses stand-in place IDs without stubbing their details; all JPY/AUD/KRW fare and route checks pass (99/100 checks overall). | none yet |
-
-The following scripts also fail on unmodified `main` `c8ebd9b` (2026-10-27), run in a clean worktree as
-`pnpm --filter @trip/web e2e <script> --prod` with no extra environment. They fail the same way on the
-Mindtrip itinerary branches, so the itinerary tickets did not cause them. Most were written for the Trip
-drawer that the calmer workspace (#740) replaced.
-
-| Script               | What fails                                                                                                 | Issue    |
-| -------------------- | ---------------------------------------------------------------------------------------------------------- | -------- |
-| `timeline`           | After the first check the screenshot waits forever for `.workspace-drawer--trip`, which no longer renders. | none yet |
-| `auto-save-places`   | After 35 checks "the priced stop raises the estimate" fails: the estimate stays empty.                     | none yet |
-| `drawer-walkthrough` | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
-| `itinerary`          | "Day 1 timeline is shown" fails and no stop rows are found under `.workspace-drawer--trip`.                | none yet |
-| `settle-path`        | "the trip has an estimated total" reads 0, so every total check after it fails.                            | none yet |
-| `check-entry-point`  | After 28 checks it waits for the textbox "Message AI Trip Planner", then times out.                        | none yet |
-| `notice-keys`        | Waits for `.workspace-drawer--trip .trip-editor` after planning, then times out.                           | none yet |
-| `narrow-time-editor` | Waits for the button "Close your trip" at 1001 px, then times out.                                         | none yet |
-
-The following scripts failed on the unmodified base of the quiet itinerary panel work (2026-10-28), found by the ticket implementers who ran them in a clean worktree as `pnpm --filter @trip/web e2e <script> --prod`. The quiet panel tickets did not cause them; the cause of each is not yet investigated.
-
-| Script                  | Checked    |
-| ----------------------- | ---------- |
-| `reply-cost-line`       | 2026-10-28 |
-| `open-in-maps`          | 2026-10-28 |
-| `workspace-performance` | 2026-10-28 |
-| `trajectory-timeline`   | 2026-10-28 |
-| `cross-day-drag`        | 2026-10-28 |
-| `itinerary-walkthrough` | 2026-10-28 |
-| `trip-workspace-layout` | 2026-10-28 |
-| `stop-menu`             | 2026-10-28 |
-| `drag-in-day`           | 2026-10-28 |
-
-`phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
+| Script                  | What fails                                                                                                  | Issue |
+| ----------------------- | ----------------------------------------------------------------------------------------------------------- | ----- |
+| `workspace-performance` | `runPlannedStorage` times out in `page.waitForFunction` before any timing is recorded.                      | #781  |
+| `trip-workspace-layout` | It launches the `chrome` channel, so it needs Google Chrome installed; without it the launch fails at once. | #781  |
 
 ## Covered regressions
 
@@ -68,8 +37,6 @@ The following scripts failed on the unmodified base of the quiet itinerary panel
   for Google-only. Each run covers 390×844, 360×800 and desktop transitions; retain separate
   attempts with `LABEL=<attempt>` under `output/playwright/phone-map/<attempt>/`.
 
-- `trip-initial-scroll` covers #375: on baseline `2e0f506`, a fresh desktop Trip view opened at scrollTop 163 and clipped the budget. The day strip now scrolls only horizontally. The browser check includes initial open, reopen, saved-chat reload, deliberate scroll restoration and keyboard day navigation at desktop and phone widths.
-
 - `agent-lab-replay` on PR #308 head `501af35` (2026-10-11) could miss the file chooser after keyboard
   Enter: the key event completed before Chromium acknowledged file-chooser interception. The journey
   keeps keyboard activation through the Replay button locator and stresses that boundary at 16× CPU
@@ -77,44 +44,27 @@ The following scripts failed on the unmodified base of the quiet itinerary panel
   `pnpm --filter @trip/web e2e run agent-lab-replay --dev`; the original global keyboard call fails
   this check even with the 30-second chooser timeout. This is a test-driver race, not a replay API failure.
 
-- `liquid-glass` and `glass-calibration` waited on a language button and a When chip that the
-  progressive-empty workspace no longer shows (2026-10-27, #731). Both scripts now plan a trip
-  first, run at 1440x1000 and 390x844 in light and dark, and pass with
-  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`
-  and the same command for `glass-calibration`.
+- `liquid-glass` waited on a language button and a When chip that the progressive-empty workspace
+  no longer shows (2026-10-27, #731). It now plans a trip first, runs at 1440x1000 and 390x844 in
+  light and dark, and passes with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e liquid-glass --prod`.
 
-- `team-panel-desktop`, `team-thinking` and `trajectory-demo` already failed on `main` (2026-10-27, #734),
-  independent of the glass and open-items tickets. The progressive-empty workspace moved the team
-  control into the leading top bar group, so "the button sits left of Trip" had no Trip to find; the
-  popover is named Specialist team, not Agent Team; the button's accessible name carries ", N working"
-  while planning, so an exact-name locator timed out; clicks at the stream's top-left landed on the
-  pinned panel; the trajectory tab selection and filter chip render a tick after the press; and on the
-  phone the roster sits in a closed fold inside the sheet that stays in the DOM after it closes. The
-  scripts now use those current premises and pass with
-  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
+- `trajectory-demo` already failed on `main` (2026-10-27, #734): the popover is named Specialist team,
+  not Agent Team, and the button's accessible name carries ", N working" while planning. It now uses
+  those premises and passes with
+  `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e trajectory-demo --prod`.
 
 - `trajectory-tab` already failed "a reply that arrived on the Trajectory tab is in view when
   Conversation returns" on `main` `629cf2a` (2026-10-27, #740): the tab buttons moved into the
   workspace top bar, which sets the chat view directly, so the chat panel never recorded the stream's
   scroll position and the new reply stayed below the fold (gap 365 px at 1440). The panel now tracks
   the stream's scroll position and the messages it last showed itself, whoever changes the view.
-  `phone-map-empty-hint` already encodes the #737 decision that the empty 1440 map area is hidden; it
-  failed once in six runs because `locator.evaluate` read the panel's visibility from a node that
-  hydration had replaced (empty string), so it now reads the live node. `sidebar-entries` belongs to
-  the sidebar tickets and passes on the integration branch; neither needs an entry.
 
-- `activities-not-costed`, `trip-ui-triage`, `budget-source-replacement`, `trip-display-currency`,
-  `display-currency`, `workspace-control-overflow`, `workspace-chinese`, `stop-progress` and `settings`
-  already failed on unmodified `main` (2026-10-28) because they drove controls the calmer workspace
-  (#740), the progressive-empty workspace and the Trip home (#765) moved or removed. They now use the
-  current premises: the interface language is switched in Settings (`setPhoneLanguage`,
-  `setDesktopLanguage`); the Trip view covers the conversation on desktop, so the scripts return with
-  the Conversation tab or close the Trip toggle (`aria-expanded`) before typing; opening a trip lands on
-  its Trip home, so they go through `openTripWorkspace`; a blank trip has no budget chip, so the budget
-  is stated in the first message and a blank trip's currency is read from the stored catalog; a stop is
-  opened by clicking its row, not by Edit details; the phone shows the converted-amounts notice in the
-  workspace notices, not the Trip panel; a Chinese message gets a Chinese reply, so the budget-reply
-  checks accept it; the unpriced wording is "unpriced costs not counted". Run each with
+- `trip-display-currency` and `settings` already failed on unmodified `main` (2026-10-28) because
+  they drove controls the calmer workspace (#740), the progressive-empty workspace and the Trip home
+  (#765) moved or removed. They now switch the interface language in Settings (`setPhoneLanguage`,
+  `setDesktopLanguage`), go through `openTripWorkspace`, state the budget in the first message and read
+  a blank trip's currency from the stored catalog. Run each with
   `DATA_MODE=mock USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e <script> --prod`.
 
 ## Not failures

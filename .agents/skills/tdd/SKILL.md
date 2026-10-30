@@ -9,6 +9,16 @@ TDD is the red → green loop. This skill is the reference that makes that loop 
 
 When exploring the codebase, read `GLOSSARY.md` (if it exists) so test names and interface vocabulary match the project's domain language, and respect ADRs in the area you're touching.
 
+## In AI_TRIP_PLANNER
+
+The repository's `CLAUDE.md` makes E2E tests the sole testing mechanism, so each red-green slice here is an E2E scenario, not a unit test:
+
+1. Write the ways the behaviour could fail in a `*.failures.md` next to the E2E, before any test or code.
+2. Add the scenario under `apps/web/tests` (or the package's `tests` directory) and prove red then green with `DATA_MODE=mock node scripts/redgreen.mjs <e2e> -- <source paths>`.
+3. Never write unit tests after the code. A Vitest-only change under `packages/*/src` or `apps/web/lib` needs a stated reason no E2E can cover it.
+
+[trip-planner-pr-delivery](../trip-planner-pr-delivery/SKILL.md) step 3 and [ui-verification](../ui-verification/SKILL.md) say how the evidence goes into the PR. The rest of this skill still decides what a good test is.
+
 ## What a good test is
 
 Tests verify behavior through public interfaces, not implementation details. Code can change entirely; tests shouldn't. A good test reads like a specification: "user can checkout with valid cart" tells you exactly what capability exists, and it survives refactors because it doesn't care about internal structure.
