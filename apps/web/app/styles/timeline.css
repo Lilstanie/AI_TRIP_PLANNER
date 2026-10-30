@@ -825,7 +825,7 @@ html.is-reordering .timeline[data-empty] {
 }
 .trip-editor__toolbar .action-menu {
   position: absolute;
-  top: 0;
+  top: var(--space-3);
   right: 0;
   z-index: 3;
 }

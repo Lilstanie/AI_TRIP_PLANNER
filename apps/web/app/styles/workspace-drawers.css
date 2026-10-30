@@ -120,13 +120,15 @@
   min-height: 100%;
   padding: 16px 20px 0;
 }
-.trip-panel > .trip__sub {
-  margin-top: 0;
-}
 .trip-panel__budget-summary {
-  margin-top: var(--space-2);
-  padding: var(--space-3) 0;
-  border-block: 1px solid var(--border);
+  padding: var(--space-2) 0 var(--space-3);
+  border-bottom: 1px solid var(--border);
+}
+.trip-panel__budget-line {
+  padding-inline-end: 48px;
+}
+.trip-workspace .trip-panel__budget-line {
+  padding-inline-end: 88px;
 }
 .trip-panel__budget-summary .trip__budget {
   flex-wrap: wrap;

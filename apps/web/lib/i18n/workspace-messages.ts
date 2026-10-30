@@ -422,8 +422,6 @@ export const WORKSPACE_ZH = {
   "Searching Google Maps…": "正在搜索 Google 地图…",
   "Checking the change…": "正在检查修改…",
   "Day {v0} timeline": "第 {v0} 天时间线",
-  traveller: "位旅行人员",
-  travellers: "位旅行人员",
   "Estimate unavailable": "暂无估算",
   "Over budget": "超出预算",
   "No accommodation needed": "不需要住宿",

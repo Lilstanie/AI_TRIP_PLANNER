@@ -731,6 +731,10 @@ Restaurant suggestions are excluded from the meals count; a scheduled restaurant
 itinerary Stop. The unpriced count includes all categories and an unquoted transport estimate, so it can
 exceed the activity count. Published zero fares remain zero. The category amounts add up to the known
 total. The summary starts collapsed and is at least 44 px tall on a phone.
+The budget row is the first row of the Trip panel. The panel does not repeat the destination, dates
+and travellers, because the trip fact chips above it already show them; the open items badge and the
+itinerary menu sit at the right of the budget row without covering its figures
+(`pnpm --filter @trip/web e2e trip-panel-head`).
 A count badge at the top of the Trip panel lists open items: scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when

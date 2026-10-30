@@ -8,7 +8,6 @@ import { countUnpricedCosts, deriveBudgetCategories } from "@/lib/trip/budget";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
-import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 
 export type TripPanelProps = {
   plan: TripPlan;
@@ -17,7 +16,7 @@ export type TripPanelProps = {
 };
 
 export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
-  const { t, locale, money, notice: localizeNotice } = useLocale();
+  const { t, money, notice: localizeNotice } = useLocale();
   const [onTrip, setOnTrip] = useState<boolean>();
   const [budgetOpen, setBudgetOpen] = useState(false);
   const budgetManuallyChanged = useRef(false);
@@ -66,16 +65,10 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
           ? t("Known estimate within budget · unpriced costs not counted")
           : t("Within budget");
   const budgetConflicts = placeConflicts(plan).budget;
-  const [start, end] = plan.brief.dates;
-  const dateRange = dateRangeLabel(start, end, locale) ?? `${start} – ${end}`;
 
   return (
     <OnTripContext.Provider value={setOnTrip}>
       <div className="trip-panel">
-        <p className="trip__sub">
-          {plan.brief.destination} · {dateRange} · {plan.brief.groupSize}{" "}
-          {plan.brief.groupSize === 1 ? t("traveller") : t("travellers")}
-        </p>
         <details
           className="disclosure trip-panel__budget-summary trip-budget"
           open={budgetOpen}
