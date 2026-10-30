@@ -803,7 +803,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 
 - **Place lookups** (`components/map/useTripPlaces`, `lib/map/place-query.ts`):
   - A lookup uses, in order, a saved `placeId`, the activity's `location`, or a title that is itself a
-    place name.
+    place name. Planned OSM stops carry the `placeId` (`osm:<type>/<id>`) of the place the agent
+    found, so they resolve by id.
   - Descriptive activity text and mock placeholders (“Mock attraction near …”) are never sent to
     Places, and nothing is invented.
   - Destination cities (split on `&`) are looked up separately for framing.

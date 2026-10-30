@@ -261,3 +261,56 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(String(fetcher.mock.calls[1]![0])).toContain("/interpreter");
   });
 });
+
+describe("OSM ids the map can look up", () => {
+  it("gives Overpass places their osm:<type>/<id> place id", async () => {
+    stub(
+      { body: tokyo },
+      {
+        body: {
+          elements: [
+            {
+              type: "way",
+              id: 5,
+              center: { lat: 35.71, lon: 139.8 },
+              tags: { name: "A", wikidata: "Q" },
+            },
+            { type: "node", lat: 35.7, lon: 139.7, tags: { name: "B", wikidata: "Q" } },
+          ],
+        },
+      },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.map((place) => place.placeId)).toEqual(["osm:way/5", undefined]);
+  });
+
+  it("turns Geoapify's one-letter OSM types into node, way and relation ids", async () => {
+    stub(
+      { body: { results: [{ lat: 35.68, lon: 139.77 }] } },
+      {
+        body: {
+          features: ["n", "w", "r", undefined].map((osm_type, index) => ({
+            properties: {
+              name: `P${index}`,
+              lat: 35.7,
+              lon: 139.7,
+              datasource: { raw: { ...(osm_type ? { osm_type, osm_id: index + 1 } : {}) } },
+            },
+          })),
+        },
+      },
+    );
+    vi.stubEnv("GEOAPIFY_API_KEY", "test-geoapify-key");
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.map((place) => place.placeId)).toEqual([
+      "osm:node/1",
+      "osm:way/2",
+      "osm:relation/3",
+      undefined,
+    ]);
+  });
+});

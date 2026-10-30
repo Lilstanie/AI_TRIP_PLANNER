@@ -817,6 +817,11 @@ async function planItinerary(
   }
   draft = adjusted.draft;
   const coordinates = placeCoordinates(places);
+  const placeIds = new Map(
+    places.flatMap((place) =>
+      place.placeId ? [[place.name.trim().toLocaleLowerCase(), place.placeId] as const] : [],
+    ),
+  );
   let connections: Connections = new Map();
   let conflicts = [
     ...adjusted.conflicts,
@@ -902,7 +907,13 @@ async function planItinerary(
 
     items: draft.activities.map(({ estCost: _unpriced, ...activity }) => {
       const arriveBy = connections.get(connectionKey(activity));
-      return { kind: "activity", ...activity, ...(arriveBy ? { arriveBy } : {}) };
+      const placeId = placeIds.get(activity.location.trim().toLocaleLowerCase());
+      return {
+        kind: "activity",
+        ...activity,
+        ...(placeId ? { placeId } : {}),
+        ...(arriveBy ? { arriveBy } : {}),
+      };
     }),
     assumptions: [
       ...draft.assumptions,

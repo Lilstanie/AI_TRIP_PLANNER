@@ -213,7 +213,7 @@ Trip 行程不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 ## 地图和地点
 
 - **地点查询**（`components/map/useTripPlaces`、`lib/map/place-query.ts`）：
-  - 查询依次采用已保存的 `placeId`、活动的 `location`，或本身就是地点名称的标题。
+  - 查询依次采用已保存的 `placeId`、活动的 `location`，或本身就是地点名称的标题。规划出的 OSM 站点带有智能体找到的地点的 `placeId`（`osm:<type>/<id>`），因此按 id 查询。
   - 活动描述文字和 mock 占位内容（“Mock attraction near …”）绝不发送给 Places，也不虚构内容。
   - 目的地城市（按 `&` 拆分）分别查询，以确定地图视野。
   - 结果逐项应用。照片元数据留在内存中；已保存站点在提供方 ID 之外只保留 `savedPlace` 中的名称、地址和坐标。

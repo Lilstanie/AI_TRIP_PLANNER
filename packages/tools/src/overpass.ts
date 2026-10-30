@@ -17,6 +17,8 @@ const TAGS: Record<string, { filters: string[]; notable: boolean }> = {
 
 type Area = { osm_type?: string; osm_id?: number; boundingbox?: string[] };
 type Element = {
+  type?: string;
+  id?: number;
   lat?: number;
   lon?: number;
   center?: { lat: number; lon: number };
@@ -77,6 +79,7 @@ export async function overpassPlaces(q: PlaceQuery): Promise<Place[]> {
       return {
         name: element.tags!.name!.trim(),
         category: q.category!,
+        ...(element.type && element.id ? { placeId: `osm:${element.type}/${element.id}` } : {}),
         ...(Number.isFinite(lat) && Number.isFinite(lon)
           ? { location: { latitude: lat!, longitude: lon! } }
           : {}),
