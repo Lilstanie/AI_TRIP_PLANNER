@@ -253,6 +253,40 @@ describe("accommodation revisions", () => {
     expect(result.items[0]!.detail).toContain("Standard");
   });
 
+  it("prefers a stay meeting one preference over one meeting none", async () => {
+    const partial: StayOption[] = [
+      { name: "Saver", area: "Outer", pricePerNight: 80, rating: 7.2, freeCancellation: false },
+      { name: "Economy", area: "Outer", pricePerNight: 100, rating: 7.6, freeCancellation: true },
+      { name: "Unknown", area: "Outer", pricePerNight: 90, rating: 7.4 },
+      {
+        name: "Standard",
+        area: "Central",
+        pricePerNight: 180,
+        rating: 8.7,
+        freeCancellation: true,
+      },
+    ];
+    const opening = await accommodationAgent.invoke({
+      brief: { ...brief, groupSize: 4 },
+      context: context(partial.slice(0, 3)).ctx,
+    });
+    expect(opening.items[0]!.detail).toContain("Economy");
+
+    const shared = await accommodationAgent.invoke({
+      brief: { ...brief, groupSize: 4 },
+      context: context(partial).ctx,
+      allocation: { budget: 1200, basis: "test share" },
+    });
+    expect(shared.items[0]!.detail).toContain("Economy");
+    expect(shared.items[0]!.estCost).toBe(800);
+
+    const best = await accommodationAgent.invoke({
+      brief: { ...brief, groupSize: 4 },
+      context: context(partial).ctx,
+    });
+    expect(best.items[0]!.detail).toContain("Standard");
+  });
+
   it("preserves mandatory rating and cancellation even when the target is impossible", async () => {
     const { ctx } = context(options, [
       { key: "accommodation.minRating", value: "8", source: "chat_confirmed" },
