@@ -1,94 +1,122 @@
 {
   "version": 1,
-  "reviewedRevision": "114388cc420df010d3d00da03d673a13504cc4c6",
+  "reviewedRevision": "b80f2528067ff7e2f9969d3001179cd25f1d2512",
   "skills": [
     {
       "name": "add-provider",
-      "summary": "re-read against ports/gateway, mockEnabled vs config.dataMode, the public-boundary test, SerpApiError and the development provider table; named paths and commands resolve and no merged PR since 87e2619 changes a rule it states; no change."
+      "summary": "re-read against the PRs merged since be41c30 (#740-#801); no provider, port or mock rule it states changed; check-skills reports no missing path; no change."
     },
     {
       "name": "agent-experience",
-      "summary": "re-checked specialist tools, supervisor delegation and progress decorators; the five-assistant work (#561 and its PRs) renames the interface wording, not the tool contracts the skill teaches, and no named path moved; no change."
+      "summary": "tool contracts, context loading and prompt rules unchanged by #740-#801 (UI, export, auth and process PRs); no named path moved; no change."
     },
     {
       "name": "agent-notes",
-      "summary": "lifecycle, archive and supersession steps still match verify-docs and verify-protected; the protected notes README still says rejected notes may be deleted while CI forbids it (reported, not changed); the 20 note commits since 87e2619 follow the lifecycle the skill describes."
+      "summary": "lifecycle steps still match verify-docs and verify-protected; #799 archived a note and added an implemented one exactly as the skill describes; no change."
     },
     {
       "name": "api-scout",
-      "summary": "provider-table anchor, roadmap link and add-provider hand-off resolve; discovery-only rules still forbid live calls and credentials; no change."
+      "summary": "discovery-only rules and add-provider hand-off still resolve; no provider PR since be41c30; no change."
+    },
+    {
+      "name": "ask-matt",
+      "summary": "trimmed in #803 to route only to skills in this repository (the upstream router named about 30 account-only skills); links resolve."
     },
     {
       "name": "better-accessibility",
-      "summary": "re-verified Drawer, Dialog, FactPopover, menus, separators and the base.css ring and reduced-motion switch; corrected the sticky-chrome rule, which named chrome that no longer exists, to say the only sticky chrome is the phone editor's .item-editor__actions and no scroller pads for it yet."
+      "summary": "TimelineStop.tsx, Drawer and Dialog still exist after #752, #771 and #772; the drag-alternative and focus rules match docs/workspace-ui.md; no change."
     },
     {
       "name": "better-layout",
-      "summary": "re-checked the breakpoints, space tokens, named stylesheets and the tabular-nums rule against current CSS; no change from #571 to #592."
+      "summary": "updated in #803 for the desktop Trip workspace (#740, #752, #771, #772): the 360 px itinerary column, glass-floats rule and new verification widths."
     },
     {
       "name": "better-ui",
-      "summary": "re-checked tokens, motion helpers, press scale, icon files and the glass recipe after the glass calibration in #592; PlacePreview still draws its photo hairline with border-bottom rather than the contract's inner outline (code gap, reported); PR #586 will touch this skill. Read the #586 copy rules and scripts/check-ui-copy.mjs: the skill's description of what the script lists, its exit code and its allowlist file match the code."
+      "summary": "glass tokens, glass-float classes and check-ui-copy.mjs match docs/design/ui-guidelines.md after #740; no change."
     },
     {
       "name": "better-writing",
-      "summary": "re-checked the money, notice and i18n helpers, dictionary files and cited notes; added the assistants (助手) terminology and display-name rule from #561 under one word for one thing, linking GLOSSARY.md."
+      "summary": "TimelineStop link and Agent Lab wording still resolve; copy rules unchanged by #740-#801; no change."
     },
     {
       "name": "break",
-      "summary": "debug-page production guards, web launch configuration, mock-server.mjs and named components still resolve; harness stays uncommitted; no change."
+      "summary": "debug-page guards and named components (TimelineStop.tsx) still resolve; no change."
     },
     {
       "name": "e2e-maintenance",
-      "summary": "re-checked ci-integration fault modes, evidence upload, worker limit, timeout flags, doctor/list, report fields and the clean:output rule; the red/green command (#581) is covered by pre-push-checks, not duplicated here; no change. Read the four traps added in #586 (phone tab bar elementFromPoint, formatRange thin space, the next dev portal badge, unreachable tile hosts); they state observed behaviour and contradict no earlier rule."
+      "summary": "points at docs/local-test-cli.md and docs/e2e-known-failures.md, which #780 and #783 updated; the skill's own rules still hold; no change."
     },
     {
       "name": "end-to-end-feature-wiring",
-      "summary": "plan-revision, auto-save, leg-route, tab-revision and server-revision account-sync owners still match the code and their E2E scenario owners; no change."
+      "summary": "value-tracing owners unchanged by #740-#801; no change."
     },
     {
       "name": "find-simplifications",
-      "summary": "scope, provider, async and test-retention rules match current docs and the Failure Lab ownership in docs/development.md; the deepseek-harness upstream head 687f282e has no applicable change; no change."
+      "summary": "scope and evidence rules unchanged; no change."
+    },
+    {
+      "name": "implement-spec",
+      "summary": "#801 added the worktree cleanup; #803 made each implementer follow the tdd skill's E2E-first section."
     },
     {
       "name": "libraries-dev",
-      "summary": "entrypoint routing, install commands and contract constraints match the repo; synced 06-metal-fx.md to upstream (drops the React Native tab, adds the SwiftUI magnet source), moved the pin to b0e5a8f1 and the notices date to 2026-10-21; the other three updated references were already current."
+      "summary": "entrypoint, install commands and upstream pin unchanged since 2026-10-23; no change."
     },
     {
       "name": "playwright-best-practices",
-      "summary": "library-not-runner premise (no @playwright/test), local CLI links and the upstream pin 283d5cbc are unchanged and still upstream HEAD; no change."
+      "summary": "library-not-runner premise and upstream pin unchanged; no change."
     },
     {
       "name": "pre-push-checks",
-      "summary": "re-verified the ci.yml steps, comment-policy workflow, CLI acceptance scripts and clean:output; fixed the evidence loop, which used filtered pnpm scripts that exit 0 without running, to call the root verify scripts; added the new-route rule from #455 (EXPECTED entry in scripts/verify-api-auth.mjs, protected) and the gh-versus-MCP PR search note."
+      "summary": "#753, #783 and #801 already updated it (check:comments, fixture E2E, worktree script); selections match package.json; no change in this review."
     },
     {
       "name": "prose-standard",
-      "summary": "scope, protected-history and comment rules match AGENTS.md and docs/AGENTS.md placement; deepseek upstream has no applicable change since the pin; no change."
+      "summary": "writing rules unchanged; now also the style guide retro reads; no change."
+    },
+    {
+      "name": "retro",
+      "summary": "updated in #803: points at prose-standard, review-trip-planner and the repository checks instead of writing-for-agents and the missing CODING_STANDARDS.md."
     },
     {
       "name": "review-trip-planner",
-      "summary": "cited paths, error classes, hooks, the 1000-line limit, comment-policy commands and the pr-delivery-status preflight (#550) resolve; the handoff still depends on the global code-review-standards-spec skill outside the repo (reported)."
+      "summary": "defect classes and comment policy still match scripts/check-comments.mjs (#753); no change."
     },
     {
       "name": "session-log",
-      "summary": "template path, 60-line limit, frozen-log rule and length check command still match TEMPLATE.md and verify-protected; no change."
+      "summary": "template and 60-line limit unchanged; no change."
     },
     {
       "name": "skill-maintenance",
-      "summary": "is-due thresholds 8/5/2/1/2, the checkpoint note, check-skills behaviour (path candidates now ignore query strings and origin refs, #590) and the CLI acceptance script match the text; the due check and the drift report were run on 10a6a8f5."
+      "summary": "#803 stopped check-skills.mjs flagging example branch names, diff statistics and quoted code (CLI E2E 62 cases); this record covers the 29 skills after #754 added eight and #803 removed two."
+    },
+    {
+      "name": "tdd",
+      "summary": "#803 added the AI_TRIP_PLANNER section: failure modes first, E2E scenarios, scripts/redgreen.mjs, no unit tests after the code."
+    },
+    {
+      "name": "to-spec",
+      "summary": "imported in #754; issue-tracker and glossary pointers resolve; no change."
+    },
+    {
+      "name": "to-tickets",
+      "summary": "imported in #754; Closes-keyword rule from #753 is in trip-planner-pr-delivery; no change."
     },
     {
       "name": "translate-docs",
-      "summary": "check-pairs now compares against the base (#425); the pair rule, CI order and docs/i18n.md terminology section match; added the assistant, Coordinator and mention rows to docs/i18n.md and its Chinese pair so the table covers the #561 vocabulary."
+      "summary": "drift prompts are GLOSSARY.md and AGENTS.md edits; pair rules and check-pairs.mjs unchanged; no change."
+    },
+    {
+      "name": "trip-planner-pr-delivery",
+      "summary": "#800 moved Jira handling into it and #801 added worktree cleanup; #803 added the code-owner approval and bypass from #799."
     },
     {
       "name": "ui-verification",
-      "summary": "web launch config, named E2E scripts, runner --prod flag, map-provider settings and Clerk key gate still resolve; the phone E2E commits since 2026-10-15 only repair or share touch-target checks and change no rule it states; device-only behaviour stays not verified. Read the element-screenshot sentence added in #586; it agrees with the evidence rules."
+      "summary": "#783 updated it for fixture E2E; widths and evidence rules match docs; no change in this review."
     },
     {
       "name": "vercel-react-best-practices",
-      "summary": "project-scope section matches Next 15 and React 19 without SWR or compiler features; upstream pin 063bee94 is still upstream HEAD; no change."
+      "summary": "reference guide; upstream pin unchanged; no change."
     }
   ],
   "reviewedIssues": []
