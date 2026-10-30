@@ -387,7 +387,7 @@ describe("OSM ids the map can look up", () => {
 
   it("turns Geoapify's one-letter OSM types into node, way and relation ids", async () => {
     stub(
-      { body: { results: [{ lat: 35.68, lon: 139.77 }] } },
+      { body: [{ lat: "35.68", lon: "139.77" }] },
       {
         body: {
           features: ["n", "w", "r", undefined].map((osm_type, index) => ({
