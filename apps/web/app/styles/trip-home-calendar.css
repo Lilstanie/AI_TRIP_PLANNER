@@ -464,7 +464,12 @@ button.trip-home-calendar__event:hover {
   border-inline-start: 2px solid currentColor;
   border-radius: 3px;
 }
+.trip-home-calendar__month-day .trip-home-calendar__event-head {
+  display: block;
+  min-width: 0;
+}
 .trip-home-calendar__month-day .trip-home-calendar__event-title {
+  display: block;
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
