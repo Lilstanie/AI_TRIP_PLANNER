@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useRef, useState, type ReactNode } from "react";
-import { MoreIcon } from "./icons";
+import { CheckIcon, MoreIcon } from "./icons";
 
 export type ActionMenuItem = {
   label: string;
@@ -11,7 +11,14 @@ export type ActionMenuItem = {
   tone?: "danger";
 
   separated?: boolean;
+
+  checked?: boolean;
+
+  radio?: boolean;
 };
+
+const roleOf = (item: ActionMenuItem) =>
+  item.checked === undefined ? "menuitem" : item.radio ? "menuitemradio" : "menuitemcheckbox";
 
 export function ActionMenu({ label, items }: { label: string; items: ActionMenuItem[] }) {
   const [open, setOpen] = useState(false);
@@ -104,7 +111,8 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
               {item.separated && <hr className="action-menu__separator" aria-hidden="true" />}
               <button
                 type="button"
-                role="menuitem"
+                role={roleOf(item)}
+                aria-checked={item.checked}
                 className={item.tone === "danger" ? "is-danger" : undefined}
                 disabled={item.disabled}
                 onClick={() => {
@@ -112,10 +120,16 @@ export function ActionMenu({ label, items }: { label: string; items: ActionMenuI
                   item.onSelect();
                 }}
               >
-                {item.icon && (
+                {item.checked !== undefined ? (
                   <span className="action-menu__icon" aria-hidden="true">
-                    {item.icon}
+                    {item.checked && <CheckIcon />}
                   </span>
+                ) : (
+                  item.icon && (
+                    <span className="action-menu__icon" aria-hidden="true">
+                      {item.icon}
+                    </span>
+                  )
                 )}
                 {item.label}
               </button>

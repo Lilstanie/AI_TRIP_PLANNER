@@ -12,8 +12,9 @@ shift a stop to the next day, or visit a place twice, without leaving the list.
 ## Decision
 
 - A Stop has one menu: Adjust schedule, Edit details, Add a comment, Move to ideas, Move to previous
-  day, Move to next day, Add again and Remove. Replace place, Open in Maps, the visit-progress items and
-  Mark as booked stay as secondary items. An Idea offers Schedule on a day, Edit details, Add a comment
+  day, Move to next day, Add again and Remove. Replace place, Open in Maps, the visit-progress items
+  (Planned, Visited and Skipped, radio items with the current one ticked) and Booked (a checkbox item)
+  stay as secondary items, and Remove ends the menu. An Idea offers Schedule on a day, Edit details, Add a comment
   and Remove.
 - Move earlier, Move later and Move to another day are removed, with the day picker, the note title and
   their strings and translations. Move to previous day and Move to next day reuse the `day` item action,

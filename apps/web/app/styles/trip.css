@@ -756,7 +756,7 @@ button.action-menu__trigger[aria-expanded="true"] {
   box-shadow: var(--shadow-md);
   animation: panel-in var(--duration-fast) var(--ease-out);
 }
-.action-menu__list button[role="menuitem"] {
+.action-menu__list button[role^="menuitem"] {
   display: flex;
   align-items: center;
   gap: var(--space-2);
@@ -768,8 +768,8 @@ button.action-menu__trigger[aria-expanded="true"] {
   font-weight: 400;
   text-align: start;
 }
-.action-menu__list button[role="menuitem"]:hover:not(:disabled),
-.action-menu__list button[role="menuitem"]:focus-visible {
+.action-menu__list button[role^="menuitem"]:hover:not(:disabled),
+.action-menu__list button[role^="menuitem"]:focus-visible {
   background: var(--fill-hover) !important;
 }
 .action-menu__list button.is-danger {
@@ -813,7 +813,7 @@ button.action-menu__trigger[aria-expanded="true"] {
     height: 44px;
     margin-top: 0;
   }
-  .action-menu__list button[role="menuitem"] {
+  .action-menu__list button[role^="menuitem"] {
     min-height: 44px !important;
   }
 }
