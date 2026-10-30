@@ -116,7 +116,8 @@ export function TripHomeActionDrawer({
     tabs.current[nextAction]?.focus();
   };
   useEffect(() => {
-    tabs.current[active]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+    const tab = tabs.current[active];
+    tab?.parentElement?.scrollTo({ left: tab.offsetLeft - tab.parentElement.offsetLeft });
   }, [active]);
 
   return (
