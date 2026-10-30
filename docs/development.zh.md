@@ -251,7 +251,7 @@ node .agents/skills/translate-docs/scripts/check-pairs.mjs
 E2E 脚本位于 `apps/web/tests/e2e/`。需要 fixture 隔离、由命令启动并拥有服务器，以及每次运行独立证据时，请使用[本地 E2E 命令行工具](local-test-cli.zh.md)。其他情况可通过运行器执行脚本：它在空闲端口上启动服务器，从仓库根目录依次对其运行指定脚本，结束后只停止它自己启动的服务器：
 
 ```bash
-pnpm --filter @trip/web e2e timeline display-currency     # names without .e2e.mjs; 'phone-*' works
+pnpm --filter @trip/web e2e trip-export one-line-budget    # names without .e2e.mjs; 'phone-*' works
 pnpm --filter @trip/web e2e phone-shell --prod            # next build + next start, for scripts that ask for it
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
@@ -273,13 +273,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 
 `output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。`node scripts/worktrees.mjs` 按类别列出 worktree 和残留：干净的 worktree、保留的 worktree 里的 `.next` 和 `.turbo` 构建产物、`~/.codex/worktrees` 下只剩 worktree 名称标记文件的目录，以及同一 `origin` 的未注册干净克隆。不加 `--apply` 时只演练；加上后把它们移到废纸篓并运行 `git worktree prune`。有改动、有 stash、有未推送或不可达提交、已锁定的 worktree，主 worktree 和运行命令所在的 worktree 一律保留，也从不删除分支。不加 `--worktree` 时，Git index、`HEAD` 或 reflog 在 `--idle-hours`（默认 24）小时内有变化的 worktree 或克隆也会保留，避免把其他会话正在用的 worktree 移走。`--worktree <path>` 只处理指定的 worktree，任务结束时用它清理自己创建的 worktree。`--root <dir>` 替换扫描根目录，`--trash <dir>` 替换废纸篓，`--sizes` 只计算列出条目的大小；需要空间报告时用它，不要对整个磁盘跑 `du` 或 `git status --untracked-files=all`。它的失败清单见 [scripts/worktrees.failures.md](../scripts/worktrees.failures.md)。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
 
-`auto-save-places`、`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
-
-`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` 在一次旅程中完整运行 Mindtrip 式行程交互，覆盖桌面、手机（长按拖动）和中文：当天内拖动、拖到另一天、拖到“N 个备选地点”标签，Stop、日和行程菜单的每一项，从某一天和从备选地点标签打开的“添加到行程”面板的每个标签，每次修改后的撤销，路段距离和路线。截图和 `result.json` 写入 `output/playwright/itinerary-walkthrough/after/`。也包含某一天的“编辑标题”和“添加备注”。
-
-```bash
-pnpm --filter @trip/web e2e itinerary-walkthrough --prod
-```
+`plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 
 `apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` 在同一个已保存行程上，于桌面、手机和中文下完整运行规格 #755 的安静行程面板：按预算行、备选地点标签、各天、折叠的旅行提示的顺序排列，预算展开与折叠，Stop 和日菜单中的“询问 AI”，没有填充、标签和提示句的安静行，没有“显示距离”，标签作为放置目标并可撤销，聊天旁没有加号，打开行程面板时切换对话和轨迹，以及重新设计的轨迹。截图和 `result.json` 写入 `output/playwright/quiet-walkthrough/after/`。
 

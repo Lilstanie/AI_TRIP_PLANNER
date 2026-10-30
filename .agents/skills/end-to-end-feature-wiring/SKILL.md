@@ -57,7 +57,6 @@ after verification or an applied edit has routed it. Preserve commands, revision
 request counts, plan/notice assertions and screenshots; a final screenshot alone cannot prove absence
 of a retry loop. Existing scenario owners are
 [plan revision, including stale cross-tab work](../../../apps/web/tests/e2e/plan-revision.e2e.mjs),
-[auto-save](../../../apps/web/tests/e2e/auto-save-places.e2e.mjs),
 [edit checks](../../../apps/web/tests/e2e/check-entry-point.e2e.mjs).
 
 The [ownership decision](../../notes/implemented/feature/2026-10-09-plan-revision-owner.md) and

@@ -64,4 +64,4 @@ needs a new evaluator or fixture version so an old artifact can be told from a c
 - [Agent Lab strategy and run artifacts](2026-10-01-agent-lab-run-artifacts.md)
 - [Targeted revision](2026-10-01-agent-lab-targeted-revision.md)
 - [Benchmark tests](../../../../packages/orchestrator/tests/agent-lab-benchmarks.test.ts)
-- [Benchmark E2E](../../../../apps/web/tests/e2e/agent-lab-benchmarks.e2e.mjs)
+- Benchmark E2E `agent-lab-benchmarks.e2e.mjs` (deleted in TP-165; in Git history)

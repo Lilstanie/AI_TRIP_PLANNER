@@ -56,8 +56,7 @@
 - 行程需求编辑使用底部 sheet，Stop 编辑在该行上以弹层打开。未完成的行程需求输入
   跨 Tab 保留，关闭前会先确认；Stop 编辑在提交时生效且关闭时不再询问，失败修改保留已输入值，
   已有 Plan 使用明确的 Replan trip（重新规划行程）操作。
-- 可重复的 Fixture 流程为 `apps/web/tests/e2e/` 下的 `phone-navigation`、
-  `phone-browsing-context`、`phone-planning-flow` 和 `phone-editing`；`phone-shell --prod`
+- 可重复的 Fixture 流程是 `apps/web/tests/e2e/` 下的 `phone-navigation`；`phone-shell --prod`
   验证集成后的生产手机外壳。
 
 <a id="failure-inventory-and-acceptance-evidence"></a>

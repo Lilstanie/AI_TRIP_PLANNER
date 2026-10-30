@@ -52,8 +52,7 @@ The baseline is main commit `9343038bb5a136fca97a9bfdd3a9bea361515003` (#713).
   Brief fields survive tab switches and confirm before a close discards them. Stop edits apply on
   submit and close without asking, failed changes keep their values, and an existing Plan uses the
   explicit Replan trip action.
-- Repeatable fixture journeys are `phone-navigation`, `phone-browsing-context`,
-  `phone-planning-flow` and `phone-editing` under `apps/web/tests/e2e/`; `phone-shell --prod`
+- The repeatable fixture journey is `phone-navigation` under `apps/web/tests/e2e/`; `phone-shell --prod`
   verifies the integrated production shell.
 
 ## Failure inventory and acceptance evidence

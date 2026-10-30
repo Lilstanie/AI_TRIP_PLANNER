@@ -56,7 +56,7 @@ now. Implementation history and browser acceptance for each phase are in the
   - Search splits whitespace-separated terms and requires every term to match across a chat's title
     or messages, or a trip's stored title, destination, ISO dates and the text its row shows (the
     numbered title, date range, days and total); term order does not matter. A number matches only a
-    whole number, so `trip 2` picks out "Trip to Sydney · 2" (`trip-search-row-text` E2E). Phone trip
+    whole number, so `trip 2` picks out "Trip to Sydney · 2". Phone trip
     cards keep the numbering of the full list while filtered.
   - Search announces matching trip and chat counts through polite live regions. English uses singular for one result and plural for multiple results; Chinese uses the same counting phrase. Empty searches stay silent, and no matches announce the existing empty message.
   - **Trips** replaces the top bar, chat and map with the Your trips page: a "Your trips" heading, a
@@ -350,8 +350,7 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     closes the active sheet or editor before leaving the workspace and, when its form changed, asks
     before discarding.
   - New labels use the English/Chinese dictionary and motion respects reduced-motion preferences.
-    Browser evidence is produced by `phone-navigation.e2e.mjs`, `phone-browsing-context.e2e.mjs`,
-    `phone-planning-flow.e2e.mjs`, `phone-editing.e2e.mjs`, and the `phone-shell.e2e.mjs` companion
+    Browser evidence is produced by `phone-navigation.e2e.mjs` and the `phone-shell.e2e.mjs` companion
     walks under `apps/web/tests/e2e/`. Real installed-app safe areas and keyboard behavior are not
     verified; the device checks in issue #182 were closed as not planned.
 
@@ -575,9 +574,9 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
 
 ## Trajectory tab
 
-The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. The `trajectory-with-trip-open` E2E script covers it.
+The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Pressing Conversation or Trajectory, or choosing a specialist in Agent Team, while the Trip panel is open dispatches `show-chat-view`, which closes the Trip panel and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath.
 
-The Trajectory chrome uses the glass tokens on floating surfaces only: the Simple and Full view switch, the full view toolbar and the record inspector (`glass-float`, `glass-float--raised`, so reduced transparency and high contrast give the solid surface). Rows, the timeline and the ledger stay solid. Secondary text is the primary text colour mixed 74% into the surface, which keeps 4.5:1 on glass in light and dark. Data, search, jumps and the two views are unchanged. The `trajectory-restyle` E2E script stores before and after screenshots at 1440 and 390 px in English and Chinese under `output/playwright/trajectory-restyle/` and checks glass, contrast, overflow and reduced transparency. See the [Trajectory glass restyle note](../.agents/notes/implemented/feature/2026-10-28-trajectory-glass-restyle.md).
+The Trajectory chrome uses the glass tokens on floating surfaces only: the Simple and Full view switch, the full view toolbar and the record inspector (`glass-float`, `glass-float--raised`, so reduced transparency and high contrast give the solid surface). Rows, the timeline and the ledger stay solid. Secondary text is the primary text colour mixed 74% into the surface, which keeps 4.5:1 on glass in light and dark. Data, search, jumps and the two views are unchanged. See the [Trajectory glass restyle note](../.agents/notes/implemented/feature/2026-10-28-trajectory-glass-restyle.md).
 
 On desktop the chat column has a Conversation and a Trajectory tab. Conversation is the message stream
 and stays mounted while Trajectory is open, so its scroll position returns; when a reply arrived meanwhile it returns at the newest reply. The chat column has no tab list at phone width.
@@ -647,20 +646,8 @@ records why.
 - **Verification.** `trajectory-tab` E2E (fixture mode, 1440, English and Chinese) saves the simple list, an
   open row, the ledger,
   inspector and reloaded screenshots and `result.json` under `output/playwright/trajectory-tab/`;
-  `trajectory-inspector` saves assignment, tool call and conflict check screenshots and `result.json`
-  under `output/playwright/trajectory-inspector/`.
-  `trajectory-timeline` saves the overview, a search hit, mid-stream and scrolled-up screenshots and
-  `result.json` under `output/playwright/trajectory-timeline/`.
-  `trajectory-phone` (fixture mode, 390 and 360, English and Chinese) saves the empty tab, the ledger, an
-  open record, the team sheet and the filtered ledger screenshots and `result.json` under
-  `output/playwright/trajectory-phone/`.
-  `trajectory-empty` (fixture mode, 375, English and Chinese) saves the empty-state card and the ledger
-  after the first message, with `result.json`, under `output/playwright/trajectory-empty/`.
   `summary-jump` (1440 and 390, English and Chinese) sends three turns and checks that each reply's summary
   opens its own turn, saving screenshots and `result.json` under `output/playwright/summary-jump/`.
-  `trajectory-conversation-switch` (1440, English) opens a turn, opens another chat from the Chats panel
-  and checks that no turn carries over, saving screenshots and `summary.json` under
-  `output/playwright/trajectory-conversation-switch/`.
   `trajectory-demo` is the Stage 2 walkthrough record described in the [demo runbook](demo-runbook.md#trajectory-walkthrough).
 
 ## Reviewing a plan
@@ -745,7 +732,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   weather and packing, and places to explore) is a collapsible block at the bottom of the Trip panel, below the days. It
   starts collapsed unless this viewer has saved an expanded preference for that trip in this browser
   (`localStorage`, key `trip-tips-folded:<tripId>`). The
-  block is absent when the plan has no guide. A new guide has at most five tips of one sentence each (one place to explore, customs, safety, entry and health, weather and packing), with packing as one comma-separated line of at most four items. The panel shows at most five tips and the first sentence of each (the dated weather lines stay whole), so plans saved earlier are short too; their stored text is unchanged. Advice spanning multiple calendar months identifies, inside the sentence, that its scope is the first month. The entry and health tip ends with a short "check official sources" clause, and the full caution is kept in the guide's assumptions; a saved scope sentence ("Planning context for … only; recheck …") is skipped when the panel picks the displayed sentence (`short-travel-tips` E2E).
+  block is absent when the plan has no guide. A new guide has at most five tips of one sentence each (one place to explore, customs, safety, entry and health, weather and packing), with packing as one comma-separated line of at most four items. The panel shows at most five tips and the first sentence of each (the dated weather lines stay whole), so plans saved earlier are short too; their stored text is unchanged. Advice spanning multiple calendar months identifies, inside the sentence, that its scope is the first month. The entry and health tip ends with a short "check official sources" clause, and the full caution is kept in the guide's assumptions; a saved scope sentence ("Planning context for … only; recheck …") is skipped when the panel picks the displayed sentence.
 - **On-trip day.** When today falls within the trip dates, the day view initially selects today and marks it “Today”, using the first resolved destination’s time zone. While the Trip view stays open, the date refreshes each minute and when the window regains focus or visibility. Budget and travel tips initially collapse; a valid manual day selection is saved per trip in this browser (`localStorage`, key `trip-day-selected:<tripId>`) and is restored during the same destination-local day. When that day changes, the selection yields to the new Today; expired or out-of-range selections also yield to Today (or Day 1 when today is outside the trip). Saved tips preferences still take precedence. Without verified destination coordinates, the existing first-day defaults remain. Timed next-stop highlighting is deferred.
 - **Restaurants.** The restaurants the dining specialist found count in the "N ideas" chip and are
   listed on the Ideas tab of the Add to trip panel. Adding one schedules it on the open day as a stop,
@@ -781,8 +768,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
 - **Empty map** (`TripMapCanvas`, `useHomeBase`, `PhoneMapSheet`). With no trip the map area renders
   the real basemap, centred on the travel profile home city (resolved through the places search
   route) when it resolves, otherwise a world view (`data-basemap-centre` is `home` or `world`). A home base that resolves
-  after the traveller panned or zoomed the map leaves the view where they put it
-  (`map-home-pan` E2E). One
+  after the traveller panned or zoomed the map leaves the view where they put it. One
   glass hint (`glass-float`) asks "Where are you going?"; on the phone it carries one button,
   Plan in Chat, that opens Chat. At tablet width the top bar's Chat and Map switch already reaches
   Chat, and on wide desktop the map area stays hidden until a trip exists, so neither shows a
@@ -960,7 +946,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
-- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll. Verify with `pnpm --filter @trip/web e2e trip-initial-scroll` (1280×800, 1440×1000 and 390×844).
+- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll.
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
   budget line shows their count, avoiding the impression that the total covers every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its
@@ -1011,8 +997,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   The list scrolls when the pointer nears its edge. The keyboard route is Alt+ArrowUp and
   Alt+ArrowDown on the focused Stop; a polite live region announces "{name} moved to position {n} of
   {total} on Day {d}". The drag state lives in `components/trip/useItineraryDrag.ts` and addresses
-  rows and lists by `data-drop-row` and `data-drop-zone`. Verify with
-  `pnpm --filter @trip/web e2e drag-in-day --prod` (1440 px with a mouse, 390 px with touch).
+  rows and lists by `data-drop-row` and `data-drop-zone`.
 - **Day menu and itinerary menu** ([Agent Note](../.agents/notes/implemented/feature/2026-10-27-day-menus.md)).
   Each day has a menu named "Day {n} actions" next to its title: Edit title, Add note (Edit note once a note
   exists), Add day before, Add day after, Clear day and Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
@@ -1039,8 +1024,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   Stop numbers, times and Legs of both days refresh. A day without room, another accommodation
   segment, the Stop's own day tab, Escape and a locked trip change nothing or
   show the usual refusal. While the day changes under a drag, the dragged row is not drawn; the line
-  and the outlined tab show the target. Verify with
-  `pnpm --filter @trip/web e2e cross-day-drag --prod` (1440 px with a mouse, 390 px with touch).
+  and the outlined tab show the target.
 - **Leg distance and Directions.** A leg whose route came back with a distance shows it after the mode
   and duration: metres under 1 km, kilometres with one decimal under 10 km. A leg with no distance, or
   between the same place twice, shows none. Each leg also has a Directions link that opens
@@ -1059,8 +1043,7 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   scheduled stops the edit re-times; an Idea in the plan stays as it is and does not block Undo. A plan
   that arrives from chat clears the undo step; if a change was still in the plan, the chat says that it replaced the change
   ("The new plan replaced your last change to the timeline.", with a Dismiss button). At phone widths
-  (520 px and below), the Undo button is at least 44 × 44 CSS px; `phone-undo-hit-area.e2e.mjs` checks
-  it at 375 × 812 and saves a screenshot and measurements.
+  (520 px and below), the Undo button is at least 44 × 44 CSS px.
 - **Edits and background work.** A leg check or place save that is running when an edit starts is
   cancelled, and it is asked again once the edit has finished, so its answer never replaces the plan the
   edit is checking. An edit in flight is not cancelled when the plan changes from elsewhere: its answer is refused as stale,
@@ -1096,29 +1079,6 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   more than twice the driving time is returned as a driving leg (`mode: "drive"`) and says so, rather
   than reported as unroutable. A hop between two trip cities first tries Google Maps transit through
   SerpApi (Tokyo → Kyoto: a Shinkansen with its fare), and drives only if that finds nothing.
-
-## Drawer walkthrough
-
-`apps/web/tests/e2e/drawer-walkthrough.e2e.mjs` walks the Trip itinerary as a traveller uses it, in mock
-data mode, at 1440×1000 and 390×844, in English and in Chinese. It plans a simulated trip, moves two
-stops onto Day 1 and checks the rules in this section: no confirm or status label, each leg's mode
-and duration with no button, a leg change that re-times the stops after it and Undo that restores them,
-a time edit that applies at once and Undo, an overlap marked on its stop, a stay Alternative that changes
-the total, a restaurant from the ideas chip scheduled and undone, travel tips that fold (and stay folded after a
-reload on desktop), no horizontal page scroll, no console error, and no English label in the Chinese
-drawer except plan text, model text and the exact strings in the script's `KNOWN_EXCEPTIONS`.
-
-```bash
-DATA_MODE=mock pnpm --filter @trip/web e2e drawer-walkthrough
-```
-
-The runner starts its own server. The walk needs no map key: places are stubbed at the browser boundary
-and the server answers each edit with its simulated legs, so no check is skipped. A reload starts a blank
-chat, so the reload check reopens the saved trip from Trips. Each run writes
-`output/playwright/drawer-walkthrough/<time>/summary.json`, which lists every check with its result, the
-times and leg labels it read and any known exception, and one screenshot per stage beside it. The
-runner's own summary is `output/e2e/runner/<time>.json`. Set `LABEL` to name the artifact folder, or
-`BASE_URL` to test a server already running.
 
 ## Google Maps configuration
 
@@ -1168,8 +1128,7 @@ that row and highlights it for a moment (instantly under reduced motion); if a f
 open first. Blocks are 24 px tall (44 px at phone width) and keep a visible border in forced-colors mode. At
 phone width the bar fits the screen and lane labels shorten (Coord, Trans, Guide, Stay, Itin, Dine, Base). In the Compare view the three
 strategies' bars are stacked above the columns in strategy order on one shared step axis sized to the longest
-run, so shapes line up and a shorter run ends earlier; a strategy that never ran has no bar. The
-[trace end-to-end script](../apps/web/tests/e2e/agent-lab-trace.e2e.mjs) checks it at desktop and phone width.
+run, so shapes line up and a shorter run ends earlier; a strategy that never ran has no bar.
 
 Above the box, a toolbar offers two folds, **Fold rounds** and **Fold calls**, each a button with a pressed
 state that works from the keyboard. Fold rounds hides every row that belongs to a round and leaves one
@@ -1286,8 +1245,7 @@ the account section explains that everything stays in this browser.
   Change opens its editor in place. **Account settings** opens Your account and **Personalization**
   opens Personalization. Mindtrip's Voice, Price
   alerts, Notifications and Cookie preferences have no counterpart here.
-  - Intro lines, hints, sync notes and footnotes use `--text-dim`, at least 4.5:1 on the dialog glass
-    in both themes (`settings-muted-text-contrast` E2E).
+  - Intro lines, hints, sync notes and footnotes use `--text-dim`, at least 4.5:1 on the dialog glass in both themes.
   - Before opening Clerk for sign-in, account creation, profile photo or account management, the
     settings dialog closes so its native modal layer cannot cover Clerk's controls.
   - **Edit profile:** picture, first and last name, saved to Clerk (Change profile photo opens

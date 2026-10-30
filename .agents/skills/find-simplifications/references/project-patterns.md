@@ -51,7 +51,7 @@ records the accepted removals; inspect current scripts and later decisions befor
   `provider-empty-result` fault, its download/replay, benchmark and cross-view flow, isolation, leak
   checks and accessibility/layout matrix. Release smoke alone cannot justify deleting the full matrix.
 - `trip-setup.mjs` shares place fixtures, workspace boot, day-to-plan conversion and polling for
-  `auto-save-places`, `plan-revision` and `check-entry-point`, plus `touchSized` for every 44 px
+  `plan-revision` and `check-entry-point`, plus `touchSized` for every 44 px
   touch-target check. Their assertions, interception,
   held responses and screenshots remain local. Cancellation and stale ownership are distinct promises;
   do not hide them behind a flag-heavy universal setup.

@@ -415,7 +415,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 - 本次变更前已使用实时提供方检查端到端形态：三天悉尼请求流式输出 19 个推理事件、15 个工具结果及各自的行（包括带 20 行的 `Search
 stays: 20 stay options`），还有一个住宿选择及 19 个备选项；含糊的「Sydney in March」请求让协调者给出一句普通提问。重新对实时提供方验证合并推理 transcript 与 `ask_user_question` 卡片需要 `DEEPSEEK_API_KEY`，作为后续事项记录，此处不声称已完成。
 - 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中的新控件会附带边框、表面与内边距，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
-- `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于确定性的模拟事件渲染 Settled、Mid-flight、Replay 和 Failed 模式。`apps/web/tests/e2e/thinking-disclosure.e2e.mjs` 在英文 800×600 与中文 390×844 下检查收起和展开的 disclosure，以及成功和错误状态；截图只证明模拟 fixture 的浏览器表现，不代表实时规划器运行。
+- `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于确定性的模拟事件渲染 Settled、Mid-flight、Replay 和 Failed 模式。
 
 <a id="7-sources"></a>
 

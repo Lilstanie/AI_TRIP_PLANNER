@@ -707,9 +707,7 @@ stays: 20 stay options` with 20 rows) plus one stay choice with 19 alternatives;
   `.question__button` are on that list.
 - `/debug/thinking` (`apps/web/app/debug/thinking/page.tsx` with `apps/web/lib/dev/thinking-fixtures.ts`)
   renders deterministic simulated events in Settled, Mid-flight, Replay and Failed modes without a
-  provider call. `apps/web/tests/e2e/thinking-disclosure.e2e.mjs` checks collapsed and expanded
-  disclosures in English at 800×600 and Chinese at 390×844, including success and error states; its
-  screenshots are browser evidence for the fixture only, not a live planner run.
+  provider call.
 
 ## 7. Sources
 
