@@ -105,6 +105,9 @@ export function ChatPanel({
   const last = messages.length - 1;
   const revealIndex = last >= restored.current && messages[last]?.role === "agent" ? last : -1;
   const inputRef = useRef<HTMLTextAreaElement>(null);
+  const formRef = useRef<HTMLFormElement>(null);
+  const heroTop = useRef<number | null>(null);
+  const hero = !phone && !plan && !busy && messages.length === 0;
   useEffect(() => {
     if (messages.length || activity.length)
       stream.current?.scrollTo({ top: stream.current.scrollHeight });
@@ -186,8 +189,22 @@ export function ChatPanel({
     };
   }, []);
 
+  useLayoutEffect(() => {
+    const form = formRef.current;
+    if (!form) return;
+    const top = form.getBoundingClientRect().top;
+    const from = heroTop.current;
+    heroTop.current = hero ? top : null;
+    if (hero || from === null || Math.abs(from - top) < 1) return;
+    if (window.matchMedia("(prefers-reduced-motion: reduce)").matches) return;
+    form.animate([{ transform: `translateY(${from - top}px)` }, { transform: "none" }], {
+      duration: 420,
+      easing: "cubic-bezier(0.22, 1, 0.36, 1)",
+    });
+  }, [hero]);
+
   return (
-    <section className="panel chat" aria-label={t("Chat")}>
+    <section className={`panel chat${hero ? " chat--hero" : ""}`} aria-label={t("Chat")}>
       {showTabs && !phone && <ChatViewTabs view={view} onChoose={choose} />}
       <div
         className="chat__stream"
@@ -253,6 +270,7 @@ export function ChatPanel({
         />
       ) : (
         <form
+          ref={formRef}
           className="chat__form"
           onSubmit={(e) => {
             e.preventDefault();

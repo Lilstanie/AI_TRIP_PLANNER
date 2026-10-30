@@ -4,12 +4,17 @@ import { NoticeError, type Notice } from "@/lib/i18n/notice";
 export const STALE_PLAN: Notice = { key: "This edit is stale. Start from the current plan." };
 
 const keyFor = (tripId: string) => `trip.revision:${tripId}`;
-const fingerprint = (plan: TripPlan) => JSON.stringify(plan);
+const fingerprint = (plan: TripPlan) => JSON.stringify(plan, sortedKeys);
+
+function sortedKeys(_key: string, value: unknown): unknown {
+  if (!value || typeof value !== "object" || Array.isArray(value)) return value;
+  return Object.fromEntries(Object.entries(value).sort(([a], [b]) => (a < b ? -1 : a > b ? 1 : 0)));
+}
 
 export function isCurrentTabPlan(plan: TripPlan): boolean {
   try {
     const current = localStorage.getItem(keyFor(plan.tripId));
-    return current === null || current === fingerprint(plan);
+    return current === null || fingerprint(JSON.parse(current)) === fingerprint(plan);
   } catch {
     return true;
   }
