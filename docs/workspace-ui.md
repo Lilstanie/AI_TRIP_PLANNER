@@ -1063,7 +1063,9 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   Each day has a menu named "Day {n} actions" next to its title: Edit title, Add note (Edit note once a note
   exists), Add day before, Add day after, Clear day and Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
   brings the map forward). The itinerary has a menu named "Itinerary actions" at the top corner of
-  the Trip panel: Copy trip, Download calendar, Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
+  the Trip panel: Copy trip, Download calendar, Move all events to ideas and Remove all scheduled events. Copy trip
+  and Download calendar include each selected flight leg, timed when its times are known, and each chosen stay
+  from check-in to check-out, in `lib/trip/export.ts`. Every item applies at once as one plan
   revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
   moves a day earlier and every booked date stays put, anywhere else the end date moves a day later and
   later stops, stays and flights move with it, the Brief form's dates follow the plan, and Add day after the last day opens the new day; a stay that spans the new day gains a night and its cost
