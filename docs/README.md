@@ -14,12 +14,15 @@ content in both languages; commands, examples and identifiers stay unchanged.
 | [API](api.md)                                                                    | Requests, responses, streaming and errors                             |
 | [Agent Lab release record](agent-lab-release-record-template.md)                 | Controlled deployment smoke record template                           |
 | [Workspace UI](workspace-ui.md)                                                  | Chat, map, editing and storage behavior                               |
+| [Map renderer lifecycle](map-renderer-lifecycle.md)                              | Map renderer disposal, fallback and its browser fixture               |
 | [Local E2E CLI](local-test-cli.md)                                               | Isolated local browser journeys and their reports                     |
 | [Known E2E failures](e2e-known-failures.md)                                      | Dated failures with their reproduction recipes                        |
 | [Roadmap](roadmap.md)                                                            | Current product direction and scope                                   |
 | [Team workflow](team-workflow.md)                                                | Ownership, branches and reviews                                       |
 | [Design rules](design/ui-guidelines.md)                                          | Layout, tokens, glass, motion and accessibility                       |
 | [Trip home action rail](design/trip-home-actions.md)                             | Trip home actions, linked Chats and drawer behavior                   |
+| [Mindtrip interaction reference](design/mindtrip-interactions.md)                | Observed Mindtrip behaviour the Trip home and Chat follow             |
+| [Phone workspace redesign](design/mobile-workspace-redesign.md)                  | Phone tab bar, sheets and their confirmed scope                       |
 | [Thinking UI](design/dsh-thinking-ui.md)                                         | Planning transcript reference and behavior                            |
 | [Class diagrams](design/class-diagram.md)                                        | Domain and runtime relationships                                      |
 | [Stage 1 design model](design/stage1/README.md)                                  | ELEC5620 Stage 1 report models and where each marking item is covered |

@@ -7,14 +7,25 @@ recommendations, edit the plan, save it and use it while travelling.
 
 ## Status
 
-Status as of 2026-10-07 on `main`; see [workspace UI](workspace-ui.md) for current behaviour.
+Status as of 2026-10-30 on `main` (`8029779`); see [workspace UI](workspace-ui.md) for current behaviour.
 
 **Done**
 
 - LangGraph planning workflow with five LangChain specialists and targeted revision.
 - Single-user workspace: chat, preferences, controlled filters, detail cards, loading and error
-  states, and example trips from a blank chat.
-- Editable timeline and Google map with route, time and budget checks.
+  states, and suggestion chips in a blank chat. An incomplete request is answered with one question
+  for the first missing trip fact, and the planning status keeps moving while the plan is drafted.
+- Day-by-day itinerary beside a linked map: edits apply at once with Undo, stops drag within and
+  across days or onto the ideas chip, each leg gets a travel time, and route, time and budget checks
+  run after every edit. Trips export as text and as a calendar file.
+- Trip home for every saved trip: its facts, linked chats, a composer that starts a new linked chat, a
+  contextual suggestion, and Itinerary, Ideas, Bookings, Trip preferences and Calendar panels beside
+  the trip map. Your trips groups trips into Upcoming and Past, and its Calendar shows a chosen trip in
+  Week and Month views.
+- Agent Team: the traveller can @-mention any of the five specialists, see which are working, and
+  open Trajectory for a step-by-step record of each agent's work.
+- Liquid glass on floating surfaces, with an open-item badge on the Trip panel for unresolved trip
+  issues.
 - Live data behind a per-request mock/live toggle: Google Places grounding, SerpApi hotel and flight
   search, weather forecast and climate evidence.
 - Visible provenance: every proposal reports whether its data is live, estimated, mock, fallback or
@@ -22,12 +33,13 @@ Status as of 2026-10-07 on `main`; see [workspace UI](workspace-ui.md) for curre
 - Storage: chats and trips in the browser; chat turns, preferences, plans and SerpApi usage and cache in
   the Redis REST store when configured.
 - Streaming planning progress and a thinking transcript in the chat.
-- Accounts (Clerk) with a dedicated login page required when configured, syncing chats, trips and settings to Neon Postgres, and a Settings
-  dialog with a travel profile that prefills new trips.
+- Accounts (Clerk) with a dedicated login page required when configured, syncing chats, trips and settings to Neon Postgres. Settings
+  opens beside the sidebar on desktop and as a dialog on narrower screens; its travel profile prefills
+  new trips, and a signed-in traveller's long-term memory keeps preferences remembered from chat.
 - Phone layout at 520 px and below: a bottom tab bar (Chat, Map, Trip, Mine), sheets and an
   installable web app manifest.
-- Interface language (English or Simplified Chinese) from Settings or the top bar, and a display
-  currency (AUD, CNY, USD or JPY) while every plan is still priced in AUD.
+- Interface language (English or Simplified Chinese) from Settings, and a display currency per trip
+  (AUD, CNY, USD or JPY) while every plan is still priced in AUD.
 - Flights and stays: the day view shows each flight and each night's stay as rows that open to their
   card, and the traveller can take an alternative flight or stay the specialist found without replanning.
 - Public Agent Lab: a fixed Tokyo fixture exposes a single-agent trace, validated plan and

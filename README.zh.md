@@ -6,6 +6,8 @@
 
 AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用户可以在对话中描述行程，也可以通过顶部栏的信息标签修改行程事实。LangGraph 工作流会调度五个 LangChain 专家 agent，生成经过校验的旅行计划，包含日程、交通、住宿、餐饮、目的地指南和预算，并为每项信息标注数据来源。用户可以继续通过对话、按天排列的时间线和地图（优先使用 Google，Google 无法响应时改用 OpenStreetMap）编辑计划，并将行程保存在浏览器中，也可以通过账号在多台设备间同步。
 
+每个保存的行程都有 Trip home：行程事实、关联的聊天、新聊天的输入框，以及在行程地图旁打开的 Itinerary、Ideas、Bookings、Trip preferences 和 Calendar 面板。Your trips 页面列出所有行程，并提供周视图和月视图日历。在聊天中，用户可以 @ 提及五位 specialist 中的任意一位，查看 Agent Team 的工作状态，并打开 Trajectory 逐步查看每个 agent 做了什么。
+
 界面支持中英文，每个行程的金额按该行程自己的显示币种展示，窄屏下切换为手机布局，并可作为应用安装。独立的 `/agent-lab` 页面在固定场景上对比不同的规划策略。
 
 Agent Lab 基准版本为 1.0.7。汇总结果尚未测量，计划质量也尚未评估。运行
@@ -47,9 +49,9 @@ pnpm dev                     # http://localhost:3000
 
 ```text
 apps/web/                 Next.js workspace UI and API routes
-  components/{workspace,chat,trip,map,preferences,account,agent-lab,pwa,ui}
+  components/{workspace,chat,trip,trajectory,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
+  lib/{workspace,chat,trip,trajectory,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code

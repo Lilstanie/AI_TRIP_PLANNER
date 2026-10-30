@@ -25,7 +25,8 @@ lockfile stays consistent.
 
 The web application is grouped by responsibility instead of keeping every component and helper in
 one flat directory. Put new UI in the closest feature folder under `apps/web/components/`:
-`workspace`, `chat`, `trip`, `map`, `preferences`, or `ui` for shared primitives. Put browser-safe
+`workspace`, `chat`, `trip`, `map`, `trajectory`, `preferences`, `account`, `agent-lab`, `pwa`, or `ui` for shared
+primitives. Put browser-safe
 domain logic under the matching folder in `apps/web/lib/`; external clients belong in
 `apps/web/lib/integrations/`. Put all web tests under `apps/web/tests/`, mirroring the `app`,
 `components`, and `lib` feature groups; shared fixtures belong in `apps/web/tests/fixtures/` and
@@ -376,7 +377,7 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
   itinerary source, repeated and generic stops, and exits non-zero when any check fails or a plan
   errors; live model output varies, so compare several runs.
   Each run writes the NDJSON streams, plans and `summary.json` to `output/e2e/<name>/<run>/`.
-- **Browser scripts** (every other script, including the eight `agent-lab-*` ones) drive Playwright at
+- **Browser scripts** (every other script, including the six `agent-lab-*` ones) drive Playwright at
   desktop and phone widths and write screenshots, and for Agent Lab the raw NDJSON and artifacts, to
   `output/playwright/<name>/`. `CHANNEL=chrome` and `PLAYWRIGHT=<path>` select the browser and the
   Playwright package.
@@ -604,22 +605,25 @@ Run it separately from CLI acceptance, which temporarily changes dependency entr
 The workspace journey measures 10- and 200-message histories on desktop and 200 messages on phone;
 it checks one catalog write per settled input save, reload, quota retry, switch-time flush, rename,
 layout persistence, planned snapshot mirrors and stale-tab storage guards. Its second-tab case writes
-the revision protocol directly and does not test the plan-edit API. The map journey controls visibility
-and animation frames with a Google-compatible SDK stub, and checks actual MapLibre with an empty style.
-It covers hidden panels, background documents, reduced motion, retained camera/selection and unmount.
-It does not call Google or verify live map services.
+the revision protocol directly and does not test the plan-edit API.
+
+The command still asks the runner for the map journey `map-animation-lifecycle`, which TP-165 (#809)
+deleted, so it stops with `no script matches "map-animation-lifecycle"` before it builds (see
+[known E2E failures](e2e-known-failures.md)). Until that is fixed, run the workspace journey alone with
+`pnpm --filter @trip/web e2e workspace-performance --prod`.
 
 Each command allocates a new label. Logs and the overall summary are under
 `output/e2e/performance-acceptance/<label>/`; screenshots, workspace traces, CPU profiles and JSON are
-under `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`.
+under `output/playwright/workspace-performance/<label>/`.
 MessageItem counts are V8 function calls during the measured typing/save or synthetic stream window,
 not React commits or DOM changes. Timings include debounce and profiling overhead; these fixtures do
 not establish real-user Core Web Vitals or a speedup. To compare another revision, build it separately,
 then run the workspace script with `BASE_URL=<owned-server> LABEL=before-<unique-label>`; a `before-`
 label records the baseline write count without requiring the optimized count. Preserve failed attempts.
 
-Account-memory integration with planning-readiness and typed budget revisions is checked with
-`pnpm --filter @trip/web e2e long-term-memory accommodation-memory memory-settings planning-readiness`.
+Account-memory integration is checked with
+`pnpm --filter @trip/web e2e long-term-memory accommodation-memory`; TP-165 deleted the
+`memory-settings` and `planning-readiness` journeys.
 These journeys use disposable PGlite and deterministic provider fixtures; they do not establish
 Clerk, external database or live-provider acceptance. Migration `0002` still needs separate
 authorization before deployment to an external database.

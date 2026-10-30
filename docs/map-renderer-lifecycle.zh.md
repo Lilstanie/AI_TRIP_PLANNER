@@ -16,4 +16,4 @@ OSM 禁用卫星控件。手机 Trip 首页地图固定为 340px 高，让渲染
 
 ## 浏览器夹具
 
-`trip-home-action-panels` 使用本地 Google SDK 夹具（`google-renderer-fixture.mjs`），验证展开和收起时渲染器保持不变。SDK、构造和授权失败没有专门的浏览器脚本。该夹具不验证真实 Google 服务、生产登录、物理设备或路线时长准确性。
+`trip-home-action-panels` 使用本地 Google SDK 夹具（`google-renderer-fixture.mjs`），验证操作面板在地图旁打开时保留同一个渲染器。SDK、构造和授权失败没有专门的浏览器脚本。该夹具不验证真实 Google 服务、生产登录、物理设备或路线时长准确性。

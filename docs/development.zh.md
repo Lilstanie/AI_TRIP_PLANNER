@@ -29,7 +29,7 @@ pnpm dev                     # http://localhost:3000
 
 ## 代码组织
 
-Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`preferences`，或用于共享基础组件的 `ui`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。
+Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`trajectory`、`preferences`、`account`、`agent-lab`、`pwa`，或用于共享基础组件的 `ui`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。
 
 功能跨越多个目录时，把公开约定保留在领域模块中，并从那里导入，不另建根级便捷文件。目录边界变化时，同步更新本节和 API 文档。
 
@@ -269,7 +269,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 缺少密钥就无法运行的脚本在文件头（代码之前）声明：`// requires-env: DEEPSEEK_API_KEY`（多个密钥用逗号分隔）。所列变量未设置或为空时，运行器不会运行该脚本，而是报告 `skipped: needs DEEPSEEK_API_KEY`，把跳过记录到摘要中；若没有其他失败，仍以 0 退出；实际运行后失败的脚本仍使退出码非零。若所有指定脚本都被跳过，则不会启动服务器。`plan-quality` 和 `conversation-scope` 声明了 `DEEPSEEK_API_KEY`，因为它们检查的是模型的产出，在规则回退下会失败。格式错误的 `requires-env` 行会让运行器报错退出，而不是运行该脚本。
 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
-- **浏览器脚本**（其余所有脚本，包括八个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
+- **浏览器脚本**（其余所有脚本，包括六个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
 
 `output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。`node scripts/worktrees.mjs` 按类别列出 worktree 和残留：干净的 worktree、保留的 worktree 里的 `.next` 和 `.turbo` 构建产物、`~/.codex/worktrees` 下只剩 worktree 名称标记文件的目录，以及同一 `origin` 的未注册干净克隆。不加 `--apply` 时只演练；加上后把它们移到废纸篓并运行 `git worktree prune`。有改动、有 stash、有未推送或不可达提交、已锁定的 worktree，主 worktree 和运行命令所在的 worktree 一律保留，也从不删除分支。不加 `--worktree` 时，Git index、`HEAD` 或 reflog 在 `--idle-hours`（默认 24）小时内有变化的 worktree 或克隆也会保留，避免把其他会话正在用的 worktree 移走。`--worktree <path>` 只处理指定的 worktree，任务结束时用它清理自己创建的 worktree。`--root <dir>` 替换扫描根目录，`--trash <dir>` 替换废纸篓，`--sizes` 只计算列出条目的大小；需要空间报告时用它，不要对整个磁盘跑 `du` 或 `git status --untracked-files=all`。它的失败清单见 [scripts/worktrees.failures.md](../scripts/worktrees.failures.md)。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
 
@@ -390,12 +390,15 @@ node apps/web/tests/e2e/run-performance.mjs
 
 这条本地命令复用 CLI 的 fixture 环境，由旧运行器独占 production 构建、服务器和临时 TypeScript 配置。它清空已知集成凭证，强制使用 mock 工具，禁用 Agent Lab 实时运行，并提供合成的浏览器 Maps key `map-animation-fixture`。CLI 验收会临时修改依赖入口，请与它分开执行。
 
-工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。地图 journey 用 Google 兼容 SDK stub 控制可见性与动画 frame，并使用真实 MapLibre 的空白样式。它覆盖隐藏面板、后台页面、减少动态效果、视角与选择保留及卸载，不调用 Google，也不验证实时地图服务。
+工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。
 
-每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/{workspace-performance,map-animation-lifecycle}/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。
+这条命令仍会让运行器执行地图 journey `map-animation-lifecycle`，而 TP-165（#809）已删除该脚本，所以它在构建前就以 `no script matches "map-animation-lifecycle"` 停止（见[已知 E2E 失败](e2e-known-failures.zh.md)）。修复之前，用 `pnpm --filter @trip/web e2e workspace-performance --prod` 单独运行工作区 journey。
 
-账户记忆与规划准备检查、预算修订类型的集成，通过
-`pnpm --filter @trip/web e2e long-term-memory accommodation-memory memory-settings planning-readiness` 验证。
+每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/workspace-performance/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。
+
+账户记忆集成通过
+`pnpm --filter @trip/web e2e long-term-memory accommodation-memory` 验证；TP-165 已删除
+`memory-settings` 和 `planning-readiness` 两个 journey。
 这些流程使用一次性 PGlite 和确定性的提供方夹具，不代表 Clerk、外部数据库或真实提供方验收。
 向外部数据库部署迁移 `0002` 仍需单独授权。
 
