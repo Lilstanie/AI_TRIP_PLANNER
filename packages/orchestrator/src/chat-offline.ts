@@ -42,6 +42,8 @@ function chineseNumber(token: string | undefined): number | undefined {
   return (CHINESE_DIGITS[tens!] ?? 1) * 10 + (CHINESE_DIGITS[ones!] ?? 0);
 }
 
+const ENDS_WITH_FUNCTION_WORD = /\b(?:it|to|by|for|of|be|is|than|into|this|that|them)\s*$/i;
+
 const COUNT = "\\d+|[零〇一二两三四五六七八九十]+";
 const PARTY_PATTERNS = [
   ["adults", new RegExp(`(${COUNT})\\s*(?:位|个|名)?\\s*(?:adults?\\b|大人|成人)`, "iu")],
@@ -158,9 +160,12 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
   const leadingDestination = message.match(
     /^\s*([A-Za-z][A-Za-z &.-]+?)\s*[,，]\s*\d{4}-\d{2}-\d{2}/,
   );
+  const leadingPlace = message.match(
+    /^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.'-]*?)[,\s]+\d+\s+days?\b/i,
+  );
   const durationDestination =
     message.match(/\d+[\s-]*days?\s+(?:in|at)\s+(.+?)(?=\s+(?:for|budget|from)\b|[,.;]|$)/i) ??
-    message.match(/^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.'-]*?)[,\s]+\d+\s+days?\b/i);
+    (leadingPlace?.[1] && !ENDS_WITH_FUNCTION_WORD.test(leadingPlace[1]) ? leadingPlace : null);
   const chineseDestination = message.match(
     /(?:去|前往|目的地(?:是|为|改成|调整为)?)[：:\s]*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&、·\- ]*?)(?=\s*(?:的?(?:旅行|旅游|之旅)|玩|，|,|。|预算|\d{4}-|$))/u,
   );
