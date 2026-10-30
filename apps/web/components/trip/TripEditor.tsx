@@ -347,7 +347,7 @@ export function TripEditorView({
       icon: <CalendarIcon />,
       onSelect: () => {
         const url = URL.createObjectURL(
-          new Blob([tripCalendar(plan)], { type: "text/calendar;charset=utf-8" }),
+          new Blob([tripCalendar(plan, locale)], { type: "text/calendar;charset=utf-8" }),
         );
         const link = document.createElement("a");
         link.href = url;
