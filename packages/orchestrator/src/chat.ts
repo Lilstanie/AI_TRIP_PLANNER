@@ -431,10 +431,16 @@ function fallbackReplyFor(plan: TripPlan, currency: Currency, language: Interfac
     : plan.sections
         .map((section) => section.summary.trim())
         .filter(Boolean)
-        .slice(0, 2);
+        .slice(0, 2)
+        .map((summary) => asSentence(summary, language));
   return [...summaries, costLine(plan, currency, language), ...reusedPlaceNotes].join(
     language === "zh" ? "" : " ",
   );
+}
+
+function asSentence(text: string, language: InterfaceLanguage): string {
+  if (/[.!?。！？]$/.test(text)) return text;
+  return `${text}${language === "zh" ? "。" : "."}`;
 }
 
 function plannedReply(request: ChatRequest, plan: TripPlan, reply: string): string {

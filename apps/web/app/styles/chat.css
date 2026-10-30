@@ -23,6 +23,10 @@
   min-width: 0;
   margin: 0;
 }
+.chat--hero::after {
+  content: "";
+  flex: 1.2 1 0;
+}
 
 .chat-suggestions {
   display: flex;
