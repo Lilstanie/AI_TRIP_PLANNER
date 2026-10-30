@@ -37,6 +37,7 @@ The browser journey `trip-home-send.e2e.mjs` must fail before the implementation
 - A malformed or null dismissal record prevents Trip home from opening or resets its Trip data.
 - Dismissing a suggestion does not take effect immediately when storage is full, or the failure is
   not reported.
+- The suggestion calls a Plan ready while no activity is scheduled.
 - English or Chinese labels, browser errors or external requests regress.
 
 The fixture journey starts with a long same-day Chat history, includes an older Chat snapshot and

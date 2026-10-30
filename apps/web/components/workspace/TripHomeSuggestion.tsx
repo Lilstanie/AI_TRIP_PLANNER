@@ -3,6 +3,7 @@ import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { CloseIcon } from "@/components/ui/icons";
+import { scheduledCount } from "@/lib/trip/day-actions";
 import { tripIdeas } from "@/lib/trip/ideas";
 import { dayCount } from "@/lib/trip/timeline";
 import { translate, type AppLocale } from "@/lib/i18n/locale";
@@ -38,6 +39,15 @@ export function tripSuggestion(
       action: t("Place them"),
     };
   const days = dayCount(plan);
+  if (!scheduledCount(plan))
+    return {
+      text: t("Your {destination} days are still empty", { destination: plan.brief.destination }),
+      prompt: t("Plan the {days} days of my {destination} trip.", {
+        days,
+        destination: plan.brief.destination,
+      }),
+      action: t("Plan the days"),
+    };
   return {
     text: t("Your {days}-day {destination} plan is ready", {
       days,

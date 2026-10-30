@@ -37,6 +37,8 @@ contract-impact: none
   rows. Brief chips share the first top bar row.
 - Calendar Month draws the whole month with compact one-line events. The Loyalty question is removed
   because planning never used it; stored memberships stay in the settings shape.
+- The Trip home suggestion no longer calls a Plan ready when no activity is scheduled; a real-model run
+  exposed it.
 - Removed overlapping scripts `trip-home-walkthrough`, `trip-home-review`, `trip-home-cards`,
   `trip-home-action-rail`, `trip-home-preferences`, `trip-home-shared-editor`,
   `trip-home-ideas-bookings`, `trip-fact-editors` and `map-renderer-lifecycle`. The null dismissal record and quota failures
