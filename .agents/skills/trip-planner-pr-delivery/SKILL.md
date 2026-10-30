@@ -82,11 +82,13 @@ Job logs: `gh api $R/actions/jobs/<id>/logs` is refused (403 on the blob redirec
 A `cli-acceptance-workers` job that times out inside a setup step, or fails with "Artifact not found ... cli-acceptance-plan", before any test ran is infrastructure, not your diff. Re-running only the failed job does not recover it. Merge `origin/main` into the branch and push to start a fresh run, and say so once on the PR.
 
 `dirty` means a conflict with main: merge `origin/main`, resolve, re-run the checks the conflicted files select, push. Never rewrite history on a branch you did not create.
-Done: every check `success`, `mergeable_state` is `clean`.
+`blocked` with every check `success` means the required code-owner approval is missing (`main` requires one since TP-159). It is not a failure.
+Done: every check `success`, and `mergeable_state` is `clean`, or `blocked` only by the approval.
 
 ## 6. Merge and clean up
 
-- Merge PRs you opened in this session, or ones the user named, when green and nothing awaits the user's decision; protected files need the user's OK first. Another person's PR (a teammate's, or one saying "No merge is requested") needs the user's explicit OK for that batch.
+- `main` needs one approval from a code owner in `.github/CODEOWNERS` (`@Lilstanie`, `@HeadmasterEggy`), and nobody approves their own PR. Both owners are bypass actors, so a PR opened under Joey's account merges without an approval; the merge call succeeds although GitHub shows `blocked`. A PR from members B, D or E waits for an owner's approval.
+- Merge PRs you opened in this session, or ones the user named, when green and nothing awaits the user's decision; protected files need the user's OK first. Joey has said a PR he owns needs no review from Lilstanie. Another person's PR (a teammate's, or one saying "No merge is requested") needs the user's explicit OK for that batch.
 - Mark ready with `gh api -X POST $R/pulls/<n>/ccr/ready_for_review` (GraphQL is blocked; MCP `update_pull_request` with `draft: false` also works), then `gh api -X PUT $R/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`.
 - After the merge, list the issues the PR was meant to close and close any still open (`issue_write`, `state_reason: completed`).
 - Delete the local branch after merge, then run `node scripts/worktrees.mjs --apply --worktree <this PR's worktree>` from the main checkout: it moves that worktree to the Trash if it is clean, prunes the worktree registry, never deletes a branch, and reports it kept if it holds work. The cloud container cannot delete remote branches; once the repo owner turns on auto-delete, GitHub does it.
@@ -96,7 +98,7 @@ Done: every check `success`, `mergeable_state` is `clean`.
 
 ### Reviewer requests
 
-When the PR author is the user (Joey), skip the reviewer request. GitHub refuses it with "Review cannot be requested from pull request author", and the refusal is not a blocker.
+When the PR author is the user (Joey), skip the reviewer request. GitHub refuses it with "Review cannot be requested from pull request author", and the refusal is not a blocker. Ask `@Lilstanie` to review only when the user wants a second owner's approval instead of the bypass.
 
 ### Several PRs in one batch
 

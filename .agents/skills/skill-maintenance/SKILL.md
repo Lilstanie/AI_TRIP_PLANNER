@@ -60,7 +60,9 @@ The script reads every `SKILL.md` and reports:
   and change the skill only when a rule, path, command or threshold it states is now wrong.
 
 It exits 1 on a missing path or broken command, and 0 when only drift is reported. Placeholders
-(`packages/<pkg>/src/**`), identifiers (`process.env`) and bare folder names (`output/`) are ignored.
+(`packages/<pkg>/src/**`), identifiers (`process.env`), bare folder names (`output/`), example branch
+names (`feature/<key>-<name>`), diff statistics (`+12/-3`) and code fragments with quotes or brackets
+are ignored.
 
 ## 2. Read the recent pull requests
 
