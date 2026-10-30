@@ -321,6 +321,12 @@ node scripts/pr-delivery-status.mjs <pull-request-number>
 node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 ```
 
+源文件保持在 1000 行以内。该检查列出自与 `origin/main` 的合并基点以来改动过的源文件（已提交、已暂存或未跟踪），只要有文件超过 `--max` 行就以 1 退出；推送前先拆分该文件。分支没有改动的文件不检查。其失败清单见 [scripts/check-file-length.failures.md](../scripts/check-file-length.failures.md)。
+
+```bash
+node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
+```
+
 使用 `pnpm --filter @trip/agents test`、`pnpm --filter @trip/orchestrator test` 或 `pnpm --filter @trip/web test` 针对特定包运行测试。Web 测试脚本使用 POSIX shell 语法设置 `NODE_OPTIONS`；Windows 上应从 WSL 或 Git Bash 运行。
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。

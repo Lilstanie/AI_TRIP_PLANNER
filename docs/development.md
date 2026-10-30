@@ -479,6 +479,16 @@ first run fails and the second passes. Paste its last two lines into the PR's Ev
 node scripts/redgreen.mjs <e2e-name> [--prod] -- <source-path>...
 ```
 
+Source files stay under 1000 lines. The check lists every source file changed since the merge base
+with `origin/main` (committed, staged or untracked) that is longer than `--max` lines, and exits 1
+when it finds one; split the file before pushing. Files that the branch does not touch are not
+checked. Its failure inventory is
+[scripts/check-file-length.failures.md](../scripts/check-file-length.failures.md).
+
+```bash
+node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
+```
+
 Run focused packages with `pnpm --filter @trip/agents test`, `pnpm --filter @trip/orchestrator test`
 or `pnpm --filter @trip/web test`. The web test script sets `NODE_OPTIONS` with POSIX shell syntax;
 on Windows, run it from WSL or Git Bash.

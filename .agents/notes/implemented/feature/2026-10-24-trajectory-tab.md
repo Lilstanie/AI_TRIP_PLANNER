@@ -62,11 +62,8 @@ different question, the cost and timing of one benchmark run, and is not the pla
   width, where `PhoneTrajectory` consumes it, so widening the window never opens a tab nobody asked for.
 - **Overview selection excludes touching records.** A range covers the records whose span overlaps it; a
   record that only touches the range edge is outside.
-- **File-size exception.** `TrajectoryTable.tsx` (about 1,550 lines) and `TrajectoryTable.module.css`
-  (about 1,150 lines) exceed the 1,000-line rule in `docs/development.md`. They are DSH's ledger copied
-  whole, and the copy is verbatim so that updating it is a diff against DSH. Splitting it would make every
-  later diff a manual merge. The exception stands for these two files only; new trajectory code stays below
-  the threshold.
+- **File-size exception.** Replaced on 2026-10-30: the ledger and its styles are split below the
+  1,000-line rule, as [the split note](../architecture/2026-10-30-split-trajectory-ledger.md) describes.
 
 ## Alternatives considered
 

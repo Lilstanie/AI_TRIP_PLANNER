@@ -104,6 +104,7 @@ const ZH = {
   stops: "站点",
   "Save failed": "保存失败",
   "Saving…": "正在保存…",
+  "Deep diving": "深度求索中",
   "Synced to your account": "已同步到账户",
   "Saved here · sync paused": "已保存在此处 · 同步已暂停",
   "Where to next?": "下一站去哪里？",

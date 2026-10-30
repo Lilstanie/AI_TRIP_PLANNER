@@ -33,6 +33,21 @@ pages, which you cannot automate; verify that path by hand and say so in the ses
 workspace in a script, run the dev server without the Clerk keys, which is the single-user local mode.
 `/agent-lab` and `/sign-in` stay public in both modes. The API routes are never redirected.
 
+### Real-model runs
+
+Fixture evidence is not model evidence. `pnpm --filter @trip/web e2e run` blanks the model keys, and
+the chat route disables model calls whenever `liveDataAllowed()` is false: on a production build or
+Vercel deployment without Clerk, and for a signed-out visitor where Clerk is configured
+([api.md](../../../docs/api.md)). The data-mode toggle only chooses provider fixtures. To claim a
+real-model run:
+
+- Run the dev server (`pnpm --filter @trip/web dev`) with the model key set and the Clerk keys unset,
+  or sign in on a configured deployment. Leave `SERPAPI_KEY` and the Google keys empty unless the
+  change concerns them, so the run spends no provider quota.
+- Before quoting the result, read `GET /api/data-mode` from that server: `liveBlock` must be `null`.
+  Search the server log for `using a safe local plan`; any hit means that agent fell back.
+- Label each result as fixture, real model with mock tools, or all live.
+
 ## 2. Exercise the change
 
 - Reach the changed UI the way a user would, including one example trip from the blank chat.
@@ -118,6 +133,20 @@ See [add-provider](../add-provider/SKILL.md) for provider boundaries and failure
 
 ## 5. Record evidence
 
+Before you report a visible change, rebuild or reload the preview the user is looking at and capture
+the changed area from it:
+
+```bash
+node .agents/skills/ui-verification/scripts/snap.mjs <url> [--selector <css>] [--name <label>] [--dark]
+```
+
+It saves desktop 1440 × 1000 and phone 390 × 844 shots (and both in dark mode with `--dark`, needed
+when colours changed) under `output/playwright/snap/<label>/`, and exits 1 when the page fails to
+load, the selector matches nothing or the phone view scrolls sideways. Set `PLAYWRIGHT` to the
+Playwright module path when the repository's copy wants a browser build that is not installed. Its
+failure inventory is [snap.failures.md](scripts/snap.failures.md). Attach the shots to the reply;
+name any view you did not capture.
+
 To look at a change yourself, screenshot only the element (`locator.screenshot()`); a full-page image
 costs far more context and shows nothing extra. Keep full-page shots for the PR's evidence.
 
@@ -130,3 +159,14 @@ Separate browser viewport simulation, physical-device checks and live-service ev
 code with skipped checks is not evidence those assertions ran; preserve failures as well as later passes.
 Never commit screenshots into the repository. Attach them to the pull request before running
 `pnpm clean:output` (AGENTS.md delivery step 5), which deletes `output/` with every local screenshot.
+
+## 6. Feedback rounds
+
+When the user reviews a preview and sends feedback, often as several short messages with screenshots:
+
+- Before each reply, list every user message since your last reply and mark each one done, in progress
+  or not done with the reason. Write the reply from that list, so no request drops out behind the
+  newest one.
+- Say a change is done only after the preview the user sees has been rebuilt with it and you looked at
+  it there (step 5). Code written but not yet in the preview is "in progress".
+- Compare with a reference product only after opening it; otherwise say you did not compare.

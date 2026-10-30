@@ -7,15 +7,8 @@
 import { useCallback, useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
 import type { CSSProperties, ReactNode } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import {
-  IconChevronRightOutlineRegular,
-  IconSparkleRegular,
-  IconUserOutlineRegular,
-  JsonTree,
-  MarkdownText,
-  Tooltip,
-} from "./shim";
-import type { TrajectoryCellKind, TrajectoryCellProps } from "./trajectory-record";
+import { Tooltip } from "./shim";
+import type { TrajectoryCellProps } from "./trajectory-record";
 import { trajectoryRecordId } from "./trajectory-record";
 import {
   PHONE_CONTENT_ROW_HEIGHT,
@@ -24,66 +17,37 @@ import {
 } from "./trajectory-virtual-rows";
 import type { TrajectoryVirtualRow } from "./trajectory-virtual-rows";
 import type { TrajectoryTurnModel } from "./layout";
-import { trajectoryPreviewText } from "./trajectory-preview";
-import type { TrajectoryKey, TrajectoryTranslate } from "./locales";
+import type { TrajectoryTranslate } from "./locales";
+import { KIND_ICON, KIND_LABEL_KEY, KIND_TAG_CLASS } from "./trajectory-kind";
+import {
+  assistantToolCalls,
+  collapseAssistantRecords,
+  collapseTurnRecords,
+  detailTabs,
+  filterRecords,
+  flattenRecords,
+  indexStepBoundaries,
+  recordDisplayText,
+  recordResultText,
+  sectionLabel,
+  stateOf,
+  stepIdentity,
+  stepKey,
+  toolCallTextParts,
+} from "./trajectory-table-records";
+import type {
+  DetailTab,
+  TableRecord,
+  ToolCallTextParts,
+  TrajectoryStep,
+} from "./trajectory-table-records";
+import { TrajectoryInspector } from "./TrajectoryInspector";
 import css from "./TrajectoryTable.module.css";
 
 const BOTTOM_FOLLOW_THRESHOLD_PX = 2;
 const VIRTUALIZATION_THRESHOLD = 100;
 const VIRTUAL_OVERSCAN_ROWS = 12;
 const VIRTUAL_INITIAL_VIEWPORT_HEIGHT_PX = 600;
-
-const KIND_LABEL_KEY: Record<TrajectoryCellKind, TrajectoryKey> = {
-  user: "kind.user",
-  message: "kind.assistant",
-  tool: "kind.tool",
-  subtool: "kind.subtool",
-};
-
-function ToolWrenchIcon(): ReactNode {
-  return (
-    <svg
-      width="13"
-      height="13"
-      viewBox="0 0 16 16"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="1.5"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-      data-role-icon="wrench"
-      aria-hidden="true"
-    >
-      <path d="M14 3.3a3.8 3.8 0 0 1-4.8 4.8l-5.1 5.1a1.6 1.6 0 1 1-2.3-2.3l5.1-5.1A3.8 3.8 0 0 1 11.7 1l-2.3 2.3 2.3 2.3L14 3.3Z" />
-    </svg>
-  );
-}
-
-const KIND_ICON: Record<TrajectoryCellKind, ReactNode> = {
-  user: <IconUserOutlineRegular size={13} />,
-  message: <IconSparkleRegular size={13} />,
-  tool: <ToolWrenchIcon />,
-  subtool: <ToolWrenchIcon />,
-};
-
-const KIND_TAG_CLASS: Record<TrajectoryCellKind, string> = {
-  user: css.user ?? "",
-  message: css.assistantVioletBright ?? "",
-  tool: css.toolAmber ?? "",
-  subtool: css.subtoolAmber ?? "",
-};
-
-interface TableRecord {
-  turn: number | null;
-  section: number;
-  group: string;
-  groupStart: boolean;
-  turnStart: boolean;
-  cell: TrajectoryCellProps;
-  turnEnd: boolean;
-  collapsedSummary?: string;
-  collapsedSummaryKind?: "turn" | "assistant";
-}
 
 interface VirtualRowStructure {
   height: number;
@@ -110,38 +74,6 @@ function useStableVirtualRowStructure(
   return structure;
 }
 
-type DetailTab = "overview" | "rendered" | "raw" | "input" | "output";
-type RecordState = "complete" | "running" | "error";
-
-interface DetailTabItem {
-  id: DetailTab;
-  labelKey: TrajectoryKey;
-}
-
-interface ToolCallTextParts {
-  name: string;
-  args?: string;
-}
-
-interface DetailsResizeDrag {
-  pointerId: number;
-  startX: number;
-  startWidth: number;
-  splitWidth: number;
-  startToolRequestOffset: number;
-}
-
-const DETAILS_MIN_WIDTH = 320;
-const DETAILS_MAX_WIDTH = 720;
-const TABLE_MIN_WIDTH = 280;
-const DETAILS_RESIZE_STEP = 16;
-const TOOL_REQUEST_SHARE = 0.58;
-const TOOL_REQUEST_MIN_WIDTH = 180;
-const TOOL_REQUEST_MAX_WIDTH = 480;
-const DEFAULT_TOOL_REQUEST_SHARE = 0.36;
-const DEFAULT_TOOL_REQUEST_OFFSET = 56;
-const STEP_TABS: readonly DetailTabItem[] = [{ id: "overview", labelKey: "tab.summary" }];
-
 type TrajectorySplitStyle = CSSProperties & {
   "--trajectory-tool-request-width": string;
 };
@@ -149,31 +81,6 @@ type TrajectorySplitStyle = CSSProperties & {
 type VirtualSpacerStyle = CSSProperties & {
   "--trajectory-virtual-spacer-height": string;
 };
-
-function clampDetailsWidth(width: number, splitWidth: number): number {
-  const maxWidth = Math.max(
-    DETAILS_MIN_WIDTH,
-    Math.min(DETAILS_MAX_WIDTH, splitWidth - TABLE_MIN_WIDTH),
-  );
-  return Math.round(Math.min(Math.max(width, DETAILS_MIN_WIDTH), maxWidth));
-}
-
-function defaultToolRequestWidth(splitWidth: number): number {
-  return Math.min(
-    Math.max(
-      splitWidth * DEFAULT_TOOL_REQUEST_SHARE - DEFAULT_TOOL_REQUEST_OFFSET,
-      TOOL_REQUEST_MIN_WIDTH,
-    ),
-    TOOL_REQUEST_MAX_WIDTH,
-  );
-}
-
-export interface TrajectoryStep {
-  turn: number;
-  step: number;
-  group: string;
-  status: "complete" | "running" | "error";
-}
 
 export interface TrajectoryTableProps {
   t: TrajectoryTranslate;
@@ -192,282 +99,6 @@ export interface TrajectoryTableProps {
   collapsedAssistants: ReadonlySet<string>;
   onToggleAssistant: (id: string) => void;
   phone?: boolean;
-}
-
-function flattenRecords(turns: readonly TrajectoryTurnModel[]): TableRecord[] {
-  return turns.flatMap((turn, section) => {
-    let firstInSection = true;
-    const records = turn.groups.flatMap((group) =>
-      group.cells.map((cell, index) => {
-        const turnStart = firstInSection;
-        if (turnStart) firstInSection = false;
-        return {
-          turn: turn.turn,
-          section,
-          group: group.title,
-          groupStart: index === 0,
-          turnStart,
-          cell,
-          turnEnd: false,
-        };
-      }),
-    );
-    const last = records.at(-1);
-    if (last !== undefined) last.turnEnd = true;
-    return records;
-  });
-}
-
-function filterRecords(
-  records: readonly TableRecord[],
-  matches: ReadonlySet<number>,
-): TableRecord[] {
-  const filtered = records
-    .filter((record) => matches.has(record.cell.index))
-    .map((record) => ({ ...record, groupStart: false, turnStart: false, turnEnd: false }));
-  const startedSections = new Set<number>();
-  for (const [index, record] of filtered.entries()) {
-    const previous = filtered[index - 1];
-    const next = filtered[index + 1];
-    record.groupStart =
-      previous === undefined ||
-      previous.section !== record.section ||
-      previous.group !== record.group;
-    record.turnStart = !startedSections.has(record.section);
-    if (record.turnStart) startedSections.add(record.section);
-    record.turnEnd = next === undefined || next.section !== record.section;
-  }
-  return filtered;
-}
-
-function stepKey(turn: number | null, group: string): string {
-  return `${turn}\u0000${group}`;
-}
-
-function stepIdentity(step: TrajectoryStep): string {
-  return `${step.turn}\u0000${step.step}`;
-}
-
-function indexStepBoundaries(
-  records: readonly TableRecord[],
-  stepGroups: ReadonlySet<string>,
-): ReadonlyMap<string, number> {
-  const boundaries = new Map<string, number>();
-  for (const record of records) {
-    const key = stepKey(record.turn, record.group);
-    if (stepGroups.has(key) && !boundaries.has(key)) boundaries.set(key, record.cell.index);
-  }
-  return boundaries;
-}
-
-function sectionLabel(turn: number | null, t: TrajectoryTranslate): string {
-  return turn === null ? t("section.betweenTurns") : t("turn.label", { turn });
-}
-
-function summarizeTurn(
-  records: readonly TableRecord[],
-  stepGroups: ReadonlySet<string>,
-  t: TrajectoryTranslate,
-): string {
-  const steps = new Set(
-    records
-      .map((record) => stepKey(record.turn, record.group))
-      .filter((key) => stepGroups.has(key)),
-  ).size;
-  const toolCalls = records.filter(
-    (record) => record.cell.kind === "tool" || record.cell.kind === "subtool",
-  ).length;
-  return [
-    t(steps === 1 ? "summary.steps.one" : "summary.steps.other", { count: steps }),
-    t(toolCalls === 1 ? "summary.toolCalls.one" : "summary.toolCalls.other", {
-      count: toolCalls,
-    }),
-  ].join(" · ");
-}
-
-function collapseTurnRecords(
-  records: readonly TableRecord[],
-  collapsedTurns: ReadonlySet<number>,
-  stepGroups: ReadonlySet<string>,
-  t: TrajectoryTranslate,
-): TableRecord[] {
-  const recordsByTurn = new Map<number, TableRecord[]>();
-  for (const record of records) {
-    if (record.turn === null) continue;
-    const turnRecords = recordsByTurn.get(record.turn) ?? [];
-    turnRecords.push(record);
-    recordsByTurn.set(record.turn, turnRecords);
-  }
-  return records.flatMap((record) => {
-    if (record.turn === null || !collapsedTurns.has(record.turn)) return [record];
-    const contentRecords = recordsByTurn.get(record.turn) ?? [record];
-    if (contentRecords.length <= 1) return [record];
-    if (record.cell.index !== contentRecords[0]?.cell.index) return [];
-    return [
-      { ...record, turnEnd: false },
-      {
-        ...record,
-        groupStart: false,
-        turnStart: false,
-        turnEnd: true,
-        collapsedSummary: summarizeTurn(contentRecords.slice(1), stepGroups, t),
-        collapsedSummaryKind: "turn" as const,
-      },
-    ];
-  });
-}
-
-function assistantToolCalls(
-  records: readonly TableRecord[],
-  assistantIndex: number,
-): readonly TableRecord[] {
-  const at = records.findIndex((record) => record.cell.index === assistantIndex);
-  if (at === -1 || records[at]?.cell.kind !== "message") return [];
-  const calls: TableRecord[] = [];
-  for (let i = at + 1; i < records.length; i++) {
-    const record = records[i];
-    if (record === undefined) break;
-    if (record.cell.kind !== "tool" && record.cell.kind !== "subtool") break;
-    calls.push(record);
-  }
-  return calls;
-}
-
-function summarizeAssistantTools(records: readonly TableRecord[], t: TrajectoryTranslate): string {
-  const names = [
-    ...new Set(
-      records
-        .map((record) => {
-          const separator = record.cell.text.indexOf(" · ");
-          return separator === -1 ? record.cell.text : record.cell.text.slice(0, separator);
-        })
-        .filter((name) => name !== ""),
-    ),
-  ];
-  const count = records.length;
-  const summary = t(count === 1 ? "summary.toolCalls.one" : "summary.toolCalls.other", { count });
-  return names.length > 0 ? `${summary} · ${names.join(", ")}` : summary;
-}
-
-function collapseAssistantRecords(
-  records: readonly TableRecord[],
-  collapsedAssistants: ReadonlySet<string>,
-  t: TrajectoryTranslate,
-): TableRecord[] {
-  const out: TableRecord[] = [];
-  for (let i = 0; i < records.length; i++) {
-    const record = records[i];
-    if (record === undefined) continue;
-    out.push(record);
-    if (record.cell.kind !== "message" || !collapsedAssistants.has(trajectoryRecordId(record.cell)))
-      continue;
-    const calls: TableRecord[] = [];
-    for (let j = i + 1; j < records.length; j++) {
-      const candidate = records[j];
-      if (
-        candidate === undefined ||
-        candidate.collapsedSummary !== undefined ||
-        (candidate.cell.kind !== "tool" && candidate.cell.kind !== "subtool")
-      )
-        break;
-      calls.push(candidate);
-    }
-    if (calls.length === 0) continue;
-    const last = calls.at(-1);
-    out[out.length - 1] = { ...record, turnEnd: false };
-    out.push({
-      ...record,
-      groupStart: false,
-      turnStart: false,
-      turnEnd: last?.turnEnd ?? false,
-      collapsedSummary: summarizeAssistantTools(calls, t),
-      collapsedSummaryKind: "assistant",
-    });
-    i += calls.length;
-  }
-  return out;
-}
-
-function stateOf(record: TableRecord): RecordState {
-  if (record.cell.isError) return "error";
-  return record.cell.running ? "running" : "complete";
-}
-
-function statusLabel(state: RecordState, t: TrajectoryTranslate): string {
-  if (state === "error") return t("status.failed");
-  if (state === "running") return t("status.pending");
-  return t("status.completed");
-}
-
-function isMarkdownRecord(record: TableRecord): boolean {
-  return record.cell.kind === "user" || record.cell.kind === "message";
-}
-
-function parentTool(records: readonly TableRecord[], record: TableRecord): TableRecord | undefined {
-  if (record.cell.kind !== "subtool") return undefined;
-  const at = records.findIndex((candidate) => candidate.cell.index === record.cell.index);
-  for (let i = at - 1; i >= 0; i--) {
-    const candidate = records[i];
-    if (
-      candidate === undefined ||
-      candidate.turn !== record.turn ||
-      candidate.group !== record.group
-    )
-      break;
-    if (candidate.cell.kind === "tool") return candidate;
-  }
-  return undefined;
-}
-
-function markdownSource(record: TableRecord): string | undefined {
-  return record.cell.kind === "user" ? record.cell.inputDetail : record.cell.outputDetail;
-}
-
-function detailTabs(record: TableRecord): readonly DetailTabItem[] {
-  if (isMarkdownRecord(record)) {
-    return [
-      { id: "overview", labelKey: "tab.summary" },
-      { id: "rendered", labelKey: "tab.preview" },
-      { id: "raw", labelKey: "tab.raw" },
-    ];
-  }
-  return [
-    { id: "overview", labelKey: "tab.summary" },
-    ...(record.cell.inputDetail ? [{ id: "input", labelKey: "tab.payload" } as const] : []),
-    ...(record.cell.outputDetail ? [{ id: "output", labelKey: "tab.result" } as const] : []),
-  ];
-}
-
-function recordDisplayText(cell: TrajectoryCellProps): string {
-  if (cell.previewMarkdown !== undefined) {
-    const preview = trajectoryPreviewText(cell.previewMarkdown);
-    if (cell.text === "") return preview;
-    return preview === "" ? cell.text : `${cell.text} · ${preview}`;
-  }
-  if (cell.text !== "") return cell.text;
-  const markdown =
-    cell.kind === "user"
-      ? cell.inputDetail
-      : cell.kind === "message"
-        ? cell.outputDetail
-        : undefined;
-  return markdown === undefined ? "" : trajectoryPreviewText(markdown);
-}
-
-function recordResultText(cell: TrajectoryCellProps): string | undefined {
-  return cell.resultPreviewMarkdown === undefined
-    ? cell.result
-    : trajectoryPreviewText(cell.resultPreviewMarkdown);
-}
-
-function toolCallTextParts(cell: TrajectoryCellProps, text: string): ToolCallTextParts | undefined {
-  if (cell.kind !== "tool" && cell.kind !== "subtool") return undefined;
-  const separator = text.indexOf(" · ");
-  if (separator === -1) return { name: text };
-  return {
-    name: text.slice(0, separator),
-    args: text.slice(separator + 3),
-  };
 }
 
 interface RecordPresentationValue {
@@ -509,157 +140,6 @@ function RecordListText({
   );
 }
 
-function MarkdownFragment({
-  text,
-  rendered,
-  preview,
-}: {
-  text: string;
-  rendered: boolean;
-  preview: boolean;
-}) {
-  if (rendered) {
-    return (
-      <div className={preview ? css.markdownPreview : css.markdownPayload}>
-        <MarkdownText text={text} />
-      </div>
-    );
-  }
-  return <pre className={`${css.payload} ${preview ? css.payloadPreview : ""}`}>{text}</pre>;
-}
-
-function MarkdownRecordContent({
-  record,
-  rendered,
-  preview = false,
-  t,
-}: {
-  record: TableRecord;
-  rendered: boolean;
-  preview?: boolean;
-  t: TrajectoryTranslate;
-}) {
-  const source = markdownSource(record);
-  if (!source) return <p className={css.noPayload}>{record.cell.text || t("record.noContent")}</p>;
-  return <MarkdownFragment text={source} rendered={rendered} preview={preview} />;
-}
-
-function parseJsonContainer(value: string): object | undefined {
-  try {
-    const parsed: unknown = JSON.parse(value);
-    return typeof parsed === "object" && parsed !== null ? parsed : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-function RecordPayload({
-  record,
-  direction,
-  preview = false,
-  t,
-}: {
-  record: TableRecord;
-  direction: "input" | "output";
-  preview?: boolean;
-  t: TrajectoryTranslate;
-}) {
-  const value = direction === "input" ? record.cell.inputDetail : record.cell.outputDetail;
-  if (!value) {
-    return (
-      <p className={css.noPayload}>
-        {direction === "input" ? t("record.noPayload") : t("record.noResult")}
-      </p>
-    );
-  }
-  const error = direction === "output" && record.cell.isError === true;
-  const payloadClass = preview ? css.jsonPreview : css.jsonPayload;
-  const json = parseJsonContainer(value);
-  if (json !== undefined) {
-    return (
-      <JsonTree
-        data={json}
-        className={error ? `${payloadClass} ${css.errorPayload}` : payloadClass}
-      />
-    );
-  }
-  return (
-    <pre
-      className={[
-        css.payload,
-        preview ? css.payloadPreview : undefined,
-        error ? css.errorPayload : undefined,
-      ]
-        .filter((className): className is string => className !== undefined)
-        .join(" ")}
-    >
-      {value}
-    </pre>
-  );
-}
-
-function OverviewSection({
-  label,
-  onOpen,
-  children,
-}: {
-  label: string;
-  onOpen: () => void;
-  children: ReactNode;
-}) {
-  const previewRef = useRef<HTMLDivElement>(null);
-  const [hasMore, setHasMore] = useState(false);
-  const measureOverflow = useCallback((preview: HTMLElement) => {
-    setHasMore(preview.scrollHeight - preview.clientHeight - preview.scrollTop > 1);
-  }, []);
-
-  useLayoutEffect(() => {
-    const preview = previewRef.current as HTMLDivElement;
-    const measure = () => {
-      measureOverflow(preview);
-    };
-    measure();
-    if (typeof ResizeObserver === "undefined") return;
-    const observer = new ResizeObserver(measure);
-    observer.observe(preview);
-    for (const child of preview.children) observer.observe(child);
-    return () => {
-      observer.disconnect();
-    };
-  }, [children, measureOverflow]);
-
-  return (
-    <section className={css.overviewSection}>
-      <h3 className={css.overviewHeading}>
-        <button type="button" className={css.overviewTitle} onClick={onOpen}>
-          <span>{label}</span>
-          <IconChevronRightOutlineRegular className={css.overviewTitleIcon} size={12} />
-        </button>
-      </h3>
-      <div
-        ref={previewRef}
-        className={`${css.overviewPreview} ${css.summaryScrollRegion}`}
-        data-summary-scroll-region=""
-        data-scroll-more={hasMore || undefined}
-        onScroll={(event) => {
-          measureOverflow(event.currentTarget);
-        }}
-      >
-        {children}
-      </div>
-    </section>
-  );
-}
-
-function HierarchyLink({ label, onOpen }: { label: string; onOpen: () => void }) {
-  return (
-    <button type="button" className={css.overviewHierarchyNavLink} onClick={onOpen}>
-      <span>{label}</span>
-      <IconChevronRightOutlineRegular className={css.overviewHierarchyJumpIconTight} size={11} />
-    </button>
-  );
-}
-
 /**
  * Render trajectory records as a dense ledger with turn and step separators.
  * Clicking ledger whitespace clears the active record or step selection.
@@ -689,7 +169,6 @@ export function TrajectoryTable({
   const [activeTab, setActiveTab] = useState<DetailTab>("overview");
   const [detailsWidth, setDetailsWidth] = useState<number | null>(null);
   const [toolRequestOffset, setToolRequestOffset] = useState<number | null>(null);
-  const detailsResizeDrag = useRef<DetailsResizeDrag | null>(null);
   const appliedRecordSelection = useRef<TrajectoryTableProps["recordSelection"]>(null);
   const appliedRecordFocus = useRef<TrajectoryTableProps["recordFocus"]>(null);
   const tabHistory = useRef<Set<DetailTab>>(new Set(["overview"]));
@@ -784,7 +263,6 @@ export function TrajectoryTable({
           : row.entries.map((entry) => ({ record: entry.record, position: entry.logicalIndex }));
       })
     : records.map((record, position) => ({ record, position }));
-  const selectedState = selected === undefined ? undefined : stateOf(selected);
   const selectedStepInfo =
     selectedStepIdentity === null
       ? undefined
@@ -796,25 +274,9 @@ export function TrajectoryTable({
           (record) =>
             record.turn === selectedStepInfo.turn && record.group === selectedStepInfo.group,
         );
-  const selectedStepAssistant = selectedStepRecords.find(
-    (record) => record.cell.kind === "message",
-  );
-  const selectedStepToolCalls = selectedStepRecords.filter(
-    (record) => record.cell.kind === "tool",
-  ).length;
-  const selectedStepSubtoolCalls = selectedStepRecords.filter(
-    (record) => record.cell.kind === "subtool",
-  ).length;
   const activeTurn = selectedStepInfo === undefined ? selected?.turn : selectedStepInfo.turn;
   const activeSection =
     selectedStepInfo === undefined ? selected?.section : selectedStepRecords[0]?.section;
-  const selectedTabs =
-    selectedStepInfo !== undefined ? STEP_TABS : selected === undefined ? [] : detailTabs(selected);
-  const selectedParentTool = selected === undefined ? undefined : parentTool(allRecords, selected);
-  const selectedAssistantStep =
-    selected?.cell.kind === "message"
-      ? stepsByKey.get(stepKey(selected.turn, selected.group))
-      : undefined;
   const splitStyle: TrajectorySplitStyle | undefined =
     toolRequestOffset === null
       ? undefined
@@ -1270,285 +732,26 @@ export function TrajectoryTable({
           </tbody>
         </table>
       </div>
-      {(selectedStepInfo !== undefined ||
-        (selected !== undefined && selectedState !== undefined)) && (
-        <aside
-          className={`${css.details} glass-float--raised`}
-          aria-label={t("details.event")}
-          style={detailsWidth === null ? undefined : { width: detailsWidth }}
-        >
-          <div
-            className={css.detailsResizeHandle}
-            role="separator"
-            aria-label={t("details.resize")}
-            aria-controls="trajectory-detail-panel"
-            aria-orientation="vertical"
-            tabIndex={0}
-            onDoubleClick={() => {
-              setDetailsWidth(null);
-              setToolRequestOffset(null);
-            }}
-            onPointerDown={(event) => {
-              if (event.button !== 0) return;
-              const details = event.currentTarget.parentElement;
-              const split = details?.parentElement;
-              if (
-                details === null ||
-                details === undefined ||
-                split === null ||
-                split === undefined
-              )
-                return;
-              const splitWidth = split.getBoundingClientRect().width;
-              detailsResizeDrag.current = {
-                pointerId: event.pointerId,
-                startX: event.clientX,
-                startWidth: details.getBoundingClientRect().width,
-                splitWidth,
-                startToolRequestOffset:
-                  toolRequestOffset ??
-                  splitWidth * TOOL_REQUEST_SHARE - defaultToolRequestWidth(splitWidth),
-              };
-              event.currentTarget.setPointerCapture(event.pointerId);
-              event.preventDefault();
-            }}
-            onPointerMove={(event) => {
-              const drag = detailsResizeDrag.current;
-              if (drag === null || drag.pointerId !== event.pointerId) return;
-              const nextDetailsWidth = clampDetailsWidth(
-                drag.startWidth + drag.startX - event.clientX,
-                drag.splitWidth,
-              );
-              setDetailsWidth(nextDetailsWidth);
-              setToolRequestOffset(
-                drag.startToolRequestOffset +
-                  (nextDetailsWidth - drag.startWidth) * TOOL_REQUEST_SHARE,
-              );
-            }}
-            onPointerUp={(event) => {
-              if (detailsResizeDrag.current?.pointerId !== event.pointerId) return;
-              detailsResizeDrag.current = null;
-              event.currentTarget.releasePointerCapture(event.pointerId);
-            }}
-            onPointerCancel={() => {
-              detailsResizeDrag.current = null;
-            }}
-            onKeyDown={(event) => {
-              if (event.key !== "ArrowLeft" && event.key !== "ArrowRight") return;
-              const details = event.currentTarget.parentElement;
-              const split = details?.parentElement;
-              if (
-                details === null ||
-                details === undefined ||
-                split === null ||
-                split === undefined
-              )
-                return;
-              const direction = event.key === "ArrowLeft" ? 1 : -1;
-              const currentDetailsWidth = details.getBoundingClientRect().width;
-              const splitWidth = split.getBoundingClientRect().width;
-              const nextDetailsWidth = clampDetailsWidth(
-                currentDetailsWidth + direction * DETAILS_RESIZE_STEP,
-                splitWidth,
-              );
-              const currentToolRequestOffset =
-                toolRequestOffset ??
-                splitWidth * TOOL_REQUEST_SHARE - defaultToolRequestWidth(splitWidth);
-              setDetailsWidth(nextDetailsWidth);
-              setToolRequestOffset(
-                currentToolRequestOffset +
-                  (nextDetailsWidth - currentDetailsWidth) * TOOL_REQUEST_SHARE,
-              );
-              event.preventDefault();
-            }}
-          />
-          <div className={css.detailsHeader}>
-            <div className={css.detailsTitle}>
-              {selectedStepInfo !== undefined ? (
-                <>
-                  <span className={css.stepDetailsDot} aria-hidden="true" />
-                  <span className={css.stepDetailsName}>
-                    {t("step.label", { step: selectedStepInfo.step })}
-                  </span>
-                  <span className={css.detailsLocation}>
-                    {sectionLabel(selectedStepInfo.turn, t)}
-                  </span>
-                </>
-              ) : (
-                selected !== undefined && (
-                  <>
-                    <span className={`${css.kindTag} ${KIND_TAG_CLASS[selected.cell.kind]}`}>
-                      {t(KIND_LABEL_KEY[selected.cell.kind])}
-                    </span>
-                    <span className={css.detailsLocation}>
-                      {`${sectionLabel(selected.turn, t)} · ${selected.group}`}
-                    </span>
-                  </>
-                )
-              )}
-            </div>
-            <button
-              type="button"
-              className={css.close}
-              aria-label={t("details.close")}
-              onClick={closeInspector}
-            >
-              <span aria-hidden="true">×</span>
-            </button>
-          </div>
-          <div className={css.detailTabs} role="tablist" aria-label={t("details.event")}>
-            {selectedTabs.map((tab) => (
-              <button
-                key={tab.id}
-                id={`trajectory-detail-${tab.id}`}
-                type="button"
-                role="tab"
-                aria-controls="trajectory-detail-panel"
-                aria-selected={activeTab === tab.id}
-                className={
-                  activeTab === tab.id ? `${css.detailTab} ${css.detailTabActive}` : css.detailTab
-                }
-                onClick={() => {
-                  activateTab(tab.id);
-                }}
-              >
-                {t(tab.labelKey)}
-              </button>
-            ))}
-          </div>
-          <div
-            id="trajectory-detail-panel"
-            className={
-              activeTab === "overview"
-                ? `${css.detailBody} ${css.detailBodySummary}`
-                : css.detailBody
-            }
-            role="tabpanel"
-            aria-labelledby={`trajectory-detail-${activeTab}`}
-          >
-            {selectedStepInfo !== undefined && activeTab === "overview" && (
-              <dl
-                className={`${css.overview} ${css.summaryScrollRegion}`}
-                data-summary-scroll-region=""
-              >
-                <div>
-                  <dt>{t("details.status")}</dt>
-                  <dd className={selectedStepInfo.status === "error" ? css.error : undefined}>
-                    {statusLabel(selectedStepInfo.status, t)}
-                  </dd>
-                </div>
-                <div>
-                  <dt>{t("details.toolCalls")}</dt>
-                  <dd>{selectedStepToolCalls}</dd>
-                </div>
-                {selectedStepSubtoolCalls > 0 && (
-                  <div>
-                    <dt>{t("details.subtoolCalls")}</dt>
-                    <dd>{selectedStepSubtoolCalls}</dd>
-                  </div>
-                )}
-                {selectedStepAssistant !== undefined && (
-                  <div>
-                    <dt>{t("details.result")}</dt>
-                    <dd className={css.overviewParentLinks}>
-                      <HierarchyLink
-                        label={t("details.assistantMessage")}
-                        onOpen={() => {
-                          openRecordSummary(selectedStepAssistant);
-                        }}
-                      />
-                    </dd>
-                  </div>
-                )}
-              </dl>
-            )}
-            {selected !== undefined && selectedState !== undefined && activeTab === "overview" && (
-              <>
-                <dl
-                  className={`${css.overview} ${css.summaryScrollRegion}`}
-                  data-summary-scroll-region=""
-                >
-                  {(selectedAssistantStep !== undefined || selectedParentTool !== undefined) && (
-                    <div>
-                      <dt>{t("details.hierarchy")}</dt>
-                      <dd className={css.overviewParentLinks}>
-                        {selectedAssistantStep !== undefined && (
-                          <HierarchyLink
-                            label={t("step.label", { step: selectedAssistantStep.step })}
-                            onOpen={() => {
-                              selectStep(selectedAssistantStep);
-                            }}
-                          />
-                        )}
-                        {selectedParentTool !== undefined && (
-                          <HierarchyLink
-                            label={t("details.toolCall")}
-                            onOpen={() => {
-                              openRecordSummary(selectedParentTool);
-                            }}
-                          />
-                        )}
-                      </dd>
-                    </div>
-                  )}
-                  <div>
-                    <dt>{t("details.status")}</dt>
-                    <dd className={selectedState === "error" ? css.error : undefined}>
-                      {statusLabel(selectedState, t)}
-                    </dd>
-                  </div>
-                </dl>
-                <div className={css.overviewSections}>
-                  {isMarkdownRecord(selected) ? (
-                    <OverviewSection
-                      label={t("tab.preview")}
-                      onOpen={() => {
-                        activateTab("rendered");
-                      }}
-                    >
-                      <MarkdownRecordContent record={selected} rendered preview t={t} />
-                    </OverviewSection>
-                  ) : (
-                    <>
-                      {selected.cell.inputDetail && (
-                        <OverviewSection
-                          label={t("tab.payload")}
-                          onOpen={() => {
-                            activateTab("input");
-                          }}
-                        >
-                          <RecordPayload record={selected} direction="input" preview t={t} />
-                        </OverviewSection>
-                      )}
-                      {selected.cell.outputDetail && (
-                        <OverviewSection
-                          label={t("tab.result")}
-                          onOpen={() => {
-                            activateTab("output");
-                          }}
-                        >
-                          <RecordPayload record={selected} direction="output" preview t={t} />
-                        </OverviewSection>
-                      )}
-                    </>
-                  )}
-                </div>
-              </>
-            )}
-            {selected !== undefined && activeTab === "rendered" && (
-              <MarkdownRecordContent record={selected} rendered t={t} />
-            )}
-            {selected !== undefined && activeTab === "raw" && (
-              <MarkdownRecordContent record={selected} rendered={false} t={t} />
-            )}
-            {selected !== undefined && activeTab === "input" && (
-              <RecordPayload record={selected} direction="input" t={t} />
-            )}
-            {selected !== undefined && activeTab === "output" && (
-              <RecordPayload record={selected} direction="output" t={t} />
-            )}
-          </div>
-        </aside>
+      {(selectedStepInfo !== undefined || selected !== undefined) && (
+        <TrajectoryInspector
+          t={t}
+          allRecords={allRecords}
+          stepsByKey={stepsByKey}
+          step={selectedStepInfo}
+          stepRecords={selectedStepRecords}
+          record={selected}
+          activeTab={activeTab}
+          onActivateTab={activateTab}
+          onClose={closeInspector}
+          onSelectStep={selectStep}
+          onOpenRecord={openRecordSummary}
+          detailsWidth={detailsWidth}
+          toolRequestOffset={toolRequestOffset}
+          onResize={(nextDetailsWidth, nextToolRequestOffset) => {
+            setDetailsWidth(nextDetailsWidth);
+            setToolRequestOffset(nextToolRequestOffset);
+          }}
+        />
       )}
     </div>
   );

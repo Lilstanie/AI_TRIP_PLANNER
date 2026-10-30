@@ -2,7 +2,7 @@ import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import { checkText } from "@/components/chat/team-check";
 import type { TrajectoryTurnModel, TrajectoryTurnResult } from "@/components/trajectory/layout";
 import type { TrajectoryTranslate } from "@/components/trajectory/locales";
-import type { TrajectoryStep } from "@/components/trajectory/TrajectoryTable";
+import type { TrajectoryStep } from "@/components/trajectory/trajectory-table-records";
 import type { TrajectoryCellProps } from "@/components/trajectory/trajectory-record";
 import type { Message } from "@/lib/workspace";
 import { PREPARING_SUMMARY } from "@/lib/workspace/session";
