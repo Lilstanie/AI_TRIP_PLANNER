@@ -70,7 +70,12 @@ dialog.phone-trajectory[open] {
   font-size: var(--font-size-title);
 }
 .phone-trajectory__close {
+  display: inline-grid;
+  place-items: center;
   min-width: 44px;
+  padding: 0 !important;
+  background: transparent !important;
+  color: var(--text-dim);
 }
 .phone-trajectory__close,
 .phone-trajectory__team > summary {

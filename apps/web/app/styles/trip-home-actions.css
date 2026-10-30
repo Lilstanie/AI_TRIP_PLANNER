@@ -196,6 +196,17 @@
   }
 }
 @media (max-width: 520px) {
+  .trip-home-suggestion {
+    margin-bottom: var(--space-3);
+  }
+  .trip-home-action-switcher {
+    width: 100%;
+  }
+  .trip-home-action-switcher__tabs {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
   .drawer.trip-home-action-surface {
     position: fixed;
     inset: 0 !important;

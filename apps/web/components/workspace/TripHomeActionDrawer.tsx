@@ -1,5 +1,5 @@
 "use client";
-import { useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
+import { useEffect, useId, useRef, useState, type KeyboardEvent, type ReactNode, type RefObject } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { Drawer } from "../ui/Drawer";
 import { useLocale } from "../account/LocaleProvider";
@@ -107,6 +107,10 @@ export function TripHomeActionDrawer({
     onSwitch(nextAction);
     tabs.current[nextAction]?.focus();
   };
+  useEffect(() => {
+    tabs.current[active]?.scrollIntoView({ block: "nearest", inline: "nearest" });
+  }, [active]);
+
   return (
     <Drawer
       side="right"
