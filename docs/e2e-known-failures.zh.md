@@ -15,6 +15,10 @@ issue 线程在 `main` `fb21e61`（2026-10-30）上用 `pnpm --filter @trip/web 
 | `workspace-performance` | `runPlannedStorage` 在 `page.waitForFunction` 处超时，尚未记录任何耗时。    | #781  |
 | `trip-workspace-layout` | 脚本启动 `chrome` channel，需要安装 Google Chrome；没有安装时启动立即失败。 | #781  |
 
+`trajectory-tab` 在 `main` `ec70e0d` 上也会失败（2026-10-30，TP-167），命令为
+`pnpm --filter @trip/web e2e trajectory-tab`：`en-1440` 通过 59 项检查后，刷新步骤从“聊天”重新打开
+“Tokyo from Sydney”，在 `page.waitForFunction` 处等待三条 `.msg-item--agent` 消息时超时。
+
 <a id="covered-regressions"></a>
 
 ## 已有回归覆盖

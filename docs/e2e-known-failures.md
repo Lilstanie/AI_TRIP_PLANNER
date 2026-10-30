@@ -19,6 +19,11 @@ The issue thread re-ran these on `main` `fb21e61` (2026-10-30) with
 | `workspace-performance` | `runPlannedStorage` times out in `page.waitForFunction` before any timing is recorded.                      | #781  |
 | `trip-workspace-layout` | It launches the `chrome` channel, so it needs Google Chrome installed; without it the launch fails at once. | #781  |
 
+`trajectory-tab` also fails on `main` `ec70e0d` (2026-10-30, TP-167) with
+`pnpm --filter @trip/web e2e trajectory-tab`: after 59 passing checks at `en-1440`, the reload step
+reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` waiting for three
+`.msg-item--agent` messages.
+
 ## Covered regressions
 
 - `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on
