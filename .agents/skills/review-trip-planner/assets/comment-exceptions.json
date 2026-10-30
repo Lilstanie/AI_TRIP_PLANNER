@@ -103,5 +103,10 @@
     "file": "apps/web/components/trajectory/trajectory-table-records.ts",
     "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
     "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."
+  },
+  {
+    "file": "apps/web/components/trip/timeline/TimelineStop.tsx",
+    "text": "// eslint-disable-next-line @next/next/no-img-element",
+    "reason": "The thumbnail loads the place photo proxy, which next/image cannot optimise; the same lint directive is used by the place preview."
   }
 ]

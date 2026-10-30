@@ -58,7 +58,6 @@ export const WORKSPACE_ZH = {
   "Two scheduled items overlap on Day {day}.": "第 {day} 天有两项安排时间重叠。",
   "That activity already exists in this plan.": "此活动已存在于当前行程中。",
   "Estimate changed by {change} from the previous plan.": "估算较上一版方案变化 {change}。",
-  "Estimate unchanged from the previous plan.": "估算与上一版方案相比没有变化。",
   Dismiss: "关闭",
   Answer: "填写",
   "Answer {v0}": "填写{v0}",

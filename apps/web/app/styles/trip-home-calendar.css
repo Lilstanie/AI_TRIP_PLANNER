@@ -125,6 +125,7 @@
   overscroll-behavior-inline: contain;
 }
 .trip-home-calendar__week,
+.trip-home-calendar__stays,
 .trip-home-calendar__timeline {
   display: grid;
   grid-template-columns: var(--calendar-gutter) repeat(7, minmax(132px, 1fr));
@@ -135,6 +136,38 @@
 }
 .trip-home-calendar__week::before {
   content: "";
+}
+.trip-home-calendar__stays {
+  margin: 0;
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--border);
+  list-style: none;
+}
+.trip-home-calendar__stay {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  min-width: 0;
+  margin-inline: var(--space-1);
+  padding: 4px 8px;
+  border-radius: var(--radius-sm);
+  background: color-mix(in srgb, var(--calendar-stay) 12%, transparent);
+  color: var(--calendar-stay);
+  font-size: 12px;
+}
+.trip-home-calendar__stay svg {
+  flex: none;
+}
+.trip-home-calendar__stay-title {
+  overflow: hidden;
+  font-weight: 600;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.trip-home-calendar__stay-nights {
+  flex: none;
+  margin-inline-start: auto;
+  opacity: 0.8;
 }
 .trip-home-calendar__week-day {
   min-width: 0;

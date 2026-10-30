@@ -72,6 +72,92 @@ const plan = {
         assumptions: [],
         conflictsWith: [],
         items: [{ kind: "hotel", detail: "Harbour Hotel — 3 nights", day: 1 }],
+        stays: [
+          {
+            id: "stay-1",
+            city: "Sydney",
+            checkIn: "2030-10-01",
+            checkOut: "2030-10-04",
+            day: 1,
+            nights: 3,
+            rooms: 1,
+            selectedId: "harbour",
+            candidates: [
+              { id: "cheap", name: "Unchosen Inn", area: "Ultimo", pricePerNight: 90, rating: 7 },
+              {
+                id: "harbour",
+                name: "Harbour Hotel",
+                area: "Circular Quay",
+                pricePerNight: 200,
+                rating: 9,
+              },
+            ],
+          },
+        ],
+      },
+    },
+    {
+      id: "transport",
+      label: "Transport",
+      status: "draft",
+      summary: "Flights",
+      estCost: 900,
+      proposal: {
+        agent: "transport",
+        summary: "Flights",
+        assumptions: [],
+        conflictsWith: [],
+        items: [],
+        flights: [
+          {
+            id: "flight-1",
+            from: "MEL",
+            to: "SYD",
+            depart: "2030-10-01",
+            day: 1,
+            passengers: 2,
+            selectedId: "qantas",
+            candidates: [
+              { id: "jetstar", carrier: "Unchosen Air", price: 400 },
+              {
+                id: "qantas",
+                carrier: "Qantas",
+                price: 900,
+                outbound: {
+                  segments: [
+                    {
+                      from: { code: "MEL", name: "Melbourne" },
+                      to: { code: "SYD", name: "Sydney" },
+                      departsAt: "2030-10-01 07:15",
+                      arrivesAt: "2030-10-01 08:45",
+                      durationMin: 90,
+                      airline: "Qantas",
+                      flightNumber: "QF 400",
+                    },
+                  ],
+                  layovers: [],
+                  durationMin: 90,
+                },
+                inbound: {
+                  segments: [
+                    {
+                      from: { code: "SYD", name: "Sydney" },
+                      to: { code: "MEL", name: "Melbourne" },
+                      departsAt: "2030-10-04 18:30",
+                      arrivesAt: "2030-10-04 20:00",
+                      durationMin: 90,
+                      airline: "Qantas",
+                      flightNumber: "QF 481",
+                    },
+                  ],
+                  layovers: [],
+                  durationMin: 90,
+                },
+                roundTrip: true,
+              },
+            ],
+          },
+        ],
       },
     },
   ],
@@ -181,6 +267,14 @@ try {
         !text.includes("Unscheduled idea"),
       `copy scheduled stops at ${width}px ${colorScheme}`,
     );
+    check(
+      text.includes(
+        "2030-10-01 · Day 1\n07:15 Flight MEL → SYD · Qantas QF 400\nCheck in: Harbour Hotel",
+      ) &&
+        text.includes("18:30 Flight SYD → MEL · Qantas QF 481") &&
+        !text.includes("Unchosen"),
+      `copy selected flights and check-in at ${width}px ${colorScheme}`,
+    );
     const downloaded = page.waitForEvent("download");
     await page.getByRole("button", { name: "Itinerary actions" }).click();
     await page.getByRole("menuitem", { name: "Download calendar" }).click();
@@ -190,8 +284,20 @@ try {
     const ics = Buffer.concat(chunks).toString("utf8");
     const uids = [...ics.matchAll(/^UID:(.+)$/gm)].map((match) => match[1].trim());
     check(
-      uids.length === 2 && new Set(uids).size === 2,
+      uids.length === 5 && new Set(uids).size === 5,
       `unique event IDs ${width} ${colorScheme}`,
+    );
+    check(
+      ics.includes("DTSTART:20301001T071500") &&
+        ics.includes("DTEND:20301001T084500") &&
+        ics.includes("SUMMARY:Flight MEL → SYD · Qantas QF 400") &&
+        ics.includes("DTSTART:20301004T183000") &&
+        ics.includes("SUMMARY:Flight SYD → MEL · Qantas QF 481") &&
+        /DTSTART;VALUE=DATE:20301001\r\nDTEND;VALUE=DATE:20301004\r\nSUMMARY:Harbour Hotel/.test(
+          ics,
+        ) &&
+        !ics.includes("Unchosen"),
+      `calendar holds the selected flights and the stay at ${width}px ${colorScheme}`,
     );
     check(
       download.suggestedFilename().endsWith(".ics") &&

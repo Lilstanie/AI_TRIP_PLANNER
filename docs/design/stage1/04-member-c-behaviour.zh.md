@@ -33,7 +33,7 @@ flowchart TB
     fail["Raise error: no stay that meets the rules"]
     hasModel{"Model configured?"}
     valid{"Choice is a known id and on schema?"}
-    rule["Deterministic pick: rating ≥ 8 and free cancellation, else cheapest"]
+    rule["Deterministic pick: rating ≥ 8 and free cancellation, else one of them, else cheapest"]
     fit{"Choice within allocation?"}
     refit["Take best stay within allocation, or cheapest"]
     price["Price rooms × nights × rate in cents; floorCost = cheapest eligible"]

@@ -64,7 +64,7 @@
 
 @container workspace-main (min-width: 1041px) and (max-width: 1280px) {
   .workspace-app:not([data-phone]) .workspace-topbar {
-    grid-template-columns: auto minmax(0, 1fr) auto;
+    grid-template-columns: minmax(0, 1fr) minmax(0, auto) auto;
     grid-template-areas: "leading facts actions";
   }
   .fact-chips {
@@ -75,7 +75,9 @@
 @container workspace-main (min-width: 921px) and (max-width: 1040px) {
   .workspace-app:not([data-phone]) .workspace-topbar {
     grid-template-columns: auto minmax(0, 1fr) auto;
-    grid-template-areas: "nav leading actions";
+    grid-template-areas:
+      "nav leading actions"
+      "facts facts facts";
   }
   .workspace-app:not([data-phone]) .workspace-topbar > .topbar-icon-button {
     grid-area: nav;
@@ -119,6 +121,9 @@
   align-items: center;
   gap: 12px;
   min-width: 0;
+}
+.topbar-leading .team-control {
+  flex: none;
 }
 .topbar-chat-tabs {
   flex: none;

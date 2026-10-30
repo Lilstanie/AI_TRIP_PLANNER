@@ -141,8 +141,10 @@ const settingsFor = (language) => ({
 });
 const placeFor = (text) => {
   const hash = [...text].reduce((n, c) => n + c.charCodeAt(0), 0);
+  const bondi = text === "Bondi Beach";
   return {
-    id: `fixture-${hash}`,
+    id: bondi ? `osm:${hash}` : `fixture-${hash}`,
+    ...(bondi ? { photos: [{ name: "fixture-photo" }] } : {}),
     displayName: { text },
     formattedAddress: `${text}, Sydney NSW, Australia`,
     location: { latitude: -33.85 - (hash % 100) / 1000, longitude: 151.2 + (hash % 70) / 1000 },
@@ -184,15 +186,26 @@ async function open({ language = "en", width = 1440, height = 1000, phone = fals
     const { text } = route.request().postDataJSON();
     await route.fulfill({ json: { places: /zzz/i.test(text) ? [] : [placeFor(text)] } });
   });
+  await page.route("**/api/places/photo*", (route) =>
+    route.fulfill({
+      contentType: "image/png",
+      body: Buffer.from(
+        "iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNkYPhfDwAChwGA60e6kgAAAABJRU5ErkJggg==",
+        "base64",
+      ),
+    }),
+  );
   await page.route("**/api/places/details", async (route) => {
     const { placeId } = route.request().postDataJSON();
     await route.fulfill({
       json: {
-        place: {
-          id: placeId,
-          displayName: { text: placeId },
-          location: { latitude: -33.86, longitude: 151.21 },
-        },
+        place: placeId.startsWith("osm:")
+          ? placeFor("Bondi Beach")
+          : {
+              id: placeId,
+              displayName: { text: placeId },
+              location: { latitude: -33.86, longitude: 151.21 },
+            },
       },
     });
   });
@@ -319,6 +332,14 @@ try {
     (await tripMap.locator(".trip-map-marker.is-hovered").count()) === 1 &&
       (await page.locator(".timeline-stop.is-hovered").count()) === 1,
     "hovering a stop highlights its marker, and hovering a marker highlights its stop",
+  );
+  const thumb = await box(page.locator(".timeline-stop__thumb"));
+  check(
+    thumb.width === 56 &&
+      thumb.height === 56 &&
+      (await page.locator(".timeline-stop__thumb").evaluate((image) => image.naturalWidth)) > 0,
+    "a stop with a place photo shows a 56 pixel thumbnail",
+    thumb,
   );
   await page.screenshot({ path: `${OUT}/hover-link-1440-en.png` });
   await page.mouse.move(0, 0);

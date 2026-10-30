@@ -42,6 +42,43 @@ export function tripDate(plan: TripPlan, day: number) {
   return start === undefined ? undefined : dateKey(start + (day - 1) * DAY_MS);
 }
 
+export type StaySpan = {
+  key: string;
+  title: string;
+  column: number;
+  length: number;
+  nights: number;
+};
+
+export function weekStays(plan: TripPlan, days: CalendarDay[], weekDays: number[]): StaySpan[] {
+  const stayOn = (time: number) => {
+    const day = tripDay(plan, time);
+    return day === undefined
+      ? undefined
+      : days[day - 1]?.entries.find((entry) => entry.category === "stay" && entry.allDay);
+  };
+  const nights = (title: string) =>
+    days.filter((day) =>
+      day.entries.some((entry) => entry.category === "stay" && entry.title === title),
+    ).length;
+  const spans: StaySpan[] = [];
+  weekDays.forEach((time, column) => {
+    const stay = stayOn(time);
+    if (!stay) return;
+    const last = spans.at(-1);
+    if (last && last.title === stay.title && last.column + last.length === column) last.length += 1;
+    else
+      spans.push({
+        key: `${stay.key}-${column}`,
+        title: stay.title,
+        column,
+        length: 1,
+        nights: nights(stay.title),
+      });
+  });
+  return spans;
+}
+
 export function tripDay(plan: TripPlan, time: number) {
   const start = dateTime(plan.brief.dates[0]);
   if (start === undefined) return undefined;

@@ -844,6 +844,27 @@ async function runConversationAgent(
   return { reply: plannedReply(request, plan, reply), plan };
 }
 
+const OFFLINE_NO_CHANGE: Record<InterfaceLanguage, string> = {
+  en: "Without the AI planner, chat can only change the destination, dates, travellers or budget. Edit stops directly in the trip.",
+  zh: "当前没有 AI 规划，聊天里只能修改目的地、日期、人数或预算。地点请直接在行程里编辑。",
+};
+
+function sorted(value: unknown): unknown {
+  if (Array.isArray(value)) return value.map(sorted);
+  if (!value || typeof value !== "object") return value;
+  return Object.fromEntries(
+    Object.entries(value)
+      .filter(([, item]) => item !== undefined)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, item]) => [key, sorted(item)]),
+  );
+}
+
+function sameBrief(left: TripBrief, right: TripBrief): boolean {
+  const material = (brief: TripBrief) => sorted({ ...brief, tripId: undefined, userId: undefined });
+  return JSON.stringify(material(left)) === JSON.stringify(material(right));
+}
+
 async function runOffline(
   request: ChatRequest,
   intake: BriefIntake,
@@ -855,7 +876,10 @@ async function runOffline(
     ? await extractor.extract(message, request.brief)
     : extractBriefPatchLocally(message, intake.known.groupSize);
   intake.update(patch, message);
-  const plan = await orchestrate(intake.requireReady());
+  const brief = intake.requireReady();
+  if (request.plan && sameBrief(brief, request.plan.brief))
+    return { reply: OFFLINE_NO_CHANGE[turnLanguage(request)], plan: request.plan };
+  const plan = await orchestrate(brief);
   return {
     reply:
       unchangedPlanReply(request, plan) ??

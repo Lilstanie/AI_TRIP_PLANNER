@@ -116,8 +116,9 @@ The Trip home action area and its acceptance criteria are detailed in
     views retain the selected Trip day, and Previous and Next stay within the Trip, so the first and
     last periods disable the outward control and no off-Trip date is shown as a Trip date. Clicking an
     activity opens it in the shared Itinerary editor. Timed activities show their actual ranges and
-    overlaps, while untimed activities, flights and stays appear in the All day region without
-    invented times or drag handles. Inside the action panel, the seven-day grid scrolls horizontally
+    overlaps, while untimed activities and flights appear in the All day region without
+    invented times or drag handles. In Week view a stay is one bar under the dates that spans its
+    nights and shows the hotel and night count; Month view keeps it on each night. Inside the action panel, the seven-day grid scrolls horizontally
     so event labels remain readable without widening the page. Ideas uses the existing scheduling flow,
     Bookings groups booked items, and preferences save and replan the open Trip. There is no Media or
     Receipts card. The side
@@ -434,7 +435,10 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     three stacked avatars, working specialists first (a working one bobs), and, while planning, "N working".
     The six-row panel it opens is unchanged. When the usable top bar is at most 1280 px, it hides the label
     and shows the working count compactly; at most 920 px it reduces the avatar stack to one icon. The
-    working count stays in its accessible name.
+    working count stays in its accessible name. It never shrinks or wraps: the chat title beside it
+    truncates first. Between 1041 and 1280 px the trip fact chips keep their width between the title
+    and the actions, and between 921 and 1040 px they take their own row, so no top bar control
+    overlaps another (`topbar-fit` E2E).
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
     on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
     outside. Escape returns focus to the button only when focus was inside the panel. The panel is a
@@ -611,8 +615,8 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     `pnpm --filter @trip/web e2e run chat-generation` covers this contract with finite state waits
     and controlled streams, retaining per-path ownership, request history and screenshots.
   - Applying an edit from the trip list or the timeline is `applyEdit(next)`, which records the
-    previous total. A chat replan sets `estimateChange` to the signed change from the plan it replaced,
-    and a timeline edit clears it. Views get these as actions from
+    previous total. A chat replan that moves the estimated total sets `estimateChange` to the signed change from the
+    plan it replaced; a turn that leaves the total as it was shows no notice, and a timeline edit clears it. Views get these as actions from
     `useWorkspace`, never as state setters ([architecture](architecture.md#workspace-state)).
 - **Storage.**
   - Everything is saved in the browser only, with a debounced autosave state in the sidebar.
@@ -918,8 +922,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   stop and survives reopening a saved trip. Changing progress preserves its schedule, details, note,
   booking and cost, including the plan total; it does not select the next stop. Only Visited and
   Skipped show a tag on the row; Planned shows none.
-- **Quiet stop rows.** A stop row shows its time, name, one short line and the price or "Price
-  unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
+- **Quiet stop rows.** A stop row shows its time, a bordered card with the name, one short line and
+  a 56 px place photo when one exists, and the price or "Price unknown" on the right, with no "Place confirmed", "Planned" or "Price needs checking" tag. Problems
   that need action stay visible through the Open item badge and the conflict list under the row. The
   time cell, the flight, stay and transfer icons and the idea icon have no fill or ring; the time
   still changes colour on hover and while its popover is open, and keeps its focus ring. A day ends
@@ -1064,7 +1068,9 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   Each day has a menu named "Day {n} actions" next to its title: Edit title, Add note (Edit note once a note
   exists), Add day before, Add day after, Clear day and Remove day, and a Day map button that shows that day on the map (on a phone or a narrow layout it also
   brings the map forward). The itinerary has a menu named "Itinerary actions" at the top corner of
-  the Trip panel: Copy trip, Download calendar, Move all events to ideas and Remove all scheduled events. Every item applies at once as one plan
+  the Trip panel: Copy trip, Download calendar, Move all events to ideas and Remove all scheduled events. Copy trip
+  and Download calendar include each selected flight leg, timed when its times are known, and each chosen stay
+  from check-in to check-out, in `lib/trip/export.ts`. Every item applies at once as one plan
   revision with the usual Undo and no dialog. Adding a day lengthens the trip: before Day 1 the start date
   moves a day earlier and every booked date stays put, anywhere else the end date moves a day later and
   later stops, stays and flights move with it, the Brief form's dates follow the plan, and Add day after the last day opens the new day; a stay that spans the new day gains a night and its cost

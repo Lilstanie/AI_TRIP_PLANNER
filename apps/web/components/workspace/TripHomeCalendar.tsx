@@ -11,6 +11,7 @@ import {
   tripDay,
   weekStart,
   weekStarts,
+  weekStays,
   type CalendarCategory,
   type CalendarDay,
   type CalendarEntry,
@@ -145,16 +146,20 @@ function CalendarEntries({
   day,
   locale,
   allDayOnly = false,
+  staysAsBars = false,
   selectedActivity,
   onSelectActivity,
 }: {
   day: CalendarDay;
   locale: AppLocale;
   allDayOnly?: boolean;
+  staysAsBars?: boolean;
   selectedActivity?: string;
   onSelectActivity(activityId: string, day: number): void;
 }) {
-  const allDay = day.entries.filter((entry) => entry.allDay);
+  const allDay = day.entries.filter(
+    (entry) => entry.allDay && !(staysAsBars && entry.category === "stay"),
+  );
   const timed = allDayOnly ? [] : day.entries.filter((entry) => !entry.allDay);
   return (
     <div className="trip-home-calendar__entries">
@@ -264,6 +269,7 @@ export function TripHomeCalendar({
   const weekIndex = Math.max(0, weeks.indexOf(visibleWeek));
   const monthIndex = Math.max(0, months.indexOf(visibleMonth));
   const weekDays = Array.from({ length: 7 }, (_, index) => visibleWeek + index * DAY_MS);
+  const stays = weekStays(plan, days, weekDays);
   const currentMonth = new Date(visibleMonth);
   const leading = (currentMonth.getUTCDay() + 6) % 7;
   const monthDays = new Date(
@@ -369,6 +375,7 @@ export function TripHomeCalendar({
                         day={entry}
                         locale={locale}
                         allDayOnly
+                        staysAsBars
                         selectedActivity={selectedActivity}
                         onSelectActivity={onSelectActivity}
                       />
@@ -380,6 +387,25 @@ export function TripHomeCalendar({
               );
             })}
           </div>
+          {stays.length > 0 && (
+            <ul className="trip-home-calendar__stays" aria-label={translate(locale, "Stay")}>
+              {stays.map((stay) => (
+                <li
+                  key={stay.key}
+                  className="trip-home-calendar__stay"
+                  style={{ gridColumn: `${stay.column + 2} / span ${stay.length}` }}
+                >
+                  <FlowStayIcon size={12} />
+                  <span className="trip-home-calendar__stay-title">{stay.title}</span>
+                  <span className="trip-home-calendar__stay-nights">
+                    {locale === "en" && stay.nights === 1
+                      ? "1 night"
+                      : translate(locale, "{count} nights", { count: stay.nights })}
+                  </span>
+                </li>
+              ))}
+            </ul>
+          )}
           <div className="trip-home-calendar__timeline" ref={timeline}>
             <div className="trip-home-calendar__hours" aria-hidden="true">
               {Array.from({ length: 24 }, (_, hour) => (
