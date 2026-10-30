@@ -148,7 +148,7 @@ One specification per member at least (C wrote two); seven in total. Each comes 
 - 4a. _Transport scheduled no usable hops_: nights are split evenly across cities, extra nights to earlier cities.
 - 5a. _Live search unavailable_: Google Places estimates are used and the proposal is labelled "estimated", naming the provider that failed.
 - 6a. _No candidate survives the filters_: the agent raises an error and the run stops; it does not relax a confirmed preference.
-- 7a. _No model configured, or the model returns an unknown id or off-schema output_: the deterministic rule picks the cheapest candidate with rating ≥ 8 and free cancellation (or the cheapest) within the allocation, labelled "Local fallback".
+- 7a. _No model configured, or the model returns an unknown id or off-schema output_: the deterministic rule picks the cheapest candidate with rating ≥ 8 and free cancellation (otherwise the cheapest that meets one of the two, otherwise the cheapest) within the allocation, labelled "Local fallback".
 - 7b. _First choice exceeds the allocation_: the best stay within it is taken, or the cheapest if none fit, and the proposal says why.
 - _Any step_. _Revision request received_ (from UC-C2): see UC-C2 step 6.
 
