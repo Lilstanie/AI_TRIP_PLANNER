@@ -118,8 +118,7 @@ export function conversationTitle(conversation: ConversationRecord, locale: AppL
     (conversation.title !== legacyTitleFor(snapshot) && conversation.title !== titleFor(snapshot))
   )
     return conversation.title;
-  const message = snapshot.messages.find((item) => item.role === "user")?.text.trim();
-  return message ? chatTitleFor(snapshot) : titleFor(snapshot, locale);
+  return titleFor(snapshot, locale);
 }
 
 function normalizeLayout(value: unknown): PanelLayout {
@@ -165,10 +164,16 @@ function normalizeLayout(value: unknown): PanelLayout {
   };
 }
 
-function conversationFrom(snapshot: Snapshot, tripId: string): ConversationRecord {
+const namesTrip = (snapshot: Snapshot) => !!snapshot.plan.brief.destination.trim();
+
+function conversationFrom(
+  snapshot: Snapshot,
+  tripId: string,
+  opensTrip = true,
+): ConversationRecord {
   return {
     id: `conversation:${snapshot.id}`,
-    title: chatTitleFor(snapshot),
+    title: opensTrip && namesTrip(snapshot) ? titleFor(snapshot) : chatTitleFor(snapshot),
     updatedAt: snapshot.savedAt,
     tripId,
     messages: clone(snapshot.messages),
@@ -223,7 +228,7 @@ export function createCatalog(current?: Snapshot, saved: Snapshot[] = []): Works
     else if (!existingTrip.conversationIds.includes(conversationId))
       existingTrip.conversationIds.push(conversationId);
     if (!catalog.conversations.some((conversation) => conversation.id === conversationId))
-      catalog.conversations.push(conversationFrom(snapshot, tripId));
+      catalog.conversations.push(conversationFrom(snapshot, tripId, !existingTrip));
     if (snapshot === current) {
       catalog.activeTripId = tripId;
       catalog.activeConversationId = conversationId;
@@ -356,6 +361,9 @@ export function upsertCurrent(
   const conversationId = `conversation:${snapshot.id}`;
   const trip = tripFrom(snapshot, conversationId);
   const existingTrip = next.trips.findIndex((item) => item.id === tripId);
+  const opensTrip =
+    existingTrip < 0 ||
+    (next.trips[existingTrip].conversationIds[0] ?? conversationId) === conversationId;
   if (existingTrip >= 0) {
     const previous = next.trips[existingTrip];
     const ids = new Set(previous.conversationIds);
@@ -366,7 +374,10 @@ export function upsertCurrent(
       ...(previous.renamed ? { title: previous.title, renamed: true } : {}),
     };
   } else next.trips.push(trip);
-  const conversation = { ...conversationFrom(snapshot, tripId), messages: clone(messages) };
+  const conversation = {
+    ...conversationFrom(snapshot, tripId, opensTrip),
+    messages: clone(messages),
+  };
   const existingConversation = next.conversations.findIndex((item) => item.id === conversationId);
   if (existingConversation >= 0) {
     const previous = next.conversations[existingConversation];
