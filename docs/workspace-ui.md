@@ -485,8 +485,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     are omitted. A settled agent row without
     lifecycle events is marked Interrupted. The surface it imitates, and the reasoning behind each
     divergence, are recorded in the [DSH thinking UI reference](design/dsh-thinking-ui.md).
-  - Exactly one `Deep diving` line is the surface's only live region; it grows an elapsed clock after
-    15 seconds.
+  - Exactly one `Deep diving` line (`深度求索中` in Chinese) is the surface's only live region; it grows
+    an elapsed clock after 15 seconds. While the turn runs, the Think row's summary only moves forward:
+    a running tool or specialist, otherwise the latest finished specialist's summary or coordinator
+    step (assigning tasks, checking budget and schedules, assembling the plan); `Preparing your
+request.` appears only before the first event. Each new summary fades in (none under reduced
+    motion). `planning-wait-status.e2e.mjs` slows the real stream to check this in both languages.
   - While a request runs, the Think row's icon is a 20 px `ThinkingOrb` from `thinking-orbs`
     (`components/chat/ThinkingOrbIcon.tsx`). Its animation follows the latest real progress event:
     planning weaves, a provider lookup searches, the conflict check solves, a revision works,

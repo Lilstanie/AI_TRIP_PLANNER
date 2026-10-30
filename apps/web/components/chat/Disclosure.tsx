@@ -111,7 +111,9 @@ export function RowSummary({
       data-tone={tone}
       title={text}
     >
-      <span className="thinking-row__summary-text">{text}</span>
+      <span className="thinking-row__summary-text" key={text}>
+        {text}
+      </span>
     </span>
   );
 }

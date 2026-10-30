@@ -168,6 +168,17 @@
   text-overflow: ellipsis;
 }
 
+.thinking-turn[data-state="running"] .thinking-row__summary-text {
+  animation: thinking-summary-in var(--duration) var(--ease-out);
+}
+
+@keyframes thinking-summary-in {
+  from {
+    opacity: 0;
+    transform: translateY(4px);
+  }
+}
+
 .thinking-row__summary[data-follow-end] {
   display: flex;
   justify-content: flex-end;
@@ -594,7 +605,8 @@
 
 @media (prefers-reduced-motion: reduce) {
   .thinking-row[data-state="running"] > .thinking-row__line::after,
-  .thinking-dot--running {
+  .thinking-dot--running,
+  .thinking-turn[data-state="running"] .thinking-row__summary-text {
     animation: none;
   }
 
