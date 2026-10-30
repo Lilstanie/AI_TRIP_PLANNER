@@ -7,7 +7,7 @@ area: packages/tools
 contract-impact: none
 ---
 
-# Find sights, neighbourhoods and restaurants on OSM by tag through Overpass
+# Free place search: Geoapify first, Overpass as the fallback
 
 ## What changed
 
@@ -33,7 +33,10 @@ results for `sight in Tokyo` and foreign restaurants for `restaurant in Tokyo`. 
   answered a timeout as HTTP 200 with a `remark` runtime error. Added that failure mode (red, then
   green: 7/7, tools 151/151); a timeout is now a provider failure, not "no places".
 
+- Joey then chose Geoapify with Overpass as the fallback. `geoapify.ts` plus six Geoapify failure
+  modes written first (5 red, 1 already green), then 13/13; tools 157/157, typecheck and lint pass.
+
 ## Notes for the next person
 
 This container cannot reach Overpass; the live check runs on Joey's Mac. `.env.example` (protected)
-does not list `OVERPASS_BASE_URL` yet.
+does not list `OVERPASS_BASE_URL` or `GEOAPIFY_API_KEY` yet.

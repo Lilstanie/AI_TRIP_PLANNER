@@ -1,4 +1,4 @@
-# Agent Note: Overpass for the agents' free place search
+# Agent Note: Geoapify, then Overpass, for the agents' free place search
 
 Status: implemented
 Owner: C (@HeadmasterEggy)
@@ -21,10 +21,18 @@ restaurants do not. Up to 20 results, those with a Wikipedia link first. An Over
 thrown, so the itinerary records the provider as unavailable. Text queries and other categories keep
 the Nominatim text search.
 
+When `GEOAPIFY_API_KEY` is set, `packages/tools/src/geoapify.ts` answers `sight`, `museum` and
+`restaurant` first: Geoapify geocoding finds the city (`type=city`), then Places lists that category
+inside the city's boundary (`filter=place:<id>`). A Geoapify error, a missing city or an empty list
+logs a warning without the key and falls back to Overpass; when both fail the error names both.
+Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
+
 ## Alternatives considered
 
-**Geoapify Places.** A free key gives about 3,000 requests a day with ready-made categories, but needs
-an account per deployment. Joey chose the keyless option on 2026-10-30.
+**Overpass only.** Joey first chose the keyless option on 2026-10-30. The live check that evening
+failed for an hour: the public instance and its mirrors returned 502 or timed out, and one answered a
+timeout as HTTP 200 with a `remark` runtime error (now treated as a failure). Joey then chose Geoapify
+with Overpass as the fallback, because a demo cannot depend on a public instance with no SLA.
 
 **Photon with `osm_tag`.** Photon still matches the query text against names, so a city name alone
 does not list the places inside it.
@@ -33,4 +41,5 @@ does not list the places inside it.
 
 - Overpass is slower than Nominatim (seconds per query) and the public instance has a daily budget,
   listed in [architecture](../../../../docs/architecture.md#free-services-limits-and-terms).
+- Geoapify needs a free account and key per deployment (3,000 credits a day).
 - Results carry no rating; agents that rank by rating treat OSM places as unrated.

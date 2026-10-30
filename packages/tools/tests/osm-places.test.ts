@@ -35,6 +35,7 @@ const sights = {
 function stub(...bodies: Array<{ status?: number; body: unknown }>) {
   vi.stubEnv("USE_MOCK_TOOLS", "false");
   vi.stubEnv("MAPS_PROVIDER", "osm");
+  vi.stubEnv("GEOAPIFY_API_KEY", "");
   const fetcher = vi.fn();
   for (const { status = 200, body } of bodies)
     fetcher.mockResolvedValueOnce({ ok: status < 400, status, json: async () => body });
@@ -140,5 +141,120 @@ describe("OSM places by category", () => {
     await places({ near: "Tokyo", category: "onsen" });
     expect(String(other.mock.calls[0]![0])).toContain("q=onsen%20in%20Tokyo");
     expect(other).toHaveBeenCalledTimes(1);
+  });
+});
+
+const geoTokyo = { results: [{ place_id: "tokyo-id", city: "Tokyo" }] };
+const geoSights = {
+  features: [
+    {
+      properties: {
+        name: "Meiji Jingu",
+        lat: 35.6764,
+        lon: 139.6993,
+        datasource: { raw: { wikidata: "Q1" } },
+      },
+    },
+    {
+      properties: {
+        name: "Senso-ji",
+        lat: 35.7148,
+        lon: 139.7967,
+        website: "https://www.senso-ji.jp",
+        datasource: { raw: { wikipedia: "ja:浅草寺", wikidata: "Q2" } },
+      },
+    },
+    { properties: { lat: 35.7, lon: 139.7 } },
+  ],
+};
+
+function withGeoapify(...bodies: Array<{ status?: number; body: unknown }>) {
+  const fetcher = stub(...bodies);
+  vi.stubEnv("GEOAPIFY_API_KEY", "test-geoapify-key");
+  return fetcher;
+}
+
+describe("Geoapify places by category, with Overpass as the fallback", () => {
+  it("asks Geoapify for sights inside the city's own boundary and never calls Overpass", async () => {
+    const fetcher = withGeoapify({ body: geoTokyo }, { body: geoSights });
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    const [geocodeUrl, placesUrl] = fetcher.mock.calls.map(([url]) => new URL(String(url)));
+    expect(geocodeUrl!.pathname).toBe("/v1/geocode/search");
+    expect(geocodeUrl!.searchParams.get("text")).toBe("Tokyo");
+    expect(geocodeUrl!.searchParams.get("type")).toBe("city");
+    expect(geocodeUrl!.searchParams.get("apiKey")).toBe("test-geoapify-key");
+    expect(placesUrl!.pathname).toBe("/v2/places");
+    expect(placesUrl!.searchParams.get("filter")).toBe("place:tokyo-id");
+    expect(placesUrl!.searchParams.get("categories")).toContain("tourism.sights");
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    expect(found).toEqual([
+      {
+        name: "Senso-ji",
+        category: "sight",
+        location: { latitude: 35.7148, longitude: 139.7967 },
+        website: "https://www.senso-ji.jp",
+      },
+      {
+        name: "Meiji Jingu",
+        category: "sight",
+        location: { latitude: 35.6764, longitude: 139.6993 },
+      },
+    ]);
+  });
+
+  it("asks Geoapify for restaurants and museums by their own categories", async () => {
+    const restaurants = withGeoapify({ body: geoTokyo }, { body: geoSights });
+    await places({ near: "Tokyo", category: "restaurant" });
+    expect(String(restaurants.mock.calls[1]![0])).toContain("catering.restaurant");
+
+    const museums = withGeoapify({ body: geoTokyo }, { body: geoSights });
+    await places({ near: "Tokyo", category: "museum" });
+    expect(String(museums.mock.calls[1]![0])).toContain("entertainment.museum");
+  });
+
+  it("falls back to Overpass when Geoapify rejects the request", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const fetcher = withGeoapify({ status: 429, body: {} }, { body: tokyo }, { body: sights });
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(String(fetcher.mock.calls[2]![0])).toContain("/interpreter");
+    expect(found.map((place) => place.name)).toEqual(["浅草寺", "東京スカイツリー"]);
+    expect(String(warn.mock.calls[0]![0])).toContain("429");
+    expect(String(warn.mock.calls[0]![0])).not.toContain("test-geoapify-key");
+    warn.mockRestore();
+  });
+
+  it("falls back to Overpass when Geoapify cannot find the city or finds no places", async () => {
+    const noCity = withGeoapify({ body: { results: [] } }, { body: tokyo }, { body: sights });
+    expect(await places({ near: "Tokyo", category: "sight" })).toHaveLength(2);
+    expect(String(noCity.mock.calls[2]![0])).toContain("/interpreter");
+
+    const noPlaces = withGeoapify(
+      { body: geoTokyo },
+      { body: { features: [] } },
+      { body: tokyo },
+      { body: sights },
+    );
+    expect(await places({ near: "Tokyo", category: "sight" })).toHaveLength(2);
+    expect(String(noPlaces.mock.calls[3]![0])).toContain("/interpreter");
+  });
+
+  it("reports both providers when Geoapify and Overpass both fail", async () => {
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    withGeoapify({ status: 401, body: {} }, { body: tokyo }, { status: 502, body: {} });
+
+    await expect(places({ near: "Tokyo", category: "sight" })).rejects.toThrow(/401.*502|502.*401/);
+  });
+
+  it("keeps neighbourhoods on Overpass, which Geoapify cannot list", async () => {
+    const fetcher = withGeoapify({ body: tokyo }, { body: { elements: [] } });
+
+    await places({ near: "Tokyo", category: "neighborhood" });
+
+    expect(String(fetcher.mock.calls[0]![0])).toContain("nominatim");
+    expect(String(fetcher.mock.calls[1]![0])).toContain("/interpreter");
   });
 });

@@ -9,6 +9,8 @@ export interface ToolRuntimeConfig {
   readonly osmUserAgent?: string;
   readonly nominatimBaseUrl: string;
   readonly overpassBaseUrl: string;
+  readonly geoapifyApiKey?: string;
+  readonly geoapifyBaseUrl: string;
   readonly osrmBaseUrl: string;
   readonly serpApiKey?: string;
   readonly weatherApiKey?: string;
@@ -38,6 +40,8 @@ export function snapshotToolRuntime(): ToolRuntimeConfig {
     osmUserAgent: optional(process.env.OSM_USER_AGENT),
     nominatimBaseUrl: process.env.NOMINATIM_BASE_URL || "https://nominatim.openstreetmap.org",
     overpassBaseUrl: process.env.OVERPASS_BASE_URL || "https://overpass-api.de/api",
+    geoapifyApiKey: optional(process.env.GEOAPIFY_API_KEY),
+    geoapifyBaseUrl: process.env.GEOAPIFY_BASE_URL || "https://api.geoapify.com",
     osrmBaseUrl: process.env.OSRM_BASE_URL || "https://router.project-osrm.org",
     serpApiKey: optional(process.env.SERPAPI_KEY),
     weatherApiKey: optional(process.env.WEATHER_API_KEY) || mapsApiKey,
