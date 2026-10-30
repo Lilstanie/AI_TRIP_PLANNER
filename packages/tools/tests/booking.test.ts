@@ -238,7 +238,7 @@ describe("SerpApi flights", () => {
     vi.stubGlobal(
       "fetch",
       vi.fn(async () =>
-        Response.json({ best_flights: [{ price: 450, flights: [{ airline: "Qantas" }] }] }),
+        Response.json({ best_flights: [{ price: 900, flights: [{ airline: "Qantas" }] }] }),
       ),
     );
 

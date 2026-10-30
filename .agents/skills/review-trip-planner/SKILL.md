@@ -29,8 +29,9 @@ it.
 Each item below is a defect this project has hit; the source is in brackets.
 
 - **Unit and scale conversions that schemas cannot catch.** Provider ratings on 1–5 must become the
-  project's 0–10 (`× 2`); per-passenger fares must become whole-group totals; stored planning amounts are
-  AUD. Zod accepts the unconverted value, so require behavioral evidence for the converted number.
+  project's 0–10 (`× 2`); fares must be whole-group totals, scaled only when the provider prices one
+  passenger (Google Flights already prices every adult, so a second multiply doubles it); stored
+  planning amounts are AUD. Zod accepts the unconverted value, so require behavioral evidence for the converted number.
   Prefer an E2E assertion; when isolation is necessary, check that failure modes were enumerated
   before implementation and that the focused check covers them.
   [SerpApi and Places notes](../../notes/implemented/feature/2026-09-20-serpapi-live-prices.md)
