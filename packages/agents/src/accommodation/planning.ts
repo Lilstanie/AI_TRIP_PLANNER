@@ -143,7 +143,9 @@ export function eligibleOptions(options: StayOption[], prefs: StayPreferences): 
 }
 
 export function chooseInitial(options: StayOption[]): StayOption {
-  return options.find((option) => option.rating >= 8 && option.freeCancellation) ?? options[0]!;
+  const met = (option: StayOption) =>
+    Number(option.rating >= 8) + Number(option.freeCancellation === true);
+  return options.reduce((best, option) => (met(option) > met(best) ? option : best), options[0]!);
 }
 
 export function chooseRevised(
