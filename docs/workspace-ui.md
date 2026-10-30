@@ -435,7 +435,10 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     three stacked avatars, working specialists first (a working one bobs), and, while planning, "N working".
     The six-row panel it opens is unchanged. When the usable top bar is at most 1280 px, it hides the label
     and shows the working count compactly; at most 920 px it reduces the avatar stack to one icon. The
-    working count stays in its accessible name.
+    working count stays in its accessible name. It never shrinks or wraps: the chat title beside it
+    truncates first. Between 1041 and 1280 px the trip fact chips keep their width between the title
+    and the actions, and between 921 and 1040 px they take their own row, so no top bar control
+    overlaps another (`topbar-fit` E2E).
     Hovering it opens the team panel; Enter, Space or a touch pins it and moves focus into the panel; a click
     on the button while the panel is open, hovered or pinned, closes it, and so do Escape and a press
     outside. Escape returns focus to the button only when focus was inside the panel. The panel is a
