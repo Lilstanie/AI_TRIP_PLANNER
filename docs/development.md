@@ -325,7 +325,7 @@ a free port, runs each named script against it from the repository root and stop
 started:
 
 ```bash
-pnpm --filter @trip/web e2e timeline display-currency     # names without .e2e.mjs; 'phone-*' works
+pnpm --filter @trip/web e2e trip-export one-line-budget    # names without .e2e.mjs; 'phone-*' works
 pnpm --filter @trip/web e2e phone-shell --prod            # next build + next start, for scripts that ask for it
 BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against a server already running
 ```
@@ -390,22 +390,12 @@ reduced motion). Release smoke keeps `provider-empty-result` as the representati
 `agent-lab-failures` owns all five registered fault profiles, their outcomes, downloads and offline replay,
 plus Run all sequencing and cancellation. Run both scripts when changing Failure Lab behavior.
 
-`auto-save-places`, `plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
+`plan-revision` and `check-entry-point` share only place fixtures, workspace boot,
 day-to-plan conversion and polling in `apps/web/tests/e2e/trip-setup.mjs`. Every 44 px touch-target check uses its
 `touchSized(pixels)`, which rounds sub-pixel layout sizes first; call it in Node, not inside `evaluate`. Each script owns its scenario
 assertions, request interception, held responses and screenshots; concurrency and cancellation setup
 stay beside the scenario they verify. [Coverage ownership](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)
 records the assertion consolidation boundaries.
-
-`apps/web/tests/e2e/itinerary-walkthrough.e2e.mjs` runs the whole Mindtrip itinerary interaction in one
-journey at desktop, phone (long-press drag) and in Chinese: drag within a day, to another day and onto the ideas
-chip, every Stop, Day and Itinerary menu item, the Add to trip panel from a day and from the ideas chip on
-each tab, Undo after each change, Leg distances and Directions. Screenshots and
-`result.json` land in `output/playwright/itinerary-walkthrough/after/`. It includes Edit title and Add note on a day.
-
-```bash
-pnpm --filter @trip/web e2e itinerary-walkthrough --prod
-```
 
 `apps/web/tests/e2e/quiet-walkthrough.e2e.mjs` runs the whole quiet itinerary panel of spec #755 on one saved
 Trip at desktop, phone and in Chinese: budget line, ideas chip, days and folded Travel tips in that order, the

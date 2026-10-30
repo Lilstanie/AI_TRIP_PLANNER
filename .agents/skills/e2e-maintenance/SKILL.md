@@ -17,6 +17,18 @@ semantics. Keep the current runner; do not install a second framework to diagnos
 For collection-selection maintenance, the local CLI reference distinguishes retained browser controls
 from copied-CLI subprocess fixtures. Preserve that evidence boundary when reducing repeated setup.
 
+## 0. Keep the script set small
+
+TP-165 (2026-10-30) cut the raw scripts under `apps/web/tests/e2e/` from 201 to 65. A script
+stays when CI runs it, when it needs a live model or several servers, when the demo runbook records
+with it, or when it is the main journey for one area (itinerary editing, budget and currency, phone,
+sign-in and memory, settings, maps, Agent Lab). Before adding a script, extend the kept journey that
+already reaches the screen. A script that fails on `main` gets repaired in the same pull request or
+deleted with its failure notes and any fixture only it used; do not park it in
+[known failures](../../../docs/e2e-known-failures.md) for longer than one pull request. Deleting a
+script also means removing every doc and skill line that names it (`pnpm verify:docs` catches broken
+links, not prose mentions).
+
 ## 1. State the failure before changing the check
 
 Read the originating requirement, script header, assertions, runner and relevant accepted Agent Notes.
@@ -150,7 +162,8 @@ local path:
 
 When a known-failure entry needs updating, preserve its source (script/commit/issue), exact recipe,
 baseline revision, mode/fixture/environment assumptions, observed failure and last-checked date/state.
-A later pass adds dated evidence; it does not delete the earlier failure's reproduction history.
+A later pass adds dated evidence; it does not delete the earlier failure's reproduction history. When
+the script itself is deleted, its entries go with it; Git history keeps them.
 Synchronize the English/Chinese record through its owner. Add lasting decisions with
 [agent-notes](../agent-notes/SKILL.md) and session history with
 [session-log](../session-log/SKILL.md); report any required edits outside your authorized scope.

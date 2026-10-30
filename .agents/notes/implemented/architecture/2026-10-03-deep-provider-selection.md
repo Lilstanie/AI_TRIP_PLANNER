@@ -82,6 +82,6 @@ weather, public-export cleanup, documentation, and final end-to-end evidence.
 - [Deep Weather provider selection issue #128](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/128)
 - [Final boundary issue #131](https://github.com/Lilstanie/AI_TRIP_PLANNER/issues/131)
 - [Gateway matrix](../../../../packages/tools/tests/provider-matrix.e2e.test.ts)
-- [Fixture Planning-loop and targeted-revision evidence](../../../../apps/web/tests/e2e/provider-boundary-planning.e2e.mjs)
+- Fixture Planning-loop and targeted-revision evidence `provider-boundary-planning.e2e.mjs` (deleted in TP-165; in Git history)
 - [Live Planning-loop isolation evidence](../../../../packages/orchestrator/tests/provider-boundary-live.e2e.test.ts)
 - [Public-entry boundary check](../../../../packages/tools/tests/public-boundary.test.ts)

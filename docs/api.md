@@ -115,9 +115,6 @@ breakdown, because it no longer describes the party. They break `groupSize` down
 stays authoritative for every cost, and specialists are told to ignore a party whose people do not
 add up to it.
 
-The mock browser check `party-breakdown-browser` submits the stated breakdown through chat and
-checks all five Who counters at desktop and phone widths, including reopening the saved trip.
-
 Optional `assistant`: `{ style, memory, names }` from Settings → Personalization (`AssistantSettings` in
 `packages/shared/src/chat.ts`).
 

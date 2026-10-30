@@ -96,7 +96,7 @@ Each item below is a defect this project has hit; the source is in brackets.
 - **A check must be able to fail.** An evaluator measures the rules its scenario states, not a
   convenient subset, and each acceptance criterion needs a check that fails when it is broken. A
   sign-in-gate criterion no test could observe was caught only by review. Prefer metrics a plain
-  script can recompute from the artifact, as `agent-lab-revision.e2e.mjs` does, over a model judge.
+  script can recompute from the artifact, as `agent-lab-failures.e2e.mjs` does, over a model judge.
   [Agent Lab review fixes](../../session-logs/2026-10-01-agent-lab-review-fixes.md)
 - **Optional services stay optional.** Accounts (Clerk) and the database (Neon) switch on only when
   their keys are set; without them the workspace stays single-user and local, the account routes

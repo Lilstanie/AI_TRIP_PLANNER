@@ -40,7 +40,7 @@ workspace in a script, run the dev server without the Clerk keys, which is the s
 - Switch the interface to 中文 and look again: use the top-bar language button, Settings → Language
   & region, or Mine on a phone. Check wrapping and untranslated English labels.
   When the change shows money, also pick a non-AUD display currency in Settings (JPY has no decimals).
-  `ui-language.e2e.mjs` and `display-currency.e2e.mjs` cover the existing paths.
+  `ui-language.e2e.mjs` and `trip-display-currency.e2e.mjs` cover the existing paths.
 - Keyboard: Tab order, visible focus, Escape closes dialogs and returns focus to the trigger.
 - Watch the browser console for errors and React warnings.
 - What "right" looks like is owned by [better-accessibility](../better-accessibility/SKILL.md),
@@ -61,7 +61,7 @@ must equal the viewport width. Check dark and light theme when colours changed.
 For a complex path, a script under `apps/web/tests/e2e/` does steps 2 and 3 repeatably; run the one
 that covers your change using the invocation selected in step 1, or add one, following
 [Testing approach](../../../docs/development.md#testing-approach). Motion changes also need the
-reduced-motion state, as in `thinking-orb.e2e.mjs`.
+reduced-motion state, as in `agent-lab-release.e2e.mjs`.
 
 At phone width (520 px and below) the workspace is the phone shell; also check the transitions the
 change touches:
