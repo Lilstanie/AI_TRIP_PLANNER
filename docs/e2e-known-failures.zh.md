@@ -33,17 +33,17 @@
 
 以下脚本在安静行程面板工作的未修改基线（2026-10-28）上失败，由各工单实现者在干净 worktree 中以 `pnpm --filter @trip/web e2e <script> --prod` 运行发现。它们不是安静面板工单造成的；各自的原因尚未调查。
 
-| 脚本                            | 检查日期   |
-| ------------------------------- | ---------- |
-| `reply-cost-line`               | 2026-10-28 |
-| `open-in-maps`                  | 2026-10-28 |
-| `workspace-performance`         | 2026-10-28 |
-| `trajectory-timeline`           | 2026-10-28 |
-| `cross-day-drag`                | 2026-10-28 |
-| `itinerary-walkthrough`         | 2026-10-28 |
-| `trip-workspace-layout`         | 2026-10-28 |
-| `stop-menu`                     | 2026-10-28 |
-| `drag-in-day`                   | 2026-10-28 |
+| 脚本                    | 检查日期   |
+| ----------------------- | ---------- |
+| `reply-cost-line`       | 2026-10-28 |
+| `open-in-maps`          | 2026-10-28 |
+| `workspace-performance` | 2026-10-28 |
+| `trajectory-timeline`   | 2026-10-28 |
+| `cross-day-drag`        | 2026-10-28 |
+| `itinerary-walkthrough` | 2026-10-28 |
+| `trip-workspace-layout` | 2026-10-28 |
+| `stop-menu`             | 2026-10-28 |
+| `drag-in-day`           | 2026-10-28 |
 
 `phone-state` 的重新加载现在能恢复 Map：脚本在恢复循环前重新加载一次，因为陈旧编辑段落会让布局持久化暂停直到重新加载。这一暂停是产品缺口，记录在 `apps/web/tests/e2e/phone-state.failures.md`。
 

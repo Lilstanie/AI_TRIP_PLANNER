@@ -846,7 +846,7 @@ describe("Workspace navigation", () => {
     expect(screen.getByRole("tab", { name: "Calendar" }).getAttribute("aria-selected")).toBe(
       "true",
     );
-    expect(screen.getByRole("grid")).toBeTruthy();
+    expect(screen.getByRole("button", { name: "View trip" })).toBeTruthy();
     fireEvent.click(screen.getByRole("tab", { name: "Trips" }));
     fireEvent.click(page().getByRole("button", { name: /^Trip to Sydney/ }));
     expect(card.isConnected).toBe(false);

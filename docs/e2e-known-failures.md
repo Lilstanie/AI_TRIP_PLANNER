@@ -36,17 +36,17 @@ drawer that the calmer workspace (#740) replaced.
 
 The following scripts failed on the unmodified base of the quiet itinerary panel work (2026-10-28), found by the ticket implementers who ran them in a clean worktree as `pnpm --filter @trip/web e2e <script> --prod`. The quiet panel tickets did not cause them; the cause of each is not yet investigated.
 
-| Script                          | Checked    |
-| ------------------------------- | ---------- |
-| `reply-cost-line`               | 2026-10-28 |
-| `open-in-maps`                  | 2026-10-28 |
-| `workspace-performance`         | 2026-10-28 |
-| `trajectory-timeline`           | 2026-10-28 |
-| `cross-day-drag`                | 2026-10-28 |
-| `itinerary-walkthrough`         | 2026-10-28 |
-| `trip-workspace-layout`         | 2026-10-28 |
-| `stop-menu`                     | 2026-10-28 |
-| `drag-in-day`                   | 2026-10-28 |
+| Script                  | Checked    |
+| ----------------------- | ---------- |
+| `reply-cost-line`       | 2026-10-28 |
+| `open-in-maps`          | 2026-10-28 |
+| `workspace-performance` | 2026-10-28 |
+| `trajectory-timeline`   | 2026-10-28 |
+| `cross-day-drag`        | 2026-10-28 |
+| `itinerary-walkthrough` | 2026-10-28 |
+| `trip-workspace-layout` | 2026-10-28 |
+| `stop-menu`             | 2026-10-28 |
+| `drag-in-day`           | 2026-10-28 |
 
 `phone-state` reloads now restore Map: the script reloads once before the restore loop, because a stale-edit section pauses layout persistence until a reload. That pause is a product gap, recorded in `apps/web/tests/e2e/phone-state.failures.md`.
 
