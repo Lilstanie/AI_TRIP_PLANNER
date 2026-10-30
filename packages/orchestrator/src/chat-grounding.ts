@@ -1,4 +1,5 @@
 import type { ChatRequest, TripPlan } from "@trip/shared";
+import { replyLanguage } from "./reply-language";
 
 function materialPlan(plan: TripPlan): unknown {
   const identityFields = new Set(["tripId", "userId", "editVersion", "round"]);
@@ -50,7 +51,7 @@ export function unchangedPlanReply(request: ChatRequest, planned: TripPlan): str
     JSON.stringify(materialPlan(request.plan)) !== JSON.stringify(materialPlan(planned))
   )
     return undefined;
-  return request.interfaceLanguage === "zh"
+  return replyLanguage(request.message, request.interfaceLanguage) === "zh"
     ? "我重新检查了行程，但没有应用任何变化。请告诉我想修改的内容。"
     : "I rechecked the itinerary, but no changes were applied. Tell me what you would like changed.";
 }
