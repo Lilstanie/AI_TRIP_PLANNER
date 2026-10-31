@@ -11,6 +11,8 @@ the key, the SDK's `map.addListener` returns `undefined`; the renderer keeps no 
 disposing that map cannot throw. A rejected map has also lost its container, so setting `marker.map = null`
 throws. `MapRuntime.removeMarker` is the one way to detach a marker: it removes the element when
 Google has rejected the key, which lets the failure handler finish and the fallback mount.
+Markers are reconciled by place id: a marker stays while its stop number, day, position, name, type
+and locale are unchanged, so places resolving one by one add pins instead of rebuilding every pin.
 
 Fallback belongs to the mounted map. A new mount follows the configured provider again; failed Trip
 identities are not cached. Google reports a rejected key once per page, so `google-maps-sdk.ts` keeps
