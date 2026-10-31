@@ -751,7 +751,7 @@ try {
   await panelTab(chinese.page, /^备选地点/).click();
   check(
     (await dialog(chinese.page, "备选地点")
-      .getByRole("button", { name: "将 Surry Hills bakery 安排到第 1 天", exact: true })
+      .getByRole("button", { name: "把Surry Hills bakery排到第 1 天", exact: true })
       .count()) === 1,
     "Chinese schedule accessible names come from the translation catalogue",
   );

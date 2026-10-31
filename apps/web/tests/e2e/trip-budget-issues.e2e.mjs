@@ -526,7 +526,7 @@ try {
     localizedText,
   );
   check(
-    /4 项未定价/.test(localizedText),
+    /4 项未计价/.test(localizedText),
     "Chinese compact unknown count covers accommodation and activities once",
     localizedText,
   );
@@ -547,9 +547,9 @@ try {
   check(
     /行程问题/.test(zhText) &&
       /时间冲突/.test(zhText) &&
-      /尚未定位/.test(zhText) &&
+      /地图上找不到/.test(zhText) &&
       /地点没查到/.test(zhText) &&
-      !/未定价项目/.test(zhText),
+      !/未计价/.test(zhText),
     "Chinese popover distinguishes conflict, unlocated and lookup failure without unpriced items",
     zhText,
   );
