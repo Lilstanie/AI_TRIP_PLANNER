@@ -596,8 +596,11 @@ async function planItinerary(
           place.name.trim().length > 0 &&
           !isGenericPlace(place, near, brief.destination),
       );
-    } catch {
+    } catch (error) {
       ctx.signal?.throwIfAborted();
+      console.warn(
+        `[itinerary] Place provider unavailable for ${category} in ${near}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       evidenceIssues.push(
         `Place provider unavailable for ${category} in ${near}; using only remaining evidence.`,
       );

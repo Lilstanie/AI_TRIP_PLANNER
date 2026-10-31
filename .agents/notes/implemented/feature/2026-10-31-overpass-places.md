@@ -38,6 +38,12 @@ request passed the 15 s timeout and took the sights with it, so one answered req
 only two failures count as a Geoapify failure. A city and category's places are kept for 10 minutes
 and shared by concurrent callers, since one trip's agents asked for the same sights several times at
 8–13 s each; failed or empty lookups are not kept.
+A place is named by its local-language tag (`name:ja` in Japan, `name:zh` in China and so on)
+when it has one, because one of two live versions of 浅草寺's OSM way was named
+"Храм Сенсодзи 金龍山 浅草寺"; an OSM object returned by both sight requests is listed once. The
+city's ISO 3166-2 region comes from the Nominatim centre (`addressdetails=1`). A place whose own
+`iso3166_2` differs is dropped, because Tokyo's circle reached four Tokyo Disney rides in Urayasu,
+Chiba. A place without a region code is kept, and so is every place when the city's region is unknown.
 Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
 
 ## Alternatives considered
