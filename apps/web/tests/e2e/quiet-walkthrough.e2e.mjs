@@ -428,7 +428,7 @@ try {
       (await budget.locator(".trip__budget strong").count()) === 1,
       `the estimated total is shown once at ${tag}`,
     );
-    const unpriced = folded.match(zh ? /(\d+) 项未定价/ : /(\d+) unpriced/);
+    const unpriced = folded.match(zh ? /(\d+) 项未计价/ : /(\d+) unpriced/);
     check(
       Number(unpriced?.[1]) >= 1,
       `the unpriced count sits beside the budget line at ${tag}`,
@@ -643,7 +643,7 @@ try {
     check(
       chatRequests.at(-1)?.message ===
         (zh
-          ? "请结合当前行程，调整第 1 天的 Alder 安排。"
+          ? "结合整个行程，帮我调整一下第 1 天的「Alder」。"
           : "Suggest a change for Alder on Day 1, taking the rest of my current plan into account."),
       `the stop item sends the stop suggestion request at ${tag}`,
       chatRequests.at(-1)?.message,
@@ -663,7 +663,7 @@ try {
     check(
       chatRequests.at(-1)?.message ===
         (zh
-          ? "请结合当前行程，优化第 1 天的安排。"
+          ? "结合整个行程，帮我把第 1 天安排得更好一些。"
           : "Suggest improvements for Day 1, taking the rest of my current plan into account."),
       `the day item sends the day suggestion request at ${tag}`,
       chatRequests.at(-1)?.message,
