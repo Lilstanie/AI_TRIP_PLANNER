@@ -48,5 +48,4 @@ export {
   type UsageSnapshot,
 } from "./models";
 export { withReasoningStream, type ReasoningListener } from "./reasoning";
-export { outboundArrival, type OutboundArrival } from "./transport/arrival";
 export { transportAgent, accommodationAgent };

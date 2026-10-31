@@ -4,15 +4,17 @@ author: Claude Code
 branch: fix/TP-194-plan-after-landing
 pr: none
 area: packages/agents, packages/orchestrator, docs
-contract-impact: none
+contract-impact: packages/shared
 ---
 
 # The day plan starts after the outbound flight lands
 
 ## What changed
 
-- `packages/agents/src/transport/arrival.ts`: `outboundArrival` reads the selected outbound flight's
-  last segment; `detect_conflicts` in `packages/orchestrator/src/conflicts.ts` now uses it too.
+- `packages/shared/src/arrival.ts`: `outboundArrival` reads the selected outbound flight's last
+  segment; `detect_conflicts` in `packages/orchestrator/src/conflicts.ts` now uses it too. Agent Note
+  `bug-fix/2026-10-31-plan-after-landing.md` (it first lived in `@trip/agents`, which broke the web
+  build because `conflicts.ts` is bundled into the client).
 - `packages/agents/src/itinerary/landing.ts` (new) and `index.ts`: no stop before landing day; on landing day, stops start
   90 minutes after landing (none after a 16:00 landing). The model gets `arrival` and a draft that
   stops before landing is rejected with feedback. Days before landing no longer count as missing or
