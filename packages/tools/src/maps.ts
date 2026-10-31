@@ -13,5 +13,8 @@ export function places(query: PlaceQuery): Promise<Place[]> {
 }
 
 export function routeOptions(query: RouteQuery): Promise<RouteOption[]> {
-  return createMapsPort(toolRuntimeConfig()).routeOptions!(query);
+  const port = createMapsPort(toolRuntimeConfig());
+  if (!port.routeOptions)
+    return Promise.reject(new Error("Route options are not offered by this maps provider"));
+  return port.routeOptions(query);
 }

@@ -18,11 +18,11 @@ const LOCAL_LANGUAGE: Record<string, string> = {
   es: "es",
 };
 
-type Request = { categories: string; limit: number };
+type Request = { categories: string; limit: number; pages?: number };
 
 const CATEGORIES: Record<string, Request[]> = {
   sight: [
-    { categories: "tourism.sights,tourism.attraction", limit: 500 },
+    { categories: "tourism.sights,tourism.attraction", limit: 500, pages: 3 },
     { categories: "religion.place_of_worship.buddhism", limit: 200 },
     { categories: "religion.place_of_worship.shinto", limit: 200 },
   ],
@@ -31,7 +31,8 @@ const CATEGORIES: Record<string, Request[]> = {
   neighborhood: [
     {
       categories: "populated_place.suburb,populated_place.quarter,populated_place.neighbourhood",
-      limit: 200,
+      limit: 500,
+      pages: 3,
     },
   ],
 };
@@ -39,6 +40,7 @@ const CATEGORIES: Record<string, Request[]> = {
 type Feature = {
   properties?: {
     name?: unknown;
+    categories?: string[];
     country_code?: string;
     iso3166_2?: string;
     lat?: number;
@@ -64,7 +66,19 @@ async function request<T>(path: string, params: Record<string, string>): Promise
 const localName = (place: NonNullable<Feature["properties"]>): unknown => {
   const language = LOCAL_LANGUAGE[String(place.country_code).toLowerCase()];
   const local = language ? place.datasource?.raw?.[`name:${language}`] : undefined;
-  return typeof local === "string" && local.trim() ? local : place.name;
+  if (typeof local !== "string" || !local.trim()) return place.name;
+  return typeof place.name === "string" && place.name.startsWith(local.trim()) ? place.name : local;
+};
+
+const MINOR = /\.(artwork|memorial)(\.|$)/;
+
+const visitable = (category: string, place: NonNullable<Feature["properties"]>) => {
+  const raw = place.datasource?.raw ?? {};
+  if (place.categories?.some((name) => MINOR.test(name))) return false;
+  if (category !== "neighborhood") return true;
+  return raw.place === "neighbourhood"
+    ? Boolean(raw.wikipedia)
+    : Boolean(raw.wikipedia || raw.wikidata);
 };
 
 const notability = ({ datasource }: NonNullable<Feature["properties"]>) => {
@@ -126,14 +140,32 @@ async function lookUp(q: PlaceQuery): Promise<Lookup> {
     return { places: [], complete: true };
   const requests = CATEGORIES[q.category!]!;
   const pages = await Promise.allSettled(
-    requests.map(({ categories, limit }) =>
-      request<{ features?: Feature[] }>("/v2/places", {
+    requests.map(async ({ categories, limit, pages = 1 }) => {
+      const params = {
         categories,
         filter: `circle:${lon},${lat},15000`,
         conditions: "named",
         limit: String(limit),
-      }),
-    ),
+      };
+      const page = (index: number) =>
+        request<{ features?: Feature[] }>("/v2/places", {
+          ...params,
+          offset: String(index * limit),
+        });
+      const first = (await page(0)).features ?? [];
+      if (first.length < limit) return { features: first };
+      const rest = await Promise.allSettled(
+        Array.from({ length: pages - 1 }, (_, index) => page(index + 1)),
+      );
+      return {
+        features: [
+          ...first,
+          ...rest.flatMap((found) =>
+            found.status === "fulfilled" ? (found.value.features ?? []) : [],
+          ),
+        ],
+      };
+    }),
   );
   const answered = pages.flatMap((page) => (page.status === "fulfilled" ? [page.value] : []));
   if (answered.length === 0) throw (pages[0] as PromiseRejectedResult).reason;
@@ -155,7 +187,9 @@ async function lookUp(q: PlaceQuery): Promise<Lookup> {
     .map((feature) => feature.properties ?? {})
     .flatMap((place) => {
       const name = localName(place);
-      return typeof name === "string" && name.trim() ? [{ ...place, name: name.trim() }] : [];
+      return typeof name === "string" && name.trim() && visitable(q.category!, place)
+        ? [{ ...place, name: name.trim() }]
+        : [];
     })
     .sort(
       (a, b) => notability(b) - notability(a) || distanceKm(lat, lon, a) - distanceKm(lat, lon, b),
