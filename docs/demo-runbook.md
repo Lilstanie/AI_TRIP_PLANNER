@@ -22,6 +22,11 @@ pnpm build
 pnpm --filter @trip/web start -p 3000
 ```
 
+`pnpm build` and `start` run a production server. Without Clerk keys a production server serves mock
+data only and makes no chat model calls, even with `DEEPSEEK_API_KEY` set; `/api/data-mode` then
+reports `liveBlock: "auth-not-configured"`. To show the model and live data, either put the Clerk keys
+in `.env.local` and sign in, or run `pnpm dev` instead of `build` and `start`.
+
 The original rehearsal on macOS 14.6.1 with the toolchain above built with no environment variables
 in about 30 seconds and started in under a second, without build warnings. Rehearse on each demo
 laptop; timings and warnings can differ.
@@ -40,7 +45,7 @@ Names only. Never paste a key into this page, a commit, a fixture or a chat mess
 | `SERPAPI_KEY`                                           | No live flight or hotel prices; `hotelsAndFlights` reports false.                                                                                    |
 | `MAPS_API_KEY`                                          | With the default web map provider, places and routes fall back to free services; time zones resolve offline from coordinates.                        |
 | `NEXT_PUBLIC_GOOGLE_MAPS_API_KEY`                       | The workspace map uses its free fallback. If configured, restrict the browser key to the demo origins.                                               |
-| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | No sign-in. On Vercel, missing auth configuration restricts data providers to mock; model calls depend separately on the model key.                  |
+| `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY`, `CLERK_SECRET_KEY` | No sign-in. A production server (`pnpm start` or Vercel) then serves mock data only and makes no chat model calls; `pnpm dev` is not restricted.     |
 | `DATABASE_URL`                                          | The account routes answer 503; account sync is unavailable. Browser-local chats and trips remain stored. Sign-in still requires Clerk configuration. |
 | `USE_MOCK_TOOLS`                                        | Defaults to mock. Set it to exactly `false` for live providers.                                                                                      |
 
