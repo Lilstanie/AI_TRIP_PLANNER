@@ -13,7 +13,7 @@ Google has rejected the key, which lets the failure handler finish and the fallb
 
 Fallback belongs to the mounted map. A new mount follows the configured provider again; failed Trip
 identities are not cached. Google reports a rejected key once per page, so `google-maps-sdk.ts` keeps
-that one fact for the page, and each later renderer falls back at once. Strict Google mode keeps saved places and an explicit retry action instead
+that one fact for the page; a later renderer does not create a Google map at all and mounts OSM, or reports the map unavailable in strict Google mode. Strict Google mode keeps saved places and an explicit retry action instead
 of silently switching providers. OSM disables satellite controls. The phone Trip home map has a fixed
 340px height so its renderer can fill a definite containing block.
 

@@ -1,4 +1,5 @@
 "use client";
+import { NoticeError } from "@/lib/i18n/notice";
 import {
   loadMaps,
   googleAuthRejected,
@@ -112,7 +113,9 @@ export async function loadRenderer(
   settings: { forceOsm?: boolean; allowFallback?: boolean; signal?: AbortSignal } = {},
 ): Promise<MapRuntime> {
   const { forceOsm = false, allowFallback = true, signal } = settings;
-  if (!forceOsm) {
+  if (!forceOsm && googleAuthRejected() && !allowFallback)
+    throw new NoticeError({ key: "theMapCouldNotLoad" });
+  if (!forceOsm && !googleAuthRejected()) {
     try {
       const maps = await loadMaps();
       signal?.throwIfAborted();
