@@ -652,23 +652,17 @@ describe("ToolGateway provider matrix", () => {
         guests: 1,
       })
       .catch((error: unknown) => error);
-    const routeOptionsError = await gateway.maps.routeOptions!({
-      from: "Tokyo",
-      to: "Kyoto",
-      departureTime: "2026-02-01T09:00:00+09:00",
-    }).catch((error: unknown) => error);
 
     expect(flightError).toBeInstanceOf(Error);
     expect((flightError as Error).message).toContain("no SERPAPI_KEY");
     expect(stayError).toBeInstanceOf(Error);
     expect((stayError as Error).message).toContain("Unsupported booking provider: osm");
-    expect(routeOptionsError).toBeInstanceOf(Error);
-    expect((routeOptionsError as Error).message).toContain("Unsupported maps provider: osm");
+    expect(gateway.maps.routeOptions).toBeUndefined();
     evidence.push({
       id: "lazy-unavailable-capabilities",
       selection: "osm; no flight provider",
       result: "gateway constructed; booking and maps calls rejected lazily",
-      diagnostic: "unsupported stay/maps capability; missing flight credential",
+      diagnostic: "unsupported stay capability; no OSM route options; missing flight credential",
     });
   });
 

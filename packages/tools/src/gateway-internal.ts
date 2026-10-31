@@ -1,4 +1,4 @@
-import type { ToolGateway } from "@trip/shared";
+import type { RouteQuery, ToolGateway } from "@trip/shared";
 import { createBookingPort } from "./booking-port";
 import { runWithDataMode } from "./data-mode";
 import { createMapsPort } from "./maps-port";
@@ -27,7 +27,9 @@ export function createToolGatewayWithRuntime(
     maps: {
       route: (query) => invoke(() => mapsPort.route(query)),
       places: (query) => invoke(() => mapsPort.places(query)),
-      routeOptions: (query) => invoke(() => mapsPort.routeOptions!(query)),
+      ...(mapsPort.routeOptions
+        ? { routeOptions: (query: RouteQuery) => invoke(() => mapsPort.routeOptions!(query)) }
+        : {}),
     },
     booking: {
       searchStays: (query) => invoke(() => bookingPort.searchStays(query)),
