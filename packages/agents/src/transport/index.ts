@@ -400,6 +400,41 @@ function transportSource(
   };
 }
 
+async function withReturnLegs(
+  evidence: TransportEvidence,
+  plan: TransportPlan,
+  ctx: AgentContext,
+): Promise<TransportEvidence> {
+  const searchReturnLeg = ctx.tools.booking.searchReturnLeg;
+  const returnDate = evidence.brief.dates[1];
+  if (!searchReturnLeg) return evidence;
+  const wanted = [...plan.flights, ...cheapestFares(evidence)];
+  const flights = await Promise.all(
+    evidence.flights.map(async (hop) => {
+      const picked = new Set(
+        wanted.filter((fare) => fare.legIndex === hop.leg.index).map((fare) => fare.optionIndex),
+      );
+      const options = await Promise.all(
+        hop.options.map(async (option, index) => {
+          if (!picked.has(index) || option.inbound || !option.roundTrip || !option.returnToken)
+            return option;
+          const inbound = await searchReturnLeg({
+            from: hop.leg.from,
+            to: hop.leg.to,
+            depart: hop.leg.date,
+            return: returnDate,
+            passengers: evidence.brief.groupSize,
+            token: option.returnToken,
+          }).catch(() => undefined);
+          return inbound ? { ...option, inbound } : option;
+        }),
+      );
+      return { ...hop, options };
+    }),
+  );
+  return { ...evidence, flights };
+}
+
 function assembleTransportProposal(
   evidence: TransportEvidence,
   chosenPlan: TransportPlan,
@@ -613,7 +648,8 @@ async function buildTransportProposal(
   allocation?: BudgetAllocation,
 ): Promise<AgentProposal> {
   const evidence = await gatherTransportEvidence(briefInput, ctx, revision, allocation);
-  return assembleTransportProposal(evidence, deterministicPlan(evidence));
+  const plan = deterministicPlan(evidence);
+  return assembleTransportProposal(await withReturnLegs(evidence, plan, ctx), plan);
 }
 
 const TransportSelection = z.object({
@@ -782,18 +818,22 @@ async function planTransport(
       return { day: entry.day, startMinutes };
     });
 
-    return assembleTransportProposal(gathered, {
+    const chosen = {
       flights,
       schedule,
       extraAssumptions: (selection.guidance ?? [])
         .map((note) => note.trim())
         .filter((note) => note.length > 0),
-    });
+    };
+    return assembleTransportProposal(await withReturnLegs(gathered, chosen, ctx), chosen);
   } catch (error) {
     ctx.signal?.throwIfAborted();
     const reason = error instanceof Error ? error.message : "unknown model error";
     console.warn(`[transport] Specialist failed; using a safe local plan: ${reason}`);
-    if (evidence) return assembleTransportProposal(evidence, deterministicPlan(evidence), true);
+    if (evidence) {
+      const plan = deterministicPlan(evidence);
+      return assembleTransportProposal(await withReturnLegs(evidence, plan, ctx), plan, true);
+    }
     const proposal = await buildTransportProposal(brief, ctx, revision, allocation);
     return {
       ...proposal,

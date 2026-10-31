@@ -28,6 +28,7 @@ function describeHop(
 
   const line = best?.note?.match(/via [a-z]+ ([\w-]+)/i)?.[1];
   if (best) return { mode: best.mode, ...(line ? { line } : {}) };
+  if (legs.some(isDrivingEstimate)) return { mode: "drive" };
   const leg = legs[0];
   return { mode: leg?.mode ?? "transit" };
 }
