@@ -303,7 +303,6 @@ async function planDining(
             `Applied confirmed dietary preferences: ${preferences.map(({ key, value }) => `${key}=${value}`).join(", ")}.`,
           ]
         : ["No dietary requirements were supplied for this trip or found in long-term memory."]),
-      ...(revision ? [`Revision requested: ${revision.reason}.`] : []),
       ...draft.assumptions,
     ],
     conflictsWith: [],
