@@ -109,7 +109,10 @@ async function shell(page, tag) {
     !(await page.getByRole("group", { name: "Workspace view" }).count()),
     `${tag}: no Chat/Map switch row`,
   );
-  check(!(await page.locator(".fact-chips__scroller").isVisible()), `${tag}: no sideways chip row`);
+  check(
+    !(await page.locator(".workspace-topbar .fact-chips__scroller").isVisible()),
+    `${tag}: no sideways chip row in the top bar`,
+  );
   check(
     (await smallTargets(page, ".phone-tabbar__tab")).length === 0,
     `${tag}: every tab is at least 44 px`,

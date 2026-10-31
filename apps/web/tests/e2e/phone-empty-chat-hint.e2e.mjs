@@ -112,8 +112,13 @@ try {
         `${label}: no centre empty card`,
       );
       check(
-        (await page.locator(".fact-chips").count()) === 0,
-        `${label}: Brief bar stays hidden on a blank untouched chat`,
+        phone
+          ? (await page.locator(".chat .chat__facts .fact-chip").count()) >= 4 &&
+              (await page.locator(".workspace-topbar .fact-chips").count()) === 0
+          : (await page.locator(".workspace-topbar .fact-chip").count()) >= 4,
+        phone
+          ? `${label}: Where, When, Who and Budget sit above the composer`
+          : `${label}: Brief chips show in the top bar from a blank chat`,
       );
       check(
         (await suggestions.locator("button").count()) >= 1,
