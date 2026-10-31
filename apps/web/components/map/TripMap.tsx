@@ -640,7 +640,11 @@ export function TripMap({
             place={selectedStop.place}
             showPhoto={showPhotos}
             headingId="trip-map-popup-title"
-            meta={`${t("stopTitle")} ${selectedStop.number}${selectedStop.day ? ` · ${t("dayV0", { v0: selectedStop.day })}` : ""}`}
+            meta={
+              selectedStop.day
+                ? t("stopNumberOnDay", { number: selectedStop.number, day: selectedStop.day })
+                : t("stopNumber", { number: selectedStop.number })
+            }
             onClose={closePopup}
             actions={
               location.status === "success" && (
@@ -719,17 +723,21 @@ export function TripMap({
         <p className="trip-map-location-status" role="status">
           {nearbyRoute.source === "transitous" ? (
             <a href="https://transitous.org/sources/" target="_blank" rel="noreferrer">
-              Transitous ·
+              Transitous
             </a>
           ) : nearbyRoute.source === "osrm" ? (
-            t("osrmRoutes")
+            t("routeSourceOsrm")
           ) : (
-            t("googleRoutesVerifiedTitle")
+            t("routeSourceGoogle")
           )}
-          {nearbyRoute.mode === "WALK" ? t("walking") : t("publicTransit")} ·{" "}
-          {nearbyRoute.durationMin} {t("min")}
+          {" · "}
+          {t("nearbyRouteDuration", {
+            mode: nearbyRoute.mode === "WALK" ? t("walking") : t("publicTransit"),
+            minutes: nearbyRoute.durationMin ?? "",
+          })}
+          {" · "}
           {nearbyRoute.distanceMeters !== undefined
-            ? ` · ${(nearbyRoute.distanceMeters / 1000).toFixed(1)} km`
+            ? t("nearbyRouteDistance", { km: (nearbyRoute.distanceMeters / 1000).toFixed(1) })
             : t("distanceUnavailable")}
         </p>
       )}

@@ -172,7 +172,7 @@ export function TripEditorView({
     () => [...itinerary.ideas(), ...suggestions] as Activity[],
     [itinerary, suggestions],
   );
-  const ideasLabel = ideas.length === 1 ? t("n1Idea") : t("v0Ideas", { v0: ideas.length });
+  const ideasLabel = t("ideaCount", { count: ideas.length });
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;

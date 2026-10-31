@@ -159,12 +159,7 @@ export function TripMapCanvas({
             {loading
               ? t("findingPlaces")
               : [
-                  unconfirmed > 0 &&
-                    (unconfirmed === 1
-                      ? t("countActivityHasNoConfirmed", { count: unconfirmed })
-                      : t("countActivitiesHaveNoConfirmed", {
-                          count: unconfirmed,
-                        })),
+                  unconfirmed > 0 && t("countActivitiesHaveNoConfirmed", { count: unconfirmed }),
                   unavailable > 0 && t("countCouldNotBeLoaded", { count: unavailable }),
                 ]
                   .filter(Boolean)

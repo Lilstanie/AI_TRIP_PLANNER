@@ -16,7 +16,7 @@ describe("noticeText", () => {
     };
 
     expect(noticeText("en", notice)).toBe("only 4 files can be attached to one message");
-    expect(noticeText("zh", notice)).toBe("每条消息最多添加 4 个文件");
+    expect(noticeText("zh", notice)).toBe("一条消息最多加 4 个文件");
   });
 
   it("shows provider or model text exactly as received in either language", () => {
@@ -42,7 +42,7 @@ describe("noticeText", () => {
     expect(noticeText("en", notice)).toBe(
       "notes.txt wasn't attached — text files over 2.0 MB can't be attached.",
     );
-    expect(noticeText("zh", notice)).toBe("未添加 notes.txt——无法添加超过 2.0 MB 的文本文件。");
+    expect(noticeText("zh", notice)).toBe("没加上 notes.txt：超过 2.0 MB 的文本文件不能添加。");
   });
 
   it("rejects a keyed notice whose parameter is missing at typecheck time", () => {
@@ -62,7 +62,7 @@ describe("noticeText", () => {
     expect(noticeText("en", parsed)).toBe(
       "these files together would pass the {size} one message can carry",
     );
-    expect(noticeText("zh", parsed)).toBe("这些文件合计超过单条消息的 {size} 限制");
+    expect(noticeText("zh", parsed)).toBe("这些文件加起来超过了单条消息 {size} 的上限");
   });
 });
 
@@ -75,7 +75,7 @@ describe("NoticeError", () => {
 
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe("text files over 2.0 MB can't be attached");
-    expect(noticeText("zh", error.notice)).toBe("无法添加超过 2.0 MB 的文本文件");
+    expect(noticeText("zh", error.notice)).toBe("超过 2.0 MB 的文本文件不能添加");
   });
 });
 
@@ -88,7 +88,7 @@ describe("failureNotice", () => {
       notice: { key: "enterAPlaceNameTo" },
     };
 
-    expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称后再搜索。");
+    expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称再搜索。");
   });
 
   it("shows an error with no notice exactly as received, since nothing says it was authored", () => {
@@ -114,7 +114,7 @@ describe("errorNotice", () => {
 
   it("keeps an authored error's notice", () => {
     const error = new NoticeError({ key: "noVerifiedRouteWasReturned" });
-    expect(noticeText("zh", errorNotice(error, fallback))).toBe("未返回已核实的路线。");
+    expect(noticeText("zh", errorNotice(error, fallback))).toBe("没有拿到核实过的路线。");
   });
 
   it("shows any other error's message exactly as raised", () => {

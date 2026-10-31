@@ -387,13 +387,13 @@ export function countLine(counts: Counts, locale: AppLocale = "en"): string {
   const parts: string[] = [];
   if (counts.toolCalls > 0)
     parts.push(
-      translate(locale, counts.toolCalls === 1 ? "countToolCall" : "countToolCalls", {
+      translate(locale, "countToolCalls", {
         count: counts.toolCalls,
       }),
     );
   if (counts.subagents > 0)
     parts.push(
-      translate(locale, counts.subagents === 1 ? "countSubagent" : "countSubagents", {
+      translate(locale, "countSubagents", {
         count: counts.subagents,
       }),
     );
@@ -444,11 +444,7 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
     const agent = activeAgent(activity);
     if (agent)
       return translate(locale, "workingWithAgent", { agent: translate(locale, labels[agent]) });
-    return translate(
-      locale,
-      waiting === 1 ? "waitingForCountSubagent" : "waitingForCountSubagents",
-      { count: waiting },
-    );
+    return translate(locale, "waitingForCountSubagents", { count: waiting });
   }
   for (let index = activity.length - 1; index >= 0; index -= 1) {
     const event = activity[index]!;

@@ -563,11 +563,7 @@ function PersonalizationSection() {
         <MemoryRow
           icon="👥"
           label={t("travellers")}
-          value={
-            travel.travellers
-              ? `${travel.travellers} ${travel.travellers === 1 ? t("person") : t("people")}`
-              : ""
-          }
+          value={travel.travellers ? t("peopleCount", { count: travel.travellers }) : ""}
           question={t("howManyPeopleUsuallyTravel")}
         >
           {(close) => (
@@ -727,11 +723,7 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
           />
         )}
       </SettingRow>
-      <p className="settings-hint">
-        {locale === "zh"
-          ? "界面使用简体中文。你可以用任何语言聊天，规划助手会使用你的语言回复。"
-          : t("theInterfaceFollowsThisSetting")}
-      </p>
+      <p className="settings-hint">{t("theInterfaceFollowsThisSetting")}</p>
       <SettingRow label={t("region")} value={`🇦🇺 ${t("australia")}`} />
       <h3 className="settings-group">{t("advanced")}</h3>
       <SettingRow label={t("displayCurrency")} value={settings.displayCurrency}>

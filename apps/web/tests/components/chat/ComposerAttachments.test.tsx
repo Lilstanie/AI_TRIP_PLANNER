@@ -207,7 +207,7 @@ describe("composer attachments", () => {
 
     await waitFor(() =>
       expect(screen.getByRole("status").textContent).toBe(
-        "未添加 photo-4.png——每条消息最多添加 4 个文件。",
+        "没加上 photo-4.png：一条消息最多加 4 个文件。",
       ),
     );
     vi.restoreAllMocks();

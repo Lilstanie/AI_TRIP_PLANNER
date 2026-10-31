@@ -76,13 +76,15 @@ function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
       <p className="itinerary-leg__stops">
         {stops === 0
           ? t("nonstop")
-          : `${t(stops === 1 ? "countStop" : "countStops", { count: stops })} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
+          : `${t("countStops", { count: stops })} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
       </p>
       <span className="sr-only">
-        {label}: {first.from.name} {t("to")}
-        {last.to.name}
-        {t("departing2")}
-        {clock(first.departsAt, locale)}.
+        {t("flightLegSummary", {
+          label,
+          from: first.from.name,
+          to: last.to.name,
+          time: clock(first.departsAt, locale),
+        })}
       </span>
     </div>
   );
@@ -112,9 +114,7 @@ export function FlightItineraryCard({
           <span className="itinerary__badge itinerary__badge--best">{t("cheapest")}</span>
         )}
         <span className="itinerary__badge">
-          {stops === 0
-            ? t("nonstop")
-            : t(stops === 1 ? "countStop" : "countStops", { count: stops })}
+          {stops === 0 ? t("nonstop") : t("countStops", { count: stops })}
         </span>
       </header>
       <p className="itinerary__route">

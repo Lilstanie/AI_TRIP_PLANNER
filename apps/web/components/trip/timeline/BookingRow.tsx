@@ -89,8 +89,7 @@ function StayCard({
       </div>
       <h4>{selected.name}</h4>
       <p>
-        {selected.area} · {(selected.rating / 2).toFixed(1)}
-        {t("n5GuestRating")}
+        {selected.area} · {t("guestRating", { rating: (selected.rating / 2).toFixed(1) })}
       </p>
       <dl className="stay-facts">
         <div>
@@ -118,7 +117,7 @@ function StayCard({
           : selected.freeCancellation
             ? t("freeCancellationTitle")
             : t("noFreeCancellation")}{" "}
-        ·
+        ·{" "}
         {source?.kind === "live"
           ? t("availabilityCanChangeBeforeBooking")
           : source?.kind === "estimated"
@@ -184,7 +183,7 @@ function FlightCard({
         </div>
         {selected.stops !== undefined && (
           <div>
-            <dt>{t("stopsTitle")}</dt>
+            <dt>{t("flightStops")}</dt>
             <dd>{selected.stops === 0 ? t("nonstop") : selected.stops}</dd>
           </div>
         )}

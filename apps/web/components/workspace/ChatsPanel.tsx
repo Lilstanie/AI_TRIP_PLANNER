@@ -105,7 +105,7 @@ export function ChatsPanel({
         <p className="sr-only" role="status" aria-live="polite" aria-label={t("tripSearchResults")}>
           {searching
             ? trips.length
-              ? t(trips.length === 1 ? "countTripFound" : "countTripsFound", {
+              ? t("countTripsFound", {
                   count: trips.length,
                 })
               : t("noMatchingTrips")
@@ -161,7 +161,7 @@ export function ChatsPanel({
         <p className="sr-only" role="status" aria-live="polite" aria-label={t("chatSearchResults")}>
           {searching
             ? chats.length
-              ? t(chats.length === 1 ? "countChatFound" : "countChatsFound", {
+              ? t("countChatsFound", {
                   count: chats.length,
                 })
               : t("noMatchingChats")

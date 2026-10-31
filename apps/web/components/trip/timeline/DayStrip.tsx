@@ -63,11 +63,7 @@ export function DayStrip({
           {day === today && <span className="day-strip__today">{t("today")}</span>}
           <span className="day-strip__date">{date}</span>
           <span className="day-strip__meta">
-            {stops
-              ? `${stops} ${stops === 1 ? t("stop") : t("stops")}`
-              : rows
-                ? t("booked")
-                : t("freeDay")}
+            {stops ? t("dayStopCount", { count: stops }) : rows ? t("booked") : t("freeDay")}
             {attention && (
               <span className="day-strip__flag">
                 <span aria-hidden="true"> · </span>

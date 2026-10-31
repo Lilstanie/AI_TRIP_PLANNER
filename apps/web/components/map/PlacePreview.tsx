@@ -78,8 +78,7 @@ export function PlacePreview({
         )}
         {!osm && place.rating !== undefined && (
           <p className="place-preview__rating">
-            {t("googleRating")}
-            {place.rating.toFixed(1)} / 5
+            {t("googleRatingValue", { rating: place.rating.toFixed(1) })}
           </p>
         )}
         {authors.length > 0 && (

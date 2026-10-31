@@ -398,9 +398,7 @@ export function TripHomeCalendar({
                   <FlowStayIcon size={12} />
                   <span className="trip-home-calendar__stay-title">{stay.title}</span>
                   <span className="trip-home-calendar__stay-nights">
-                    {locale === "en" && stay.nights === 1
-                      ? "1 night"
-                      : translate(locale, "countNights", { count: stay.nights })}
+                    {translate(locale, "countNights", { count: stay.nights })}
                   </span>
                 </li>
               ))}

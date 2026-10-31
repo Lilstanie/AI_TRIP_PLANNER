@@ -186,12 +186,13 @@ export function useWorkspaceTransport({
     );
     const dates = datesLabel(brief.dates[0], brief.dates[1], locale)?.range ?? "";
     const message = onlyBudgetChanged
-      ? locale === "zh"
-        ? `将预算调整为 ${amount}。`
-        : `Change the budget to ${amount}.`
-      : locale === "zh"
-        ? `规划${brief.destination}行程，${dates}，${brief.groupSize} 位旅行人员，总预算 ${amount}。`
-        : `Plan ${brief.destination}, ${dates}, for ${brief.groupSize} travellers with a total budget of ${amount}.`;
+      ? translate(locale, "changeTheBudgetTo", { amount })
+      : translate(locale, "planDestinationDatesTravellersBudget", {
+          destination: brief.destination,
+          dates,
+          count: brief.groupSize,
+          amount,
+        });
     return run(
       {
         kind: "chat",

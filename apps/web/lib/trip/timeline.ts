@@ -127,10 +127,7 @@ function stayRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow
     title: name,
     detail: [
       translate(locale, "checkInTitle"),
-      nights &&
-        (locale === "en" && nights === "1"
-          ? "1 night"
-          : translate(locale, "countNights", { count: nights })),
+      nights && translate(locale, "countNights", { count: Number(nights) }),
       rating && translate(locale, "ratedRating5", { rating }),
     ]
       .filter(Boolean)

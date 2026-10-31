@@ -15,14 +15,12 @@ function duration(minutes: number | undefined, locale: AppLocale): string | unde
 
 function stops(count: number | undefined, locale: AppLocale): string | undefined {
   if (count === undefined) return undefined;
-  return count === 0
-    ? translate(locale, "nonstop")
-    : translate(locale, count === 1 ? "countStop" : "countStops", { count });
+  return count === 0 ? translate(locale, "nonstop") : translate(locale, "countStops", { count });
 }
 
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
   const { t, money, locale } = useLocale();
-  const party = t(answer.passengers === 1 ? "countTraveller" : "countTravellers", {
+  const party = t("countTravellers", {
     count: answer.passengers,
   });
   return (

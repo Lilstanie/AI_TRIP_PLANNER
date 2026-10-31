@@ -430,9 +430,7 @@ export function TimelineStop({
             )}
             <span className="timeline-stop__name">
               {number !== undefined && (
-                <span className="sr-only">
-                  {t("stopTitle")} {number}:{" "}
-                </span>
+                <span className="sr-only">{t("stopNumber", { number })}: </span>
               )}
               {name}
             </span>
