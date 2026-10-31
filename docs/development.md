@@ -607,19 +607,14 @@ node apps/web/tests/e2e/run-performance.mjs
 ```
 
 This local command reuses the CLI fixture environment and the raw runner's owned production build,
-server and temporary TypeScript config. It blanks known integration credentials, forces mock tools,
-disables Agent Lab live runs and supplies the synthetic browser Maps key `map-animation-fixture`.
+server and temporary TypeScript config. It blanks known integration credentials, forces mock tools and
+disables Agent Lab live runs.
 Run it separately from CLI acceptance, which temporarily changes dependency entrypoints.
 
 The workspace journey measures 10- and 200-message histories on desktop and 200 messages on phone;
 it checks one catalog write per settled input save, reload, quota retry, switch-time flush, rename,
 layout persistence, planned snapshot mirrors and stale-tab storage guards. Its second-tab case writes
 the revision protocol directly and does not test the plan-edit API.
-
-The command still asks the runner for the map journey `map-animation-lifecycle`, which TP-165 (#809)
-deleted, so it stops with `no script matches "map-animation-lifecycle"` before it builds (see
-[known E2E failures](e2e-known-failures.md)). Until that is fixed, run the workspace journey alone with
-`pnpm --filter @trip/web e2e workspace-performance --prod`.
 
 Each command allocates a new label. Logs and the overall summary are under
 `output/e2e/performance-acceptance/<label>/`; screenshots, workspace traces, CPU profiles and JSON are
