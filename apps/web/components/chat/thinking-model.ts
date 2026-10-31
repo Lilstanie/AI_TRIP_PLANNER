@@ -6,6 +6,7 @@ import {
   type ToolResultKind,
   type ToolResultRow,
 } from "@trip/shared";
+import { PREPARING_SUMMARY } from "@/lib/workspace/session";
 
 export type ActivityStatus =
   "queued" | "running" | "revising" | "completed" | "failed" | "interrupted" | "unknown";
@@ -448,7 +449,10 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
   }
   for (let index = activity.length - 1; index >= 0; index -= 1) {
     const event = activity[index]!;
-    if (event.type === "coordinator" && event.summary) return event.summary;
+    if (event.type === "coordinator" && event.summary)
+      return event.summary === PREPARING_SUMMARY
+        ? translate(locale, "preparingYourRequest")
+        : event.summary;
     if (event.type === "agent_completed" && event.summary)
       return `${translate(locale, labels[event.agent])} · ${event.summary}`;
   }

@@ -309,7 +309,7 @@ try {
         .sort();
     const stopMenu = (name) =>
       page.getByRole("button", {
-        name: zh ? new RegExp(`^${name}，.*的操作$`) : new RegExp(`^Actions for ${name}, `),
+        name: zh ? new RegExp(`^${name}（.*）的操作$`) : new RegExp(`^Actions for ${name}, `),
       });
     const baseline = JSON.stringify(core(await saved()));
     const restored = async (label) => {
