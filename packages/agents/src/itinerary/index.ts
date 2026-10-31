@@ -304,6 +304,25 @@ const PACKED_SLOTS = [
 
 const PACE_MAX: Record<TripPace, number> = { relaxed: 2, balanced: 3, packed: 6 };
 
+function sightsByDay(draft: ItineraryDraft, restaurants: Set<string>) {
+  const byDay = new Map<number, ItineraryDraft["activities"]>();
+  for (const item of draft.activities)
+    if (!restaurants.has(item.location.trim().toLowerCase()))
+      byDay.set(item.day, [...(byDay.get(item.day) ?? []), item]);
+  return byDay;
+}
+
+function trimToPace(draft: ItineraryDraft, restaurants: Set<string>, cap: number): ItineraryDraft {
+  const dropped = new Set(
+    [...sightsByDay(draft, restaurants).values()].flatMap((sights) =>
+      [...sights].sort((a, b) => minutes(a.startTime) - minutes(b.startTime)).slice(cap),
+    ),
+  );
+  if (!dropped.size) return draft;
+  console.warn(`[itinerary] Dropped ${dropped.size} sights over the ${cap}-a-day pace cap`);
+  return { ...draft, activities: draft.activities.filter((item) => !dropped.has(item)) };
+}
+
 const PACE_ACTIVITIES: Record<TripPace, string> = {
   relaxed: "1-2 activities a day",
   balanced: "2-3 activities a day",
@@ -644,6 +663,9 @@ async function planItinerary(
     let rejectedDraft: string[] | undefined;
     let accepted: ItineraryDraft | undefined;
     let acceptedConflicts = Infinity;
+    const restaurants = new Set(
+      [...mealsByCity.values()].flat().map((place) => place.name.trim().toLowerCase()),
+    );
     for (let attempt = 0; attempt < 2 && acceptedConflicts > 0; attempt += 1) {
       let generated: ItineraryDraft | undefined;
       try {
@@ -705,22 +727,15 @@ async function planItinerary(
           true,
           landing,
         );
-        const restaurants = new Set(
-          [...mealsByCity.values()].flat().map((place) => place.name.trim().toLowerCase()),
-        );
-        const sightsByDay = new Map<number, number>();
-        for (const item of valid.activities)
-          if (!restaurants.has(item.location.trim().toLowerCase()))
-            sightsByDay.set(item.day, (sightsByDay.get(item.day) ?? 0) + 1);
         const tight = [
           ...(
             await travelConflicts(valid, ctx, brief, new Map(), placeCoordinates(grounded.places))
           ).conflicts,
-          ...[...sightsByDay]
-            .filter(([, count]) => count > PACE_MAX[pace])
+          ...[...sightsByDay(valid, restaurants)]
+            .filter(([, sights]) => sights.length > PACE_MAX[pace])
             .map(
-              ([day, count]) =>
-                `day ${day} has ${count} sights but a ${pace} pace allows at most ${PACE_MAX[pace]}`,
+              ([day, sights]) =>
+                `day ${day} has ${sights.length} sights but a ${pace} pace allows at most ${PACE_MAX[pace]}`,
             ),
         ];
         if (tight.length < acceptedConflicts) {
@@ -744,7 +759,7 @@ async function planItinerary(
         );
       }
     }
-    if (accepted) draft = accepted;
+    if (accepted) draft = trimToPace(accepted, restaurants, PACE_MAX[pace]);
     else {
       usedFallback = true;
       draft = validatedFallbackDraft(
