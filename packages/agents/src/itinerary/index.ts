@@ -640,7 +640,8 @@ async function planItinerary(
     let feedback: string | undefined;
     let rejectedDraft: string[] | undefined;
     let accepted: ItineraryDraft | undefined;
-    for (let attempt = 0; attempt < 2 && !accepted; attempt += 1) {
+    let acceptedConflicts = Infinity;
+    for (let attempt = 0; attempt < 2 && acceptedConflicts > 0; attempt += 1) {
       let generated: ItineraryDraft | undefined;
       try {
         generated = await generator.generate({
@@ -691,7 +692,7 @@ async function planItinerary(
               }
             : {}),
         });
-        accepted = validateDraft(
+        const valid = validateDraft(
           generated,
           days,
           grounded.places,
@@ -701,6 +702,19 @@ async function planItinerary(
           true,
           landing,
         );
+        const tight = (
+          await travelConflicts(valid, ctx, brief, new Map(), placeCoordinates(grounded.places))
+        ).conflicts;
+        if (tight.length < acceptedConflicts) {
+          accepted = valid;
+          acceptedConflicts = tight.length;
+        }
+        if (tight.length) {
+          feedback = `Route times between stops do not fit: ${tight.join("; ")}. Move the later stop or pick a nearer candidate.`;
+          rejectedDraft = valid.activities.map(
+            (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
+          );
+        }
       } catch (error) {
         ctx.signal?.throwIfAborted();
         feedback = error instanceof Error ? error.message : "unknown model error";
