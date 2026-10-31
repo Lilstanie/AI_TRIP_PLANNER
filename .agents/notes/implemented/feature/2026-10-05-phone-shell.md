@@ -48,7 +48,7 @@ asked for a phone-first design. Spec: issue #174.
   closes consume the temporary entry; an entry left over from before a reload is dropped.
 - **Safe areas**: the viewport uses `viewport-fit=cover`; every layout pads with
   `env(safe-area-inset-*)`, and on phones the top bar and tab bar carry the insets.
-- Phone styles live in `app/styles/phone*.css`, loaded last; strings in `lib/i18n/phone-messages.ts`.
+- Phone styles live in `app/styles/phone*.css`, loaded last; strings in `lib/i18n/messages/en-shell.ts` and `zh-shell.ts`.
 - Stops are reordered from the item action menu (Move earlier / Move later), never by dragging.
 
 ## Alternatives considered

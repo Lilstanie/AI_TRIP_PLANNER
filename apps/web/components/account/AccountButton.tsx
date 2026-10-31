@@ -13,7 +13,7 @@ export function AccountButton({
   onSettings(section?: SettingsSection): void;
 }) {
   const account = useAccount();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const wrap = useRef<HTMLDivElement>(null);
@@ -137,7 +137,10 @@ export function AccountButton({
         <button
           type="button"
           className="account-button__profile"
-          aria-label={`${t(signedIn ? "viewProfile" : "accountSettings")}${locale === "zh" ? "：" : ": "}${name}`}
+          aria-label={t("labelValue", {
+            label: t(signedIn ? "viewProfile" : "accountSettings"),
+            value: name,
+          })}
           aria-busy={account.status === "loading" || undefined}
           onClick={() => onSettings(signedIn ? "profile" : "account")}
         >

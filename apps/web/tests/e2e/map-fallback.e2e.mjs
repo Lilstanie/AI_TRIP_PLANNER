@@ -479,7 +479,7 @@ async function main() {
       });
     });
     await page.locator(".timeline-stop__head").nth(1).getByRole("button").last().click();
-    await page.getByRole("menuitem", { name: "更换地点", exact: true }).click();
+    await page.getByRole("menuitem", { name: "换个地方", exact: true }).click();
     await page.getByPlaceholder("搜索 Google 地图").fill("manual-localized-place");
     await page.getByRole("button", { name: "搜索", exact: true }).click();
     await page.locator(".stop-editor__results").waitFor();

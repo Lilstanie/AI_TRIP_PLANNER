@@ -160,7 +160,7 @@ export function MemoryRow({
       >
         <span aria-hidden="true">{icon}</span>
         <span>
-          <strong>{label}:</strong> {empty ? question : value}
+          <strong>{t("labelColon", { label })}</strong> {empty ? question : value}
         </span>
       </button>
       {empty && !open && (

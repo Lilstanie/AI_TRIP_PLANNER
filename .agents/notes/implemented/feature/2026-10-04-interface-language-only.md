@@ -14,9 +14,8 @@ UserSettings adds an optional `language` field (`en` | `zh`). Absent means follo
 `zh*` opens in Chinese, anything else in English, read after hydration so the server render stays
 English. A saved choice always wins. Existing settings without the field therefore still parse.
 LocaleProvider supplies interface translation and localized date/AUD formatting, and sets
-`<html lang>` to `zh-CN` or `en-AU`. `t()` accepts only keys of the Chinese dictionary, so a
-string passed to it without a Chinese entry fails the typecheck; a `|context` suffix separates
-two translations of one English word ("Budget" the fact, "Budget|tier" the cheapest preset).
+`<html lang>` to `zh-CN` or `en-AU`. Interface copy comes from next-intl message catalogs; see
+[next-intl message catalogs](../architecture/2026-10-31-next-intl-message-catalogs.md).
 The top-bar language button beside data mode and the Settings language control update the same
 setting.
 Traveller text and agent-generated replies stay unchanged. English is the fallback for strings

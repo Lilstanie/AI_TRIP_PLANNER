@@ -271,7 +271,7 @@ try {
                 ? "未定价费用未计入"
                 : "unpriced costs not counted"
               : zh
-                ? "预算内"
+                ? "没超预算"
                 : "Within budget";
         check(status.includes(expectedStatus), `${tag}: status wording`, status);
         if (scenario.currency === "JPY")

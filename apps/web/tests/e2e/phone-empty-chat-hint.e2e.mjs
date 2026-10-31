@@ -43,18 +43,18 @@ const COPY = {
     mine: /^我的/,
     examples: "示例行程",
     footer: /估算都需要核实/,
-    noTrips: "尚无行程。",
+    noTrips: "还没有行程。",
     trips: "行程",
     newTrip: "新行程",
     newChat: "新聊天",
-    search: "搜索聊天与行程",
+    search: "搜索聊天和行程",
     switchTabs: "你的行程",
     chats: "聊天",
     team: /专家团队|团队/,
     traj: "还没有记录。在聊天里发送消息后，助手的每个步骤都会列在这里。",
-    trajNew: "发送消息后，助手的每一步都会列在这里。",
-    planInChat: "去聊天规划",
-    emptyDay: "这一天还没有安排。",
+    trajNew: "发消息后，助手的每一步都会显示在这里。",
+    planInChat: "去聊天里规划",
+    emptyDay: "这天还没有安排。",
   },
 };
 
@@ -108,7 +108,7 @@ try {
       await suggestions.waitFor();
       check(
         (await page.getByRole("heading", { name: "Where to next?" }).count()) === 0 &&
-          (await page.getByRole("heading", { name: "下一站去哪里？" }).count()) === 0,
+          (await page.getByRole("heading", { name: "下一站去哪儿？" }).count()) === 0,
         `${label}: no centre empty card`,
       );
       check(

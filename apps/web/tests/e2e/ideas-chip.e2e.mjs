@@ -235,7 +235,7 @@ try {
     const row = (name) => rowIn(rows, name);
     const names = async (scope) =>
       (await scope.locator(".timeline-stop__name").allTextContents()).map((text) =>
-        text.replace(/^(Stop|停靠点) \d+[:：]\s*/, "").trim(),
+        text.replace(/^(Stop \d+|第 \d+ 站)[:：]\s*/, "").trim(),
       );
     const shownNames = () => names(rows);
     const shownNumbers = async () =>
@@ -244,7 +244,7 @@ try {
     const chip = (day) => strip.locator(`[data-day="${day}"]`);
     const line = timeline.locator(".timeline-drop-line");
     const undoButton = page.getByRole("button", {
-      name: /^(Undo( last change)?|撤销|撤销上次修改)$/,
+      name: /^(Undo( last change)?|撤销|撤销刚才的修改)$/,
     });
     const requests = (kind) => editRequests.filter((request) => request.operation.kind === kind);
     const requestCount = () => editRequests.length;
@@ -464,7 +464,7 @@ try {
     );
     check(
       (await page
-        .getByRole("button", { name: /^(Undo( last change)?|撤销|撤销上次修改)$/ })
+        .getByRole("button", { name: /^(Undo( last change)?|撤销|撤销刚才的修改)$/ })
         .count()) >= 1,
       `the drop offers an Undo at ${tag}`,
     );
@@ -477,7 +477,7 @@ try {
 
     await stopMenu("Alder").click();
     await page
-      .getByRole("menuitem", { name: zh ? "移至备选地点" : "Move to ideas", exact: true })
+      .getByRole("menuitem", { name: zh ? "移到备选地点" : "Move to ideas", exact: true })
       .click();
     check(
       await waitUntil(async () => (await dayOf("Alder")) === undefined, 10_000),
@@ -529,7 +529,7 @@ try {
     );
     await stopMenu("Fir").click();
     await page
-      .getByRole("menuitem", { name: zh ? "移至备选地点" : "Move to ideas", exact: true })
+      .getByRole("menuitem", { name: zh ? "移到备选地点" : "Move to ideas", exact: true })
       .click();
     check(
       (await countIs(2)) &&

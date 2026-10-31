@@ -165,4 +165,6 @@ export const enShell = {
   changeTheBudgetTo: "Change the budget to {amount}.",
   planDestinationDatesTravellersBudget:
     "Plan {destination}, {dates}, for {count} travellers with a total budget of {amount}.",
+  labelColon: "{label}:",
+  labelValue: "{label}: {value}",
 } as const;
