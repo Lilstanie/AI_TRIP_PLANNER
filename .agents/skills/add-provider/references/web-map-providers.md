@@ -16,7 +16,8 @@ and the [review fixes](../../../notes/implemented/architecture/2026-10-10-map-fa
 - Explicit English/default search tries Photon, with `lang=en` for explicit English. Resolve the
   destination and constrain results with its bounding box. Photon failure falls back to Nominatim;
   a valid empty Photon answer stays empty. An unresolved destination stays empty rather than
-  widening to an unrelated region. Explicit Chinese search uses Nominatim `accept-language=zh`.
+  widening to an unrelated region. Explicit Chinese search, and explicit search for text containing
+  Han characters in any language, uses Nominatim (`accept-language` follows the interface).
 - Details accept `language`, default English. Preserve locale through saved-ID lookups and replacement
   searches. Browser `useTripPlaces` keys search by mode/language/query/destination and refetches details
   when mode or language changes; preference suggestion caches include locale. Check EN→ZH→EN

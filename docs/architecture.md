@@ -305,7 +305,10 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   The failure cases and decision are recorded in the
   [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - Transport searches and prices every planned flight leg, including traveller-selected inter-city flights; each available fare carries its route and selection into the proposal. A flight without a valid fare remains unpriced.
+- The itinerary reads the selected outbound flight the same way `detect_conflicts` does (`outboundArrival` in `packages/shared/src/arrival.ts`). It plans nothing before landing day, and on that day it starts stops 90 minutes after landing. A landing after 16:00 leaves that day empty. Days in the air are noted as travel days, not as incomplete days.
+- The itinerary also asks the place tools for each city's restaurants. If the traveller has a dietary requirement, it uses the same text query as dining. It then adds one lunch or dinner a day at a found restaurant, rotating so a restaurant repeats only after the others are used. Restaurants never replace sights; a failed restaurant lookup is reported and leaves the sights in place.
 - The itinerary draft allows route time plus a 15-minute arrival buffer between different locations. Route durations are checked after drafting; a failed or missing route remains unverified.
+- Between itinerary stops, an OSRM driving estimate is accepted as the hop's time and still has to fit with the buffer; the plan then says once that public transport was not checked. Transport still rejects driving estimates between cities, because they decide what to book.
 - `detect_conflicts` uses the selected arrival flight’s destination-local arrival date and time to flag itinerary activities scheduled before landing; absent or malformed flight times remain unknown. It also combines budget overruns, structured cross-agent schedule overlaps and geography
   conflicts reported after itinerary route-duration checks. An overrun is spread in AUD
   (`targetSaving`) over each section's room to cut, its cost less its `floorCost`. When the sum of
@@ -605,7 +608,7 @@ Renderer ownership and the isolated browser fixture are documented in
 [map renderer lifecycle](map-renderer-lifecycle.md).
 
 Photon searches are scoped to the resolved destination. Photon failures use Nominatim; valid empty
-answers stay empty. Chinese requests use Nominatim with `accept-language=zh`. Nominatim search and
+answers stay empty. Chinese requests use Nominatim with `accept-language=zh`, and so does text containing Han characters in any interface language, because Photon put `东京` in Zhejiang. Nominatim search and
 lookup share a process-wide queue with starts at least one second apart, a ten-minute answer cache,
 and an identifying contact header. Details receive the interface language too, and their cache keys include it. Multi-instance deployments need a shared limiter or a self-hosted
 endpoint. `PHOTON_BASE_URL`, `NOMINATIM_BASE_URL` and `OSM_USER_AGENT` configure them.

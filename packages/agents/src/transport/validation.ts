@@ -36,7 +36,13 @@ export function dateForDay(start: string, day: number): string {
     .slice(0, 10);
 }
 
-export function routeProblem(legs: RouteLeg[]): string | undefined {
+export const isDrivingEstimate = (leg: RouteLeg): boolean =>
+  leg.mode !== "drive" && /OSRM|driving/i.test(leg.note ?? "");
+
+export function routeProblem(
+  legs: RouteLeg[],
+  { acceptDrivingEstimates = false } = {},
+): string | undefined {
   if (!legs.length) return "no route returned";
   if (
     legs.some(
@@ -50,7 +56,7 @@ export function routeProblem(legs: RouteLeg[]): string | undefined {
   )
     return "invalid route duration, fare or mode";
 
-  if (legs.some((leg) => leg.mode !== "drive" && /OSRM|driving/i.test(leg.note ?? "")))
+  if (!acceptDrivingEstimates && legs.some(isDrivingEstimate))
     return "driving estimate cannot verify public transport timing";
   return undefined;
 }

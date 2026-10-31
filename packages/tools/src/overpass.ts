@@ -21,6 +21,7 @@ type Area = {
   lat?: string;
   lon?: string;
   boundingbox?: string[];
+  address?: Record<string, string>;
 };
 type Element = {
   type?: string;
@@ -47,7 +48,7 @@ async function request<T>(url: string, init: RequestInit = {}): Promise<T> {
 
 export async function findCity(near: string): Promise<Area | undefined> {
   const [area] = await request<Area[]>(
-    `${toolRuntimeConfig().nominatimBaseUrl}/search?format=jsonv2&limit=1&q=${encodeURIComponent(near)}`,
+    `${toolRuntimeConfig().nominatimBaseUrl}/search?format=jsonv2&limit=1&addressdetails=1&q=${encodeURIComponent(near)}`,
   );
   return area;
 }

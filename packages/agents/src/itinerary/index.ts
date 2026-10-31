@@ -2,13 +2,7 @@ import {
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
-  type ArriveBy,
-  type GeoPoint,
   type Place,
-  type RouteLeg,
-  type RouteOption,
-  type RouteQuery,
-  type TravelMode,
   type RevisionRequest,
   type Specialist,
   type TripBrief,
@@ -21,16 +15,33 @@ import {
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
-import { dateForDay, planningDays, routeProblem } from "../transport/validation";
-import { cities, cityForDay, parseCityHop, scheduledHops } from "../transport/legs";
+import { dateForDay, planningDays } from "../transport/validation";
+import { connectionKey, placeCoordinates, travelConflicts, type Connections } from "./travel";
+import { cities, cityForDay, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
+import { mealsByCityFrom, withGrounded, withMeals } from "./meals";
+import { dietaryPreferencesForBrief } from "../dining";
+import {
+  arrivalSlots,
+  beforeLanding,
+  landingFor,
+  landingNote,
+  minutes,
+  type Landing,
+} from "./landing";
+import {
+  TIME,
+  activityFitsTransferWindows,
+  transferWindowsByDay,
+  type TransferSegment,
+  type TransferWindow,
+} from "./transfer-windows";
 import { mockEnabled } from "@trip/tools";
 import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 
-const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
 
 const ItineraryActivity = z.object({
@@ -74,22 +85,15 @@ export interface ItineraryGenerator {
 
     previous?: { summary: string; activities: string[] };
     language?: InterfaceLanguage;
+    arrival?: Landing;
+    restaurantsByCity?: Record<string, string[]>;
   }): Promise<ItineraryDraft>;
 }
 
-export interface TransferSegment {
-  from: string;
-  to: string;
-  startTime?: string;
-  endTime?: string;
-}
+export type { TransferSegment };
 
 export interface ItineraryAgentOptions {
   generator?: ItineraryGenerator | false;
-}
-
-interface TransferWindow extends TransferSegment {
-  day: number;
 }
 
 export function citiesByDay(
@@ -183,80 +187,6 @@ function citiesForStayNights(
   });
 }
 
-function transferWindowsByDay(
-  destination: string,
-  transport?: AgentProposal,
-): Map<number, TransferWindow[]> {
-  const windows = new Map<number, TransferWindow[]>();
-  for (const item of transport?.items ?? []) {
-    if (!item.day) continue;
-    const hop = parseCityHop(destination, item.location);
-    if (!hop) continue;
-    const { from, to } = hop;
-    const startTime =
-      item.startTime && item.endTime && TIME.test(item.startTime) && TIME.test(item.endTime)
-        ? item.startTime
-        : undefined;
-    const endTime = startTime ? item.endTime : undefined;
-    const dayWindows = windows.get(item.day) ?? [];
-    const sameHop = dayWindows.find((window) => window.from === from && window.to === to);
-    if (sameHop) {
-      if (startTime && endTime && sameHop.startTime && sameHop.endTime) {
-        if (minutes(startTime) < minutes(sameHop.startTime)) sameHop.startTime = startTime;
-        if (minutes(endTime) > minutes(sameHop.endTime)) sameHop.endTime = endTime;
-      } else {
-        delete sameHop.startTime;
-        delete sameHop.endTime;
-      }
-    } else {
-      dayWindows.push({
-        day: item.day,
-        from,
-        to,
-        ...(startTime && endTime ? { startTime, endTime } : {}),
-      });
-    }
-    windows.set(item.day, dayWindows);
-  }
-  for (const dayWindows of windows.values()) {
-    if (dayWindows.every(({ startTime, endTime }) => startTime && endTime))
-      dayWindows.sort((left, right) => minutes(left.startTime!) - minutes(right.startTime!));
-  }
-  return windows;
-}
-
-function minutes(time: string): number {
-  const [hour, minute] = time.split(":").map(Number);
-  return hour! * 60 + minute!;
-}
-
-function activityFitsTransferWindows(
-  activity: Pick<ItineraryDraft["activities"][number], "startTime" | "endTime">,
-  city: string,
-  windows: readonly TransferWindow[],
-): boolean {
-  if (!windows.length) return true;
-  const timedWindows = windows.filter(
-    (window): window is TransferWindow & { startTime: string; endTime: string } =>
-      Boolean(window.startTime && window.endTime),
-  );
-  if (timedWindows.length !== windows.length) return false;
-  const start = minutes(activity.startTime);
-  const end = minutes(activity.endTime);
-  if (
-    timedWindows.some(
-      (window) => start < minutes(window.endTime) && end > minutes(window.startTime),
-    )
-  )
-    return false;
-  const previous = timedWindows.filter((window) => minutes(window.endTime) <= start).at(-1);
-  const next = timedWindows.find((window) => minutes(window.startTime) >= end);
-  if (previous && next) return previous.to === city && next.from === city;
-  if (previous) return previous.to === city;
-  if (next) return next.from === city;
-  return false;
-}
-
 function validateDraft(
   draft: ItineraryDraft,
   days: number,
@@ -265,8 +195,16 @@ function validateDraft(
   placesByCity?: ReadonlyMap<string, readonly Place[]>,
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
   requireEveryDay = true,
+  landing?: Landing,
 ): ItineraryDraft {
   const parsed = ItineraryDraft.parse(draft);
+  for (const activity of parsed.activities) {
+    if (beforeLanding(activity, landing)) {
+      throw new Error(
+        `Day ${activity.day} activity ${activity.location} starts before the flight lands on day ${landing!.day} at ${landing!.time}; move it to ${landing!.earliestStart ? `day ${landing!.day} at ${landing!.earliestStart} or later` : `day ${landing!.day + 1} or later`} instead of dropping it.`,
+      );
+    }
+  }
 
   if (dayCities && placesByCity) {
     const cityOf = new Map<string, string[]>();
@@ -315,7 +253,11 @@ function validateDraft(
     }
     seen.add(key);
   }
-  if (requireEveryDay && representedDays.size !== days)
+  const freeDays = landing ? days - landing.day : days;
+  if (
+    requireEveryDay &&
+    [...representedDays].filter((day) => !landing || day > landing.day).length !== freeDays
+  )
     throw new Error("Itinerary must include every trip day.");
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
@@ -353,6 +295,7 @@ function fallbackDraft(
   dayCities?: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
   language?: InterfaceLanguage,
+  landing?: Landing,
 ): ItineraryDraft {
   const candidates = places;
   const { pace, interests, accessibility } = rememberedPlanningPreferences(preferences);
@@ -382,8 +325,10 @@ function fallbackDraft(
     const day = dayIndex + 1;
     const dayWindows = transferWindows.get(day) ?? [];
     const dayCitiesForActivities = citiesByDay[dayIndex] ?? [cityNames[0]!];
+    if (landing && (day < landing.day || (day === landing.day && !landing.earliestStart))) continue;
+    const daySlots = landing?.day === day ? arrivalSlots(slots, landing) : slots;
     let added = 0;
-    for (const slot of slots) {
+    for (const slot of daySlots) {
       const city = dayCitiesForActivities.find((candidate) => {
         const cityPlaces = placesForCity(candidate);
         if (!cityPlaces.length) return false;
@@ -441,24 +386,37 @@ function validatedFallbackDraft(
   dayCities: string[][],
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
   language: InterfaceLanguage | undefined,
+  landing: Landing | undefined,
+  mealsByCity: ReadonlyMap<string, readonly Place[]>,
 ): ItineraryDraft {
+  const grounded = withGrounded(places, placesByCity, mealsByCity);
   return validateDraft(
-    fallbackDraft(
-      brief,
+    withMeals(
+      fallbackDraft(
+        brief,
+        days,
+        places,
+        preferences,
+        placesByCity,
+        dayCities,
+        transferWindows,
+        language,
+        landing,
+      ),
       days,
-      places,
-      preferences,
-      placesByCity,
+      mealsByCity,
       dayCities,
       transferWindows,
+      landing,
       language,
     ),
     days,
-    places,
+    grounded.places,
     dayCities,
-    placesByCity,
+    grounded.byCity,
     transferWindows,
     false,
+    landing,
   );
 }
 
@@ -477,7 +435,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When restaurantsByCity is given, add one lunch or dinner a day at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -498,105 +456,6 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
       return readStructuredResponse("itinerary", ItineraryDraft, result);
     },
   };
-}
-
-export type Connections = Map<string, ArriveBy>;
-
-const connectionKey = (activity: { day: number; startTime: string; location: string }) =>
-  `${activity.day}|${activity.startTime}|${activity.location}`;
-
-function describeHop(
-  legs: RouteLeg[],
-  options: RouteOption[],
-): { mode: TravelMode; line?: string } {
-  const best = options.find((option) => option.mode !== "drive") ?? options[0];
-
-  const line = best?.note?.match(/via [a-z]+ ([\w-]+)/i)?.[1];
-  if (best) return { mode: best.mode, ...(line ? { line } : {}) };
-  const leg = legs[0];
-  return { mode: leg?.mode ?? "transit" };
-}
-
-function placeCoordinates(places: Place[]): ReadonlyMap<string, GeoPoint> {
-  return new Map(
-    places.flatMap((place) =>
-      place.location ? [[place.name.trim().toLocaleLowerCase(), place.location] as const] : [],
-    ),
-  );
-}
-
-async function travelConflicts(
-  draft: ItineraryDraft,
-  ctx: AgentContext,
-  brief: TripBrief,
-  connections: Connections,
-  coordinates: ReadonlyMap<string, GeoPoint>,
-): Promise<string[]> {
-  const conflicts: string[] = [];
-  const days = new Set(draft.activities.map((activity) => activity.day));
-  for (const day of days) {
-    const activities = draft.activities
-      .filter((activity) => activity.day === day)
-      .sort((left, right) => minutes(left.startTime) - minutes(right.startTime));
-    for (let index = 1; index < activities.length; index += 1) {
-      const previous = activities[index - 1]!;
-      const current = activities[index]!;
-      if (previous.location === current.location) continue;
-      ctx.signal?.throwIfAborted();
-
-      const at = (name: string) => coordinates.get(name.trim().toLocaleLowerCase());
-      const fromLocation = at(previous.location);
-      const toLocation = at(current.location);
-      const query: RouteQuery = {
-        from: previous.location,
-        to: current.location,
-        date: dateForDay(brief.dates[0], day),
-        localTime: previous.endTime,
-        ...(fromLocation ? { fromLocation } : {}),
-        ...(toLocation ? { toLocation } : {}),
-      };
-      let legs;
-      try {
-        legs = await ctx.tools.maps.route(query);
-      } catch {
-        ctx.signal?.throwIfAborted();
-        conflicts.push(
-          `geography conflict on day ${day}: route provider failed; connection unverified`,
-        );
-        continue;
-      }
-      ctx.signal?.throwIfAborted();
-      const problem = routeProblem(legs);
-      if (problem) {
-        conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location}: ${problem}`,
-        );
-        continue;
-      }
-      const durationMin = Math.ceil(legs.reduce((sum, leg) => sum + leg.durationMin, 0));
-
-      const options = ctx.tools.maps.routeOptions
-        ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
-        : [];
-      if (durationMin > 0) {
-        const { mode, line } = describeHop(legs, options);
-        connections.set(connectionKey(current), {
-          mode,
-          durationMin,
-          ...(line ? { line } : {}),
-          from: previous.location,
-        });
-      }
-      const required = durationMin + 15;
-      const available = minutes(current.startTime) - minutes(previous.endTime);
-      if (required > available) {
-        conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location} needs ${required} minutes including a 15-minute buffer but only ${available} are available`,
-        );
-      }
-    }
-  }
-  return conflicts;
 }
 
 async function planItinerary(
@@ -620,17 +479,24 @@ async function planItinerary(
       items: proposal.items.map((item) => `day ${item.day ?? "?"}: ${item.detail}`),
     }));
   const evidenceIssues: string[] = [];
-  const readPlaces = async (category: string, near: string) => {
+  const readPlaces = async (category: string, near: string, textQuery?: string) => {
     try {
-      const found = await ctx.tools.maps.places({ near, category });
+      const found = await ctx.tools.maps.places({
+        near,
+        category,
+        ...(textQuery ? { textQuery } : {}),
+      });
       return found.filter(
         (place) =>
           typeof place.name === "string" &&
           place.name.trim().length > 0 &&
           !isGenericPlace(place, near, brief.destination),
       );
-    } catch {
+    } catch (error) {
       ctx.signal?.throwIfAborted();
+      console.warn(
+        `[itinerary] Place provider unavailable for ${category} in ${near}: ${error instanceof Error ? error.message : String(error)}`,
+      );
       evidenceIssues.push(
         `Place provider unavailable for ${category} in ${near}; using only remaining evidence.`,
       );
@@ -639,7 +505,21 @@ async function planItinerary(
   };
 
   const cityNames = cities(brief.destination);
-  const [byCity, preferences] = await Promise.all([
+  const preferencesRead = ctx.mem.getLongTerm(brief.userId);
+  const readMeals = async (city: string) => {
+    const dietary = dietaryPreferencesForBrief(brief, await preferencesRead);
+    return [
+      city,
+      await readPlaces(
+        "restaurant",
+        city,
+        dietary.length
+          ? `restaurant in ${city}; dietary requirements: ${dietary.map(({ value }) => value).join("; ")}`
+          : undefined,
+      ),
+    ] as const;
+  };
+  const [byCity, preferences, mealsFound] = await Promise.all([
     Promise.all(
       cityNames.map(async (city) => {
         const [sights, neighborhoods] = await Promise.all([
@@ -659,7 +539,8 @@ async function planItinerary(
         ] as const;
       }),
     ),
-    ctx.mem.getLongTerm(brief.userId),
+    preferencesRead,
+    Promise.all(cityNames.map(readMeals)),
   ]);
   ctx.signal?.throwIfAborted();
   const placesByCity = new Map(byCity);
@@ -668,6 +549,7 @@ async function planItinerary(
   );
   const transportDayCities = citiesByDay(brief.destination, days, transportProposal);
   const transferWindows = transferWindowsByDay(brief.destination, transportProposal);
+  const landing = landingFor(brief, extras.board?.proposals ?? []);
   const staySelections =
     extras.board?.proposals.find((proposal) => proposal.agent === "accommodation")?.stays ?? [];
   const dayCities = citiesForStayNights(
@@ -682,6 +564,8 @@ async function planItinerary(
       [...placesByCity.values()].flat().map((place) => [place.name.trim().toLowerCase(), place]),
     ).values(),
   ];
+  const mealsByCity = mealsByCityFrom(mealsFound, places);
+  const grounded = withGrounded(places, placesByCity, mealsByCity);
   if (!places.length) {
     return {
       agent: "itinerary",
@@ -749,12 +633,25 @@ async function planItinerary(
                 }
               : {}),
             ...(feedback ? { feedback } : {}),
+            ...(landing ? { arrival: landing } : {}),
+            ...(grounded.places.length > places.length
+              ? {
+                  restaurantsByCity: Object.fromEntries(
+                    [...mealsByCity].map(([city, found]) => [
+                      city,
+                      found.map((place) => place.name),
+                    ]),
+                  ),
+                }
+              : {}),
           }),
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
+          true,
+          landing,
         );
       } catch (error) {
         ctx.signal?.throwIfAborted();
@@ -776,6 +673,8 @@ async function planItinerary(
         dayCities,
         transferWindows,
         ctx.replyLanguage,
+        landing,
+        mealsByCity,
       );
     }
   } else {
@@ -788,6 +687,8 @@ async function planItinerary(
       dayCities,
       transferWindows,
       ctx.replyLanguage,
+      landing,
+      mealsByCity,
     );
   }
   let adjusted = avoidBlockedWindows(draft, revision);
@@ -798,11 +699,12 @@ async function planItinerary(
         draft: validateDraft(
           adjusted.draft,
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
           false,
+          landing,
         ),
       };
     } catch {
@@ -816,13 +718,15 @@ async function planItinerary(
     }
   }
   draft = adjusted.draft;
-  const coordinates = placeCoordinates(places);
+  const coordinates = placeCoordinates(grounded.places);
   const placeIds = new Map(
-    places.flatMap((place) =>
+    grounded.places.flatMap((place) =>
       place.placeId ? [[place.name.trim().toLocaleLowerCase(), place.placeId] as const] : [],
     ),
   );
   let connections: Connections = new Map();
+  const travel = await travelConflicts(draft, ctx, brief, connections, coordinates);
+  let drivingEstimates = travel.drivingEstimates;
   let conflicts = [
     ...adjusted.conflicts,
     ...dayCities.flatMap((allowed, index) =>
@@ -832,9 +736,10 @@ async function planItinerary(
             `geography conflict: day ${index + 1} transport does not end in the selected overnight city; activities were omitted`,
           ],
     ),
-    ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+    ...travel.conflicts,
     ...(usedFallback
       ? Array.from({ length: days }, (_, index) => index + 1)
+          .filter((day) => !landing || day > landing.day)
           .filter((day) => !draft.activities.some((activity) => activity.day === day))
           .map((day) => `incomplete itinerary: no feasible fallback activity for day ${day}`)
       : []),
@@ -849,6 +754,8 @@ async function planItinerary(
       dayCities,
       transferWindows,
       ctx.replyLanguage,
+      landing,
+      mealsByCity,
     );
     const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
     let fallback = adjustedFallback;
@@ -858,11 +765,12 @@ async function planItinerary(
         draft: validateDraft(
           adjustedFallback.draft,
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
           false,
+          landing,
         ),
       };
     } catch {
@@ -877,14 +785,19 @@ async function planItinerary(
     }
 
     const fallbackConnections: Connections = new Map();
-    const fallbackConflicts = [
-      ...fallback.conflicts,
-      ...(await travelConflicts(fallback.draft, ctx, brief, fallbackConnections, coordinates)),
-    ];
+    const fallbackTravel = await travelConflicts(
+      fallback.draft,
+      ctx,
+      brief,
+      fallbackConnections,
+      coordinates,
+    );
+    const fallbackConflicts = [...fallback.conflicts, ...fallbackTravel.conflicts];
     if (fallbackConflicts.length < conflicts.length) {
       usedFallback = true;
       draft = fallback.draft;
       connections = fallbackConnections;
+      drivingEstimates = fallbackTravel.drivingEstimates;
       conflicts = fallbackConflicts;
     }
   }
@@ -918,7 +831,13 @@ async function planItinerary(
     assumptions: [
       ...draft.assumptions,
       ...evidenceIssues,
+      ...(landing ? [landingNote(landing)] : []),
       "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
+      ...(drivingEstimates
+        ? [
+            "Travel times between stops are OSRM driving estimates; public transport was not checked and can take longer.",
+          ]
+        : []),
       `Activity prices unknown: no source publishes admission prices for these ${draft.activities.length} stops, so none is counted in the trip total.`,
       ...(placesByCity.size > 1
         ? [

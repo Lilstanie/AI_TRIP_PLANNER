@@ -152,7 +152,12 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
   const chineseOrigin = message.match(
     /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|前往|，|,|。|$))/u,
   );
-  const origin = cleanDestination(fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? "");
+  const leadingDestination = message.match(
+    /^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.-]+?)(?:\s+from\s+([A-Za-z][A-Za-z &.-]+?))?\s*[,，]\s*\d{4}-\d{2}-\d{2}/i,
+  );
+  const origin = cleanDestination(
+    fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? leadingDestination?.[2] ?? "",
+  );
   if (origin) patch.origin = origin;
 
   const englishDestination = message.match(
@@ -160,9 +165,6 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
   );
   const explicitDestination = message.match(
     /(?:destination|place)(?:\s+(?:is|to|as))?\s*[:=]?\s+(.+?)(?=\s+(?:and\s+)?(?:for|from|between|on|with|budget)\b|[,.;]|$)/i,
-  );
-  const leadingDestination = message.match(
-    /^\s*([A-Za-z][A-Za-z &.-]+?)\s*[,，]\s*\d{4}-\d{2}-\d{2}/,
   );
   const leadingPlace = message.match(
     /^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.'-]*?)[,\s]+\d+\s+days?\b/i,

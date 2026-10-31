@@ -26,6 +26,7 @@ const photonFeature = z.object({
 });
 const httpUrl = (value?: string) => (value && /^https?:\/\//i.test(value) ? value : undefined);
 const TYPE = { N: "node", W: "way", R: "relation" } as const;
+const HAN = /\p{Script=Han}/u;
 
 function fromNominatim(raw: unknown): MapPlace | undefined {
   const parsed = nominatimPlace.safeParse(raw);
@@ -133,7 +134,7 @@ export function osmPlaces(fetcher?: ProviderFetch) {
         ? { viewbox: `${bounds[0]},${bounds[3]},${bounds[2]},${bounds[1]}`, bounded: "1" }
         : {}),
     };
-    if (query.language === "zh") return nominatim("search", params);
+    if (query.language === "zh" || HAN.test(query.text)) return nominatim("search", params);
     try {
       return await photon(query, bounds?.join(","));
     } catch {

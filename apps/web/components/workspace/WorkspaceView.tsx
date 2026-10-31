@@ -373,6 +373,25 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     defaults: profileDefaults,
   });
 
+  const factsInChat = phone && !plan && messages.length === 0;
+  const factChips = (
+    <TripFactChips
+      phone={phone}
+      view={mobileView}
+      draft={draft}
+      plan={plan}
+      busy={busy || editPending}
+      errors={errors}
+      open={openFact}
+      onOpen={openPreferences}
+      onClose={closePreferences}
+      onSave={session.saveFacts}
+      onPlan={session.planWith}
+      preferencesChip={preferencesToggle}
+      suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
+    />
+  );
+
   const phonePanel = (view: MobileView) =>
     phone
       ? {
@@ -411,6 +430,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       phone={phone}
       showTabs={false}
       blankUntouched={untouched}
+      {...(factsInChat ? { facts: factChips } : {})}
       conversationId={history.catalog.activeConversationId}
       view={layout.chatView}
       onViewChange={layout.showChatView}
@@ -702,23 +722,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 />
               </div>
             )}
-            {((briefChrome && (phone || !linkedTrip || tripOpen)) || openFact) && (
-              <TripFactChips
-                phone={phone}
-                view={mobileView}
-                draft={draft}
-                plan={plan}
-                busy={busy || editPending}
-                errors={errors}
-                open={openFact}
-                onOpen={openPreferences}
-                onClose={closePreferences}
-                onSave={session.saveFacts}
-                onPlan={session.planWith}
-                preferencesChip={preferencesToggle}
-                suggestPlaces={dataMode.mode === "live" && !!dataMode.providers?.maps}
-              />
-            )}
+            {!factsInChat &&
+              ((briefChrome && (phone || !linkedTrip || tripOpen)) || openFact) &&
+              factChips}
             {narrow && !phone && (
               <div
                 ref={viewSwitch}
