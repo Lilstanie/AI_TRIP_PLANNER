@@ -84,7 +84,7 @@ describe("a packed pace the brief model recorded", () => {
       expect(meals.map((item) => item.startTime)).toEqual(["12:45", "18:30"]);
       for (let index = 1; index < stops.length; index += 1)
         expect(
-          minutes(stops[index]!.startTime) - minutes(stops[index - 1]!.endTime),
+          minutes(stops[index]!.startTime!) - minutes(stops[index - 1]!.endTime!),
         ).toBeGreaterThanOrEqual(20 + 15);
     }
     expect(result.conflictsWith ?? []).toEqual([]);
