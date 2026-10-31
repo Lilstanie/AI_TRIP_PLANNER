@@ -406,7 +406,7 @@ try {
       fullPage: true,
     });
     let before = requestCount();
-    await panel.getByRole("button", { name: zh ? "添加Fir" : "Add Fir", exact: true }).click();
+    await panel.getByRole("button", { name: zh ? "添加：Fir" : "Add Fir", exact: true }).click();
     check(await waitDay("Fir", 1), `choosing an idea schedules it on the selected day at ${tag}`);
     check(
       requests("schedule").at(-1)?.operation.day === 1 && requestCount() === before + 1,
@@ -503,10 +503,10 @@ try {
     await chip(1).click();
 
     await ideasChip.click();
-    await panel.getByRole("button", { name: zh ? "添加Fir" : "Add Fir", exact: true }).click();
+    await panel.getByRole("button", { name: zh ? "添加：Fir" : "Add Fir", exact: true }).click();
     await waitDay("Fir", 1);
     await ideasChip.click();
-    await panel.getByRole("button", { name: zh ? "添加Gum" : "Add Gum", exact: true }).click();
+    await panel.getByRole("button", { name: zh ? "添加：Gum" : "Add Gum", exact: true }).click();
     await waitDay("Gum", 1);
     check(
       await waitUntil(async () => (await ideasChip.count()) === 0, 8000),

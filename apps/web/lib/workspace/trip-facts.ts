@@ -166,7 +166,7 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   if (!range) return undefined;
   return {
     range,
-    days: locale === "zh" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
+    days: translate(locale, "countDays", { count: days }),
   };
 }
 
@@ -193,10 +193,7 @@ export function factLabels(
 }
 
 function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
-  const plain =
-    locale === "zh"
-      ? `${travellers} 位旅行人员`
-      : `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
+  const plain = translate(locale, "countTravellers", { count: travellers });
   const party = draft.party;
   if (!party) return plain;
   const parts = PARTY_ROWS.map(({ key, singular, label }) => {

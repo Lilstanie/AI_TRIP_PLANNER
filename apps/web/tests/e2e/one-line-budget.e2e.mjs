@@ -242,7 +242,7 @@ try {
           collapsed,
         );
         check(collapsed.includes("/"), `${tag}: the total is shown over the limit`, collapsed);
-        const unpricedText = collapsed.match(zh ? /(\d+) 项未定价/ : /(\d+) unpriced/);
+        const unpricedText = collapsed.match(zh ? /(\d+) 项未计价/ : /(\d+) unpriced/);
         check(
           scenario.unpriced > 0
             ? Number(unpricedText?.[1]) === scenario.unpriced
@@ -268,7 +268,7 @@ try {
               : "Over budget"
             : scenario.unpriced > 0
               ? zh
-                ? "未定价费用未计入"
+                ? "未计价的费用不算在内"
                 : "unpriced costs not counted"
               : zh
                 ? "没超预算"
