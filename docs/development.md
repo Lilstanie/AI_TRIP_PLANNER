@@ -499,7 +499,7 @@ If you run `pnpm build` while `pnpm dev` is running, start the dev server with
 
 Free map endpoints are configurable with `PHOTON_BASE_URL` (default `https://photon.komoot.io`),
 `NOMINATIM_BASE_URL` (default `https://nominatim.openstreetmap.org`), `OVERPASS_BASE_URL` (default
-`https://overpass-api.de/api`) and `TRANSITOUS_BASE_URL` (default `https://api.transitous.org`). With `GEOAPIFY_API_KEY` (free account) set, sights, museums, restaurants and neighbourhoods come from Geoapify first and fall back to Overpass on an error or an empty result. Geoapify sights and neighbourhoods read up to three pages, skip artworks and memorials, and keep a neighbourhood only when it links to Wikipedia or Wikidata. With `MAPS_PROVIDER=osm` the gateway offers no `routeOptions`, so legs use the OSRM estimate. Set `OSM_USER_AGENT` to a real project contact. Public service
+`https://overpass-api.de/api`) and `TRANSITOUS_BASE_URL` (default `https://api.transitous.org`). With `GEOAPIFY_API_KEY` (free account) set, sights, museums, restaurants and neighbourhoods come from Geoapify first and fall back to Overpass on an error or an empty result. Geoapify sights and neighbourhoods read up to three pages and keep up to 60 per category, skip artworks and memorials, and keep a neighbourhood only when it links to Wikipedia or Wikidata. With `MAPS_PROVIDER=osm` the gateway offers no `routeOptions`, so legs use the OSRM estimate. Set `OSM_USER_AGENT` to a real project contact. Public service
 limits and deployment boundaries are in [architecture](architecture.md#free-services-limits-and-terms).
 
 Repeat fallback UI checks with `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback`. Clear all model, Maps and
