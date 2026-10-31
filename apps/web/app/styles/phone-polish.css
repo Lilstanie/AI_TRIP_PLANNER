@@ -1,0 +1,350 @@
+.workspace-app[data-phone] {
+  --phone-card: var(--surface);
+  --phone-card-shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 4px 16px -6px rgb(0 0 0 / 10%);
+  --phone-gutter: max(var(--space-4), env(safe-area-inset-left));
+  background: var(--page);
+}
+
+.workspace-app[data-phone] .phone-tabbar {
+  margin: 0 max(var(--space-3), env(safe-area-inset-right))
+    max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-3), env(safe-area-inset-left));
+  padding: 5px;
+  border-width: 1px !important;
+  border-radius: var(--radius-pill);
+}
+.workspace-app[data-phone] .phone-tabbar__list {
+  gap: 2px;
+}
+.workspace-app[data-phone] .phone-tabbar__tab {
+  min-height: 50px;
+  border-radius: var(--radius-pill) !important;
+  font-size: 10.5px;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out);
+}
+.workspace-app[data-phone] .phone-tabbar__tab[aria-selected="true"] {
+  background: var(--accent-bg) !important;
+}
+.workspace-app[data-phone] .phone-tabbar__tab:active .phone-tabbar__icon {
+  scale: 0.9;
+}
+.workspace-app[data-phone] .phone-tabbar__icon {
+  transition: scale var(--duration-fast) var(--ease-spring);
+}
+.workspace-app[data-phone] .phone-tabbar__dot {
+  top: 7px;
+  box-shadow: 0 0 0 2px var(--surface);
+}
+
+.workspace-app[data-phone] .workspace-topbar::before {
+  border-width: 0 !important;
+  box-shadow: 0 0.5px 0 var(--glass-edge);
+}
+
+.workspace-app[data-phone] .chat__facts {
+  margin: 0 calc(-1 * var(--space-3)) var(--space-2);
+}
+.workspace-app[data-phone] .chat__facts .fact-chips {
+  display: block;
+}
+.workspace-app[data-phone] .chat__facts .fact-chips__scroller {
+  display: flex;
+  gap: var(--space-2);
+  padding: 2px var(--space-3);
+  border: 0 !important;
+  border-radius: 0;
+  background: transparent !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.workspace-app[data-phone] .chat__facts .fact-chip {
+  min-height: 40px !important;
+  padding: 0 14px !important;
+  border: 1px solid var(--border) !important;
+  background: var(--phone-card) !important;
+  font-size: var(--font-size-body);
+}
+.workspace-app[data-phone] .chat__facts .fact-chip[data-empty="true"] {
+  color: var(--text-dim);
+}
+.workspace-app[data-phone] .chat__facts .fact-chip[aria-expanded="true"] {
+  border-color: var(--accent) !important;
+  color: var(--accent);
+}
+
+.workspace-app[data-phone] .chat-empty__suggestions {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+  margin: 0 calc(-1 * var(--space-3)) var(--space-3);
+  padding: 2px var(--space-3);
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.workspace-app[data-phone] .chat-empty__suggestions::-webkit-scrollbar {
+  display: none;
+}
+.workspace-app[data-phone] .chat-empty__suggestions .chat-suggestions__chip {
+  flex: none;
+  min-height: 40px;
+  padding: 0 14px;
+  border: 0;
+  background: var(--fill-hover);
+  font-size: var(--font-size-body);
+}
+
+.workspace-app[data-phone] .composer {
+  border-radius: var(--radius-xl);
+}
+
+.workspace-app[data-phone] .msg-item--user .msg-item__bubble {
+  border-radius: 22px 22px 6px 22px;
+}
+.workspace-app[data-phone] .msg-open-trip {
+  min-height: 44px;
+  padding: 0 var(--space-4) !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--accent-fill) !important;
+  color: var(--on-accent) !important;
+  font-weight: 600;
+}
+.workspace-app[data-phone] .msg-open-trip:active {
+  scale: 0.97;
+}
+.workspace-app[data-phone] .plan-day {
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--phone-card) !important;
+  box-shadow: var(--phone-card-shadow);
+}
+
+.workspace-app[data-phone] .workspace-panel--trip,
+.workspace-app[data-phone] .workspace-panel--mine {
+  padding-inline: var(--phone-gutter);
+}
+.workspace-app[data-phone] .phone-trip__head {
+  align-items: center;
+  padding: var(--space-4) 0 var(--space-2);
+}
+.workspace-app[data-phone] .phone-trip__title {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+}
+.workspace-app[data-phone] .phone-trip-surface .trip-panel__budget-summary {
+  margin-bottom: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-trip-surface .trip-panel__budget-summary .bar {
+  height: 6px;
+  border-radius: var(--radius-pill);
+}
+.workspace-app[data-phone] .phone-trip-surface .budget-status {
+  padding: 0;
+  background: transparent;
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day {
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--phone-card) !important;
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day[aria-pressed="true"],
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day[aria-current="true"],
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day[aria-selected="true"] {
+  background: var(--accent-bg) !important;
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-day__title {
+  font-size: 1.125rem;
+  font-weight: 700;
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop__body {
+  border: 0 !important;
+  border-radius: var(--radius-lg) !important;
+  background: var(--phone-card) !important;
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-add-stop button {
+  min-height: 44px;
+  padding: 0 var(--space-4) !important;
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--accent-bg) !important;
+  color: var(--accent);
+  font-weight: 600;
+}
+.workspace-app[data-phone] .phone-trip-surface .trip-tips {
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+
+.workspace-app[data-phone] .phone-mine .sidebar-search {
+  border: 0 !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--fill-hover) !important;
+}
+.workspace-app[data-phone] .phone-mine .chats-panel__section-head .sidebar-history__title {
+  color: var(--text);
+  font-family: var(--font-display);
+  font-size: 1.375rem;
+  font-weight: 700;
+  letter-spacing: -0.02em;
+  text-transform: none;
+}
+.workspace-app[data-phone] .phone-mine .chats-panel__action {
+  border-radius: var(--radius-pill) !important;
+  color: var(--accent);
+  font-weight: 600;
+}
+.workspace-app[data-phone] .phone-mine .trip-card {
+  aspect-ratio: 16 / 10;
+  border-radius: var(--radius-xl) !important;
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-mine .trip-card[aria-current="true"] {
+  outline: 0;
+  box-shadow:
+    0 0 0 2px var(--page),
+    0 0 0 4px var(--accent);
+}
+.workspace-app[data-phone] .phone-mine .history-list {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-mine .history-item {
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.workspace-app[data-phone] .phone-mine .history-item + .history-item {
+  box-shadow: inset 0 0.5px 0 var(--border);
+}
+.workspace-app[data-phone] .phone-mine .history-item--active .history-item__title {
+  color: var(--accent);
+}
+.workspace-app[data-phone] .phone-mine__controls {
+  border-top: 0;
+}
+.workspace-app[data-phone] .phone-mine__settings {
+  min-height: 52px !important;
+  border: 0;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+  font-weight: 600;
+}
+
+.workspace-app[data-phone] .trip-home-cards {
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .trip-home-cards > li + li {
+  box-shadow: inset 0 0.5px 0 var(--border);
+}
+.workspace-app[data-phone] .trip-home-card {
+  min-height: 52px !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+.workspace-app[data-phone] .trip-home-card:active {
+  background: var(--fill-press) !important;
+}
+.workspace-app[data-phone] .trip-home-chats__list {
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .trip-home-chats__list > li + li {
+  box-shadow: inset 0 0.5px 0 var(--border);
+}
+.workspace-app[data-phone] .trip-home-chats__row {
+  min-height: 52px;
+  padding-inline: var(--space-4) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+}
+.workspace-app[data-phone] .trip-home__title {
+  font-size: 1.875rem;
+  letter-spacing: -0.028em;
+}
+
+.workspace-app[data-phone] .dialog:has(.settings) {
+  position: fixed;
+  inset: auto 0 0;
+  width: 100%;
+  max-width: none;
+  max-height: calc(100dvh - env(safe-area-inset-top) - var(--space-5));
+  margin: 0;
+  padding-bottom: max(var(--space-4), env(safe-area-inset-bottom));
+  border-radius: var(--radius-xl) var(--radius-xl) 0 0;
+  animation: phone-sheet-up var(--duration-slow) var(--ease-out);
+}
+.workspace-app[data-phone] .dialog:has(.settings)::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--text-mut);
+  opacity: 0.35;
+  translate: -50% 0;
+}
+@keyframes phone-sheet-up {
+  from {
+    transform: translateY(100%);
+  }
+}
+
+.workspace-app[data-phone] .phone-trajectory__head {
+  padding: var(--space-3) var(--space-4) var(--space-2);
+  border-bottom: 0;
+}
+.workspace-app[data-phone] .phone-trajectory__head h2 {
+  font-size: 1.875rem;
+  font-weight: 700;
+  letter-spacing: -0.028em;
+}
+.workspace-app[data-phone] .phone-trajectory__close {
+  width: 44px;
+  height: 44px;
+  border-radius: var(--radius-pill) !important;
+  background: var(--fill-hover) !important;
+}
+.workspace-app[data-phone] .phone-trajectory__team {
+  margin: 0 var(--space-4) var(--space-2);
+  padding: 0 var(--space-4);
+  border-radius: var(--radius-xl);
+  background: var(--surface-2);
+}
+.workspace-app[data-phone] .phone-trajectory__team > summary {
+  font-weight: 600;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-app[data-phone] .dialog:has(.settings) {
+    animation: none;
+  }
+}
