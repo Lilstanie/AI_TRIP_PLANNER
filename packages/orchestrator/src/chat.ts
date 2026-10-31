@@ -50,6 +50,7 @@ import {
 } from "./brief-intake";
 export { AskUserError, IncompleteBriefError } from "./brief-intake";
 import { judgeHandoff } from "./mention-handoff";
+import { stopChanges } from "./stop-changes";
 import { ROLE_NAMES } from "./progress-copy";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
 import { isInfeasible } from "./conflicts";
@@ -358,6 +359,7 @@ ${CAPABILITIES}
 Choosing what to do:
 - Call update_trip_brief only for facts the traveller stated in this message. Never infer a destination, budget, group size or nationality they did not give.
 - Call replan_trip after any change that affects the plan, and when the traveller asks for a plan.
+- When a plan exists and the traveller asks to change particular stops or one day (replace, remove, add, move or retime), call change_itinerary with that change instead of replan_trip, then tell them exactly which stops it removed and added. If it changed nothing, say so plainly; never say a change was made when it was not.
 - groupSize is authoritative for the number of people and every cost. When a message states both a total and a party breakdown, keep the stated total and include party only when its people add up to that total; never replace an explicit total with the breakdown sum. Pets are not included in groupSize. Never ask again for anything knownSoFar.party already says; if the traveller changes the number of people, update groupSize and drop a breakdown that no longer matches.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
 - Read how the traveller wants to travel from their words in any language and from knownSoFar.preferences, and record it in update_trip_brief: pace, dietary, interests and stay requirements (stayMinRating, stayFreeCancellation, stayType). The planner, dining and stay agents follow these fields, so never leave a stated pace, food need or hard stay requirement only in learnedPreferences. Pass a field again only when it changed; fields you leave out are kept.
@@ -771,7 +773,7 @@ async function runConversationAgent(
   model: BaseChatModel,
   intake: BriefIntake,
   mem: MemoryStore,
-  orchestrate: (brief: TripBrief) => Promise<TripPlan>,
+  orchestrate: (brief: TripBrief, mention?: OrchestratorOptions["mention"]) => Promise<TripPlan>,
   onProgress?: (event: AgentProgressEvent) => void,
   clock: () => Date = () => new Date(),
   accountMemory = true,
@@ -837,6 +839,40 @@ async function runConversationAgent(
     },
   );
 
+  const changeItinerary = tool(
+    async ({ change }: { change: string }) => {
+      if (!request.plan)
+        return { ok: false as const, reason: "There is no plan yet: call replan_trip instead." };
+      const brief = TripBriefSchema.parse({ ...intake.known, tripId: request.tripId });
+      planned = await orchestrate(brief, {
+        agents: ["itinerary"],
+        message: change,
+        plan: request.plan,
+      });
+      const changes = stopChanges(request.plan, planned);
+      return {
+        ok: true as const,
+        ...changes,
+        ...(changes.added.length || changes.removed.length
+          ? {}
+          : { note: "No stop changed. Tell the traveller plainly that the change was not made." }),
+        plan: planDigest(planned, replyCurrency(request, planned.brief), false),
+      };
+    },
+    {
+      name: "change_itinerary",
+      description:
+        "Change specific stops of the current plan: replace, remove, add, move or retime a stop, or rework one day. Pass the exact change in English with day, time and place names as the plan shows them. Only the itinerary is redrafted; the other stops, the stay and flights are kept. Returns the stops removed and added.",
+      schema: z.object({
+        change: z
+          .string()
+          .describe(
+            'the change, e.g. "On day 3 replace 五十稲荷神社 at 14:30 with 浅草寺 at the same time; keep every other stop unchanged"',
+          ),
+      }),
+    },
+  );
+
   const askUserQuestion = tool(
     async (input: z.infer<typeof AskUserQuestionInput>) => {
       const questions = toQuestions(input);
@@ -856,7 +892,7 @@ async function runConversationAgent(
   const agent = createAgent({
     name: "trip_conversation",
     model: streamingModel,
-    tools: [updateTripBrief, replanTrip, askUserQuestion],
+    tools: [updateTripBrief, replanTrip, changeItinerary, askUserQuestion],
     systemPrompt:
       COORDINATOR_PROMPT +
       styleRule(request.assistant) +
