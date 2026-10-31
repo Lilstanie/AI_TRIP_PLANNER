@@ -10,10 +10,10 @@ TP-165（2026-10-30）删除了 136 个原始脚本：它们在 `main` 上本就
 
 issue 线程在 `main` `fb21e61`（2026-10-30）上用 `pnpm --filter @trip/web e2e <script> --prod`、不加额外环境变量重跑了下面两个脚本。PR #782（2026-10-30 已合并）修改了这两个脚本，它的描述仍报告两者失败。
 
-| 脚本                    | 失败内容                                                                                                                                                                                       | Issue |
-| ----------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- | ----- |
-| `workspace-performance` | `runPlannedStorage` 在 `page.waitForFunction` 处超时，尚未记录任何耗时。                                                                                                                       | #781  |
-| `trip-workspace-layout` | 脚本启动 `chrome` channel，需要安装 Google Chrome；没有安装时启动立即失败。 安装后在 `main` 上仍然失败：它要求未关联 Chat 显示已移除的 `.chat-header__title`，并要求 960 px 下只显示一个头像。 | #781  |
+| 脚本                    | 失败内容                                                                    | Issue |
+| ----------------------- | --------------------------------------------------------------------------- | ----- |
+| `workspace-performance` | `runPlannedStorage` 在 `page.waitForFunction` 处超时，尚未记录任何耗时。    | #781  |
+| `trip-workspace-layout` | 脚本启动 `chrome` channel，需要安装 Google Chrome；没有安装时启动立即失败。 | #781  |
 
 `trajectory-tab` 在 `main` `ec70e0d` 上也会失败（2026-10-30，TP-167），命令为
 `pnpm --filter @trip/web e2e trajectory-tab`：`en-1440` 通过 59 项检查后，刷新步骤从“聊天”重新打开

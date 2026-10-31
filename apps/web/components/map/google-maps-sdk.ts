@@ -53,6 +53,9 @@ let sdk: Promise<MapsSDK> | undefined;
 const authFailureOwners = new Set<() => void>();
 let previousAuthFailure: (() => void) | undefined;
 let installedAuthFailure: (() => void) | undefined;
+let authRejected = false;
+
+export const googleAuthRejected = () => authRejected;
 
 export function subscribeGoogleAuthFailure(fn: () => void) {
   const host = window as typeof window & { gm_authFailure?: () => void };
@@ -60,6 +63,7 @@ export function subscribeGoogleAuthFailure(fn: () => void) {
     previousAuthFailure = host.gm_authFailure;
     installedAuthFailure = () => {
       const previous = previousAuthFailure;
+      authRejected = true;
       for (const listener of [...authFailureOwners]) listener();
       previous?.();
     };

@@ -771,6 +771,12 @@ try {
       .first()
       .waitFor({ state: "attached" });
   }
+  await rejected.page
+    .locator(".trip-home__map")
+    .getByText("The map could not load. Try again.")
+    .first()
+    .waitFor({ timeout: 5_000 });
+  check(true, "a map mounted after Google rejects the key reports the failure, not a blank map");
   await home(rejected.page).getByRole("button", { name: "Back to trips" }).click();
   await rejected.page
     .locator(".trip-cards .trip-card")
