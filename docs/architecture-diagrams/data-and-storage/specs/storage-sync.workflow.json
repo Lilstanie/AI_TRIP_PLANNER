@@ -3,7 +3,7 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "工作区存储、账号同步与服务端记忆",
-    "output": "storage-sync.html",
+    "output": "docs/architecture-diagrams/data-and-storage/rendered/storage-sync.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
     "views": [
@@ -24,13 +24,23 @@
         "label": "失败与回退",
         "focus": ["catalog", "accountSync", "chatApi", "jsonStore", "process"],
         "note": "同步失败时保留本地修改；未配置 Redis 时使用进程内存。"
+      },
+      {
+        "id": "longterm",
+        "label": "长期记忆",
+        "focus": ["chatApi", "memory", "accountMem", "memApi"],
+        "note": "登录且开启记忆时，长期偏好存在账号数据库；短期对话轮次仍走 jsonStore。"
       }
     ]
   },
   "lanes": [
     {
       "id": "browser",
-      "label": "浏览器与同步"
+      "label": "浏览器与账号 API"
+    },
+    {
+      "id": "account",
+      "label": "账号数据库（Postgres）"
     },
     {
       "id": "planner",
@@ -38,7 +48,7 @@
     },
     {
       "id": "durable",
-      "label": "持久化与回退"
+      "label": "jsonStore 后端"
     }
   ],
   "phases": [
@@ -54,6 +64,12 @@
       "label": "账号同步",
       "fromCol": 3,
       "toCol": 3
+    },
+    {
+      "id": "memory",
+      "label": "长期记忆",
+      "fromCol": 4,
+      "toCol": 4
     }
   ],
   "mainPath": ["workspace", "catalog", "accountSync", "syncApi", "accountDb"],
@@ -63,48 +79,43 @@
       "lane": "browser",
       "col": 0,
       "type": "frontend",
-      "label": "工作区界面",
-      "width": 172
+      "label": "工作区界面"
     },
     {
       "id": "catalog",
       "lane": "browser",
       "col": 1,
       "type": "database",
-      "label": "浏览器目录",
-      "width": 184
+      "label": "浏览器目录"
     },
     {
       "id": "accountSync",
       "lane": "browser",
       "col": 2,
       "type": "backend",
-      "label": "useAccountSync",
-      "width": 190
+      "label": "useAccountSync"
     },
     {
       "id": "syncApi",
       "lane": "browser",
       "col": 3,
       "type": "backend",
-      "label": "/api/account/sync",
-      "width": 184
+      "label": "/api/account/sync"
     },
     {
       "id": "accountDb",
-      "lane": "durable",
+      "lane": "account",
       "col": 3,
       "type": "database",
       "label": "账号数据库",
-      "width": 184
+      "sublabel": "trips · conversations"
     },
     {
       "id": "chatApi",
       "lane": "planner",
       "col": 0,
       "type": "backend",
-      "label": "聊天 / 编排器",
-      "width": 190
+      "label": "聊天 / 编排器"
     },
     {
       "id": "memory",
@@ -112,39 +123,51 @@
       "col": 2,
       "type": "backend",
       "label": "MemoryStore",
-      "width": 190
+      "sublabel": "短期轮次 · 长期偏好"
     },
     {
       "id": "tripStore",
-      "lane": "planner",
+      "lane": "durable",
       "col": 1,
       "type": "backend",
-      "label": "tripStore",
-      "width": 190
+      "label": "tripStore"
     },
     {
       "id": "jsonStore",
       "lane": "planner",
       "col": 3,
       "type": "backend",
-      "label": "jsonStore",
-      "width": 172
+      "label": "jsonStore"
     },
     {
       "id": "redis",
       "lane": "durable",
-      "col": 2,
+      "col": 3,
       "type": "database",
-      "label": "Redis REST",
-      "width": 194
+      "label": "Redis REST"
     },
     {
       "id": "process",
       "lane": "durable",
-      "col": 0,
+      "col": 4,
       "type": "database",
-      "label": "进程内存",
-      "width": 194
+      "label": "进程内存"
+    },
+    {
+      "id": "memApi",
+      "lane": "browser",
+      "col": 4,
+      "type": "backend",
+      "label": "/api/account/memory",
+      "sublabel": "查看 · 删除 · 撤销"
+    },
+    {
+      "id": "accountMem",
+      "lane": "account",
+      "col": 4,
+      "type": "database",
+      "label": "账号记忆",
+      "sublabel": "account_memories"
     }
   ],
   "edges": [
@@ -194,7 +217,7 @@
       "id": "memory-json",
       "from": "memory",
       "to": "jsonStore",
-      "label": "JSON 键值读写",
+      "label": "短期对话轮次",
       "role": "main"
     },
     {
@@ -202,7 +225,8 @@
       "from": "tripStore",
       "to": "jsonStore",
       "label": "保存最新计划",
-      "role": "branch"
+      "role": "branch",
+      "toSide": "bottom"
     },
     {
       "id": "json-redis",
@@ -218,6 +242,20 @@
       "label": "未配置时",
       "role": "error",
       "variant": "dashed"
+    },
+    {
+      "id": "memory-account",
+      "from": "memory",
+      "to": "accountMem",
+      "label": "长期偏好",
+      "role": "branch"
+    },
+    {
+      "id": "memapi-account",
+      "from": "memApi",
+      "to": "accountMem",
+      "label": "设置页管理",
+      "role": "branch"
     }
   ],
   "cards": [
@@ -234,7 +272,8 @@
       "title": "服务端存储范围",
       "items": [
         "tripStore 按 trip ID 保存最新计划；它不是工作区行程目录",
-        "MemoryStore 和 tripStore 通过 jsonStore 使用 Redis REST 或进程内存"
+        "MemoryStore 和 tripStore 通过 jsonStore 使用 Redis REST 或进程内存",
+        "长期偏好（如住宿类型、评分、取消政策）写入 Postgres account_memories；聊天识别到“记住…”会写入并可撤销"
       ]
     },
     {

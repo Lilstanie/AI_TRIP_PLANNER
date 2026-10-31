@@ -6,11 +6,11 @@
   "status": "pass",
   "visualReview": "pending",
   "provenance": "current",
-  "deliveryReceiptId": "d41ce34a-a4bf-42fa-9df0-d3d8bde50951",
+  "deliveryReceiptId": "e920a5e1-207b-434a-9acd-873e04208c90",
   "artifact": {
-    "path": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/rendered/map-exploration.html",
-    "sha256": "57c9b399180d23d5bf84d8931b5115aeca441894f3515fd8f4f37a0f6a95fa21",
-    "bytes": 826873
+    "path": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/workspace/rendered/map-exploration.html",
+    "sha256": "fcc61fc773bad8d8f0c40fce058cc9c44dabab058e975ce5d83b8ecbca1b5c2b",
+    "bytes": 829410
   },
   "state": {
     "detail": "read",
@@ -18,7 +18,7 @@
   },
   "chrome": {
     "status": "available",
-    "executable": "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
+    "executable": "/usr/bin/google-chrome"
   },
   "diagnostics": [],
   "containment": {
@@ -1728,7 +1728,7 @@
     "contactSheet": "map-exploration.visual-check.html"
   },
   "sidecars": {
-    "directory": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/evidence",
+    "directory": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/workspace/evidence",
     "receipt": "map-exploration.visual-check.json",
     "contactSheet": "map-exploration.visual-check.html",
     "files": [
@@ -1738,23 +1738,23 @@
         "file": "map-exploration.visual-check.html"
       },
       {
-        "sha256": "4c16a720df673150ba13ae01a33a034e1395da63dc713e91086d48d310e8fb8d",
-        "bytes": 128651,
+        "sha256": "0df81b7fbebff234209ed217766d4bfa6d7cf5e1f04a9b4b96bdf8734ee350d4",
+        "bytes": 128649,
         "file": "map-exploration.visual-check.1440x900.light.png"
       },
       {
-        "sha256": "01667165d03bd9c7687161e308fd3551e77bed62b1bf644d02f5c9ee1dde5da7",
-        "bytes": 139217,
+        "sha256": "48edeafa5e269b8f94c27fb0638249a9e88b0638645645437b039c4079ad59a3",
+        "bytes": 140748,
         "file": "map-exploration.visual-check.1440x900.dark.png"
       },
       {
-        "sha256": "f07ebcfd5e34909d2b6a35b6a98bd6b30c23f6aa34851ee46bf0735f20e1b6c1",
-        "bytes": 214308,
+        "sha256": "cf60fbd5a82eb832647224fffb1a78d7a9fc725e4f45e82f68c4eb27fd2cef9d",
+        "bytes": 227714,
         "file": "map-exploration.visual-check.2048x1320.light.png"
       },
       {
-        "sha256": "8ab3d99670d320a746fb70ca095f24648e61145511e8c3791eec365af19d8252",
-        "bytes": 235556,
+        "sha256": "89ff6875dfef2f67b2f95a7f1dab6ade978fad6f591447784ce729efbd6b4dd3",
+        "bytes": 250305,
         "file": "map-exploration.visual-check.2048x1320.dark.png"
       }
     ]

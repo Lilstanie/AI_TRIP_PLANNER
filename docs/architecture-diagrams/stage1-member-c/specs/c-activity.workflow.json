@@ -3,6 +3,7 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "Member C: Arrange Accommodation activity (UC-C1)",
+    "output": "docs/architecture-diagrams/stage1-member-c/rendered/c-activity.html",
     "locale": "en",
     "quality_profile": "showcase"
   },
@@ -104,7 +105,7 @@
     {
       "id": "search",
       "lane": "booking",
-      "col": 3,
+      "col": 2,
       "type": "external",
       "label": "Search stays",
       "sublabel": "for each segment",
@@ -113,10 +114,19 @@
     {
       "id": "live",
       "lane": "booking",
-      "col": 4,
+      "col": 3,
       "type": "security",
       "label": "Live search ok?",
       "sublabel": "decision",
+      "width": 124
+    },
+    {
+      "id": "estok",
+      "lane": "booking",
+      "col": 4,
+      "type": "security",
+      "label": "Google Maps set?",
+      "sublabel": "MAPS_PROVIDER + key",
       "width": 124
     },
     {
@@ -206,8 +216,8 @@
       "col": 3,
       "type": "backend",
       "label": "Deterministic pick",
-      "sublabel": "rating ≥ 8 + free cancel",
-      "width": 124
+      "sublabel": "≥ 8 + free cancel › either › cheapest",
+      "width": 160
     },
     {
       "id": "refit",
@@ -216,6 +226,15 @@
       "type": "backend",
       "label": "Best in allocation",
       "sublabel": "else the cheapest",
+      "width": 124
+    },
+    {
+      "id": "searchFail",
+      "lane": "exc",
+      "col": 5,
+      "type": "security",
+      "label": "Search fails",
+      "sublabel": "searched once, run stops",
       "width": 124
     }
   ],
@@ -278,10 +297,24 @@
     },
     {
       "from": "live",
-      "to": "est",
+      "to": "estok",
       "role": "error",
       "label": "no",
       "variant": "dashed"
+    },
+    {
+      "from": "estok",
+      "to": "est",
+      "role": "branch",
+      "label": "yes",
+      "variant": "dashed"
+    },
+    {
+      "from": "estok",
+      "to": "searchFail",
+      "role": "error",
+      "label": "no",
+      "variant": "security"
     },
     {
       "from": "est",
@@ -345,7 +378,9 @@
     {
       "from": "rule",
       "to": "fit",
-      "role": "branch"
+      "role": "branch",
+      "toSide": "bottom",
+      "fromSide": "top"
     },
     {
       "from": "fit",
@@ -363,7 +398,9 @@
     {
       "from": "refit",
       "to": "price",
-      "role": "branch"
+      "role": "branch",
+      "toSide": "bottom",
+      "fromSide": "top"
     },
     {
       "from": "price",

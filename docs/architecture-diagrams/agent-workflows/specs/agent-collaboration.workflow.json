@@ -3,7 +3,7 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "Agent 协作与 LangGraph 规划循环",
-    "output": "agent-collaboration.html",
+    "output": "docs/architecture-diagrams/agent-workflows/rendered/agent-collaboration.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
     "views": [
@@ -24,6 +24,12 @@
         "label": "边界校验",
         "focus": ["dispatch", "specialists", "conflicts", "build"],
         "note": "每份 proposal 和最终 TripPlan 都通过共享 schema 校验。"
+      },
+      {
+        "id": "mention",
+        "label": "@提及专家",
+        "focus": ["dispatch", "mention", "specialists", "conflicts"],
+        "note": "@提及时只重跑被点名的专家，其余专家沿用上一版提案。"
       }
     ]
   },
@@ -93,6 +99,14 @@
       "width": 176
     },
     {
+      "id": "mention",
+      "lane": "checks",
+      "col": 2,
+      "type": "security",
+      "label": "@提及分派",
+      "sublabel": "其余沿用上版"
+    },
+    {
       "id": "board",
       "lane": "agents",
       "col": 2,
@@ -158,6 +172,13 @@
       "variant": "dashed"
     },
     {
+      "id": "dispatch-mention",
+      "from": "dispatch",
+      "to": "mention",
+      "label": "有 @提及",
+      "role": "branch"
+    },
+    {
       "id": "supervisor-board",
       "from": "supervisor",
       "to": "board",
@@ -213,6 +234,13 @@
       "to": "specialists",
       "label": "直接调用专家",
       "role": "branch"
+    },
+    {
+      "id": "mention-specialists",
+      "from": "mention",
+      "to": "specialists",
+      "label": "只调被点名专家",
+      "role": "branch"
     }
   ],
   "cards": [
@@ -226,7 +254,8 @@
       "title": "协作约束",
       "items": [
         "共享 board 传递已完成的提案和预算份额",
-        "revision 只交给冲突目标专家；无改善则保留上一版"
+        "revision 只交给冲突目标专家；无改善则保留上一版",
+        "已订住宿时跳过住宿专家；任一专家失败会发 agent_failed 并结束本轮"
       ]
     },
     {
@@ -235,6 +264,14 @@
       "items": [
         "proposal 和 TripPlan 都在边界处通过 Zod schema 校验",
         "未解决的冲突会保留在 plan 中，不会标成已解决"
+      ]
+    },
+    {
+      "dot": "violet",
+      "title": "专家内的确定性规则",
+      "items": [
+        "行程专家按去程航班落地时间开始第一天，并在每天加入一餐已找到的餐厅",
+        "住宿搜索失败只搜一次就结束；偏好部分满足的住宿优先于都不满足的"
       ]
     }
   ]

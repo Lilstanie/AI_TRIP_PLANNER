@@ -27,10 +27,12 @@ flowchart LR
     WF --> SUP[LangChain supervisor]
     SUP --> SPEC[Five specialist agents]
     SPEC --> TOOLS[Maps, booking and weather tools]
+    TOOLS --> DATA[Google · OSM/Geoapify · SerpApi · Open-Meteo]
     WF --> PLAN[Validated plan]
+    UI -->|places and routes| MAP[Map provider: Google first, OSM fallback]
 ```
 
-LangGraph 图负责控制流程、冲突检查和修订轮次；supervisor 只负责选择要调用哪些专家。DeepSeek 负责从对话中提取需求、驱动专家并生成回复。如果缺少密钥或模型调用失败，系统会回退到经过校验的确定性结果，因此请求仍可完成。详情见[架构文档](docs/architecture.zh.md)。
+LangGraph 图负责控制流程、冲突检查和修订轮次；supervisor 只负责选择要调用哪些专家。DeepSeek 负责从对话中提取需求、驱动专家并生成回复。如果缺少密钥或模型调用失败，系统会回退到经过校验的确定性结果，因此请求仍可完成。详情见[架构文档](docs/architecture.zh.md)和[架构图](docs/architecture-diagrams.zh.md)。
 
 ## 快速开始
 
@@ -42,6 +44,8 @@ pnpm install
 cp .env.example .env.local   # optional keys; mock tools and fallbacks work without them
 pnpm dev                     # http://localhost:3000
 ```
+
+演示请用 `pnpm dev`：没有 Clerk 密钥的生产服务器（`pnpm build` 加 `start`，或 Vercel）只提供模拟数据，也不调用模型（见[演示手册](docs/demo-runbook.zh.md)）。设置 `GEOAPIFY_API_KEY`（`.env.example` 里还没有）后，景点、博物馆和餐厅会先从 Geoapify 查找，再退到 Overpass。
 
 环境变量、Google Maps 配置、可选模拟服务器、Docker 和 CI 检查（`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`）详见[开发文档](docs/development.zh.md)。
 
@@ -85,7 +89,7 @@ ELEC5620 UML 设计模型和 SVG 图表位于 [`docs/design/`](docs/design/class
 
 ## 项目范围
 
-产品目标是支持单用户完成整个旅行规划流程：描述行程、查看有依据的建议、编辑计划并保存。已保存的行程位于浏览器中。配置账号（Clerk 和 Neon Postgres）后，已登录旅客的对话、行程和设置还会在多台设备间同步；配置 Redis REST store 后，对话轮次、偏好和计划也会保存在其中。当前状态见[路线图](docs/roadmap.zh.md)。多人协作编辑、社交功能、支付和实际预订履约不在项目范围内。
+产品目标是支持单用户完成整个旅行规划流程：描述行程、查看有依据的建议、编辑计划并保存。已保存的行程位于浏览器中。配置账号（Clerk 和 Neon Postgres）后，已登录旅客的对话、行程和设置还会在多台设备间同步；旅客让助手记住的偏好会随账号保存。配置 Redis REST store 后，对话轮次和最新计划也会保存在其中。当前状态见[路线图](docs/roadmap.zh.md)。多人协作编辑、社交功能、支付和实际预订履约不在项目范围内。
 
 ## 许可
 

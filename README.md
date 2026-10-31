@@ -42,13 +42,16 @@ flowchart LR
     WF --> SUP[LangChain supervisor]
     SUP --> SPEC[Five specialist agents]
     SPEC --> TOOLS[Maps, booking and weather tools]
+    TOOLS --> DATA[Google · OSM/Geoapify · SerpApi · Open-Meteo]
     WF --> PLAN[Validated plan]
+    UI -->|places and routes| MAP[Map provider: Google first, OSM fallback]
 ```
 
 The LangGraph graph owns control flow, conflict checks and revision rounds; the supervisor only
 chooses which specialists to call. DeepSeek handles chat extraction, the specialists and the reply,
 and any missing key or failed model call falls back to validated deterministic output, so requests
-still complete. Details: [architecture](docs/architecture.md).
+still complete. Details: [architecture](docs/architecture.md) and the
+[architecture diagrams](docs/architecture-diagrams.md).
 
 ## Quick start
 
@@ -60,6 +63,11 @@ pnpm install
 cp .env.example .env.local   # optional keys; mock tools and fallbacks work without them
 pnpm dev                     # http://localhost:3000
 ```
+
+For a demo, use `pnpm dev`: a production server (`pnpm build` and `start`, or Vercel) without Clerk
+keys serves mock data only and makes no model calls ([demo runbook](docs/demo-runbook.md)). Set
+`GEOAPIFY_API_KEY` (not yet in `.env.example`) to find sights, museums and restaurants through
+Geoapify before Overpass.
 
 Environment variables, Google Maps setup, the optional mock server, Docker and the CI checks
 (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`) are covered in
@@ -109,8 +117,9 @@ kind of content belongs is set out in [`docs/AGENTS.md`](docs/AGENTS.md).
 
 The product target is a single-user flow: describe a trip, inspect grounded recommendations, edit the
 plan and save it. Saved trips live in the browser. With accounts configured (Clerk and Neon
-Postgres), a signed-in traveller's chats, trips and settings also sync across devices; chat turns,
-preferences and plans are kept in a Redis REST store when one is configured. Status is on the [roadmap](docs/roadmap.md). Multi-user
+Postgres), a signed-in traveller's chats, trips and settings also sync across devices, and preferences the
+traveller asks the assistant to remember are stored with the account. Chat turns and the latest plans
+are kept in a Redis REST store when one is configured. Status is on the [roadmap](docs/roadmap.md). Multi-user
 editing, social features, payments and booking fulfilment are out of scope.
 
 ## License

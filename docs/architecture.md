@@ -31,7 +31,10 @@ consumer with [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-w
 flowchart TB
     U[User] --> UI[Next.js workspace]
     UI -->|POST /api/chat, NDJSON progress| CHAT[runTripChat]
+    UI -->|flight price question| FLIGHT[answerFlightQuery → booking port]
     CHAT -->|explicit brief updates| EX[Model structured extraction]
+    CHAT -->|one @-mentioned agent| HANDOFF[judgeHandoff: own it or hand off]
+    HANDOFF -->|rerun only the mentioned agent| WF
     EX -.->|no key or invalid output| LP[Local rule parser]
     CHAT --> WF[LangGraph workflow]
     WF --> DISPATCH[dispatch_specialists / revise_conflicts]
@@ -39,12 +42,14 @@ flowchart TB
     DISPATCH -.->|no model or supervisor error| DIRECT[Deterministic dispatch]
     SUP --> SPEC[Itinerary · Transport · Accommodation · Destination · Dining agents]
     DIRECT --> SPEC
-    SPEC --> TOOLS[Typed tool gateway: maps, booking]
+    SPEC --> TOOLS[Typed tool gateway: maps, booking, weather]
+    TOOLS --> PROVIDERS[Google · OSM/Nominatim · Geoapify → Overpass · SerpApi · Open-Meteo]
     SPEC -.->|model unavailable or off-schema| FB[Deterministic fallback output]
     WF --> CONF[detect_conflicts → build_plan]
-    WF --- MEM[(MemoryStore, packages/services)]
+    WF --- MEM[(MemoryStore: chat turns in jsonStore, account preferences in Postgres)]
     CONF --> PLAN[Validated TripPlan with its unresolved conflicts]
-    UI -->|places, routes, edit preview| GOOGLE[Google Places / Routes / Time Zone]
+    UI -->|places, routes, edit preview| MAPS[Web mapProvider: Google first, OSM fallback]
+    UI -->|signed in| ACCOUNT[(Account database: sync, settings, memory)]
 ```
 
 The LangGraph workflow drives the supervisor, not the other way round: the graph decides when to

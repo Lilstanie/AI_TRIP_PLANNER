@@ -3,9 +3,10 @@
   "diagram_type": "sequence",
   "meta": {
     "title": "聊天请求与 NDJSON 流",
+    "output": "docs/architecture-diagrams/agent-workflows/rendered/chat-stream.html",
     "locale": "zh-CN",
     "quality_profile": "showcase",
-    "viewBox": [1000, 640],
+    "viewBox": [1080, 696],
     "column_fit": "spread"
   },
   "participants": [
@@ -46,26 +47,32 @@
       "sublabel": "确定性规划图"
     },
     {
+      "id": "memory",
+      "type": "database",
+      "label": "账号记忆",
+      "sublabel": "account_memories"
+    },
+    {
       "id": "store",
       "type": "database",
       "label": "tripStore",
-      "sublabel": "校验后保存计划"
+      "sublabel": "保存最新计划"
     }
   ],
   "segments": [
     {
       "from": 145,
-      "to": 258,
+      "to": 228,
       "label": "请求接收"
     },
     {
-      "from": 270,
-      "to": 448,
+      "from": 232,
+      "to": 480,
       "label": "协调与规划"
     },
     {
-      "from": 450,
-      "to": 575,
+      "from": 484,
+      "to": 594,
       "label": "流式返回与保存"
     }
   ],
@@ -80,91 +87,105 @@
     {
       "from": "browser",
       "to": "route",
-      "y": 190,
+      "y": 188,
       "label": "POST /api/chat + 数据模式",
       "variant": "emphasis"
     },
     {
       "from": "route",
       "to": "chat",
-      "y": 220,
-      "label": "runTripChat(request, onProgress)",
+      "y": 216,
+      "label": "runTripChat(request, onProgress, 账号记忆)",
       "variant": "default"
     },
     {
       "from": "chat",
       "to": "agents",
-      "y": 250,
+      "y": 244,
       "label": "提取明确的 TripBrief 更新",
       "variant": "default"
     },
     {
       "from": "agents",
       "to": "chat",
-      "y": 280,
+      "y": 272,
       "label": "结构化字段 / coordinator 工具结果",
       "variant": "return"
     },
     {
       "from": "chat",
       "to": "graph",
-      "y": 310,
+      "y": 300,
       "label": "完整需求进入 runOrchestrator",
       "variant": "emphasis"
     },
     {
       "from": "graph",
       "to": "agents",
-      "y": 340,
+      "y": 328,
       "label": "分派专家并执行冲突修订",
       "variant": "default"
     },
     {
+      "from": "agents",
+      "to": "memory",
+      "y": 356,
+      "label": "getLongTerm：读取记住的偏好",
+      "variant": "dashed"
+    },
+    {
       "from": "graph",
       "to": "route",
-      "y": 370,
+      "y": 384,
       "label": "onProgress(event) 回调",
       "variant": "dashed"
     },
     {
       "from": "route",
       "to": "browser",
-      "y": 400,
+      "y": 412,
       "label": "逐行发送 NDJSON 进度帧",
       "variant": "dashed"
     },
     {
       "from": "agents",
       "to": "graph",
-      "y": 430,
+      "y": 440,
       "label": "通过共享 schema 的提案",
       "variant": "return"
     },
     {
       "from": "graph",
       "to": "chat",
-      "y": 460,
+      "y": 468,
       "label": "校验后的 TripPlan",
       "variant": "return"
     },
     {
       "from": "route",
-      "to": "store",
-      "y": 490,
-      "label": "保存最终计划",
-      "variant": "emphasis"
+      "to": "memory",
+      "y": 496,
+      "label": "识别到“记住…”时写入偏好",
+      "variant": "dashed"
     },
     {
       "from": "route",
       "to": "browser",
-      "y": 520,
+      "y": 524,
       "label": "complete { response } 终帧",
       "variant": "return"
     },
     {
+      "from": "route",
+      "to": "store",
+      "y": 552,
+      "label": "发送后保存计划（5 秒期限）",
+      "variant": "emphasis"
+    },
+    {
       "from": "browser",
       "to": "traveller",
-      "y": 550,
+      "y": 580,
       "label": "解析契约并更新工作区",
       "variant": "return"
     }
@@ -172,32 +193,44 @@
   "activations": [
     {
       "participant": "route",
-      "from": 190,
-      "to": 570,
+      "from": 188,
+      "to": 560,
       "type": "backend"
     },
     {
       "participant": "chat",
-      "from": 220,
-      "to": 465,
+      "from": 216,
+      "to": 468,
       "type": "backend"
     },
     {
       "participant": "agents",
-      "from": 280,
-      "to": 430,
+      "from": 244,
+      "to": 440,
       "type": "cloud"
     },
     {
       "participant": "graph",
-      "from": 335,
-      "to": 445,
+      "from": 300,
+      "to": 468,
       "type": "backend"
     },
     {
+      "participant": "memory",
+      "from": 352,
+      "to": 366,
+      "type": "database"
+    },
+    {
+      "participant": "memory",
+      "from": 492,
+      "to": 506,
+      "type": "database"
+    },
+    {
       "participant": "store",
-      "from": 490,
-      "to": 510,
+      "from": 548,
+      "to": 562,
       "type": "database"
     }
   ],
@@ -207,21 +240,24 @@
       "title": "正常规划路径",
       "items": [
         "进度事件在规划运行期间经 onProgress 连续发送",
-        "完整结果通过 ChatResponse 校验后才保存并发送 complete"
+        "ChatResponse 校验通过后先发 complete，再保存到 tripStore；保存失败只记日志，不影响已送达的计划"
       ]
     },
     {
       "dot": "orange",
       "title": "本轮不生成计划的结果",
       "items": [
-        "缺少需求时返回 needs_info；coordinator 追问返回 ask_user",
-        "识别到航班问价时直接回传 FlightAnswer，不运行规划图"
+        "缺少需求时返回 needs_info；coordinator 追问返回 ask_user（一次一个问题）",
+        "识别到航班问价时直接回传 FlightAnswer，不运行规划图；@提及只重跑被点名的专家"
       ]
     },
     {
       "dot": "emerald",
-      "title": "错误边界",
-      "items": ["非法 ChatRequest 在开始流之前返回 400", "规划异常以 error 帧结束本轮"]
+      "title": "账号与错误边界",
+      "items": [
+        "登录且开启记忆时才读写账号记忆；生产环境未登录时不调用模型",
+        "非法 ChatRequest 在开始流之前返回 400；规划异常以 error 帧结束本轮"
+      ]
     }
   ]
 }

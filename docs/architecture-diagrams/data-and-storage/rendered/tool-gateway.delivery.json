@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "d3fbc79c-0930-4c52-ac84-7c6c7efb334a",
+  "receiptId": "e9d09528-2739-47e5-b1f5-fe249224d664",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
-  "input": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json",
-  "output": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/data-and-storage/rendered/tool-gateway.html",
+  "input": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json",
+  "output": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/data-and-storage/rendered/tool-gateway.html",
   "specification": {
-    "sha256": "b22a11e6676f2b16613ae749b7d0f4594177dec7b686fa1c187048a01c053931",
-    "bytes": 5044
+    "sha256": "f2d9f1dd83584da34f090cf84edf2504edfb94cde5a922566aee87c3cbad9e4c",
+    "bytes": 10935
   },
   "artifact": {
-    "sha256": "9202410503fd4d49d79a19f2bb6e5f9daa0d953d83adbf22fb882ad1d1adb1e9",
-    "bytes": 818302
+    "sha256": "ab6460f5acc3303f50ba5b953ef34dfe2f47b19237e399119cbcff8d68a882dd",
+    "bytes": 842605
   }
 }

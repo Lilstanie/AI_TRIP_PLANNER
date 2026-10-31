@@ -6,24 +6,36 @@
     "output": "docs/architecture-diagrams/data-and-storage/rendered/tool-gateway.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
+    "repository": {
+      "url": "https://github.com/Lilstanie/AI_TRIP_PLANNER.git",
+      "provider": "github",
+      "link_mode": "web",
+      "revision": "29c7bd493e9dd410edba88e2297ad3dc8c528e6c"
+    },
     "views": [
       {
         "id": "mode",
         "label": "请求模式",
-        "focus": ["agents", "gateway", "mode", "mock", "live", "fixtures", "adapters", "result"],
-        "note": "每轮 planning run 注入一个 gateway；模拟和真实模式返回相同类型。"
+        "focus": ["agents", "gateway", "mode", "fixtures"],
+        "note": "每轮规划注入一个 gateway，它在创建时快照运行时配置；模拟和真实模式返回相同 DTO。"
       },
       {
-        "id": "providers",
-        "label": "真实数据适配器",
-        "focus": ["live", "adapters", "result"],
-        "note": "地图、预订和天气都封装在独立 adapter 后。"
+        "id": "maps",
+        "label": "地图 Port",
+        "focus": ["mode", "mapsSel", "google", "rail", "osm", "geo", "overpass"],
+        "note": "MAPS_PROVIDER 选 Google 或 OSM；OSM 一侧的景点、博物馆、餐厅先问 Geoapify，再退到 Overpass。"
       },
       {
-        "id": "price",
-        "label": "价格来源",
-        "focus": ["adapters", "result"],
-        "note": "酒店价格估计会标明来源；航班查询失败时不会编造票价。"
+        "id": "booking",
+        "label": "预订 Port",
+        "focus": ["mode", "serp", "estimate", "noflight"],
+        "note": "酒店失败时只在配置了 Google 地图时改用标明来源的 Places 估价；航班失败直接报错，不编造票价。"
+      },
+      {
+        "id": "weather",
+        "label": "天气 Port",
+        "focus": ["mode", "wsel", "gw", "om"],
+        "note": "按目的地当地日期选源。"
       }
     ]
   },
@@ -34,11 +46,23 @@
     },
     {
       "id": "mock",
-      "label": "模拟数据路径"
+      "label": "模拟数据"
     },
     {
-      "id": "live",
-      "label": "真实数据路径"
+      "id": "gmaps",
+      "label": "地图：Google"
+    },
+    {
+      "id": "omaps",
+      "label": "地图：OSM"
+    },
+    {
+      "id": "booking",
+      "label": "预订"
+    },
+    {
+      "id": "weather",
+      "label": "天气"
     }
   ],
   "phases": [
@@ -49,20 +73,20 @@
       "toCol": 2
     },
     {
-      "id": "route",
-      "label": "模式与适配器",
+      "id": "select",
+      "label": "选择适配器",
       "fromCol": 3,
-      "toCol": 4,
+      "toCol": 3,
       "variant": "emphasis"
     },
     {
-      "id": "result",
-      "label": "依据结果",
-      "fromCol": 5,
+      "id": "providers",
+      "label": "外部提供方与兜底",
+      "fromCol": 4,
       "toCol": 5
     }
   ],
-  "mainPath": ["agents", "gateway", "mode", "live", "adapters", "result"],
+  "mainPath": ["agents", "gateway", "mode", "mapsSel", "google"],
   "nodes": [
     {
       "id": "agents",
@@ -70,7 +94,8 @@
       "col": 0,
       "type": "backend",
       "label": "专家 Agents",
-      "width": 160
+      "sublabel": "ctx.tools",
+      "width": 140
     },
     {
       "id": "gateway",
@@ -78,7 +103,15 @@
       "col": 1,
       "type": "backend",
       "label": "createToolGateway",
-      "width": 170
+      "sublabel": "快照运行时配置",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/gateway-internal.ts",
+          "line": 17,
+          "end_line": 41
+        }
+      ]
     },
     {
       "id": "mode",
@@ -86,47 +119,223 @@
       "col": 2,
       "type": "security",
       "label": "请求数据模式",
-      "width": 160
-    },
-    {
-      "id": "mock",
-      "lane": "mock",
-      "col": 3,
-      "type": "backend",
-      "label": "模拟数据适配器",
-      "width": 160
-    },
-    {
-      "id": "live",
-      "lane": "live",
-      "col": 3,
-      "type": "backend",
-      "label": "真实数据适配器",
-      "width": 160
+      "sublabel": "x-trip-data-mode",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/data-mode.ts",
+          "line": 7,
+          "end_line": 25
+        }
+      ]
     },
     {
       "id": "fixtures",
       "lane": "mock",
-      "col": 4,
+      "col": 3,
       "type": "database",
       "label": "进程内 Fixtures",
-      "width": 160
+      "sublabel": "标 mock 来源",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/booking-port.ts",
+          "line": 71,
+          "end_line": 110
+        }
+      ]
     },
     {
-      "id": "adapters",
-      "lane": "live",
-      "col": 4,
-      "type": "cloud",
-      "label": "数据提供方适配器",
-      "width": 170
+      "id": "mapsSel",
+      "lane": "gmaps",
+      "col": 3,
+      "type": "security",
+      "label": "MAPS_PROVIDER",
+      "sublabel": "google · osm",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/maps-port.ts",
+          "line": 461,
+          "end_line": 502
+        }
+      ]
     },
     {
-      "id": "result",
-      "lane": "request",
+      "id": "google",
+      "lane": "gmaps",
       "col": 4,
-      "type": "backend",
-      "label": "带类型的依据",
-      "width": 160
+      "type": "external",
+      "label": "Google 路线 · 地点",
+      "sublabel": "公交 · 驾车 · 时区",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/maps-port.ts",
+          "line": 222,
+          "end_line": 264
+        }
+      ]
+    },
+    {
+      "id": "rail",
+      "lane": "gmaps",
+      "col": 5,
+      "type": "external",
+      "label": "SerpApi 铁路",
+      "sublabel": "公交超 90 分钟时",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/maps-port.ts",
+          "line": 266,
+          "end_line": 292
+        }
+      ]
+    },
+    {
+      "id": "osm",
+      "lane": "omaps",
+      "col": 3,
+      "type": "external",
+      "label": "OSRM · Nominatim",
+      "sublabel": "路线 · 地点搜索",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/maps-port.ts",
+          "line": 198,
+          "end_line": 220
+        }
+      ]
+    },
+    {
+      "id": "geo",
+      "lane": "omaps",
+      "col": 4,
+      "type": "external",
+      "label": "Geoapify",
+      "sublabel": "景点 · 博物馆 · 餐厅",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/geoapify.ts",
+          "line": 108,
+          "end_line": 189
+        }
+      ]
+    },
+    {
+      "id": "overpass",
+      "lane": "omaps",
+      "col": 5,
+      "type": "external",
+      "label": "Overpass",
+      "sublabel": "Geoapify 失败或为空",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/overpass.ts",
+          "line": 59,
+          "end_line": 101
+        }
+      ]
+    },
+    {
+      "id": "serp",
+      "lane": "booking",
+      "col": 3,
+      "type": "external",
+      "label": "SerpApi",
+      "sublabel": "Google Hotels · Flights",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/booking-port.ts",
+          "line": 111,
+          "end_line": 143
+        }
+      ]
+    },
+    {
+      "id": "estimate",
+      "lane": "booking",
+      "col": 4,
+      "type": "external",
+      "label": "Google Places 估价",
+      "sublabel": "标 estimated",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/booking-port.ts",
+          "line": 148,
+          "end_line": 185
+        }
+      ]
+    },
+    {
+      "id": "noflight",
+      "lane": "booking",
+      "col": 5,
+      "type": "security",
+      "label": "航班报错",
+      "sublabel": "不编造票价",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/booking-port.ts",
+          "line": 226,
+          "end_line": 242
+        }
+      ]
+    },
+    {
+      "id": "wsel",
+      "lane": "weather",
+      "col": 3,
+      "type": "security",
+      "label": "按当地日期选源",
+      "sublabel": "距出发天数",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/weather-port.ts",
+          "line": 222,
+          "end_line": 270
+        }
+      ]
+    },
+    {
+      "id": "gw",
+      "lane": "weather",
+      "col": 4,
+      "type": "external",
+      "label": "Google Weather",
+      "sublabel": "0–9 天",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/weather-port.ts",
+          "line": 91,
+          "end_line": 130
+        }
+      ]
+    },
+    {
+      "id": "om",
+      "lane": "weather",
+      "col": 5,
+      "type": "external",
+      "label": "Open-Meteo",
+      "sublabel": "10–14 天 · 之后气候",
+      "width": 140,
+      "sources": [
+        {
+          "path": "packages/tools/src/weather-port.ts",
+          "line": 132,
+          "end_line": 220
+        }
+      ]
     }
   ],
   "edges": [
@@ -134,59 +343,110 @@
       "id": "agents-gateway",
       "from": "agents",
       "to": "gateway",
-      "label": "ToolGateway 请求",
+      "label": "Port 请求",
       "role": "main"
     },
     {
       "id": "gateway-mode",
       "from": "gateway",
       "to": "mode",
-      "label": "选择请求模式",
       "role": "main"
     },
     {
-      "id": "mode-mock",
+      "id": "mode-fixtures",
       "from": "mode",
-      "to": "mock",
-      "label": "模拟数据",
-      "role": "branch",
-      "variant": "dashed"
-    },
-    {
-      "id": "mode-live",
-      "from": "mode",
-      "to": "live",
-      "label": "真实数据",
-      "role": "main"
-    },
-    {
-      "id": "mock-fixtures",
-      "from": "mock",
       "to": "fixtures",
-      "label": "fixture 数据",
+      "label": "mock",
       "role": "branch",
       "variant": "dashed"
     },
     {
-      "id": "live-adapters",
-      "from": "live",
-      "to": "adapters",
-      "label": "地图 · 预订 · 天气",
+      "id": "mode-maps",
+      "from": "mode",
+      "to": "mapsSel",
+      "label": "live 地图",
       "role": "main"
     },
     {
-      "id": "fixtures-result",
-      "from": "fixtures",
-      "to": "result",
-      "label": "相同的 DTO",
-      "role": "return"
+      "id": "mode-osm",
+      "from": "mapsSel",
+      "to": "osm",
+      "label": "osm",
+      "role": "branch"
     },
     {
-      "id": "adapters-result",
-      "from": "adapters",
-      "to": "result",
-      "label": "带来源标记的依据",
-      "role": "return"
+      "id": "maps-google",
+      "from": "mapsSel",
+      "to": "google",
+      "label": "google",
+      "role": "main"
+    },
+    {
+      "id": "google-rail",
+      "from": "google",
+      "to": "rail",
+      "label": "慢公交",
+      "role": "branch",
+      "variant": "dashed"
+    },
+    {
+      "id": "osm-geo",
+      "from": "osm",
+      "to": "geo",
+      "label": "分类地点",
+      "role": "branch"
+    },
+    {
+      "id": "geo-overpass",
+      "from": "geo",
+      "to": "overpass",
+      "label": "失败 / 为空",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "id": "mode-serp",
+      "from": "mode",
+      "to": "serp",
+      "label": "live 预订",
+      "role": "branch"
+    },
+    {
+      "id": "serp-estimate",
+      "from": "serp",
+      "to": "estimate",
+      "label": "酒店失败且有 Google key",
+      "role": "error",
+      "variant": "dashed"
+    },
+    {
+      "id": "serp-noflight",
+      "from": "serp",
+      "to": "noflight",
+      "label": "航班失败 / 无 key",
+      "role": "error",
+      "variant": "security"
+    },
+    {
+      "id": "mode-weather",
+      "from": "mode",
+      "to": "wsel",
+      "label": "live 天气",
+      "role": "branch"
+    },
+    {
+      "id": "wsel-gw",
+      "from": "wsel",
+      "to": "gw",
+      "label": "0–9 天",
+      "role": "branch"
+    },
+    {
+      "id": "wsel-om",
+      "from": "wsel",
+      "to": "om",
+      "label": "10 天以后",
+      "role": "branch"
     }
   ],
   "cards": [
@@ -194,24 +454,25 @@
       "dot": "cyan",
       "title": "Agent 边界",
       "items": [
-        "Agents 从 AgentContext 接收工具，不直接导入数据提供方",
-        "模拟和真实模式都实现相同的共享 port 契约"
+        "Agents 从 AgentContext 接收 ToolGateway，不直接导入数据提供方",
+        "每个 Port 返回共享契约里的 DTO，带 provenance（mock / live / estimated）"
       ]
     },
     {
       "dot": "amber",
       "title": "价格语义",
       "items": [
-        "酒店：SerpApi 实时报价；失败时仅在配置 Google 地图与 key 时改用标明来源的 Places 估价，否则报错；mock 用 fixtures",
-        "航班 provider 失败不会被替换成虚构票价"
+        "酒店：SerpApi 实时报价；失败时仅在 MAPS_PROVIDER=google 且有 key 时改用 Places 估价，否则报错",
+        "航班：SerpApi，中文城市名先换成机场代码；团体票价不重复相乘；失败不会被替换成虚构票价"
       ]
     },
     {
       "dot": "emerald",
       "title": "数据提供方选择",
       "items": [
-        "x-trip-data-mode 为单个请求覆盖部署默认值",
-        "MAPS_PROVIDER 选择 Google 或 OSM；天气按目的地当地日期选源：Google 0–9 天，Open-Meteo 10–14 天，之后为气候参考"
+        "x-trip-data-mode 为单个请求覆盖 USE_MOCK_TOOLS 默认值",
+        "Geoapify 地点按城市区域过滤并保留 OSM id，地图可直接钉点；查询失败会记日志",
+        "Web 地图（/api/places、/api/routes）走另一套 mapProvider，见地图图"
       ]
     }
   ]
