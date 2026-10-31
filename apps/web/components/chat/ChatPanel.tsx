@@ -1,5 +1,5 @@
 "use client";
-import { useEffect, useLayoutEffect, useMemo, useRef, useState } from "react";
+import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { type AgentProgressEvent, type AssistantId, type TripPlan } from "@trip/shared";
 import { quickPrompts } from "@/lib/planning/quick-prompts";
 import { translate } from "@/lib/i18n/locale";
@@ -35,6 +35,7 @@ export function ChatPanel({
   phone = false,
   showTabs = true,
   blankUntouched = false,
+  facts,
   conversationId,
   onCancel,
   error,
@@ -72,6 +73,8 @@ export function ChatPanel({
   showTabs?: boolean;
 
   blankUntouched?: boolean;
+
+  facts?: ReactNode;
   conversationId?: string | undefined;
 
   onCancel?: () => void;
@@ -267,6 +270,7 @@ export function ChatPanel({
           />
         </div>
       )}
+      {facts && <div className="chat__facts">{facts}</div>}
       {ask && onAnswer && onDismissAsk ? (
         <QuestionComposer
           key={ask.key}
