@@ -73,6 +73,7 @@ export interface ItineraryGenerator {
     revision?: RevisionRequest;
 
     feedback?: string;
+    rejectedDraft?: string[];
 
     activityBudget: number;
 
@@ -257,12 +258,15 @@ function validateDraft(
     }
     seen.add(key);
   }
-  const freeDays = landing ? days - landing.day : days;
-  if (
-    requireEveryDay &&
-    [...representedDays].filter((day) => !landing || day > landing.day).length !== freeDays
-  )
-    throw new Error("Itinerary must include every trip day.");
+  const firstFreeDay = landing ? landing.day + 1 : 1;
+  const missingDays = Array.from(
+    { length: Math.max(0, days - firstFreeDay + 1) },
+    (_, index) => firstFreeDay + index,
+  ).filter((day) => !representedDays.has(day));
+  if (requireEveryDay && missingDays.length)
+    throw new Error(
+      `Itinerary must include every trip day: day ${missingDays.join(", ")} ${missingDays.length > 1 ? "have" : "has"} no activities. Add activities on ${missingDays.length > 1 ? "those days" : "that day"} and keep the other days as they are${landing ? `; plan nothing before day ${landing.day}${landing.earliestStart ? ` at ${landing.earliestStart}` : ""}, while the traveller is still flying` : ""}.`,
+    );
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
       .filter((activity) => activity.day === day)
@@ -475,7 +479,16 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
               tripId: input.brief.tripId,
               revision: input.revision?.reason,
               ...(input.feedback
-                ? { previousDraftRejected: `${input.feedback} Fix this and return a new draft.` }
+                ? {
+                    previousDraftRejected: `${input.feedback} Fix this and return a new draft.`,
+                    ...(input.rejectedDraft
+                      ? {
+                          rejectedDraft: input.rejectedDraft,
+                          rejectedDraftRule:
+                            "rejectedDraft is the draft that was rejected: keep every activity that is not named in previousDraftRejected, and change only what it names.",
+                        }
+                      : {}),
+                  }
                 : {}),
             }),
           },
@@ -624,61 +637,61 @@ async function planItinerary(
   let usedFallback = !generator;
   if (generator) {
     let feedback: string | undefined;
+    let rejectedDraft: string[] | undefined;
     let accepted: ItineraryDraft | undefined;
     for (let attempt = 0; attempt < 2 && !accepted; attempt += 1) {
+      let generated: ItineraryDraft | undefined;
       try {
+        generated = await generator.generate({
+          brief,
+          days,
+          places,
+          preferences,
+          revision,
+          activityBudget,
+          pace: { name: pace, activities: PACE_ACTIVITIES[pace] },
+          ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
+          ...(placesByCity.size > 1
+            ? {
+                dayCities: dayCities.map((cities, index) => ({
+                  day: index + 1,
+                  cities,
+                  ...(transferWindows.has(index + 1)
+                    ? { transfers: transferWindows.get(index + 1) }
+                    : {}),
+                })),
+                candidatesByCity: Object.fromEntries(
+                  [...placesByCity].map(([city, found]) => [
+                    city,
+                    found.map((place) => place.name),
+                  ]),
+                ),
+              }
+            : {}),
+          ...(otherSections.length ? { otherSections } : {}),
+          ...(extras.previous
+            ? {
+                previous: {
+                  summary: extras.previous.summary,
+                  activities: extras.previous.items.map(
+                    (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
+                  ),
+                },
+              }
+            : {}),
+          ...(feedback ? { feedback } : {}),
+          ...(rejectedDraft ? { rejectedDraft } : {}),
+          ...(landing ? { arrival: landing } : {}),
+          ...(grounded.places.length > places.length
+            ? {
+                restaurantsByCity: Object.fromEntries(
+                  [...mealsByCity].map(([city, found]) => [city, found.map((place) => place.name)]),
+                ),
+              }
+            : {}),
+        });
         accepted = validateDraft(
-          await generator.generate({
-            brief,
-            days,
-            places,
-            preferences,
-            revision,
-            activityBudget,
-            pace: { name: pace, activities: PACE_ACTIVITIES[pace] },
-            ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
-            ...(placesByCity.size > 1
-              ? {
-                  dayCities: dayCities.map((cities, index) => ({
-                    day: index + 1,
-                    cities,
-                    ...(transferWindows.has(index + 1)
-                      ? { transfers: transferWindows.get(index + 1) }
-                      : {}),
-                  })),
-                  candidatesByCity: Object.fromEntries(
-                    [...placesByCity].map(([city, found]) => [
-                      city,
-                      found.map((place) => place.name),
-                    ]),
-                  ),
-                }
-              : {}),
-            ...(otherSections.length ? { otherSections } : {}),
-            ...(extras.previous
-              ? {
-                  previous: {
-                    summary: extras.previous.summary,
-                    activities: extras.previous.items.map(
-                      (item) =>
-                        `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
-                    ),
-                  },
-                }
-              : {}),
-            ...(feedback ? { feedback } : {}),
-            ...(landing ? { arrival: landing } : {}),
-            ...(grounded.places.length > places.length
-              ? {
-                  restaurantsByCity: Object.fromEntries(
-                    [...mealsByCity].map(([city, found]) => [
-                      city,
-                      found.map((place) => place.name),
-                    ]),
-                  ),
-                }
-              : {}),
-          }),
+          generated,
           days,
           grounded.places,
           dayCities,
@@ -690,6 +703,9 @@ async function planItinerary(
       } catch (error) {
         ctx.signal?.throwIfAborted();
         feedback = error instanceof Error ? error.message : "unknown model error";
+        rejectedDraft = generated?.activities.map(
+          (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
+        );
         console.warn(
           `[itinerary] Model draft failed validation (attempt ${attempt + 1}): ${feedback}`,
         );
