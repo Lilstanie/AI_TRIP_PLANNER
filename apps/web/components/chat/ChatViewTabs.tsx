@@ -16,7 +16,7 @@ export function ChatViewTabs({
 }) {
   const { t } = useLocale();
   return (
-    <div className={className} role="tablist" aria-label={t("Chat view")}>
+    <div className={className} role="tablist" aria-label={t("chatView")}>
       {(["conversation", "trajectory"] as const).map((id) => (
         <button
           key={id}
@@ -35,7 +35,7 @@ export function ChatViewTabs({
             document.getElementById(`chat-tab-${next}`)?.focus();
           }}
         >
-          {t(id === "conversation" ? "Conversation" : "Trajectory")}
+          {t(id === "conversation" ? "conversation" : "trajectory")}
         </button>
       ))}
     </div>

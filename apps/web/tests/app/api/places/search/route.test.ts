@@ -67,7 +67,7 @@ describe("POST /api/places/search", () => {
     expect(response.status).toBe(429);
     await expect(response.json()).resolves.toEqual({
       error: "Google Places is busy. Please retry shortly.",
-      notice: { key: "Google Places is busy. Please retry shortly." },
+      notice: { key: "googlePlacesIsBusyPlease" },
     });
   });
 
@@ -92,7 +92,7 @@ describe("POST /api/places/search", () => {
     expect(response.status).toBe(502);
     const body = await response.json();
     expect(body.error).not.toMatch(/500|GoogleRequestError/);
-    expect(body.notice).toEqual({ key: "Google Places is temporarily unavailable. Please retry." });
+    expect(body.notice).toEqual({ key: "googlePlacesIsTemporarilyUnavailablePlease" });
   });
 
   it("refuses an empty search with a keyed notice", async () => {
@@ -101,7 +101,7 @@ describe("POST /api/places/search", () => {
     expect(response.status).toBe(400);
     await expect(response.json()).resolves.toEqual({
       error: "Enter a place name to search.",
-      notice: { key: "Enter a place name to search." },
+      notice: { key: "enterAPlaceNameTo" },
     });
   });
 });

@@ -27,7 +27,7 @@ describe("trip facts", () => {
       factErrors("preferences", { ...blankDraft(), preferences: ["x".repeat(201)] }, blank, false),
     ).toEqual({
       preferences: {
-        key: "Keep to {count} preferences of up to {length} characters each.",
+        key: "keepToCountPreferencesOf",
         params: { count: 12, length: 200 },
       },
     });
@@ -83,10 +83,10 @@ describe("trip facts", () => {
   it("checks one fact's own fields, and lets a blank trip leave them empty", () => {
     expect(factErrors("budget", blankDraft(), blank, false)).toEqual({});
     expect(factErrors("budget", blankDraft(), blank, true)).toEqual({
-      budgetTotal: { key: "Enter a total budget above zero." },
+      budgetTotal: { key: "enterATotalBudgetAbove" },
     });
     expect(factErrors("who", { ...blankDraft(), groupSize: "0" }, blank, false)).toEqual({
-      groupSize: { key: "Enter a whole number of travellers, 1 or more." },
+      groupSize: { key: "enterAWholeNumberOf" },
     });
 
     expect(
@@ -96,16 +96,16 @@ describe("trip facts", () => {
       factErrors("when", { ...blankDraft(), start: "2026-10-04", end: "2026-10-01" }, blank, false),
     ).toEqual({
       dates: {
-        key: "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.",
+        key: "endDateMustFollowStart",
       },
     });
     expect(factErrors("when", { ...blankDraft(), start: "2026-10-01" }, blank, false)).toEqual({
-      dates: { key: "Choose both a start and an end date." },
+      dates: { key: "chooseBothAStartAnd" },
     });
   });
 
   it("points a rejected brief at the first fact in top-bar order", () => {
-    const x = { key: "Check the highlighted trip details." } as const;
+    const x = { key: "checkTheHighlightedTripDetails" } as const;
     expect(firstFactWithError({ preferences: x, budgetTotal: x })).toBe("budget");
     expect(firstFactWithError({ preferences: x })).toBe("preferences");
     expect(firstFactWithError({ dates: x })).toBe("when");

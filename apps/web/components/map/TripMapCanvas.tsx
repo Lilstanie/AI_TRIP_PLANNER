@@ -16,7 +16,7 @@ const TripMap = dynamic(() => import("./TripMap").then((m) => m.TripMap), {
 
 function MapLoading() {
   const { t } = useLocale();
-  return <p className="trip-map-loading">{t("Loading map…")}</p>;
+  return <p className="trip-map-loading">{t("loadingMap")}</p>;
 }
 
 export function TripMapCanvas({
@@ -77,7 +77,7 @@ export function TripMapCanvas({
     return (
       <section
         className="trip-map-canvas"
-        aria-label={t("Trip map")}
+        aria-label={t("tripMap")}
         data-basemap-centre={home ? "home" : "world"}
       >
         <TripMap
@@ -95,10 +95,10 @@ export function TripMapCanvas({
           userLocation={userLocation}
         />
         <div className="trip-map-start glass-float" role="status">
-          <p>{t("Where are you going?")}</p>
+          <p>{t("whereAreYouGoing")}</p>
           {onOpenChat && (
             <button type="button" className="primary" onClick={onOpenChat}>
-              {t("Plan in Chat")}
+              {t("planInChat")}
             </button>
           )}
         </div>
@@ -109,22 +109,22 @@ export function TripMapCanvas({
   if (!canShowMap) {
     const locating = !destinationsSettled || loading;
     return (
-      <section className="trip-map-canvas trip-map-canvas--empty" aria-label={t("Trip map")}>
+      <section className="trip-map-canvas trip-map-canvas--empty" aria-label={t("tripMap")}>
         <div className="map-placeholder" role="status">
           <span className="map-placeholder__icon" aria-hidden="true">
             <MapPinIcon />
           </span>
           <h2>
             {locating
-              ? t("Locating {v0}…", { v0: destination })
-              : t("{destination} could not be shown on the map yet", { destination })}
+              ? t("locatingV0", { v0: destination })
+              : t("destinationCouldNotBeShown", { destination })}
           </h2>
           {!locating && (unavailable > 0 || destinationsUnavailable) && (
-            <p>{t("Map places are temporarily unavailable. Your plan is unchanged.")}</p>
+            <p>{t("mapPlacesAreTemporarilyUnavailable")}</p>
           )}
           {!locating && (unavailable > 0 || destinationsUnavailable) && (
             <button type="button" onClick={retry}>
-              {t("Retry places")}
+              {t("retryPlaces")}
             </button>
           )}
         </div>
@@ -133,7 +133,7 @@ export function TripMapCanvas({
   }
 
   return (
-    <section className="trip-map-canvas" aria-label={t("Trip map")}>
+    <section className="trip-map-canvas" aria-label={t("tripMap")}>
       <TripMap
         mockData={tripPlaces.dataMode === "mock"}
         forceOsmProvider={tripPlaces.forceOsm}
@@ -157,23 +157,17 @@ export function TripMapCanvas({
         <div className="trip-map-status trip-map-status--partial" role="status">
           <p>
             {loading
-              ? t("Finding places…")
+              ? t("findingPlaces")
               : [
-                  unconfirmed > 0 &&
-                    (unconfirmed === 1
-                      ? t("{count} activity has no confirmed place yet", { count: unconfirmed })
-                      : t("{count} activities have no confirmed place yet", {
-                          count: unconfirmed,
-                        })),
-                  unavailable > 0 &&
-                    t("{count} could not be loaded from the map service", { count: unavailable }),
+                  unconfirmed > 0 && t("countActivitiesHaveNoConfirmed", { count: unconfirmed }),
+                  unavailable > 0 && t("countCouldNotBeLoaded", { count: unavailable }),
                 ]
                   .filter(Boolean)
                   .join(" · ")}
           </p>
           {!loading && unavailable > 0 && (
             <button type="button" onClick={retry}>
-              {t("Retry places")}
+              {t("retryPlaces")}
             </button>
           )}
         </div>

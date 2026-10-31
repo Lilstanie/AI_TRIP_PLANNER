@@ -88,11 +88,11 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
       const day = DAY.exec(reason);
       if (reason.startsWith(INFEASIBLE))
         addOnce(placement.budget, {
-          key: "The cheapest options found cost more than the budget. Raise the budget or change the dates in the chat.",
+          key: "theCheapestOptionsFoundCost",
         });
       else if (OVER_BUDGET.test(reason))
         addOnce(placement.budget, {
-          key: "The estimate is over the budget. Ask in the chat to cut part of the plan.",
+          key: "theEstimateIsOverThe",
         });
       else if (overlap) overlapDays.add(Number(overlap[1]));
       else if (day) addTo(placement.days, Number(day[1]), { raw: reason });
@@ -107,13 +107,13 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
       if (!other) continue;
       marked = true;
       addTo(placement.stops, stop.id!, {
-        key: "Overlaps {range} on this day.",
+        key: "overlapsRangeOnThisDay",
         params: { range: `${other.startTime}–${other.endTime}` },
       });
     }
     if (!marked)
       addTo(placement.days, day, {
-        key: "Two scheduled items overlap on Day {day}.",
+        key: "twoScheduledItemsOverlapOn",
         params: { day },
       });
   }

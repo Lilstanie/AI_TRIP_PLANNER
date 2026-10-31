@@ -80,7 +80,7 @@ export function useLegRoutes({
           memory.current.refused.set(day, sig);
           setState({
             working: false,
-            problems: [errorNotice(outcome.error, { key: "Route check failed. Try again." })],
+            problems: [errorNotice(outcome.error, { key: "routeCheckFailedTryAgain" })],
             problemDay: day,
             problemSig: sig,
           });

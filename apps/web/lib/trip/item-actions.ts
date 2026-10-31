@@ -35,14 +35,14 @@ export function applyItemAction(
   const next = structuredClone(plan);
   const section = next.sections.find((item) => item.id === "itinerary");
   const items = section?.proposal?.items;
-  if (!items) throw new NoticeError({ key: "That stop is no longer in this trip." });
+  if (!items) throw new NoticeError({ key: "thatStopIsNoLonger" });
   let index = items.findIndex((item) => item.kind === "activity" && item.id === id);
 
   if (index < 0) {
     const pick = next.sections
       .find((item) => item.id === "dining")
       ?.proposal?.items.find((item) => item.kind === "meal" && item.id === id);
-    if (!pick) throw new NoticeError({ key: "That stop is no longer in this trip." });
+    if (!pick) throw new NoticeError({ key: "thatStopIsNoLonger" });
     items.push({ ...structuredClone(pick), kind: "activity" });
     index = items.length - 1;
   }
@@ -57,7 +57,7 @@ export function applyItemAction(
   switch (action.kind) {
     case "details": {
       const detail = action.detail.trim();
-      if (!detail) throw new NoticeError({ key: "Give the stop a description." });
+      if (!detail) throw new NoticeError({ key: "giveTheStopADescription" });
       item.detail = detail.slice(0, 500);
       const location = action.location.trim();
       if (location) item.location = location.slice(0, 120);
@@ -96,7 +96,7 @@ export function applyItemAction(
       break;
     case "day": {
       if (!Number.isInteger(action.day) || action.day < 1 || action.day > dayCount(plan))
-        throw new NoticeError({ key: "That day is not part of this trip." });
+        throw new NoticeError({ key: "thatDayIsNotPart" });
       const duration =
         item.startTime && item.endTime
           ? minutes(item.endTime) - minutes(item.startTime)
@@ -113,7 +113,7 @@ export function applyItemAction(
         : DAY_START;
       if (start + duration > DAY_END)
         throw new NoticeError({
-          key: "Day {day} has no room left for this stop; shorten another stop first.",
+          key: "dayDayHasNoRoom",
           params: { day: action.day },
         });
 
@@ -139,7 +139,7 @@ export function applyItemAction(
     }
     case "move": {
       if (item.day === undefined || !item.startTime)
-        throw new NoticeError({ key: "Only a stop scheduled on a day can move earlier or later." });
+        throw new NoticeError({ key: "onlyAStopScheduledOn" });
 
       const day = visitingOrder(
         items.filter(
@@ -149,10 +149,7 @@ export function applyItemAction(
       const neighbour = day[day.indexOf(item) + action.direction];
       if (!neighbour)
         throw new NoticeError({
-          key:
-            action.direction < 0
-              ? "This is already the first stop of its day."
-              : "This is already the last stop of its day.",
+          key: action.direction < 0 ? "thisIsAlreadyTheFirst" : "thisIsAlreadyTheLast",
         });
       const [first, second] = action.direction < 0 ? [item, neighbour] : [neighbour, item];
       const [earlier, later] = action.direction < 0 ? [neighbour, item] : [item, neighbour];
@@ -166,12 +163,12 @@ export function applyItemAction(
       const secondEnd = secondStart + length(second);
       if (firstEnd > DAY_END || secondEnd > DAY_END)
         throw new NoticeError({
-          key: "Swapping these stops would run past 23:59; shorten one of them first.",
+          key: "swappingTheseStopsWouldRun",
         });
       const following = day[day.indexOf(later) + 1];
       if (following?.startTime && secondEnd > minutes(following.startTime))
         throw new NoticeError({
-          key: "Swapping these stops would overlap the next stop; shorten one of them first.",
+          key: "swappingTheseStopsWouldOverlap",
         });
       first.startTime = clock(firstStart);
       first.endTime = clock(firstEnd);

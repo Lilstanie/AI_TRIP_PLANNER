@@ -2,7 +2,7 @@
 
 Templates for destructive flows and status copy. Plurals, placeholders and money formatting are not
 here: they go through `t()` and `useLocale()` as [SKILL.md](../SKILL.md) describes. Quoted strings
-marked _existing_ are in the `apps/web/lib/i18n/` dictionary; the rest are patterns to adapt.
+marked _existing_ are English values in the `apps/web/lib/i18n/messages/` catalogs; the rest are patterns to adapt.
 
 ## Destructive flows
 

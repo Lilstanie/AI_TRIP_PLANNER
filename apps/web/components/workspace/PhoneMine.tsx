@@ -44,7 +44,7 @@ export function PhoneMine({
         deletedTrip={history.deletedTrip}
         tripsContent={
           history.query.trim() && !visibleTrips.size ? (
-            <p className="history-empty">{t("No matching trips.")}</p>
+            <p className="history-empty">{t("noMatchingTrips")}</p>
           ) : (
             <TripsPage
               key={calendarTripId ?? ""}
@@ -63,7 +63,7 @@ export function PhoneMine({
           )
         }
       />
-      <div className="phone-mine__controls" role="group" aria-label={t("Data mode")}>
+      <div className="phone-mine__controls" role="group" aria-label={t("dataMode")}>
         <DataModeToggle
           mode={dataMode.mode}
           providers={dataMode.providers}
@@ -77,7 +77,7 @@ export function PhoneMine({
         onClick={() => model.layout.openSettings()}
       >
         <GearIcon />
-        <span>{t("Settings & account")}</span>
+        <span>{t("settingsAccount")}</span>
       </button>
     </div>
   );

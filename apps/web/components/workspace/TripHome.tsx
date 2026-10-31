@@ -43,7 +43,7 @@ export function TripHome({
             <button
               type="button"
               className="trip-home__back"
-              aria-label={t("Back to trips")}
+              aria-label={t("backToTrips")}
               onClick={onBack}
             >
               <span className="trip-home__back-icon">

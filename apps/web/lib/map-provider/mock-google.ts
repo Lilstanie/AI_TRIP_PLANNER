@@ -20,11 +20,11 @@ export function mockGoogleProvider(): MapProvider {
     }),
     placeDetails: async (id) => {
       const place = mockPlaceFor(toOsm(id));
-      if (!place) throw new NoticeError({ key: "This saved place is no longer available." });
+      if (!place) throw new NoticeError({ key: "thisSavedPlaceIsNo" });
       return { value: googlePlace(place), source: "google" };
     },
     placePhoto: async () => {
-      throw new NoticeError({ key: "Unknown photo." });
+      throw new NoticeError({ key: "unknownPhoto" });
     },
     route: async (from, to, departure, mode, hints) => ({
       ...(await osm.route(toOsm(from), toOsm(to), departure, mode, hints)),

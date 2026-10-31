@@ -143,13 +143,13 @@ function detailOf(row: TimelineRow<ProposalItem>, locale: AppLocale) {
   if (row.type === "stop") return row.activity.detail;
   if (row.type === "fixed") return row.detail;
   if (row.kind === "flight")
-    return translate(locale, row.role === "out" ? "Return flight" : "Flight");
+    return translate(locale, row.role === "out" ? "returnFlight" : "flight");
   return row.night
-    ? translate(locale, "Night {index} of {total}", {
+    ? translate(locale, "nightIndexOfTotal", {
         index: row.night.index,
         total: row.night.of,
       })
-    : translate(locale, "Stay");
+    : translate(locale, "stay");
 }
 
 function entryOf(

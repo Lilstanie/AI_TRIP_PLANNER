@@ -234,24 +234,24 @@ export function ChatHeaderMenu({
       {onViewTrip && (
         <button type="button" role="menuitem" onClick={() => act(onViewTrip)}>
           <SuitcaseIcon />
-          <span>{t("View trip")}</span>
+          <span>{t("viewTrip")}</span>
         </button>
       )}
       {trajectory && (
         <button type="button" role="menuitem" onClick={() => act(onConversation)}>
           <ChatIcon />
-          <span>{t("Return to chat")}</span>
+          <span>{t("returnToChat")}</span>
         </button>
       )}
       <button type="button" role="menuitem" {...branch("chats")}>
         <ChatIcon />
-        <span>{t("Switch chat")}</span>
+        <span>{t("switchChat")}</span>
         <span className="chat-header-menu__count">{siblings.length}</span>
         <ChevronIcon />
       </button>
       <button type="button" role="menuitem" disabled={busy} {...branch("trips")}>
         <RouteIcon />
-        <span>{t("Move to another trip")}</span>
+        <span>{t("moveToAnotherTrip")}</span>
         <ChevronIcon />
       </button>
       <button
@@ -261,12 +261,12 @@ export function ChatHeaderMenu({
         onClick={() => act(() => onMoveChat(undefined))}
       >
         <CloseIcon />
-        <span>{t("Remove from trip")}</span>
+        <span>{t("removeFromTrip")}</span>
       </button>
       <div role="separator" className="chat-header-menu__separator" />
       <button type="button" role="menuitem" onClick={() => act(onRename)}>
         <PencilIcon />
-        <span>{t("Rename chat")}</span>
+        <span>{t("renameChat")}</span>
       </button>
       <button
         type="button"
@@ -275,7 +275,7 @@ export function ChatHeaderMenu({
         onClick={() => act(onDelete)}
       >
         <TrashIcon />
-        <span>{t("Delete chat")}</span>
+        <span>{t("deleteChat")}</span>
       </button>
     </>
   );
@@ -287,7 +287,7 @@ export function ChatHeaderMenu({
             <span className="chat-header__back">
               <ChevronIcon />
             </span>
-            <span>{page === "chats" ? t("Switch chat") : t("Move to another trip")}</span>
+            <span>{page === "chats" ? t("switchChat") : t("moveToAnotherTrip")}</span>
           </button>
           <div role="separator" className="chat-header-menu__separator" />
         </>
@@ -299,7 +299,7 @@ export function ChatHeaderMenu({
         onClick={() => act(page === "chats" ? onNewChat : onNewTrip)}
       >
         <PlusIcon />
-        <span>{page === "chats" ? t("New chat") : t("New trip")}</span>
+        <span>{page === "chats" ? t("newChat") : t("newTrip")}</span>
       </button>
       {(page === "chats" ? siblings : trips).map((item) => {
         const disabled =
@@ -330,7 +330,7 @@ export function ChatHeaderMenu({
           <button
             type="button"
             className="chat-header__trip"
-            aria-label={t("View trip")}
+            aria-label={t("viewTrip")}
             onClick={onViewTrip}
           >
             <span className="chat-header__back">
@@ -353,7 +353,7 @@ export function ChatHeaderMenu({
         <button
           type="button"
           className="chat-header__trip"
-          aria-label={t("View trip")}
+          aria-label={t("viewTrip")}
           onClick={onViewTrip}
         >
           <span className="chat-header__back">
@@ -400,8 +400,8 @@ export function ChatHeaderMenu({
               aria-label={
                 phone && page !== "root"
                   ? page === "chats"
-                    ? t("Switch chat")
-                    : t("Move to another trip")
+                    ? t("switchChat")
+                    : t("moveToAnotherTrip")
                   : title
               }
               className="chat-header-menu"
@@ -429,7 +429,7 @@ export function ChatHeaderMenu({
                 ref={submenu}
                 id={`${id}-${page}`}
                 role="menu"
-                aria-label={page === "chats" ? t("Switch chat") : t("Move to another trip")}
+                aria-label={page === "chats" ? t("switchChat") : t("moveToAnotherTrip")}
                 className="chat-header-menu chat-header-menu--submenu"
                 style={{
                   top: sidePosition.top,

@@ -65,7 +65,7 @@ export function TripHomePreferences({
       </fieldset>
       <div className="fact-form__actions">
         <button type="submit" className="fact-form__secondary" disabled={busy}>
-          {t("Save")}
+          {t("save")}
         </button>
         <button
           type="button"
@@ -75,7 +75,7 @@ export function TripHomePreferences({
             if (check() && onReplan(value)) onDone();
           }}
         >
-          {t(busy ? "Planning…" : "Replan trip")}
+          {t(busy ? "planningTitle" : "replanTrip")}
         </button>
       </div>
     </form>

@@ -98,11 +98,9 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         type="button"
         className="topbar-button team-trigger"
         aria-label={
-          team.working > 0
-            ? t("Agent Team, {count} working", { count: team.working })
-            : t("Agent Team")
+          team.working > 0 ? t("agentTeamCountWorking", { count: team.working }) : t("agentTeam")
         }
-        title={t("Agent Team")}
+        title={t("agentTeam")}
         aria-expanded={open}
         aria-haspopup="dialog"
         aria-controls={open ? popoverId : undefined}
@@ -110,11 +108,11 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
         onClick={() => (open ? close() : pin())}
       >
         <TeamAvatars rows={team.rows} />
-        <span className="team-trigger__label">{t("Agent Team")}</span>
+        <span className="team-trigger__label">{t("agentTeam")}</span>
         {team.working > 0 && (
           <span className="team-trigger__count">
             <span className="team-trigger__count-full">
-              {t("{count} working", { count: team.working })}
+              {t("countWorking", { count: team.working })}
             </span>
             <span className="team-trigger__count-compact" aria-hidden="true">
               {team.working}
@@ -128,7 +126,7 @@ export function TeamControl({ turn, onReveal }: { turn: TeamTurn; onReveal?: () 
           id={popoverId}
           className="team-popover"
           role="dialog"
-          aria-label={t("Specialist team")}
+          aria-label={t("specialistTeam")}
           tabIndex={-1}
         >
           <TeamPanel

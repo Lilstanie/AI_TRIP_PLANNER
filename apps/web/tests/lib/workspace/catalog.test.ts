@@ -234,7 +234,7 @@ describe("workspace catalog", () => {
     expect(restored.plan).toBeUndefined();
     expect(restored.storageEnabled).toBe(false);
     expect(restored.storageError).toEqual({
-      key: "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.",
+      key: "workspaceHistoryCouldNotBe",
     });
   });
 

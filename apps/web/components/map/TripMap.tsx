@@ -253,8 +253,7 @@ export function TripMap({
         setForceOsm(true);
         return;
       }
-      if (!quietRef.current)
-        setError(errorNotice(cause, { key: "The map could not load. Try again." }));
+      if (!quietRef.current) setError(errorNotice(cause, { key: "theMapCouldNotLoad" }));
       setLoading(false);
     };
     void loadRenderer(element, options, {
@@ -280,7 +279,7 @@ export function TripMap({
               setLoading(true);
               setForceOsm(true);
             } else {
-              if (!quietRef.current) setError({ key: "The map could not load. Try again." });
+              if (!quietRef.current) setError({ key: "theMapCouldNotLoad" });
               setLoading(false);
             }
           });
@@ -293,7 +292,7 @@ export function TripMap({
           labels();
           next.listen("error", () => {
             element.dataset.mapDegraded = "true";
-            if (!quietRef.current) setError({ key: "The map could not load. Try again." });
+            if (!quietRef.current) setError({ key: "theMapCouldNotLoad" });
           });
           next.listen("dragstart", () => view.current?.markUserMoved());
           next.listen("zoom_changed", () => {
@@ -531,12 +530,12 @@ export function TripMap({
     const content = document.createElement("span");
     content.className = "trip-map-user-marker";
     content.textContent = "●";
-    content.setAttribute("aria-label", t("Your current location"));
+    content.setAttribute("aria-label", t("yourCurrentLocation"));
 
     const marker = new runtime.maps.marker.AdvancedMarkerElement({
       map: runtime.map,
       position: location.position,
-      title: t("Your current location"),
+      title: t("yourCurrentLocation"),
       content,
     });
     if (panOnLocate.current) {
@@ -577,7 +576,7 @@ export function TripMap({
 
   const locationMessage: Notice | undefined =
     location.status === "loading"
-      ? { key: "Finding your location…" }
+      ? { key: "findingYourLocationTitle" }
       : location.status === "success" || location.status === "error"
         ? location.message
         : undefined;
@@ -605,13 +604,13 @@ export function TripMap({
         }),
       });
       const body = await response.json();
-      if (!response.ok) throw new NoticeError(failureNotice(body, { key: "Route lookup failed." }));
+      if (!response.ok) throw new NoticeError(failureNotice(body, { key: "routeLookupFailed" }));
       if (!controller.signal.aborted) setNearbyRoute(body as RouteResult);
     } catch (cause) {
       if (controller.signal.aborted) return;
       setNearbyRoute({
         status: "error",
-        notice: errorNotice(cause, { key: "Route lookup failed." }),
+        notice: errorNotice(cause, { key: "routeLookupFailed" }),
       });
     }
   }, [location, mode, selected, selectedStop, mockData]);
@@ -619,15 +618,15 @@ export function TripMap({
   return (
     <section
       className="trip-map"
-      aria-label={t("Trip map")}
+      aria-label={t("tripMap")}
       onKeyDown={(event) => {
         if (event.key !== "Escape" || !popupOpen) return;
         event.stopPropagation();
         closePopup();
       }}
     >
-      <div ref={root} className="google-map" aria-label={t("Trip map")} tabIndex={-1} />
-      {loading && !quiet && <p role="status">{t("Loading map…")}</p>}
+      <div ref={root} className="google-map" aria-label={t("tripMap")} tabIndex={-1} />
+      {loading && !quiet && <p role="status">{t("loadingMap")}</p>}
       {popupOpen && selectedStop && (
         <div
           ref={popup}
@@ -641,7 +640,11 @@ export function TripMap({
             place={selectedStop.place}
             showPhoto={showPhotos}
             headingId="trip-map-popup-title"
-            meta={`${t("Stop")} ${selectedStop.number}${selectedStop.day ? ` · ${t("Day {v0}", { v0: selectedStop.day })}` : ""}`}
+            meta={
+              selectedStop.day
+                ? t("stopNumberOnDay", { number: selectedStop.number, day: selectedStop.day })
+                : t("stopNumber", { number: selectedStop.number })
+            }
             onClose={closePopup}
             actions={
               location.status === "success" && (
@@ -651,26 +654,26 @@ export function TripMap({
                   disabled={nearbyRoute?.status === "loading"}
                 >
                   {nearbyRoute?.status === "loading"
-                    ? t("Checking route…")
-                    : t("Route from my location")}
+                    ? t("checkingRoute")
+                    : t("routeFromMyLocation")}
                 </button>
               )
             }
           />
         </div>
       )}
-      <div className="map-controls" role="group" aria-label={t("Map controls")}>
+      <div className="map-controls" role="group" aria-label={t("mapControls")}>
         <button
           type="button"
           className="map-control"
           aria-label={
             location.status === "loading"
-              ? t("Finding your location")
+              ? t("findingYourLocation")
               : location.status === "error"
-                ? t("Retry my location")
-                : t("Show my location")
+                ? t("retryMyLocation")
+                : t("showMyLocation")
           }
-          data-tooltip-left={t(location.status === "error" ? "Retry my location" : "My location")}
+          data-tooltip-left={t(location.status === "error" ? "retryMyLocation" : "myLocation")}
           aria-busy={location.status === "loading" || undefined}
           data-active={location.status === "success" || undefined}
           onClick={showMyLocation}
@@ -680,9 +683,9 @@ export function TripMap({
         <button
           type="button"
           className="map-control"
-          aria-label={t("Satellite view")}
+          aria-label={t("satelliteView")}
           aria-pressed={satellite}
-          data-tooltip-left={t(satellite ? "Map view" : "Satellite view")}
+          data-tooltip-left={t(satellite ? "mapView" : "satelliteView")}
           onClick={toggleSatellite}
           disabled={!runtime || runtime.provider === "osm"}
         >
@@ -692,7 +695,7 @@ export function TripMap({
           <button
             type="button"
             className="map-control"
-            aria-label={t("Zoom in")}
+            aria-label={t("zoomIn")}
             onClick={() => zoomBy(1)}
             disabled={!runtime}
           >
@@ -701,7 +704,7 @@ export function TripMap({
           <button
             type="button"
             className="map-control"
-            aria-label={t("Zoom out")}
+            aria-label={t("zoomOut")}
             onClick={() => zoomBy(-1)}
             disabled={!runtime}
           >
@@ -720,23 +723,27 @@ export function TripMap({
         <p className="trip-map-location-status" role="status">
           {nearbyRoute.source === "transitous" ? (
             <a href="https://transitous.org/sources/" target="_blank" rel="noreferrer">
-              Transitous ·
+              Transitous
             </a>
           ) : nearbyRoute.source === "osrm" ? (
-            t("OSRM routes ·")
+            t("routeSourceOsrm")
           ) : (
-            t("Google Routes verified ·")
+            t("routeSourceGoogle")
           )}
-          {nearbyRoute.mode === "WALK" ? t("Walking") : t("Public transit")} ·{" "}
-          {nearbyRoute.durationMin} {t("min")}
+          {" · "}
+          {t("nearbyRouteDuration", {
+            mode: nearbyRoute.mode === "WALK" ? t("walking") : t("publicTransit"),
+            minutes: nearbyRoute.durationMin ?? "",
+          })}
+          {" · "}
           {nearbyRoute.distanceMeters !== undefined
-            ? ` · ${(nearbyRoute.distanceMeters / 1000).toFixed(1)} km`
-            : t(" · Distance unavailable")}
+            ? t("nearbyRouteDistance", { km: (nearbyRoute.distanceMeters / 1000).toFixed(1) })
+            : t("distanceUnavailable")}
         </p>
       )}
       {nearbyRoute?.status === "unavailable" && (
         <p className="trip-map-location-status" role="alert">
-          {t("Route could not be verified.")}
+          {t("routeCouldNotBeVerified")}
           {localizeNotice(
             nearbyRoute.notice ?? (nearbyRoute.error ? { raw: nearbyRoute.error } : undefined),
           )}
@@ -751,11 +758,11 @@ export function TripMap({
         <div className="trip-map-fallback" role="alert">
           <p>{localizeNotice(error)}</p>
           <button type="button" onClick={() => setRetry((value) => value + 1)}>
-            {t("Retry map")}
+            {t("retryMap")}
           </button>
           {mapped.length > 0 && (
-            <div aria-label={t("Mapped places")}>
-              <p>{t("Trip places remain available:")}</p>
+            <div aria-label={t("mappedPlaces")}>
+              <p>{t("tripPlacesRemainAvailable")}</p>
               <ol>
                 {mapped.map((stop) => (
                   <li key={stop.place.id}>

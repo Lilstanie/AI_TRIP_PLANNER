@@ -29,7 +29,7 @@ export async function PUT(request: Request) {
       revision: z.number().int().min(0).max(2_147_483_646),
     })
     .safeParse(await request.json().catch(() => undefined));
-  if (!parsed.success) return badRequest({ key: "Those settings are not valid." });
+  if (!parsed.success) return badRequest({ key: "thoseSettingsAreNotValid" });
   const { settings, revision } = parsed.data;
   const rows = await writeSettings(user.userId, settings, revision);
   if (!rows[0]) return Response.json({ conflict: true }, { status: 409, headers: noStore });

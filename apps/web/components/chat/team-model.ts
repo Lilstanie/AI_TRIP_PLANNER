@@ -58,28 +58,28 @@ export interface TeamModel {
 }
 
 export const sourceLabels: Record<NonNullable<AssignmentSource>, MessageKey> = {
-  live: "Live data",
-  estimated: "Estimated data",
-  mock: "Mock data",
-  fallback: "Fallback data",
-  unavailable: "Unavailable data",
+  live: "liveData",
+  estimated: "estimatedData",
+  mock: "mockData",
+  fallback: "fallbackData",
+  unavailable: "unavailableData",
 };
 
 export const rowStatusLabels: Record<RowStatus, MessageKey> = {
-  idle: "Idle",
-  working: "Working",
-  done: "Done",
-  failed: "Failed",
-  needs_change: "Needs change",
-  stopped: "Stopped",
-  none: "Not involved",
+  idle: "idle",
+  working: "working",
+  done: "done",
+  failed: "failedTitle",
+  needs_change: "needsChange",
+  stopped: "stopped",
+  none: "notInvolved",
 };
 
 export const assignmentStatusLabels: Record<AssignmentStatus, MessageKey> = {
-  working: "Working",
-  done: "Done",
-  failed: "Failed",
-  stopped: "Stopped",
+  working: "working",
+  done: "done",
+  failed: "failedTitle",
+  stopped: "stopped",
 };
 
 export function teamModel(

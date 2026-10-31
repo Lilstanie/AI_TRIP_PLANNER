@@ -65,7 +65,7 @@ type BackgroundTurn = {
 };
 
 const PLAN_CONFLICT: Notice = {
-  key: "The plan changed while this reply was being prepared. Your edits were kept.",
+  key: "thePlanChangedWhileThis",
 };
 const editVersion = (plan: TripPlan | undefined) => plan?.editVersion ?? 0;
 const planChanged = (left: TripPlan | undefined, right: TripPlan | undefined) =>

@@ -18,7 +18,7 @@ export async function DELETE() {
   } catch {
     return Response.json(
       noticeBody({
-        key: "Your data was deleted, but the sign-in account could not be. Try again.",
+        key: "yourDataWasDeletedBut",
       }),
       { status: 502, headers: noStore },
     );

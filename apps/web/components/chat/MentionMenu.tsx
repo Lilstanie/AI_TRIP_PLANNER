@@ -18,7 +18,7 @@ export function MentionMenu({
 }) {
   const { t } = useLocale();
   return (
-    <ul id={menuId} className="mention-menu" role="listbox" aria-label={t("Assistants")}>
+    <ul id={menuId} className="mention-menu" role="listbox" aria-label={t("assistants")}>
       {entries.map((entry, index) => (
         <li
           key={entry.id}

@@ -28,36 +28,36 @@ export function TripHomeCards({
     {
       id: "itinerary",
       icon: RouteIcon,
-      label: t("Itinerary"),
+      label: t("itinerary"),
       count: stops > 0 ? String(stops) : "",
     },
     {
       id: "ideas",
       icon: MapPinIcon,
-      label: t("Ideas"),
+      label: t("ideas"),
       count: ideas > 0 ? String(ideas) : "",
     },
     {
       id: "bookings",
       icon: SuitcaseIcon,
-      label: t("Bookings"),
+      label: t("bookings"),
       count: "",
     },
     {
       id: "preferences",
       icon: SlidersIcon,
-      label: t("Trip preferences"),
+      label: t("tripPreferences"),
       count: preferences > 0 ? String(preferences) : "",
     },
     {
       id: "calendar",
       icon: CalendarIcon,
-      label: t("Calendar"),
+      label: t("calendar"),
       count: String(dayCount(plan)),
     },
   ] satisfies { id: TripAction; label: string; count: string; icon: ComponentType }[];
   return (
-    <ul className="trip-home-cards trip-home__actions" aria-label={t("Trip actions")}>
+    <ul className="trip-home-cards trip-home__actions" aria-label={t("tripActions")}>
       {cards.map((card) => (
         <li key={card.id}>
           <button

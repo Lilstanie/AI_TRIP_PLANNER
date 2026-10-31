@@ -11,12 +11,12 @@ import {
 describe("noticeText", () => {
   it("shows a keyed notice in the interface language with its values filled in", () => {
     const notice: Notice = {
-      key: "only {count} files can be attached to one message",
+      key: "onlyCountFilesCanBe",
       params: { count: 4 },
     };
 
     expect(noticeText("en", notice)).toBe("only 4 files can be attached to one message");
-    expect(noticeText("zh", notice)).toBe("每条消息最多添加 4 个文件");
+    expect(noticeText("zh", notice)).toBe("一条消息最多加 4 个文件");
   });
 
   it("shows provider or model text exactly as received in either language", () => {
@@ -32,24 +32,24 @@ describe("noticeText", () => {
 
   it("translates a notice used as a value of another notice", () => {
     const notice: Notice = {
-      key: "{name} wasn't attached — {reason}.",
+      key: "nameWasnTAttachedReason",
       params: {
         name: "notes.txt",
-        reason: { key: "text files over {size} can't be attached", params: { size: "2.0 MB" } },
+        reason: { key: "textFilesOverSizeCan", params: { size: "2.0 MB" } },
       },
     };
 
     expect(noticeText("en", notice)).toBe(
       "notes.txt wasn't attached — text files over 2.0 MB can't be attached.",
     );
-    expect(noticeText("zh", notice)).toBe("未添加 notes.txt——无法添加超过 2.0 MB 的文本文件。");
+    expect(noticeText("zh", notice)).toBe("没加上 notes.txt：超过 2.0 MB 的文本文件不能添加。");
   });
 
   it("rejects a keyed notice whose parameter is missing at typecheck time", () => {
     // @ts-expect-error `{size}` must be given.
-    const missing: Notice = { key: "text files over {size} can't be attached" };
+    const missing: Notice = { key: "textFilesOverSizeCan" };
     // @ts-expect-error a key with no placeholders takes no values.
-    const extra: Notice = { key: "Route lookup failed.", params: { size: "1 MB" } };
+    const extra: Notice = { key: "routeLookupFailed", params: { size: "1 MB" } };
     // @ts-expect-error only dictionary keys can be notices, so untranslated English cannot ship.
     const unknown: Notice = { key: "Something brand new went wrong." };
 
@@ -57,40 +57,38 @@ describe("noticeText", () => {
   });
 
   it("leaves the placeholder visible, not `undefined`, when a parameter is missing at run time", () => {
-    const parsed = JSON.parse(
-      '{"key":"these files together would pass the {size} one message can carry"}',
-    ) as Notice;
+    const parsed = JSON.parse('{"key":"theseFilesTogetherWouldPass"}') as Notice;
 
     expect(noticeText("en", parsed)).toBe(
       "these files together would pass the {size} one message can carry",
     );
-    expect(noticeText("zh", parsed)).toBe("这些文件合计超过单条消息的 {size} 限制");
+    expect(noticeText("zh", parsed)).toBe("这些文件加起来超过了单条消息 {size} 的上限");
   });
 });
 
 describe("NoticeError", () => {
   it("carries its notice and keeps an English message for logs", () => {
     const error = new NoticeError({
-      key: "text files over {size} can't be attached",
+      key: "textFilesOverSizeCan",
       params: { size: "2.0 MB" },
     });
 
     expect(error).toBeInstanceOf(Error);
     expect(error.message).toBe("text files over 2.0 MB can't be attached");
-    expect(noticeText("zh", error.notice)).toBe("无法添加超过 2.0 MB 的文本文件");
+    expect(noticeText("zh", error.notice)).toBe("超过 2.0 MB 的文本文件不能添加");
   });
 });
 
 describe("failureNotice", () => {
-  const fallback: Notice = { key: "Request failed ({status}).", params: { status: 502 } };
+  const fallback: Notice = { key: "requestFailedStatus", params: { status: 502 } };
 
   it("shows the keyed notice a route returned, in the interface language", () => {
     const body = {
       error: "Enter a place name to search.",
-      notice: { key: "Enter a place name to search." },
+      notice: { key: "enterAPlaceNameTo" },
     };
 
-    expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称后再搜索。");
+    expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称再搜索。");
   });
 
   it("shows an error with no notice exactly as received, since nothing says it was authored", () => {
@@ -112,11 +110,11 @@ describe("failureNotice", () => {
 });
 
 describe("errorNotice", () => {
-  const fallback: Notice = { key: "Route unavailable" };
+  const fallback: Notice = { key: "routeUnavailable" };
 
   it("keeps an authored error's notice", () => {
-    const error = new NoticeError({ key: "No verified route was returned." });
-    expect(noticeText("zh", errorNotice(error, fallback))).toBe("未返回已核实的路线。");
+    const error = new NoticeError({ key: "noVerifiedRouteWasReturned" });
+    expect(noticeText("zh", errorNotice(error, fallback))).toBe("没有拿到核实过的路线。");
   });
 
   it("shows any other error's message exactly as raised", () => {

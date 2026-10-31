@@ -129,7 +129,7 @@ describe("prepareAttachments", () => {
     expect(rejections.map(({ name, reason }) => ({ name, reason: read(reason) }))).toEqual([
       {
         name: "itinerary.exe",
-        reason: { en: "that file type can't be attached", zh: "无法添加此类型文件" },
+        reason: { en: "that file type can't be attached", zh: "这种文件类型不能添加" },
       },
     ]);
     expect(attachments.map((a) => a.name)).toEqual(["notes.md"]);
@@ -161,7 +161,7 @@ describe("prepareAttachments", () => {
     expect(rejections).toHaveLength(2);
     expect(read(rejections[0]?.reason)).toEqual({
       en: "only 4 files can be attached to one message",
-      zh: "每条消息最多添加 4 个文件",
+      zh: "一条消息最多加 4 个文件",
     });
   });
 
@@ -194,7 +194,7 @@ describe("prepareAttachments", () => {
     expect(rejections[0]?.name).toBe("two.png");
     expect(read(rejections[0]?.reason)).toEqual({
       en: "these files together would pass the 3.8 MB one message can carry",
-      zh: "这些文件合计超过单条消息的 3.8 MB 限制",
+      zh: "这些文件加起来超过了单条消息 3.8 MB 的上限",
     });
   });
 
@@ -210,7 +210,7 @@ describe("prepareAttachments", () => {
     expect(attachments).toEqual([]);
     expect(read(rejections[0]?.reason)).toEqual({
       en: "text files over 2.0 MB can't be attached",
-      zh: "无法添加超过 2.0 MB 的文本文件",
+      zh: "超过 2.0 MB 的文本文件不能添加",
     });
   });
 
@@ -228,7 +228,7 @@ describe("prepareAttachments", () => {
     expect(attachments).toEqual([]);
     expect(read(rejections[0]?.reason)).toEqual({
       en: "the file could not be read",
-      zh: "无法读取文件",
+      zh: "文件读不出来",
     });
   });
 });

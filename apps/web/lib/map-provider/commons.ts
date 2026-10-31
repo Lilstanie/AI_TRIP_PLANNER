@@ -84,15 +84,15 @@ export function commonsPhotos(fetcher?: ProviderFetch) {
       }
     },
     async url(name: string, width: PhotoWidth): Promise<string> {
-      if (!COMMONS_NAME.test(name)) throw new NoticeError({ key: "Unknown photo." });
+      if (!COMMONS_NAME.test(name)) throw new NoticeError({ key: "unknownPhoto" });
       let file: string;
       try {
         file = decodeURIComponent(name.slice("osm:commons/".length));
       } catch {
-        throw new NoticeError({ key: "Unknown photo." });
+        throw new NoticeError({ key: "unknownPhoto" });
       }
       const photo = await image(file, width);
-      if (!photo) throw new NoticeError({ key: "This photo is no longer available." });
+      if (!photo) throw new NoticeError({ key: "thisPhotoIsNoLonger" });
       return photo.url;
     },
   };

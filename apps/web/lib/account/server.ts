@@ -8,9 +8,9 @@ const json = (status: number, notice: Notice) =>
 
 export async function accountUser(): Promise<{ userId: string } | { response: Response }> {
   if (!authEnabled || !dbEnabled())
-    return { response: json(503, { key: "Accounts are not available on this deployment." }) };
+    return { response: json(503, { key: "accountsAreNotAvailableOn" }) };
   const { userId } = await auth();
-  if (!userId) return { response: json(401, { key: "Sign in to use your account." }) };
+  if (!userId) return { response: json(401, { key: "signInToUseYour" }) };
   return { userId };
 }
 

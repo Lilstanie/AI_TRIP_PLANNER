@@ -28,7 +28,7 @@ export function DayNoteForm({
   };
   const first = useRef<HTMLInputElement & HTMLTextAreaElement>(null);
   useEffect(() => first.current?.focus(), []);
-  const label = mode === "title" ? t("Day title") : t("Day note");
+  const label = mode === "title" ? t("dayTitleTitle") : t("dayNote");
   return (
     <StopEditSurface title={label} phone={phone} onClose={onCancel}>
       <form
@@ -65,10 +65,10 @@ export function DayNoteForm({
         </label>
         <div className="item-editor__actions">
           <button type="submit" className="primary">
-            {t("Save")}
+            {t("save")}
           </button>
           <button type="button" onClick={cancel}>
-            {t("Cancel")}
+            {t("cancel")}
           </button>
         </div>
       </form>

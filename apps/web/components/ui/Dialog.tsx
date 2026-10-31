@@ -54,7 +54,7 @@ export function Dialog({
           type="button"
           className="dialog__close"
           onClick={onClose}
-          aria-label={t("Close {v0}", { v0: title })}
+          aria-label={t("closeV0", { v0: title })}
         >
           <CloseIcon />
         </button>

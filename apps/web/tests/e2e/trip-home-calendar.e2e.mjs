@@ -712,7 +712,7 @@ try {
   );
   check(
     (await calendarDrawer.getByText("全天", { exact: true }).count()) >= 1 &&
-      (await calendarDrawer.getByText("未定时间", { exact: true }).count()) >= 1,
+      (await calendarDrawer.getByText("没定时间", { exact: true }).count()) >= 1,
     "Chinese all-day and untimed labels are explicit",
   );
   check(

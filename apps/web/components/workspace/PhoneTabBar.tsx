@@ -9,10 +9,10 @@ const TABS: Record<
   Exclude<MobileView, "trajectory">,
   { label: MessageKey; icon: (selected: boolean) => ReactNode }
 > = {
-  chat: { label: "Chat", icon: (selected) => <ChatIcon filled={selected} /> },
-  map: { label: "Map", icon: () => <MapIcon /> },
-  trip: { label: "Trip", icon: () => <RouteIcon /> },
-  mine: { label: "Mine", icon: () => <UserIcon /> },
+  chat: { label: "chat", icon: (selected) => <ChatIcon filled={selected} /> },
+  map: { label: "map", icon: () => <MapIcon /> },
+  trip: { label: "trip", icon: () => <RouteIcon /> },
+  mine: { label: "mine", icon: () => <UserIcon /> },
 };
 
 export const phonePanelId = (view: MobileView) => `phone-panel-${view}`;
@@ -62,7 +62,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden, showTrip = true }:
     <nav className="phone-tabbar" data-hidden={hidden || undefined} inert={hidden}>
       <div
         role="tablist"
-        aria-label={t("Workspace sections")}
+        aria-label={t("workspaceSections")}
         className="phone-tabbar__list"
         onKeyDown={onKeyDown}
       >
@@ -78,7 +78,7 @@ export function PhoneTabBar({ view, onSelect, badges, hidden, showTrip = true }:
               role="tab"
               id={`phone-tab-${tab}`}
               aria-selected={selected}
-              aria-label={tab === "trip" && badges?.trip ? t("Trip updated") : undefined}
+              aria-label={tab === "trip" && badges?.trip ? t("tripUpdated") : undefined}
               aria-controls={phonePanelId(tab)}
               tabIndex={selected ? 0 : -1}
               className="phone-tabbar__tab"

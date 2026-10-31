@@ -61,7 +61,7 @@ const labels = {
     newTrip: "新行程",
     nav: "打开导航",
     mine: "我的",
-    where: "去哪里",
+    where: "去哪",
   },
 };
 
@@ -133,7 +133,7 @@ const openPage = async ({
 const nav = (page) => page.locator(".sidebar-nav");
 const entry = (page, name) => nav(page).getByRole("button", { name: new RegExp(`^${name}`) });
 const composer = (page) =>
-  page.getByRole("textbox", { name: /Message AI Trip Planner|向 AI 旅行规划助手发送消息/ });
+  page.getByRole("textbox", { name: /Message AI Trip Planner|给 AI 旅行规划助手发消息/ });
 const readCatalog = (page) =>
   page.evaluate((key) => JSON.parse(localStorage.getItem(key) ?? "null"), CATALOG_KEY);
 const waitCatalog = async (page, predicate, arg) => {

@@ -48,7 +48,7 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
           });
           setNotices(
             rejections.map(({ name, reason }) => ({
-              key: "{name} wasn't attached — {reason}.",
+              key: "nameWasnTAttachedReason",
               params: { name, reason },
             })),
           );
@@ -59,7 +59,7 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
             spent.current = payloadOf(current);
             return current;
           });
-          setNotices([{ key: "Those files couldn't be read. Please try again." }]);
+          setNotices([{ key: "thoseFilesCouldnTBe" }]);
         });
     },
     [render],
@@ -94,7 +94,7 @@ export function useComposerAttachments({ render }: { render?: ImageRenderer } = 
         ? notices
         : [
             {
-              key: "You can attach {count} files to one message.",
+              key: "youCanAttachCountFiles",
               params: { count: MAX_ATTACHMENTS_PER_MESSAGE },
             },
           ],

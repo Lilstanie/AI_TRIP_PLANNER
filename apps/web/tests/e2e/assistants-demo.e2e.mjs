@@ -15,9 +15,9 @@ const check = (ok, name, detail) => {
 
 const STAY = { en: "Stay", zh: "住宿" };
 const CUSTOM = { en: "Hotel Buddy", zh: "酒店管家" };
-const MOVE = { en: "Getting around", zh: "出行交通" };
+const MOVE = { en: "Getting around", zh: "交通出行" };
 const ASK = { en: "recommend a restaurant", zh: "推荐一家餐厅" };
-const OTHER_DEFAULT = { en: "Day plan", zh: "每日行程" };
+const OTHER_DEFAULT = { en: "Day plan", zh: "日程规划" };
 const ACCOMMODATION = 3;
 const TRANSPORT = 2;
 const OTHER = { en: "Rail Pal", zh: "铁路搭子" };

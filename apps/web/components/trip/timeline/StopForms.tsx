@@ -55,7 +55,7 @@ export function TimeForm({
       }}
     >
       <label>
-        {t("Start")}
+        {t("start")}
         <input
           ref={first}
           type="time"
@@ -66,7 +66,7 @@ export function TimeForm({
         />
       </label>
       <label>
-        {t("End")}
+        {t("end")}
         <input
           type="time"
           required
@@ -76,12 +76,12 @@ export function TimeForm({
         />
       </label>
       <button type="submit" className="primary" disabled={locked || !timeChanged || !validTime}>
-        {t("Change time")}
+        {t("changeTime")}
       </button>
       <button type="button" onClick={onCancel}>
-        {t("Cancel")}
+        {t("cancel")}
       </button>
-      {!validTime && <p className="stop-editor__hint">{t("End must be after start.")}</p>}
+      {!validTime && <p className="stop-editor__hint">{t("endMustBeAfterStart")}</p>}
       <EditErrors errors={errors} />
     </form>
   );
@@ -152,7 +152,7 @@ export function ItemForm({
       {mode === "details" && (
         <>
           <label>
-            {t("Place name")}
+            {t("placeName")}
             <input
               ref={first}
               value={location}
@@ -161,7 +161,7 @@ export function ItemForm({
             />
           </label>
           <label>
-            {t("What you will do")}
+            {t("whatYouWillDo")}
             <textarea
               value={detail}
               maxLength={500}
@@ -173,41 +173,41 @@ export function ItemForm({
       )}
       {mode === "note" && (
         <label>
-          {t("Comment")}
+          {t("comment")}
           <textarea
             ref={first}
             value={note}
             maxLength={500}
             rows={2}
-            placeholder={t("e.g. Book tickets a day ahead")}
+            placeholder={t("eGBookTicketsA")}
             onChange={(e) => setNote(e.target.value)}
           />
         </label>
       )}
       {mode === "schedule" && (
         <label>
-          {t("Day")}
+          {t("dayTitle")}
           <select
             ref={first}
-            aria-label={t("Day")}
+            aria-label={t("dayTitle")}
             value={day}
             onChange={(e) => setDay(Number(e.target.value))}
           >
             {Array.from({ length: days }, (_, index) => (
               <option key={index} value={index + 1}>
-                {t("Day {v0}", { v0: index + 1 })} · {labels[index]}
+                {t("dayV0", { v0: index + 1 })} · {labels[index]}
               </option>
             ))}
           </select>
         </label>
       )}
-      {failed && <EditErrors errors={[{ key: "Something went wrong. Try again." }]} />}
+      {failed && <EditErrors errors={[{ key: "somethingWentWrongTryAgain" }]} />}
       <div className="item-editor__actions">
         <button type="submit" className="primary" disabled={!validDay}>
-          {mode === "schedule" ? t("Schedule") : t("Save")}
+          {mode === "schedule" ? t("schedule") : t("save")}
         </button>
         <button type="button" onClick={cancel}>
-          {t("Cancel")}
+          {t("cancel")}
         </button>
       </div>
     </form>
@@ -265,36 +265,36 @@ export function PlaceSearch({
               ref={input}
               type="search"
               value={query}
-              placeholder={t("Search Google Maps")}
+              placeholder={t("searchGoogleMaps")}
               disabled={locked}
               onChange={(event) => setQuery(event.target.value)}
             />
           </span>
         </label>
         <button type="submit" disabled={locked || !query.trim()}>
-          {t("Search")}
+          {t("search")}
         </button>
       </form>
       <EditErrors errors={edits.errors} />
       {!!edits.results.length && (
-        <ul className="stop-editor__results" aria-label={t("Place results")}>
+        <ul className="stop-editor__results" aria-label={t("placeResults")}>
           {edits.results.map((result) => (
             <li key={result.id}>
               <span>
-                <strong>{result.displayName?.text ?? t("Unnamed place")}</strong>
-                <small>{result.formattedAddress ?? t("Address unavailable")}</small>
+                <strong>{result.displayName?.text ?? t("unnamedPlace")}</strong>
+                <small>{result.formattedAddress ?? t("addressUnavailable")}</small>
               </span>
               <button
                 type="button"
                 disabled={locked}
-                aria-label={t("Use {v0}", { v0: result.displayName?.text ?? "this place" })}
+                aria-label={t("useV0", { v0: result.displayName?.text ?? "this place" })}
                 onClick={() =>
                   void Promise.resolve(onUse(result.id)).then((done) => {
                     if (done) resetQuery();
                   })
                 }
               >
-                {t("Use")}
+                {t("use")}
               </button>
             </li>
           ))}

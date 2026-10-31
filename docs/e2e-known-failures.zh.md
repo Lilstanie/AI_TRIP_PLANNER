@@ -12,6 +12,9 @@ TP-165（2026-10-30）删除了 136 个原始脚本：它们在 `main` 上本就
 `pnpm --filter @trip/web e2e trajectory-tab`：`en-1440` 通过 59 项检查后，刷新步骤从“聊天”重新打开
 “Tokyo from Sydney”，在 `page.waitForFunction` 处等待三条 `.msg-item--agent` 消息时超时。
 
+`ui-language` 在 `main` `a184575`（2026-10-31）上失败，命令为 `pnpm --filter @trip/web e2e ui-language`：
+它等待工作区已不再显示的“Conversation”标签页，最终超时。
+
 <a id="covered-regressions"></a>
 
 ## 已有回归覆盖

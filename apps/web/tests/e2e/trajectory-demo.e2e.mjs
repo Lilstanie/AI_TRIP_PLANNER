@@ -27,7 +27,7 @@ const COPY = {
   zh: {
     locale: "zh-CN",
     stay: "住宿",
-    dining: "餐饮",
+    dining: "美食餐饮",
     conflict: "冲突检查",
     details: "事件详情",
     close: "关闭详情",

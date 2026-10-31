@@ -1,5 +1,5 @@
 "use client";
-import type { MessageKey } from "@/lib/i18n/locale";
+import { keyForText, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
 import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
@@ -14,8 +14,8 @@ import { HistoryMenu } from "./WorkspaceSidebar";
 
 export type Tab = "trips" | "calendar";
 const TABS: { id: Tab; label: MessageKey }[] = [
-  { id: "trips", label: "Trips" },
-  { id: "calendar", label: "Calendar" },
+  { id: "trips", label: "trips" },
+  { id: "calendar", label: "calendar" },
 ];
 
 const utc = (iso: string) => Date.parse(`${iso}T00:00:00Z`);
@@ -75,10 +75,10 @@ export function TripsPage({
       <div className="trips-page__inner">
         {!embedded && (
           <header className="trips-page__head">
-            <h1>{t("Your trips")}</h1>
+            <h1>{t("yourTrips")}</h1>
             <button type="button" className="trips-page__new" onClick={onNewTrip}>
               <PlusIcon />
-              <span>{t("New trip")}</span>
+              <span>{t("newTrip")}</span>
             </button>
           </header>
         )}
@@ -88,7 +88,7 @@ export function TripsPage({
             ref={tabList}
             className="trips-page__tabs segmented"
             role="tablist"
-            aria-label={t("Your trips")}
+            aria-label={t("yourTrips")}
           >
             {TABS.map((item) => (
               <button
@@ -175,11 +175,15 @@ function TripCards({
   }, [trips]);
   const titles = distinctTripTitles(allTrips, (trip) => tripName(trip, t));
 
-  if (!trips.length) return <p className="trips-page__empty">{t("No trips yet.")}</p>;
+  if (!trips.length) return <p className="trips-page__empty">{t("noTripsYet")}</p>;
 
   return groups.map((group) => (
-    <section key={group.title} className="trips-page__group" aria-label={t(group.title)}>
-      <h2>{t(group.title)}</h2>
+    <section
+      key={group.title}
+      className="trips-page__group"
+      aria-label={t(keyForText(group.title))}
+    >
+      <h2>{t(keyForText(group.title))}</h2>
       <ul className="trip-cards">
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
@@ -234,12 +238,11 @@ function TripCalendar({
   });
   const [day, setDay] = useState<number>();
   const trip = trips.find((item) => item.id === tripId) ?? trips[0];
-  if (!trip)
-    return <p className="trips-page__empty">{t("Trips you plan will appear on the calendar.")}</p>;
+  if (!trip) return <p className="trips-page__empty">{t("tripsYouPlanWillAppear")}</p>;
   return (
     <div className="trips-calendar">
       <div className="trips-calendar__head">
-        <div className="trips-calendar__picker" role="group" aria-label={t("Trips")}>
+        <div className="trips-calendar__picker" role="group" aria-label={t("trips")}>
           {trips.map((item) => (
             <button
               type="button"
@@ -256,7 +259,7 @@ function TripCalendar({
           ))}
         </div>
         <button type="button" className="trips-calendar__open" onClick={() => onOpenTrip(trip.id)}>
-          {t("View trip")}
+          {t("viewTrip")}
         </button>
       </div>
       <TripHomeCalendar

@@ -50,7 +50,7 @@ export function osmMapProvider(options: OsmProviderOptions = {}): MapProvider {
     }),
     placePhoto: async (name, width) => {
       if (mock) {
-        if (name !== "osm:fixture/Toji") throw new NoticeError({ key: "Unknown photo." });
+        if (name !== "osm:fixture/Toji") throw new NoticeError({ key: "unknownPhoto" });
         return {
           value: "/api/places/photo?name=osm%3Afixture%2FToji&width=400&fixture=1",
           source: "osm",
@@ -60,7 +60,7 @@ export function osmMapProvider(options: OsmProviderOptions = {}): MapProvider {
     },
     placeDetails: async (id, language) => {
       const place = mock ? mockPlaceFor(id) : await places.details(id, language);
-      if (!place) throw new NoticeError({ key: "This saved place is no longer available." });
+      if (!place) throw new NoticeError({ key: "thisSavedPlaceIsNo" });
       return { value: mock ? place : await photos.enrich(place), source: "osm" };
     },
     route: async (from, to, departure, mode, hints) => {
