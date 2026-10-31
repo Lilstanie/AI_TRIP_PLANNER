@@ -22,7 +22,6 @@ const translators = {
   zh: createTranslator({ locale: "zh", messages: zh }),
 };
 
-/** Placeholders a caller leaves out stay visible as `{name}` instead of failing the whole message. */
 export function withVisiblePlaceholders(text: MessageKey, params: MessageParams): MessageParams {
   const filled = { ...params };
   for (const [, name] of en[text].matchAll(/\{([A-Za-z0-9]+)[,}]/g))
@@ -43,12 +42,10 @@ const keyOfText = new Map<string, MessageKey>();
 for (const [key, text] of Object.entries(en) as [MessageKey, string][])
   if (!keyOfText.has(text)) keyOfText.set(text, key);
 
-/** Message id for an English label that is also stored or compared as data, such as a saved interest. */
 export function keyForText(text: EnglishText): MessageKey {
   return keyOfText.get(text)!;
 }
 
-/** Message id for stored English text, or `undefined` when no message has that exact English wording. */
 export function keyForStoredText(text: string): MessageKey | undefined {
   return keyOfText.get(text);
 }

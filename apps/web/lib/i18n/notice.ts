@@ -36,7 +36,6 @@ const keyOfSentence = new Map<string, MessageKey>();
 for (const [key, sentence] of Object.entries(en) as [MessageKey, string][])
   if (!keyOfSentence.has(sentence)) keyOfSentence.set(sentence, key);
 
-/** Accepts a message id, or the English sentence that keyed notices stored before message ids existed. */
 function messageKeyOf(key: string): MessageKey | undefined {
   return key in en ? (key as MessageKey) : keyOfSentence.get(key);
 }
