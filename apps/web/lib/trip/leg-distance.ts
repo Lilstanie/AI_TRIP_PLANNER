@@ -3,9 +3,9 @@ import { translate } from "@/lib/i18n/locale";
 
 export function formatDistance(meters: number | undefined, locale: AppLocale = "en") {
   if (meters === undefined || !Number.isFinite(meters) || meters <= 0) return undefined;
-  if (meters < 1000) return translate(locale, "{v0} m", { v0: Math.round(meters) });
+  if (meters < 1000) return translate(locale, "v0M", { v0: Math.round(meters) });
   const km = meters / 1000;
-  return translate(locale, "{v0} km", { v0: km < 10 ? km.toFixed(1) : Math.round(km) });
+  return translate(locale, "v0Km", { v0: km < 10 ? km.toFixed(1) : Math.round(km) });
 }
 
 type Endpoint = {

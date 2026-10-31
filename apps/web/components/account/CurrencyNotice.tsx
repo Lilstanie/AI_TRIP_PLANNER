@@ -6,10 +6,7 @@ export function CurrencyNotice({ currency: override }: { currency?: Currency }) 
   if ((override ?? currency) === "AUD") return null;
   return (
     <small className="muted currency-notice">
-      {t("Approximate converted amounts; planning totals stay in AUD. Rates as of {date}.").replace(
-        "{date}",
-        RATES_AS_OF,
-      )}
+      {t("approximateConvertedAmountsPlanningTotals").replace("{date}", RATES_AS_OF)}
     </small>
   );
 }

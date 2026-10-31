@@ -39,9 +39,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         type="button"
         className="topbar-button team-trigger phone-topbar__team"
         aria-label={
-          team.working > 0
-            ? t("Agent Team, {count} working", { count: team.working })
-            : t("Agent Team")
+          team.working > 0 ? t("agentTeamCountWorking", { count: team.working }) : t("agentTeam")
         }
         aria-haspopup="dialog"
         aria-expanded={open}
@@ -53,7 +51,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         {team.working > 0 && (
           <span className="team-trigger__count" aria-hidden="true">
             <span className="team-trigger__count-full">
-              {t("{count} working", { count: team.working })}
+              {t("countWorking", { count: team.working })}
             </span>
             <span className="team-trigger__count-compact">{team.working}</span>
           </span>
@@ -88,18 +86,18 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         }}
       >
         <header className="phone-trajectory__head">
-          <h2 id="phone-trajectory-title">{t("Trajectory")}</h2>
+          <h2 id="phone-trajectory-title">{t("trajectory")}</h2>
           <button
             type="button"
             className="phone-trajectory__close"
             onClick={closeTeamSheet}
-            aria-label={t("Close {v0}", { v0: t("Trajectory") })}
+            aria-label={t("closeV0", { v0: t("trajectory") })}
           >
             <CloseIcon />
           </button>
         </header>
         <details ref={roster} className="phone-trajectory__team">
-          <summary>{t("Specialist team")}</summary>
+          <summary>{t("specialistTeam")}</summary>
           <TeamPanel
             model={team}
             onSelect={(assistant) => {

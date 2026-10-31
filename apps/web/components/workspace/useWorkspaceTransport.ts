@@ -111,10 +111,7 @@ export function useWorkspaceTransport({
       (currentPlan.editVersion ?? 0) > 0 &&
       (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
     if (!hasDirectEdits) return true;
-    const message = translate(
-      interfaceLanguage,
-      "Replace your edited plan? Your direct timeline edits will be replaced if the new plan succeeds.",
-    );
+    const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
     return window.confirm(message);
   }
 
@@ -189,12 +186,13 @@ export function useWorkspaceTransport({
     );
     const dates = datesLabel(brief.dates[0], brief.dates[1], locale)?.range ?? "";
     const message = onlyBudgetChanged
-      ? locale === "zh"
-        ? `将预算调整为 ${amount}。`
-        : `Change the budget to ${amount}.`
-      : locale === "zh"
-        ? `规划${brief.destination}行程，${dates}，${brief.groupSize} 位旅行人员，总预算 ${amount}。`
-        : `Plan ${brief.destination}, ${dates}, for ${brief.groupSize} travellers with a total budget of ${amount}.`;
+      ? translate(locale, "changeTheBudgetTo", { amount })
+      : translate(locale, "planDestinationDatesTravellersBudget", {
+          destination: brief.destination,
+          dates,
+          count: brief.groupSize,
+          amount,
+        });
     return run(
       {
         kind: "chat",

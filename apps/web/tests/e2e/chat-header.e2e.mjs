@@ -416,7 +416,7 @@ try {
     await trigger.focus();
     await page.keyboard.press("ArrowDown");
     const switcher = page.getByRole("menuitem", {
-      name: language === "en" ? "Switch chat" : "切换聊天",
+      name: language === "en" ? "Switch chat" : "换个聊天",
       exact: false,
     });
     if (width <= 520) await switcher.click();

@@ -56,11 +56,11 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
   const { t } = useLocale();
   return (
     <>
-      {block.running && <VisuallyHidden>{t("Running")}</VisuallyHidden>}
+      {block.running && <VisuallyHidden>{t("runningTitle")}</VisuallyHidden>}
       <Disclosure
         className="thinking-reasoning"
         icon={<FlowThinkIcon />}
-        title={t("Think")}
+        title={t("think")}
         state={block.running ? "running" : "ok"}
         open={open.isOpen(block.id)}
         expandable
@@ -68,7 +68,7 @@ export function ReasoningRow({ block, open }: { block: ReasoningBlock; open: Ope
         collapsedContent={
           <>
             <RowSeparator />
-            <RowSummary text={t("Thinking")} followEnd={block.running} />
+            <RowSummary text={t("thinking")} followEnd={block.running} />
           </>
         }
       >
@@ -200,7 +200,7 @@ export function ToolRow({ row, open }: { row: ToolRowModel; open: OpenRows }) {
             )}
             {row.resultTruncated && (
               <p className="thinking-tool__truncated">
-                {t("Showing the first {v0} of {v1}", {
+                {t("showingTheFirstV0Of", {
                   v0: row.resultRows?.length ?? 0,
                   v1: row.resultCount ?? row.resultRows?.length ?? 0,
                 })}
@@ -247,7 +247,7 @@ function ChoiceBlock({
             <span className="thinking-choice__chevron" aria-hidden="true">
               <FlowChevronDownIcon />
             </span>
-            {t("Other options ({v0})", { v0: choice.alternatives.length })}
+            {t("otherOptionsV0", { v0: choice.alternatives.length })}
           </button>
           {expanded && (
             <ul className="thinking-choice__alternatives">
@@ -292,7 +292,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
         </div>
       )}
       {model.objective && (
-        <p className="thinking-note__summary">{t("Asked for: {v0}", { v0: model.objective })}</p>
+        <p className="thinking-note__summary">{t("askedForV0", { v0: model.objective })}</p>
       )}
       {model.constraints && (
         <ul className="thinking-note__list">
@@ -329,7 +329,7 @@ export function SubagentRow({ model, open }: { model: SubagentModel; open: OpenR
       <Disclosure
         className="thinking-subagent__row"
         icon={running ? <SubagentOrbIcon model={model} /> : <AssistantIcon id={model.name} />}
-        title={t("Subagent")}
+        title={t("subagent")}
         state={running ? "running" : model.status === "failed" ? "error" : "ok"}
         open={open.isOpen(model.id)}
         expandable={subagentHasBody(model)}
@@ -380,9 +380,7 @@ export function RoundHeading({
   return (
     <div className="thinking-round">
       <p className="thinking-round__title">
-        {summary
-          ? t("Round {v0} · {v1}", { v0: round, v1: summary })
-          : t("Round {v0}", { v0: round })}
+        {summary ? t("roundV0V1", { v0: round, v1: summary }) : t("roundV0", { v0: round })}
       </p>
       {constraints && constraints.length > 0 && (
         <ul className="thinking-round__list">
@@ -395,7 +393,7 @@ export function RoundHeading({
   );
 }
 
-const RUNNING_LABEL = "Deep diving";
+const RUNNING_LABEL = "deepDiving";
 
 export function RunningLine({ elapsedMs }: { elapsedMs: number }) {
   const { t } = useLocale();

@@ -14,7 +14,7 @@ export async function POST(request: Request) {
       headers: { "Cache-Control": "no-store" },
     });
   } catch (error) {
-    const notice = errorNotice(error, { key: "Preview failed. Try the change again." });
+    const notice = errorNotice(error, { key: "previewFailedTryTheChange" });
     return Response.json(noticeBody(notice), { status: 400 });
   }
 }

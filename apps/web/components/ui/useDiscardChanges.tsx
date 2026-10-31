@@ -16,10 +16,10 @@ export function useDiscardChanges(dirty: boolean) {
     setConfirming(true);
   };
   const confirmation = confirming ? (
-    <Dialog title={t("Discard changes?")} onClose={() => setConfirming(false)}>
+    <Dialog title={t("discardChanges")} onClose={() => setConfirming(false)}>
       <div className="edit-discard__actions">
         <button type="button" autoFocus onClick={() => setConfirming(false)}>
-          {t("Continue editing")}
+          {t("continueEditing")}
         </button>
         <button
           type="button"
@@ -29,7 +29,7 @@ export function useDiscardChanges(dirty: boolean) {
             requestAnimationFrame(() => pending.current());
           }}
         >
-          {t("Discard changes")}
+          {t("discardChangesTitle")}
         </button>
       </div>
     </Dialog>

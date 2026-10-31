@@ -12,14 +12,19 @@ export type AddTarget = { kind: "day"; day: number };
 type Tab = "search" | "ideas" | "saved" | "custom";
 
 const FILTER_LABEL = {
-  places: "Places",
-  stays: "Stays",
-  restaurants: "Restaurants",
-  experiences: "Experiences",
-  events: "Events",
+  places: "places",
+  stays: "stays",
+  restaurants: "restaurants",
+  experiences: "experiences",
+  events: "events",
 } as const;
 
-const TAB_LABEL = { search: "Search", ideas: "Ideas", saved: "Saved", custom: "Custom" } as const;
+const TAB_LABEL = {
+  search: "search",
+  ideas: "ideas",
+  saved: "savedTitle",
+  custom: "custom",
+} as const;
 
 const LATEST_START = "22:59";
 
@@ -111,7 +116,7 @@ export function AddToTripPanel({
   return (
     <section
       className="add-panel"
-      aria-label={t("Add to trip")}
+      aria-label={t("addToTrip")}
       onKeyDown={(event) => {
         if (event.key !== "Escape") return;
         event.preventDefault();
@@ -147,7 +152,7 @@ export function AddToTripPanel({
           ))}
         </div>
         <button type="button" className="add-panel__close" onClick={close}>
-          {t("Close")}
+          {t("close")}
         </button>
       </div>
 
@@ -171,18 +176,18 @@ export function AddToTripPanel({
           >
             <input
               type="search"
-              aria-label={t("Search places")}
+              aria-label={t("searchPlaces")}
               value={text}
               autoFocus
-              placeholder={t("Search Google Maps")}
+              placeholder={t("searchGoogleMaps")}
               disabled={locked}
               onChange={(event) => setText(event.target.value)}
             />
             <button type="submit" disabled={disabled || !text.trim()}>
-              {t("Search")}
+              {t("search")}
             </button>
           </form>
-          <div className="add-panel__filters" role="group" aria-label={t("Filter results")}>
+          <div className="add-panel__filters" role="group" aria-label={t("filterResults")}>
             {ADD_FILTERS.map((id) => (
               <button
                 key={id}
@@ -198,23 +203,21 @@ export function AddToTripPanel({
               </button>
             ))}
           </div>
-          {hidden && (
-            <p className="add-panel__empty">{t("No places found. Try different words.")}</p>
-          )}
+          {hidden && <p className="add-panel__empty">{t("noPlacesFoundTryDifferent")}</p>}
           {!!results.length && (
-            <ul className="stop-editor__results" aria-label={t("Place results")}>
+            <ul className="stop-editor__results" aria-label={t("placeResults")}>
               {results.map((place) => {
-                const title = place.displayName?.text ?? t("Unnamed place");
+                const title = place.displayName?.text ?? t("unnamedPlace");
                 return (
                   <li key={place.id}>
                     <span>
                       <strong>{title}</strong>
-                      <small>{place.formattedAddress ?? t("Address unavailable")}</small>
+                      <small>{place.formattedAddress ?? t("addressUnavailable")}</small>
                     </span>
                     <button
                       type="button"
                       disabled={disabled}
-                      aria-label={t("Add {v0}", { v0: title })}
+                      aria-label={t("addV0", { v0: title })}
                       onClick={() =>
                         void addPlace({
                           title,
@@ -224,7 +227,7 @@ export function AddToTripPanel({
                         })
                       }
                     >
-                      {t("Add")}
+                      {t("add")}
                     </button>
                   </li>
                 );
@@ -237,7 +240,7 @@ export function AddToTripPanel({
       {tab === "ideas" && (
         <div role="tabpanel" className="add-panel__body">
           {ideas.length ? (
-            <ul className="stop-editor__results" aria-label={t("Ideas")}>
+            <ul className="stop-editor__results" aria-label={t("ideas")}>
               {ideas.map((idea) => {
                 const title = idea.location ?? idea.detail;
                 return (
@@ -248,17 +251,17 @@ export function AddToTripPanel({
                     <button
                       type="button"
                       disabled={disabled}
-                      aria-label={t("Add {v0}", { v0: title })}
+                      aria-label={t("addV0", { v0: title })}
                       onClick={async () => finish(await onSchedule(idea, target.day))}
                     >
-                      {t("Add")}
+                      {t("add")}
                     </button>
                   </li>
                 );
               })}
             </ul>
           ) : (
-            <p className="add-panel__empty">{t("No ideas yet.")}</p>
+            <p className="add-panel__empty">{t("noIdeasYet")}</p>
           )}
         </div>
       )}
@@ -266,7 +269,7 @@ export function AddToTripPanel({
       {tab === "saved" && (
         <div role="tabpanel" className="add-panel__body">
           {saved.length ? (
-            <ul className="stop-editor__results" aria-label={t("Saved places")}>
+            <ul className="stop-editor__results" aria-label={t("savedPlaces")}>
               {saved.map((place) => (
                 <li key={place.key}>
                   <span>
@@ -276,7 +279,7 @@ export function AddToTripPanel({
                   <button
                     type="button"
                     disabled={disabled}
-                    aria-label={t("Add {v0}", { v0: place.name })}
+                    aria-label={t("addV0", { v0: place.name })}
                     onClick={() =>
                       void addPlace({
                         title: place.name,
@@ -286,13 +289,13 @@ export function AddToTripPanel({
                       })
                     }
                   >
-                    {t("Add")}
+                    {t("add")}
                   </button>
                 </li>
               ))}
             </ul>
           ) : (
-            <p className="add-panel__empty">{t("Nothing saved yet.")}</p>
+            <p className="add-panel__empty">{t("nothingSavedYet")}</p>
           )}
         </div>
       )}
@@ -318,7 +321,7 @@ export function AddToTripPanel({
           }}
         >
           <label>
-            {t("Name")}
+            {t("name")}
             <input
               value={name}
               maxLength={120}
@@ -328,7 +331,7 @@ export function AddToTripPanel({
             />
           </label>
           <label>
-            {t("Start time")}
+            {t("startTime")}
             <input
               type="time"
               value={start}
@@ -338,7 +341,7 @@ export function AddToTripPanel({
             />
           </label>
           <label>
-            {t("Note")}
+            {t("note")}
             <input
               value={note}
               maxLength={500}
@@ -347,7 +350,7 @@ export function AddToTripPanel({
             />
           </label>
           <button type="submit" className="primary" disabled={disabled || !typed}>
-            {t("Add")}
+            {t("add")}
           </button>
         </form>
       )}
@@ -358,7 +361,7 @@ export function AddToTripPanel({
           checked={keepOpen}
           onChange={(event) => setKeepOpen(event.target.checked)}
         />
-        {t("Keep open")}
+        {t("keepOpen")}
       </label>
     </section>
   );

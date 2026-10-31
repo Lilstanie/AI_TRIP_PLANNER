@@ -26,7 +26,7 @@ function openTrip(): SessionState {
     busy: true,
     selectedActivity: "stop-1",
     mapRoutes: [{ mode: "walk" } as never],
-    errors: { destination: { key: "Enter a destination." } },
+    errors: { destination: { key: "enterADestination" } },
   };
 }
 
@@ -167,10 +167,10 @@ describe("session after a planning turn", () => {
     const before = { ...openTrip(), input: "half-typed" };
     const next = session(before, {
       kind: "failed",
-      message: { key: "Planning failed. Please retry." },
+      message: { key: "planningFailedPleaseRetry" },
       task,
     });
-    expect(next.error).toEqual({ key: "Planning failed. Please retry." });
+    expect(next.error).toEqual({ key: "planningFailedPleaseRetry" });
     expect(next.retry).toBe(task);
     expect(next.input).toBe("half-typed");
     expect(next.plan).toBe(before.plan);
@@ -187,7 +187,7 @@ describe("session after a planning turn", () => {
   it("a retry after a failure clears the error, and its success leaves no retry behind", () => {
     const failed = session(openTrip(), {
       kind: "failed",
-      message: { key: "Planning failed. Please retry." },
+      message: { key: "planningFailedPleaseRetry" },
       task,
     });
     const retrying = session(failed, { kind: "started" });
@@ -210,7 +210,7 @@ describe("session after a planning turn", () => {
     const message = { role: "user" as const, text: "Hi" };
     expect(session(openTrip(), { kind: "sent", message, brief: true }).errors).toEqual({});
     const chatted = session(openTrip(), { kind: "sent", message });
-    expect(chatted.errors).toEqual({ destination: { key: "Enter a destination." } });
+    expect(chatted.errors).toEqual({ destination: { key: "enterADestination" } });
     expect(chatted.messages.at(-1)).toBe(message);
   });
 
@@ -283,7 +283,7 @@ describe("requestTurn", () => {
   });
 
   it("returns a route's keyed refusal as that notice, so it shows in the interface language", async () => {
-    const notice = { key: "Planning failed. Please retry." } as const;
+    const notice = { key: "planningFailedPleaseRetry" } as const;
     const outcome = await requestTurn(
       task,
       async () =>
@@ -299,13 +299,13 @@ describe("requestTurn", () => {
     });
     expect(outcome).toEqual({
       kind: "failed",
-      message: { key: "Request failed ({status}).", params: { status: 502 } },
+      message: { key: "requestFailedStatus", params: { status: 502 } },
       task,
     });
   });
 
   it("returns an error frame's keyed notice from the stream", async () => {
-    const notice = { key: "Unable to update this trip. Check the request and try again." } as const;
+    const notice = { key: "unableToUpdateThisTrip" } as const;
     const frame = JSON.stringify({ type: "error", error: "Unable to update this trip.", notice });
     const outcome = await requestTurn(task, async () => new Response(`${frame}\n`), {
       signal: new AbortController().signal,
@@ -319,7 +319,7 @@ describe("requestTurn", () => {
     });
     expect(outcome).toEqual({
       kind: "failed",
-      message: { key: "Connection ended before the plan was ready. Please retry." },
+      message: { key: "connectionEndedBeforeThePlan" },
       task,
     });
   });
@@ -355,7 +355,7 @@ describe("session after a change made by hand", () => {
     const before = {
       ...openTrip(),
       input: "half typed",
-      error: { key: "Planning failed. Please retry." } as const,
+      error: { key: "planningFailedPleaseRetry" } as const,
       retry: task,
       ask: { key: "a", questions: [], known: {} },
       activity: [PREPARING],

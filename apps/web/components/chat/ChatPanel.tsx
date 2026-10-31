@@ -210,7 +210,7 @@ export function ChatPanel({
   }, [hero]);
 
   return (
-    <section className={`panel chat${hero ? " chat--hero" : ""}`} aria-label={t("Chat")}>
+    <section className={`panel chat${hero ? " chat--hero" : ""}`} aria-label={t("chat")}>
       {showTabs && !phone && <ChatViewTabs view={view} onChoose={choose} />}
       <div
         className="chat__stream"
@@ -221,7 +221,7 @@ export function ChatPanel({
           ? {}
           : showTabs
             ? { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" }
-            : { role: "region", "aria-label": t("Conversation") })}
+            : { role: "region", "aria-label": t("conversation") })}
         aria-busy={busy}
         onScroll={(event) => {
           lastTop.current = event.currentTarget.scrollTop;
@@ -245,7 +245,7 @@ export function ChatPanel({
         {(activity.length > 0 || busy) && (
           <section
             className={`agent-activity${error && !busy ? " agent-activity--error" : ""}`}
-            aria-label={t("Thinking process")}
+            aria-label={t("thinkingProcess")}
           >
             <ThinkingProcess activity={activity} busy={busy} error={error} />
           </section>
@@ -257,7 +257,7 @@ export function ChatPanel({
           id="chat-panel-trajectory"
           role={showTabs ? "tabpanel" : "region"}
           aria-labelledby={showTabs ? "chat-tab-trajectory" : undefined}
-          aria-label={showTabs ? undefined : t("Trajectory")}
+          aria-label={showTabs ? undefined : t("trajectory")}
         >
           <TrajectoryTab
             key={conversationId}
@@ -293,7 +293,7 @@ export function ChatPanel({
           {blankUntouched && (
             <div
               className="chat-suggestions chat-empty__suggestions"
-              aria-label={t("Example trips")}
+              aria-label={t("exampleTrips")}
             >
               {prompts.slice(0, phone ? 2 : prompts.length).map(({ label, text, params }) => (
                 <button
@@ -328,9 +328,7 @@ export function ChatPanel({
         </form>
       )}
       {!(phone && blankUntouched) && (
-        <p className="disclaimer">
-          {t("Estimates require verification. Nothing here makes a booking.")}
-        </p>
+        <p className="disclaimer">{t("estimatesRequireVerificationNothingHere")}</p>
       )}
     </section>
   );

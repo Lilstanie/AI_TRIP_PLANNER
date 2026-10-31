@@ -13,7 +13,7 @@ describe("POST /api/trip/preview-edit refusals", () => {
     expect(response.status).toBe(400);
     expect(await response.json()).toEqual({
       error: "This edit is stale. Start from the current plan.",
-      notice: { key: "This edit is stale. Start from the current plan." },
+      notice: { key: "thisEditIsStaleStart" },
     });
   });
 

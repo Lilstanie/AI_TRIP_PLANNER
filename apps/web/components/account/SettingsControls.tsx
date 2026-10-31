@@ -1,6 +1,6 @@
 "use client";
 import { useRef, useState, type ReactNode } from "react";
-import type { MessageKey } from "@/lib/i18n/locale";
+import { keyForText, type EnglishText, type MessageKey } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 import { useSegmentIndicator } from "../ui/motion";
 import { useLocale } from "./LocaleProvider";
@@ -8,7 +8,7 @@ import { useLocale } from "./LocaleProvider";
 export function SettingRow({
   label,
   value,
-  action = "Change",
+  action = "change",
   children,
 }: {
   label: string;
@@ -30,10 +30,10 @@ export function SettingRow({
             type="button"
             className="settings-pill"
             aria-expanded={open}
-            aria-label={`${t(open ? "Close" : action)} ${label}`}
+            aria-label={`${t(open ? "close" : action)} ${label}`}
             onClick={() => setOpen(!open)}
           >
-            {t(open ? "Done" : action)}
+            {t(open ? "done" : action)}
           </button>
         )}
       </div>
@@ -73,7 +73,7 @@ export function Segmented<T extends string>({
   );
 }
 
-export function ChipGroup<T extends MessageKey>({
+export function ChipGroup<T extends EnglishText>({
   label,
   options,
   value,
@@ -99,7 +99,7 @@ export function ChipGroup<T extends MessageKey>({
               onChange(on ? value.filter((item) => item !== option) : [...value, option])
             }
           >
-            {t(option)}
+            {t(keyForText(option))}
           </button>
         );
       })}
@@ -155,22 +155,22 @@ export function MemoryRow({
         type="button"
         className="memory-row__main"
         aria-expanded={open}
-        aria-label={t("Edit {v0}", { v0: label })}
+        aria-label={t("editV0", { v0: label })}
         onClick={() => setOpen(!open)}
       >
         <span aria-hidden="true">{icon}</span>
         <span>
-          <strong>{label}:</strong> {empty ? question : value}
+          <strong>{t("labelColon", { label })}</strong> {empty ? question : value}
         </span>
       </button>
       {empty && !open && (
         <button
           type="button"
           className="memory-row__answer"
-          aria-label={t("Answer {v0}", { v0: label })}
+          aria-label={t("answerV0", { v0: label })}
           onClick={() => setOpen(true)}
         >
-          {t("Answer")}
+          {t("answer")}
         </button>
       )}
       {open && <div className="memory-row__editor">{children(() => setOpen(false))}</div>}
@@ -216,7 +216,7 @@ export function TextEditor({
         className="settings-pill settings-pill--ink"
         disabled={Boolean(problem)}
       >
-        {t("Save")}
+        {t("save")}
       </button>
       {problem && <small className="settings-error">{localizeNotice(problem)}</small>}
     </form>

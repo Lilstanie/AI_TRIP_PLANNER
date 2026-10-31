@@ -19,24 +19,24 @@ import type { MessageKey } from "@/lib/i18n/locale";
 import type { Notice } from "@/lib/i18n/notice";
 
 const TITLES: Record<FactKey, MessageKey> = {
-  where: "Where",
-  when: "When",
-  who: "Who",
-  budget: "Budget",
-  preferences: "Trip preferences",
+  where: "where",
+  when: "when",
+  who: "who",
+  budget: "budgetTitle",
+  preferences: "tripPreferences",
 };
 const EMPTY: Record<Exclude<FactKey, "preferences">, MessageKey> = {
-  where: "Where",
-  when: "When",
-  who: "Who",
-  budget: "Budget",
+  where: "where",
+  when: "when",
+  who: "who",
+  budget: "budgetTitle",
 };
 
 const NAMES: Record<Exclude<FactKey, "preferences">, MessageKey> = {
-  where: "Destination",
-  when: "Dates",
-  who: "Travellers",
-  budget: "Budget",
+  where: "destination",
+  when: "dates",
+  who: "travellers",
+  budget: "budgetTitle",
 };
 
 type Props = {
@@ -135,7 +135,7 @@ export function TripFactChips(props: Props) {
   }, [labelText]);
 
   return (
-    <div className="fact-chips" role="group" aria-label={t("Trip details")}>
+    <div className="fact-chips" role="group" aria-label={t("tripDetails")}>
       <div ref={scroller} className="fact-chips__scroller">
         {(props.facts ?? FACTS).map((fact) => {
           const expanded = open === fact;
@@ -156,10 +156,10 @@ export function TripFactChips(props: Props) {
                   preferencesChip.current = node;
                 }}
                 className="fact-chip fact-chip--preferences"
-                aria-label={t("Open trip preferences")}
+                aria-label={t("openTripPreferences")}
               >
                 <SlidersIcon />
-                <span>{t("Preferences")}</span>
+                <span>{t("preferences")}</span>
               </button>
             );
           const label = labels[fact];
@@ -286,11 +286,11 @@ function FactForm({
               if (check() && onPlan(next())) onDone();
             }}
           >
-            {t(busy ? "Planning…" : plan ? "Replan trip" : "Plan trip")}
+            {t(busy ? "planningTitle" : plan ? "replanTrip" : "planTrip")}
           </button>
         )}
         <button type="submit" className="primary fact-form__primary" disabled={busy}>
-          {t(!plan && fact === "preferences" ? "Done" : "Save")}
+          {t(!plan && fact === "preferences" ? "done" : "save")}
         </button>
       </div>
     </form>

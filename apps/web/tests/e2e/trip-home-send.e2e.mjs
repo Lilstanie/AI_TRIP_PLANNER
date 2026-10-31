@@ -197,7 +197,7 @@ const labels = {
     chatsLabel: "聊天",
     send: "发送",
     start: "开始聊天",
-    backTrips: "返回行程",
+    backTrips: "返回行程列表",
   },
 };
 

@@ -104,7 +104,7 @@ export function useTimelineEdits({
       return await call(controller.signal);
     } catch (e) {
       if (!controller.signal.aborted)
-        setErrors([errorNotice(e, { key: "Something went wrong. Try again." })]);
+        setErrors([errorNotice(e, { key: "somethingWentWrongTryAgain" })]);
       return undefined;
     } finally {
       if (request.current === controller) {
@@ -203,11 +203,10 @@ export function useTimelineEdits({
         signal,
       });
       const body = await response.json().catch(() => null);
-      if (!response.ok)
-        throw new NoticeError(failureNotice(body, { key: "Search failed. Try again." }));
+      if (!response.ok) throw new NoticeError(failureNotice(body, { key: "searchFailedTryAgain" }));
       if (!signal.aborted) {
         setResults(body.places);
-        if (!body.places.length) setErrors([{ key: "No places found. Try different words." }]);
+        if (!body.places.length) setErrors([{ key: "noPlacesFoundTryDifferent" }]);
       }
     });
   }

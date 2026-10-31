@@ -1,7 +1,7 @@
 "use client";
 import type { TripPlan } from "@trip/shared";
 import { NoticeError, type Notice } from "@/lib/i18n/notice";
-export const STALE_PLAN: Notice = { key: "This edit is stale. Start from the current plan." };
+export const STALE_PLAN: Notice = { key: "thisEditIsStaleStart" };
 
 const keyFor = (tripId: string) => `trip.revision:${tripId}`;
 const fingerprint = (plan: TripPlan) => JSON.stringify(plan, sortedKeys);

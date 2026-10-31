@@ -25,27 +25,19 @@ export function DataModeToggle({
   const keyed = providers?.hotelsAndFlights ?? true;
   const unsignedMessage =
     liveBlock === "auth-not-configured"
-      ? t("Mock data: bundled fixtures. Live provider data is off on this deployment.")
-      : t(
-          "Mock data: bundled fixtures. Sign in to use the AI model and live hotel and flight prices.",
-        );
+      ? t("mockDataBundledFixturesLive")
+      : t("mockDataBundledFixturesSign");
   const unsignedSrMessage =
     liveBlock === "auth-not-configured"
-      ? t(". Currently using mock fixtures. Live provider data is off on this deployment.")
-      : t(
-          ". Currently using mock fixtures. Sign in to use the AI model and live hotel and flight prices.",
-        );
+      ? t("currentlyUsingMockFixturesLive")
+      : t("currentlyUsingMockFixturesSign");
   const title = !liveAvailable
     ? unsignedMessage
     : live
       ? keyed
-        ? t(
-            "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
-          )
-        : t(
-            "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
-          )
-      : t("Mock data: bundled fixtures. No provider requests and no allowance spent.");
+        ? t("liveDataRealHotelAnd")
+        : t("liveDataSelectedButNo")
+      : t("mockDataBundledFixturesNo");
 
   return (
     <button
@@ -58,7 +50,7 @@ export function DataModeToggle({
       onClick={() => liveAvailable && onChange(live ? "mock" : "live")}
     >
       <span className="data-mode__dot" aria-hidden="true" />
-      <span className="topbar-button__label">{t(live ? "Live data" : "Mock data")}</span>
+      <span className="topbar-button__label">{t(live ? "liveData" : "mockData")}</span>
       {live && !keyed && (
         <span className="data-mode__warn" aria-hidden="true">
           !
@@ -68,8 +60,8 @@ export function DataModeToggle({
         {!liveAvailable
           ? unsignedSrMessage
           : live
-            ? t(". Currently using live provider data. Activate to switch to mock fixtures.")
-            : t(". Currently using mock fixtures. Activate to switch to live provider data.")}
+            ? t("currentlyUsingLiveProviderData")
+            : t("currentlyUsingMockFixturesActivate")}
       </span>
     </button>
   );

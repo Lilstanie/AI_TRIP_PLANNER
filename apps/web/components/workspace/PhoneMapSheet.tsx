@@ -7,9 +7,9 @@ import type { WorkspaceModel } from "./useWorkspace";
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];
 const names = {
-  handle: "Resize day stops, collapsed",
-  half: "Resize day stops, half height",
-  full: "Resize day stops, full height",
+  handle: "resizeDayStopsCollapsed",
+  half: "resizeDayStopsHalfHeight",
+  full: "resizeDayStopsFullHeight",
 } as const;
 
 export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
@@ -34,7 +34,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
       className="phone-map-sheet"
       data-snap={snap}
       data-empty={empty || undefined}
-      aria-label={t("Day stops")}
+      aria-label={t("dayStops")}
       onKeyDown={(event) => {
         if (event.key === "Escape" && snap !== "handle") {
           event.preventDefault();
@@ -87,12 +87,12 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
         }}
       >
         <span aria-hidden="true" className="phone-map-sheet__grip" />
-        <span>{t("Day stops")}</span>
+        <span>{t("dayStops")}</span>
       </button>
-      {empty && <p className="phone-map-sheet__empty">{t("Nothing planned for this day yet.")}</p>}
+      {empty && <p className="phone-map-sheet__empty">{t("nothingPlannedForThisDay")}</p>}
       <div id="phone-map-stops" className="phone-map-sheet__body" hidden={snap === "handle"}>
         {days.length > 0 && (
-          <div className="phone-map-sheet__days" role="group" aria-label={t("Choose map day")}>
+          <div className="phone-map-sheet__days" role="group" aria-label={t("chooseMapDay")}>
             {days.map((value) => (
               <button
                 type="button"
@@ -100,7 +100,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
                 aria-pressed={value === selectedDay}
                 onClick={() => model.layout.pickMapDay(value)}
               >
-                {t("Day {v0}", { v0: value })}
+                {t("dayV0", { v0: value })}
               </button>
             ))}
           </div>
@@ -127,7 +127,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
                     <span>
                       <span className="phone-map-sheet__title">{stop.location ?? stop.detail}</span>
                       <small>
-                        {[stop.startTime, number === undefined && t("Not found on the map")]
+                        {[stop.startTime, number === undefined && t("notFoundOnTheMap")]
                           .filter(Boolean)
                           .join(" · ")}
                       </small>

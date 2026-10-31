@@ -172,7 +172,7 @@ export function TripEditorView({
     () => [...itinerary.ideas(), ...suggestions] as Activity[],
     [itinerary, suggestions],
   );
-  const ideasLabel = ideas.length === 1 ? t("1 idea") : t("{v0} ideas", { v0: ideas.length });
+  const ideasLabel = t("ideaCount", { count: ideas.length });
   const rows = useMemo(() => dayRows(plan, day, daily, locale), [plan, day, daily, locale]);
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
@@ -234,9 +234,7 @@ export function TripEditorView({
       onApply(next);
       return true;
     } catch (error) {
-      setProblem(
-        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
-      );
+      setProblem(error instanceof NoticeError ? error.notice : { key: "thatChangeCouldNotBe" });
       return false;
     }
   };
@@ -251,9 +249,7 @@ export function TripEditorView({
       then?.(next);
       return true;
     } catch (error) {
-      setProblem(
-        error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
-      );
+      setProblem(error instanceof NoticeError ? error.notice : { key: "thatChangeCouldNotBe" });
       return false;
     }
   };
@@ -264,86 +260,79 @@ export function TripEditorView({
     ...(onSend
       ? [
           {
-            label: t("Ask AI"),
+            label: t("askAi"),
             icon: <SendIcon />,
             disabled: locked,
-            onSelect: () =>
-              onSend(
-                t(
-                  "Suggest improvements for Day {v0}, taking the rest of my current plan into account.",
-                  { v0: day },
-                ),
-              ),
+            onSelect: () => onSend(t("suggestImprovementsForDayV0", { v0: day })),
           },
         ]
       : []),
     {
-      label: t("Edit title"),
+      label: t("editTitle"),
       icon: <PencilIcon />,
       disabled: locked,
       onSelect: () => setEditingDay("title"),
     },
     {
-      label: t(dayEntry?.note ? "Edit note" : "Add note"),
+      label: t(dayEntry?.note ? "editNote" : "addNote"),
       icon: <ComposeIcon />,
       disabled: locked,
       onSelect: () => setEditingDay("note"),
     },
     {
-      label: t("Add day before"),
+      label: t("addDayBefore"),
       separated: true,
       icon: <PlusIcon />,
       disabled: locked,
       onSelect: () =>
-        runDay({ kind: "insert", at: day }, { key: "Day {day} added.", params: { day } }, () =>
+        runDay({ kind: "insert", at: day }, { key: "dayDayAdded", params: { day } }, () =>
           selectDay(day),
         ),
     },
     {
-      label: t("Add day after"),
+      label: t("addDayAfter"),
       icon: <PlusIcon />,
       disabled: locked,
       onSelect: () =>
         runDay(
           { kind: "insert", at: day + 1 },
-          { key: "Day {day} added.", params: { day: day + 1 } },
+          { key: "dayDayAdded", params: { day: day + 1 } },
           () => selectDay(day + 1),
         ),
     },
     {
-      label: t("Clear day"),
+      label: t("clearDay"),
       icon: <CloseIcon />,
       separated: true,
       disabled: locked || !scheduledOn(plan, day),
-      onSelect: () =>
-        runDay({ kind: "clear", day }, { key: "Day {day} cleared.", params: { day } }),
+      onSelect: () => runDay({ kind: "clear", day }, { key: "dayDayCleared", params: { day } }),
     },
     {
-      label: t("Remove day"),
+      label: t("removeDay"),
       icon: <MinusIcon />,
       tone: "danger",
       disabled: locked || days < 2,
       onSelect: () =>
-        runDay({ kind: "remove", day }, { key: "Day {day} removed.", params: { day } }, () =>
+        runDay({ kind: "remove", day }, { key: "dayDayRemoved", params: { day } }, () =>
           selectDay(Math.min(day, days - 1)),
         ),
     },
   ];
   const itineraryMenu = (): ActionMenuItem[] => [
     {
-      label: t("Copy trip"),
+      label: t("copyTrip"),
       icon: <CopyIcon />,
       onSelect: async () => {
         try {
           await navigator.clipboard.writeText(tripText(plan, locale));
-          setAnnouncement({ key: "Trip copied" });
+          setAnnouncement({ key: "tripCopied" });
         } catch {
-          setAnnouncement({ key: "Could not copy trip" });
+          setAnnouncement({ key: "couldNotCopyTrip" });
         }
       },
     },
     {
-      label: t("Download calendar"),
+      label: t("downloadCalendar"),
       icon: <CalendarIcon />,
       onSelect: () => {
         const url = URL.createObjectURL(
@@ -357,18 +346,18 @@ export function TripEditorView({
       },
     },
     {
-      label: t("Move all events to ideas"),
+      label: t("moveAllEventsToIdeas"),
       separated: true,
       icon: <SuitcaseIcon />,
       disabled: locked || !scheduledCount(plan),
-      onSelect: () => runDay({ kind: "ideas" }, { key: "All events moved to Ideas." }),
+      onSelect: () => runDay({ kind: "ideas" }, { key: "allEventsMovedToIdeas" }),
     },
     {
-      label: t("Remove all scheduled events"),
+      label: t("removeAllScheduledEvents"),
       icon: <CloseIcon />,
       tone: "danger",
       disabled: locked || !scheduledCount(plan),
-      onSelect: () => runDay({ kind: "removeAll" }, { key: "All scheduled events removed." }),
+      onSelect: () => runDay({ kind: "removeAll" }, { key: "allScheduledEventsRemoved" }),
     },
   ];
 
@@ -382,7 +371,7 @@ export function TripEditorView({
       () => {
         setProblem("");
         setAnnouncement({
-          key: "{name} moved to position {position} of {total} on Day {day}.",
+          key: "nameMovedToPositionPosition",
           params: {
             name: activity.location ?? activity.detail,
             position: Math.min(index, total - 1) + 1,
@@ -403,7 +392,7 @@ export function TripEditorView({
       const name = moved.location ?? moved.detail;
       if (target.zone.kind === "ideas") {
         if (moved.day !== undefined)
-          void act(moved, { kind: "idea" }, { key: "{name} moved to Ideas.", params: { name } });
+          void act(moved, { kind: "idea" }, { key: "nameMovedToIdeas", params: { name } });
         return;
       }
       const to = target.zone.day;
@@ -470,7 +459,7 @@ export function TripEditorView({
           idea,
           { kind: "day", day: scheduleDay },
           {
-            key: "{name} moved to Day {day}.",
+            key: "nameMovedToDayDay",
             params: { name: idea.location ?? idea.detail, day: scheduleDay },
           },
         )
@@ -505,13 +494,13 @@ export function TripEditorView({
     return () => window.clearTimeout(timer);
   }, [hoverDay]);
   return (
-    <section className="trip-editor" aria-label={t("Trip timeline")}>
+    <section className="trip-editor" aria-label={t("tripTimeline")}>
       <p className="sr-only" role="status">
         {announcement ? localizeNotice(announcement) : ""}
       </p>
       {today !== undefined && day !== today && (
         <button className="trip-editor__today" type="button" onClick={() => selectDay(today)}>
-          {t("Return to today")}
+          {t("returnToToday")}
         </button>
       )}
       <div className="trip-editor__toolbar">
@@ -529,7 +518,7 @@ export function TripEditorView({
             {ideasLabel}
           </button>
         )}
-        <ActionMenu label={t("Itinerary actions")} items={itineraryMenu()} />
+        <ActionMenu label={t("itineraryActions")} items={itineraryMenu()} />
       </div>
       {adding === "ideas" && panel({ kind: "day", day }, "ideas")}
       <DayStrip
@@ -543,12 +532,12 @@ export function TripEditorView({
 
       {legs?.working && (
         <p className="timeline-status" role="status">
-          {t("Checking travel times…")}
+          {t("checkingTravelTimes")}
         </p>
       )}
       {edits.working && (
         <p className="timeline-status" role="status">
-          {edits.working === "search" ? t("Searching Google Maps…") : t("Checking the change…")}
+          {edits.working === "search" ? t("searchingGoogleMaps") : t("checkingTheChange")}
         </p>
       )}
       {!!edits.errors.length && (
@@ -582,15 +571,15 @@ export function TripEditorView({
               onTimelineChange?.(false);
             }}
           >
-            {t("Undo")}
+            {t("undo")}
           </button>
         </div>
       ) : (
         edits.undo && (
           <div className="timeline-undo" role="status">
-            <span>{t("Change applied.")}</span>
+            <span>{t("changeApplied")}</span>
             <button type="button" disabled={locked} onClick={() => void edits.edit(edits.undo!)}>
-              {t("Undo last change")}
+              {t("undoLastChange")}
             </button>
           </div>
         )
@@ -605,21 +594,21 @@ export function TripEditorView({
       >
         <div className="timeline-day__head">
           <h3 ref={dayTitle} id="timeline-day-title" tabIndex={-1} className="timeline-day__title">
-            {t("Day {v0}", { v0: day })} <span>{labels[day - 1]}</span>
+            {t("dayV0", { v0: day })} <span>{labels[day - 1]}</span>
             {dayEntry?.title && <span className="timeline-day__name">{dayEntry.title}</span>}
           </h3>
           {onShowMap && (
             <button
               type="button"
               className="timeline-day__map"
-              aria-label={t("Day map, Day {v0}", { v0: day })}
+              aria-label={t("dayMapDayV0", { v0: day })}
               onClick={() => onShowMap(day)}
             >
               <MapIcon />
-              {t("Day map")}
+              {t("dayMap")}
             </button>
           )}
-          <ActionMenu label={t("Day {v0} actions", { v0: day })} items={dayMenu()} />
+          <ActionMenu label={t("dayV0Actions", { v0: day })} items={dayMenu()} />
         </div>
         {editingDay && (
           <DayNoteForm
@@ -635,8 +624,8 @@ export function TripEditorView({
                   ? { kind: "title", day, title: text }
                   : { kind: "note", day, note: text },
                 editingDay === "title"
-                  ? { key: "Day {day} title updated.", params: { day } }
-                  : { key: "Day {day} note updated.", params: { day } },
+                  ? { key: "dayDayTitleUpdated", params: { day } }
+                  : { key: "dayDayNoteUpdated", params: { day } },
                 () => setEditingDay(undefined),
               )
             }
@@ -645,11 +634,11 @@ export function TripEditorView({
         {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
         {staying && (
           <p className="timeline-day__staying">
-            <FlowStayIcon size={13} /> {t("Staying at {place}", { place: staying })}
+            <FlowStayIcon size={13} /> {t("stayingAtPlace", { place: staying })}
           </p>
         )}
         {!!conflicts.days.get(day)?.length && (
-          <ul className="timeline-day__conflicts" aria-label={t("Open conflicts")}>
+          <ul className="timeline-day__conflicts" aria-label={t("openConflicts")}>
             {conflicts.days.get(day)!.map((notice, index) => (
               <li key={index}>{localizeNotice(notice)}</li>
             ))}
@@ -661,7 +650,7 @@ export function TripEditorView({
             className="timeline tab-panel-enter"
             data-drop-zone={zoneKey({ kind: "day", day })}
             {...(rows.length ? {} : { "data-empty": "true" })}
-            aria-label={t("Day {v0} timeline", { v0: day })}
+            aria-label={t("dayV0Timeline", { v0: day })}
           >
             {rows.map((row, position) => {
               if (row.type === "fixed") return <FixedTimelineRow key={row.key} row={row} />;
@@ -718,9 +707,7 @@ export function TripEditorView({
             })}
             {lineAt === shownCount && <DropLine />}
           </ol>
-          {!rows.length && (
-            <p className="timeline-empty">{t("Nothing planned for this day yet.")}</p>
-          )}
+          {!rows.length && <p className="timeline-empty">{t("nothingPlannedForThisDay")}</p>}
         </>
       </div>
 
@@ -728,10 +715,10 @@ export function TripEditorView({
         <button
           type="button"
           disabled={locked}
-          aria-label={t("Add to Day {v0}", { v0: day })}
+          aria-label={t("addToDayV0", { v0: day })}
           onClick={() => setAdding("day")}
         >
-          {t("Add")}
+          {t("add")}
         </button>
       </div>
       {adding === "day" && panel({ kind: "day", day })}

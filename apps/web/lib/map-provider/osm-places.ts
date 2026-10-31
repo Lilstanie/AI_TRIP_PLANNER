@@ -145,14 +145,14 @@ export function osmPlaces(fetcher?: ProviderFetch) {
     search,
     async details(id: string, language: "en" | "zh" = "en"): Promise<MapPlace> {
       const match = /^osm:(node|way|relation)\/(\d+)$/.exec(id);
-      if (!match) throw new NoticeError({ key: "This saved place is no longer available." });
+      if (!match) throw new NoticeError({ key: "thisSavedPlaceIsNo" });
       const prefix = { node: "N", way: "W", relation: "R" }[match[1]!];
       const places = await nominatim("lookup", {
         osm_ids: `${prefix}${match[2]}`,
         "accept-language": language,
       });
       const place = places.find((p) => p.id === id);
-      if (!place) throw new NoticeError({ key: "This saved place is no longer available." });
+      if (!place) throw new NoticeError({ key: "thisSavedPlaceIsNo" });
       return place;
     },
   };

@@ -36,7 +36,7 @@ dialog gave that figure only to someone who opened it.
   notices area says the signed change from the previous estimate, "Estimate changed by +AUD 120.00 from the
   previous plan.", or "Estimate unchanged from the previous plan." when the change rounds to zero. It has a
   Dismiss button. It is not persisted, and a timeline edit, a reopened chat or a reload clears it.
-- Every new string has a Chinese entry in `apps/web/lib/i18n/workspace-messages.ts`; keys with no remaining use
+- Every new string has a Chinese entry in the `apps/web/lib/i18n/messages/` catalogs; keys with no remaining use
   (`Review plan`, `Needs review`, `Needs you`, `Draft`, `No plan yet`, `No plan yet. Update your trip
 preferences to start.`, `No detected schedule conflicts.`, `Change from the previous estimate: {v0}.`,
   `No previous plan to compare.`) are removed. `Conflicts` stays: the activity check in `agent-lab` uses it.

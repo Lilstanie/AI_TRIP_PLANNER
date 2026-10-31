@@ -13,7 +13,7 @@ export function AccountButton({
   onSettings(section?: SettingsSection): void;
 }) {
   const account = useAccount();
-  const { locale, t } = useLocale();
+  const { t } = useLocale();
   const [open, setOpen] = useState(false);
   const [focusIndex, setFocusIndex] = useState(0);
   const wrap = useRef<HTMLDivElement>(null);
@@ -23,27 +23,27 @@ export function AccountButton({
   const name = signedIn
     ? account.name
     : account.status === "signed-out"
-      ? t("Sign in")
+      ? t("signIn")
       : account.status === "loading"
-        ? t("Account")
-        : t("Local");
+        ? t("account")
+        : t("local");
   const subtitle = signedIn
     ? account.username
       ? `@${account.username}`
-      : t("Your travel workspace")
+      : t("yourTravelWorkspace")
     : account.status === "signed-out"
-      ? t("Keep your trips in sync")
+      ? t("keepYourTripsInSync")
       : account.status === "loading"
-        ? t("Checking account…")
-        : t("Saved in this browser");
+        ? t("checkingAccount")
+        : t("savedInThisBrowser");
   const menuItemsList: Array<
     { kind: "section"; id: SettingsSection; label: string } | { kind: "sign-out"; label: string }
   > = [
-    { kind: "section", id: "profile", label: t("View profile") },
-    { kind: "section", id: "account", label: t("Account settings") },
-    { kind: "section", id: "personalization", label: t("Personalization") },
-    { kind: "section", id: "region", label: t("Language & region") },
-    ...(signedIn ? [{ kind: "sign-out" as const, label: t("Sign out") }] : []),
+    { kind: "section", id: "profile", label: t("viewProfile") },
+    { kind: "section", id: "account", label: t("accountSettings") },
+    { kind: "section", id: "personalization", label: t("personalization") },
+    { kind: "section", id: "region", label: t("languageRegion") },
+    ...(signedIn ? [{ kind: "sign-out" as const, label: t("signOut") }] : []),
   ];
 
   useEffect(() => {
@@ -137,7 +137,10 @@ export function AccountButton({
         <button
           type="button"
           className="account-button__profile"
-          aria-label={`${t(signedIn ? "View profile" : "Account settings")}${locale === "zh" ? "：" : ": "}${name}`}
+          aria-label={t("labelValue", {
+            label: t(signedIn ? "viewProfile" : "accountSettings"),
+            value: name,
+          })}
           aria-busy={account.status === "loading" || undefined}
           onClick={() => onSettings(signedIn ? "profile" : "account")}
         >
@@ -153,7 +156,7 @@ export function AccountButton({
           ref={trigger}
           type="button"
           className="account-button__more"
-          aria-label={t("Open account menu")}
+          aria-label={t("openAccountMenu")}
           aria-haspopup="menu"
           aria-expanded={open}
           aria-controls={open ? "account-settings-menu" : undefined}
@@ -173,7 +176,7 @@ export function AccountButton({
           id="account-settings-menu"
           className="account-menu"
           role="menu"
-          aria-label={t("Account and settings")}
+          aria-label={t("accountAndSettings")}
           onKeyDown={moveMenuFocus}
         >
           {menuItemsList.map((item, index) => (

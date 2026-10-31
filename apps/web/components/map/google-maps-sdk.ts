@@ -91,7 +91,7 @@ export function loadMaps() {
   sdk = new Promise<MapsSDK>((resolve, reject) => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!key) {
-      reject(new NoticeError({ key: "Map unavailable: configure the browser Google Maps key." }));
+      reject(new NoticeError({ key: "mapUnavailableConfigureTheBrowser" }));
       return;
     }
     const script = document.createElement("script");
@@ -104,7 +104,7 @@ export function loadMaps() {
       script.remove();
       reject(
         new NoticeError({
-          key: "Google Maps took too long to load. Check your connection and retry.",
+          key: "googleMapsTookTooLong",
         }),
       );
     }, 10_000);
@@ -120,9 +120,7 @@ export function loadMaps() {
       window.clearTimeout(timeout);
       delete host.tripGoogleMapsReady;
       script.remove();
-      reject(
-        new NoticeError({ key: "Google Maps could not load. Check your connection and retry." }),
-      );
+      reject(new NoticeError({ key: "googleMapsCouldNotLoadCheck" }));
     };
     document.head.appendChild(script);
   }).catch((error) => {

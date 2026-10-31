@@ -43,7 +43,7 @@ export function markerTitle(
   day?: number,
   locale: AppLocale = "en",
 ) {
-  return `${number}. ${placeName(place)}${day ? ` · ${translate(locale, "Day {v0}", { v0: day })}` : ""}`;
+  return `${number}. ${placeName(place)}${day ? ` · ${translate(locale, "dayV0", { v0: day })}` : ""}`;
 }
 
 const DAY_COLOURS = 7;

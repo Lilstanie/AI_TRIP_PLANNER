@@ -19,7 +19,7 @@ const FIXED_ICON = {
   stay: FlowStayIcon,
 } as const;
 
-const FIXED_LABEL = { flight: "Flight", ground: "Transfer", stay: "Stay" } as const;
+const FIXED_LABEL = { flight: "flight", ground: "transfer", stay: "stay" } as const;
 
 export function FixedTimelineRow({ row }: { row: FixedRow }) {
   const { t, money } = useLocale();
@@ -45,7 +45,7 @@ export function FixedTimelineRow({ row }: { row: FixedRow }) {
         <p className="timeline-row__meta">{row.detail}</p>
       </div>
       <span className="timeline-row__cost">
-        {row.cost !== undefined ? money(row.cost) : (row.costNote ?? t("Price unknown"))}
+        {row.cost !== undefined ? money(row.cost) : (row.costNote ?? t("priceUnknown"))}
       </span>
     </li>
   );
@@ -61,10 +61,10 @@ const CONNECTION_ICON: Record<string, (props: { size?: number }) => ReactNode> =
 };
 
 const LEG_CHOICES: { mode: LegMode; label: MessageKey }[] = [
-  { mode: "walk", label: "Walk" },
-  { mode: "transit", label: "Public transport" },
-  { mode: "drive", label: "Drive" },
-  { mode: "cycle", label: "Cycle" },
+  { mode: "walk", label: "walk" },
+  { mode: "transit", label: "publicTransport" },
+  { mode: "drive", label: "drive" },
+  { mode: "cycle", label: "cycle" },
 ];
 
 export function LegRow({
@@ -122,22 +122,22 @@ export function LegRow({
             href={directions}
             target="_blank"
             rel="noreferrer"
-            aria-label={t("Directions from {from} to {to}", { from, to })}
+            aria-label={t("directionsFromFromToTo", { from, to })}
           >
-            {t("Directions")}
+            {t("directions")}
           </a>
         )}
         {onChoose && (
           <select
             className="timeline-connection__mode"
-            aria-label={t("Travel from {from} to {to} by", { from, to })}
+            aria-label={t("travelFromFromToTo", { from, to })}
             value={connection.choice ?? ""}
             disabled={locked}
             onChange={(event) => onChoose(event.target.value as LegMode)}
           >
             {connection.choice === undefined && (
               <option value="" disabled>
-                {t("Not checked yet")}
+                {t("notCheckedYet")}
               </option>
             )}
             {LEG_CHOICES.map((choice) => (

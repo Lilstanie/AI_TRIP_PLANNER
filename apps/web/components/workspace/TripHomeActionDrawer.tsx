@@ -19,11 +19,11 @@ import { TRIP_ACTIONS, type TripAction } from "@/lib/workspace/layout";
 import { sameDraft, type Draft } from "@/lib/workspace/workspace";
 
 const TITLES = {
-  itinerary: "Itinerary",
-  ideas: "Ideas",
-  bookings: "Bookings",
-  preferences: "Trip preferences",
-  calendar: "Calendar",
+  itinerary: "itinerary",
+  ideas: "ideas",
+  bookings: "bookings",
+  preferences: "tripPreferences",
+  calendar: "calendar",
 } as const;
 
 export function TripHomeActionDrawer({
@@ -125,7 +125,7 @@ export function TripHomeActionDrawer({
       side="right"
       open={action !== undefined}
       title={title}
-      closeLabel={t("Close {v0}", { v0: title })}
+      closeLabel={t("closeV0", { v0: title })}
       onClose={onClose}
       returnFocus={returnFocus}
       className={`trip-home-action-surface${expanded ? " is-expanded" : ""}`}
@@ -134,7 +134,7 @@ export function TripHomeActionDrawer({
           <div
             className="trip-home-action-switcher__tabs"
             role="tablist"
-            aria-label={t("Trip actions")}
+            aria-label={t("tripActions")}
           >
             {TRIP_ACTIONS.map((item, index) => (
               <button

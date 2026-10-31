@@ -761,10 +761,10 @@ try {
       await page.getByRole("button", { name: zhDay, exact: true }).click();
       const zhItems = await page.getByRole("menuitem").allTextContents();
       check(
-        ["编辑标题", "在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every((label) =>
+        ["改标题", "在前面加一天", "在后面加一天", "清空这一天", "删除这一天"].every((label) =>
           zhItems.includes(label),
         ) &&
-          (zhItems.includes("添加备注") || zhItems.includes("编辑备注")),
+          (zhItems.includes("加备注") || zhItems.includes("改备注")),
         `the day menu items read in Chinese at ${tag}`,
         zhItems,
       );
@@ -778,7 +778,7 @@ try {
       await page.getByRole("button", { name: "行程操作", exact: true }).click();
       const zhBulk = await page.getByRole("menuitem").allTextContents();
       check(
-        zhBulk.includes("全部活动移至备选地点") && zhBulk.includes("移除所有已安排的活动"),
+        zhBulk.includes("全部移到备选地点") && zhBulk.includes("删除当天所有安排"),
         `the itinerary menu items read in Chinese at ${tag}`,
         zhBulk,
       );

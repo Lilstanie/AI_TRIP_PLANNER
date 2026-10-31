@@ -128,8 +128,8 @@ export const PREPARING: AgentProgressEvent = {
   summary: PREPARING_SUMMARY,
 };
 
-export const REJECTED_BRIEF: Notice = { key: "Check the highlighted trip details." };
-const FAILED: Notice = { key: "Unable to update the trip. Please retry." };
+export const REJECTED_BRIEF: Notice = { key: "checkTheHighlightedTripDetails" };
+const FAILED: Notice = { key: "unableToUpdateTheTrip" };
 
 export type SavedSession = Pick<SessionState, "draft" | "messages" | "input"> &
   Partial<Pick<SessionState, "plan" | "previousTotal" | "ask" | "selectedActivity">>;

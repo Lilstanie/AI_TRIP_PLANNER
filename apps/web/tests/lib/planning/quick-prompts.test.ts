@@ -42,7 +42,9 @@ describe("quickPrompts", () => {
 });
 
 describe("quickPrompts cover the planner's travel shapes", () => {
-  const prompts = quickPrompts(new Date(2026, 8, 21));
+  const prompts = quickPrompts(new Date(2026, 8, 21)).map(({ text, params }) => ({
+    text: translate("en", text, params),
+  }));
 
   it("offers a trip that states where it departs from", () => {
     expect(prompts.some(({ text }) => /\bfrom [A-Z][a-z]+ to\b/.test(text))).toBe(true);
@@ -68,8 +70,8 @@ describe("quickPrompts against the real offline extractor", () => {
       expect(patch.dates, `${label}: dates`).toHaveLength(2);
       expect(patch.budgetTotal, `${label}: budget`).toBeGreaterThan(0);
 
-      if (/\bfrom ([A-Z][a-z]+) to\b/.test(text))
-        expect(patch.origin, `${label}: origin`).toBe(/\bfrom ([A-Z][a-z]+) to\b/.exec(text)![1]);
+      const origin = /\bfrom ([A-Z][a-z]+) to\b/.exec(translate("en", text, params));
+      if (origin) expect(patch.origin, `${label}: origin`).toBe(origin[1]);
     }
   });
 });

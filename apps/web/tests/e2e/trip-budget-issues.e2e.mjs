@@ -538,17 +538,17 @@ try {
         .count()) === 0,
     "Chinese Trip panel has no Trip issues block",
   );
-  const zhBadge = zhPage.getByRole("button", { name: /^待处理事项/ });
+  const zhBadge = zhPage.getByRole("button", { name: /^待处理/ });
   await zhBadge.waitFor();
   await zhBadge.click();
-  const zhPopover = zhPage.getByRole("dialog", { name: "待处理事项" });
+  const zhPopover = zhPage.getByRole("dialog", { name: "待处理" });
   await zhPopover.waitFor();
   const zhText = await zhPopover.innerText();
   check(
     /行程问题/.test(zhText) &&
       /时间冲突/.test(zhText) &&
       /尚未定位/.test(zhText) &&
-      /地点查询失败/.test(zhText) &&
+      /地点没查到/.test(zhText) &&
       !/未定价项目/.test(zhText),
     "Chinese popover distinguishes conflict, unlocated and lookup failure without unpriced items",
     zhText,

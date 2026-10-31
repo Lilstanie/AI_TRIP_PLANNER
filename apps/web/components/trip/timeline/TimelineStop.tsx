@@ -35,17 +35,17 @@ type Panel = "" | "search";
 type Popover = "" | "time" | "details" | "comment" | "day";
 
 const PROGRESS = {
-  planned: { action: "Planned", notice: "{name} marked as planned." },
-  visited: { action: "Visited", notice: "{name} marked as visited." },
-  skipped: { action: "Skipped", notice: "{name} marked as skipped." },
+  planned: { action: "planned", notice: "nameMarkedAsPlanned" },
+  visited: { action: "visited", notice: "nameMarkedAsVisited" },
+  skipped: { action: "skipped", notice: "nameMarkedAsSkipped" },
 } as const;
 
-const PROGRESS_TAG = { visited: "Visited", skipped: "Skipped" } as const;
+const PROGRESS_TAG = { visited: "visited", skipped: "skipped" } as const;
 
 const STATUS_TEXT: Partial<Record<LocationStatus, MessageKey>> = {
-  loading: "Finding this place…",
-  unconfirmed: "Not found on the map",
-  unavailable: "Place lookup failed — retry from the map",
+  loading: "findingThisPlace",
+  unconfirmed: "notFoundOnTheMap",
+  unavailable: "placeLookupFailedRetryFrom",
 };
 
 export function TimelineStop({
@@ -119,8 +119,8 @@ export function TimelineStop({
     ? null
     : matched
       ? saveState === "failed"
-        ? { className: "timeline-tag timeline-tag--warn", text: t("Place not saved yet") }
-        : { className: "timeline-tag", text: t("Saving place…") }
+        ? { className: "timeline-tag timeline-tag--warn", text: t("placeNotSavedYet") }
+        : { className: "timeline-tag", text: t("savingPlace") }
       : STATUS_TEXT[status]
         ? { className: "timeline-tag timeline-tag--warn", text: t(STATUS_TEXT[status]!) }
         : null;
@@ -182,7 +182,7 @@ export function TimelineStop({
   const shiftDay = (step: -1 | 1) =>
     act(
       { kind: "day", day: activity.day! + step },
-      { key: "{name} moved to Day {day}.", params: { name, day: activity.day! + step } },
+      { key: "nameMovedToDayDay", params: { name, day: activity.day! + step } },
     );
   const addAgain = () =>
     edits.add({
@@ -201,21 +201,21 @@ export function TimelineStop({
   const menu = (): ActionMenuItem[] => {
     const items: ActionMenuItem[] = [];
     const removal: ActionMenuItem = {
-      label: t("Remove"),
+      label: t("remove"),
       icon: <CloseIcon />,
       tone: "danger",
       separated: true,
       disabled: locked,
-      onSelect: () => act({ kind: "remove" }, { key: "{name} removed.", params: { name } }),
+      onSelect: () => act({ kind: "remove" }, { key: "nameRemoved", params: { name } }),
     };
     const detailsItem: ActionMenuItem = {
-      label: t("Edit details"),
+      label: t("editDetails"),
       icon: <ComposeIcon />,
       disabled: locked,
       onSelect: () => setPopover("details"),
     };
     const commentItem: ActionMenuItem = {
-      label: t("Add a comment"),
+      label: t("addAComment"),
       icon: <ChatIcon />,
       disabled: locked,
       onSelect: () => setPopover("comment"),
@@ -223,7 +223,7 @@ export function TimelineStop({
     if (suggestion) {
       items.push(
         {
-          label: t("Schedule on a day"),
+          label: t("scheduleOnADay"),
           icon: <CalendarIcon />,
           disabled: locked,
           onSelect: () => setPopover("day"),
@@ -235,7 +235,7 @@ export function TimelineStop({
     if (idea) {
       items.push(
         {
-          label: t("Schedule on a day"),
+          label: t("scheduleOnADay"),
           icon: <CalendarIcon />,
           disabled: locked,
           onSelect: () => setPopover("day"),
@@ -249,22 +249,16 @@ export function TimelineStop({
     const askItem: ActionMenuItem[] = onAskAI
       ? [
           {
-            label: t("Ask AI"),
+            label: t("askAi"),
             icon: <SendIcon />,
             disabled: locked,
-            onSelect: () =>
-              onAskAI(
-                t(
-                  "Suggest a change for {v0} on Day {v1}, taking the rest of my current plan into account.",
-                  { v0: name, v1: activity.day! },
-                ),
-              ),
+            onSelect: () => onAskAI(t("suggestAChangeForV0", { v0: name, v1: activity.day! })),
           },
         ]
       : [];
     items.push(
       {
-        label: t("Adjust schedule"),
+        label: t("adjustSchedule"),
         icon: <CalendarIcon />,
         disabled: locked,
         onSelect: () => openTime(),
@@ -273,13 +267,13 @@ export function TimelineStop({
       commentItem,
       ...askItem,
       {
-        label: t("Move to ideas"),
+        label: t("moveToIdeas"),
         icon: <SuitcaseIcon />,
         disabled: locked,
-        onSelect: () => act({ kind: "idea" }, { key: "{name} moved to Ideas.", params: { name } }),
+        onSelect: () => act({ kind: "idea" }, { key: "nameMovedToIdeas", params: { name } }),
       },
       {
-        label: t("Move to previous day"),
+        label: t("moveToPreviousDay"),
         icon: (
           <span className="action-menu__up">
             <ChevronIcon />
@@ -289,7 +283,7 @@ export function TimelineStop({
         onSelect: () => shiftDay(-1),
       },
       {
-        label: t("Move to next day"),
+        label: t("moveToNextDay"),
         icon: (
           <span className="action-menu__down">
             <ChevronIcon />
@@ -299,13 +293,13 @@ export function TimelineStop({
         onSelect: () => shiftDay(1),
       },
       {
-        label: t("Add again"),
+        label: t("addAgain"),
         icon: <PlusIcon />,
         disabled: locked,
         onSelect: () => addAgain(),
       },
       {
-        label: t("Replace place"),
+        label: t("replacePlace"),
         icon: <MapPinIcon />,
         separated: true,
         disabled: locked,
@@ -315,7 +309,7 @@ export function TimelineStop({
     if (place?.location) {
       const { latitude, longitude } = place.location;
       items.push({
-        label: t("Open in Maps"),
+        label: t("openInMaps"),
         icon: <RouteIcon />,
         onSelect: () =>
           window.open(
@@ -341,15 +335,15 @@ export function TimelineStop({
     }
     items.push(
       {
-        label: t("Booked"),
+        label: t("booked"),
         checked: Boolean(activity.booked),
         disabled: locked,
         onSelect: () =>
           act(
             { kind: "booked", booked: !activity.booked },
             activity.booked
-              ? { key: "{name} marked as not booked.", params: { name } }
-              : { key: "{name} marked as booked.", params: { name } },
+              ? { key: "nameMarkedAsNotBooked", params: { name } }
+              : { key: "nameMarkedAsBooked", params: { name } },
           ),
       },
       removal,
@@ -390,7 +384,7 @@ export function TimelineStop({
           aria-expanded={popover === "time"}
           aria-haspopup="dialog"
           aria-controls={popover === "time" ? `stop-time-${id}` : undefined}
-          aria-label={`${t("Change time")}, ${range}`}
+          aria-label={`${t("changeTime")}, ${range}`}
           disabled={locked}
           onClick={() => (popover === "time" ? setPopover("") : openTime())}
         >
@@ -436,9 +430,7 @@ export function TimelineStop({
             )}
             <span className="timeline-stop__name">
               {number !== undefined && (
-                <span className="sr-only">
-                  {t("Stop")} {number}:{" "}
-                </span>
+                <span className="sr-only">{t("stopNumber", { number })}: </span>
               )}
               {name}
             </span>
@@ -448,7 +440,7 @@ export function TimelineStop({
             {activity.note && <span className="timeline-stop__note">{activity.note}</span>}
             <span className="timeline-stop__meta">
               {suggestion ? (
-                <span className="timeline-tag">{t("Restaurant suggestion")}</span>
+                <span className="timeline-tag">{t("restaurantSuggestion")}</span>
               ) : (
                 placeTag && <span className={placeTag.className}>{placeTag.text}</span>
               )}
@@ -456,19 +448,19 @@ export function TimelineStop({
               {!suggestion && activity.progress && activity.progress !== "planned" && (
                 <span className="timeline-tag">{t(PROGRESS_TAG[activity.progress])}</span>
               )}
-              {activity.booked && <span className="timeline-tag">{t("Booked")}</span>}
+              {activity.booked && <span className="timeline-tag">{t("booked")}</span>}
             </span>
           </button>
           <ActionMenu
-            label={t("Actions for {v0}, {v1}", {
+            label={t("actionsForV0V1", {
               v0: name,
-              v1: idea ? t("Ideas") : `${t("Day {v0}", { v0: activity.day ?? "" })} ${range}`,
+              v1: idea ? t("ideas") : `${t("dayV0", { v0: activity.day ?? "" })} ${range}`,
             })}
             items={menu()}
           />
         </div>
         {conflicts.length > 0 && (
-          <ul className="timeline-stop__conflicts" aria-label={t("Open conflicts")}>
+          <ul className="timeline-stop__conflicts" aria-label={t("openConflicts")}>
             {conflicts.map((notice, index) => (
               <li key={index}>{localizeNotice(notice)}</li>
             ))}
@@ -476,7 +468,7 @@ export function TimelineStop({
         )}
       </div>
       <span className="timeline-row__cost">
-        {activity.estCost === undefined ? t("Price unknown") : money(activity.estCost)}
+        {activity.estCost === undefined ? t("priceUnknown") : money(activity.estCost)}
       </span>
       {selected && (
         <div id={`stop-place-card-${id}`} className="stop-place-card stop-editor">
@@ -494,7 +486,7 @@ export function TimelineStop({
               <button
                 type="button"
                 className="stop-place-card__close"
-                aria-label={t("Close place details")}
+                aria-label={t("closePlaceDetails")}
                 onClick={closeCard}
               >
                 <CloseIcon />
@@ -502,19 +494,15 @@ export function TimelineStop({
             </div>
           )}
           {!confirmed && status === "unconfirmed" && (
-            <p className="stop-editor__hint">
-              {t("The map could not find this place. Search for it to save it.")}
-            </p>
+            <p className="stop-editor__hint">{t("theMapCouldNotFind")}</p>
           )}
           {matched && saveState === "failed" && (
-            <p className="stop-editor__hint">
-              {t("This place could not be saved. Search for it to try again.")}
-            </p>
+            <p className="stop-editor__hint">{t("thisPlaceCouldNotBe")}</p>
           )}
           {searching && (
             <PlaceSearch
               draftKey={id}
-              label={confirmed || matched ? t("Replace with another place") : t("Find this place")}
+              label={confirmed || matched ? t("replaceWithAnotherPlace") : t("findThisPlace")}
               locked={locked}
               edits={edits}
               focusOnMount={panel === "search"}
@@ -533,12 +521,12 @@ export function TimelineStop({
         <StopPopover
           title={t(
             popover === "time"
-              ? "Adjust schedule"
+              ? "adjustSchedule"
               : popover === "details"
-                ? "Edit details"
+                ? "editDetails"
                 : popover === "comment"
-                  ? "Add a comment"
-                  : "Schedule on a day",
+                  ? "addAComment"
+                  : "scheduleOnADay",
           )}
           anchor={popover === "time" ? timeButton : undefined}
           onClose={closePopover}
@@ -577,7 +565,7 @@ export function TimelineStop({
               days={days}
               labels={dayLabels}
               onCancel={closePopover}
-              onSubmit={(action) => act(action, { key: "Details saved." })}
+              onSubmit={(action) => act(action, { key: "detailsSaved" })}
             />
           )}
           {popover === "comment" && (
@@ -587,7 +575,7 @@ export function TimelineStop({
               days={days}
               labels={dayLabels}
               onCancel={closePopover}
-              onSubmit={(action) => act(action, { key: "Comment saved." })}
+              onSubmit={(action) => act(action, { key: "commentSaved" })}
             />
           )}
           {popover === "day" && (
@@ -599,7 +587,7 @@ export function TimelineStop({
               onCancel={closePopover}
               onSubmit={(action) =>
                 act(action, {
-                  key: "{name} scheduled on Day {day}.",
+                  key: "nameScheduledOnDayDay",
                   params: { name, day: action.kind === "day" ? action.day : 0 },
                 })
               }

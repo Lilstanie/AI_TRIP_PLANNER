@@ -21,7 +21,7 @@ const PhotoRequest = z.object({
 export async function GET(request: Request) {
   const params = new URL(request.url).searchParams;
   const parsed = PhotoRequest.safeParse({ name: params.get("name"), width: params.get("width") });
-  if (!parsed.success) return Response.json(noticeBody({ key: "Unknown photo." }), { status: 400 });
+  if (!parsed.success) return Response.json(noticeBody({ key: "unknownPhoto" }), { status: 400 });
   if (parsed.data.name === "osm:fixture/Toji") {
     return new Response(
       '<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 400 240"><rect width="400" height="240" fill="#b8d4bc"/><path d="M120 200h160v-90l-80-65-80 65z" fill="#6b4e36"/><text x="200" y="225" text-anchor="middle">To-ji · fixture image</text></svg>',
@@ -44,6 +44,6 @@ export async function GET(request: Request) {
       headers: { Location: value, "Cache-Control": "no-store", "X-Map-Provider": source },
     });
   } catch (error) {
-    return placeErrorResponse(error, { key: "This photo is no longer available." });
+    return placeErrorResponse(error, { key: "thisPhotoIsNoLonger" });
   }
 }

@@ -70,7 +70,7 @@ export function applyDayAction(
     case "title":
     case "note": {
       if (!Number.isInteger(action.day) || action.day < 1 || action.day > days)
-        throw new NoticeError({ key: "That day is not part of this trip." });
+        throw new NoticeError({ key: "thatDayIsNotPart" });
       const field = action.kind === "title" ? "title" : "note";
       const text = (action.kind === "title" ? action.title : action.note)
         .trim()
@@ -87,7 +87,7 @@ export function applyDayAction(
     case "clear": {
       if (!itinerary || !scheduledOn(plan, action.day))
         throw new NoticeError({
-          key: "Nothing is scheduled on Day {day}.",
+          key: "nothingIsScheduledOnDay",
           params: { day: action.day },
         });
       itinerary.items = itinerary.items.filter(
@@ -97,7 +97,7 @@ export function applyDayAction(
     }
     case "ideas": {
       if (!itinerary || !scheduledCount(plan))
-        throw new NoticeError({ key: "Nothing is scheduled yet." });
+        throw new NoticeError({ key: "nothingIsScheduledYet" });
       for (const item of itinerary.items) {
         if (!isScheduled(item)) continue;
         delete item.day;
@@ -109,7 +109,7 @@ export function applyDayAction(
     }
     case "removeAll": {
       if (!itinerary || !scheduledCount(plan))
-        throw new NoticeError({ key: "Nothing is scheduled yet." });
+        throw new NoticeError({ key: "nothingIsScheduledYet" });
       itinerary.items = itinerary.items.filter((item) => !isScheduled(item));
       break;
     }
@@ -123,8 +123,7 @@ export function applyDayAction(
 
   settlePlan(next, plan.editVersion ?? 0, currency);
   const parsed = TripPlan.safeParse(next);
-  if (!parsed.success)
-    throw new NoticeError({ key: "That change would leave the trip dates or stays invalid." });
+  if (!parsed.success) throw new NoticeError({ key: "thatChangeWouldLeaveThe" });
   return parsed.data;
 }
 
@@ -148,7 +147,7 @@ function resizeStay(
 ) {
   stay.checkOut = checkOut;
   stay.nights = between(stay.checkIn, checkOut);
-  if (stay.nights < 1) throw new NoticeError({ key: "That day holds the last night of a stay." });
+  if (stay.nights < 1) throw new NoticeError({ key: "thatDayHoldsTheLast" });
   const chosen = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
   const item = plan.sections
     .flatMap((section) => section.proposal?.items ?? [])
@@ -187,7 +186,7 @@ function realign(plan: TripPlan, oldEnd: string) {
 
 function insertDay(plan: TripPlan, at: number, days: number, currency: Currency) {
   if (!Number.isInteger(at) || at < 1 || at > days + 1)
-    throw new NoticeError({ key: "That day is not part of this trip." });
+    throw new NoticeError({ key: "thatDayIsNotPart" });
   const [start, end] = plan.brief.dates;
   const date = shift(start, at - 1);
   const { stays, flights } = selectionsOf(plan);
@@ -214,15 +213,15 @@ function insertDay(plan: TripPlan, at: number, days: number, currency: Currency)
 }
 
 function removeDay(plan: TripPlan, day: number, days: number, currency: Currency) {
-  if (days < 2) throw new NoticeError({ key: "A trip needs at least one day." });
+  if (days < 2) throw new NoticeError({ key: "aTripNeedsAtLeast" });
   if (!Number.isInteger(day) || day < 1 || day > days)
-    throw new NoticeError({ key: "That day is not part of this trip." });
+    throw new NoticeError({ key: "thatDayIsNotPart" });
   const [start, end] = plan.brief.dates;
   const date = shift(start, day - 1);
   const { stays, flights } = selectionsOf(plan);
   if (flights.some((flight) => flight.depart === date))
     throw new NoticeError({
-      key: "Day {day} has a flight, so it cannot be removed.",
+      key: "dayDayHasAFlight",
       params: { day },
     });
   plan.brief.dates = [start, shift(end, -1)];

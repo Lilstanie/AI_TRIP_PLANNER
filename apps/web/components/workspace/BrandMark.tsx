@@ -17,7 +17,7 @@ export function BrandMark({ showName = true }: { showName?: boolean }) {
         unoptimized
         priority
       />
-      {showName && <span className="brand-mark__name">{t("AI Trip Planner")}</span>}
+      {showName && <span className="brand-mark__name">{t("aiTripPlanner")}</span>}
     </span>
   );
 }

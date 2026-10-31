@@ -42,10 +42,10 @@ function RenameDialog({
         />
         <div className="edit-discard__actions">
           <button type="button" onClick={onCancel}>
-            {t("Cancel")}
+            {t("cancel")}
           </button>
           <button type="submit" disabled={!name}>
-            {t("Save")}
+            {t("save")}
           </button>
         </div>
       </form>
@@ -62,16 +62,16 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
   return (
     <>
       {catalogDialog?.kind === "delete-chat" ? (
-        <Dialog title={t("Delete chat")} onClose={closeCatalogDialog}>
+        <Dialog title={t("deleteChat")} onClose={closeCatalogDialog}>
           <p className="confirm-dialog">
-            {t("Delete “{title}”? The linked trip will be kept.", { title: catalogDialog.title })}
+            {t("deleteTitleTheLinkedTrip", { title: catalogDialog.title })}
           </p>
           <div className="edit-discard__actions">
             <button type="button" onClick={closeCatalogDialog}>
-              {t("Cancel")}
+              {t("cancel")}
             </button>
             <button type="button" className="danger" onClick={confirmDeleteChat}>
-              {t("Delete")}
+              {t("delete")}
             </button>
           </div>
         </Dialog>
@@ -79,7 +79,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
         catalogDialog && (
           <RenameDialog
             key={catalogDialog.id}
-            title={t(catalogDialog.kind === "rename-chat" ? "Rename chat" : "Rename trip")}
+            title={t(catalogDialog.kind === "rename-chat" ? "renameChat" : "renameTrip")}
             initial={catalogDialog.title}
             onCancel={closeCatalogDialog}
             onSave={saveName}
@@ -87,7 +87,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
         )
       )}
       {dialog && (
-        <Dialog title={t("Settings")} onClose={closeDialog} page={!model.layout.narrow}>
+        <Dialog title={t("settings")} onClose={closeDialog} page={!model.layout.narrow}>
           <SettingsDialog
             initial={settingsSection}
             onDataMode={dataMode.choose}

@@ -83,10 +83,10 @@ try {
       previous: zh ? "上一个问题" : "Previous question",
       nextQuestion: zh ? "下一个问题" : "Next question",
       submit: zh ? "提交" : "Submit",
-      skip: zh ? "跳过此问题" : "Skip this question",
-      retry: zh ? "重试更新" : "Retry update",
+      skip: zh ? "跳过这题" : "Skip this question",
+      retry: zh ? "重新更新" : "Retry update",
       stop: zh ? "停止规划" : "Stop planning",
-      dismiss: zh ? "关闭所有问题" : "Dismiss all questions",
+      dismiss: zh ? "全部跳过" : "Dismiss all questions",
     };
     page.on("pageerror", (error) => errors.push(String(error)));
     let failNextAnswer = true;
@@ -159,7 +159,7 @@ try {
     );
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await page
-      .getByRole("textbox", { name: zh ? "向 AI 旅行规划助手发送消息" : "Message AI Trip Planner" })
+      .getByRole("textbox", { name: zh ? "给 AI 旅行规划助手发消息" : "Message AI Trip Planner" })
       .fill("Plan 3 days in Atlantis for 2 people, budget AUD 2000, from 2026-12-10");
     await page.keyboard.press("Enter");
     const choice = page.getByRole("radio", { name: /Atlantis The Palm, Dubai/ });
@@ -356,7 +356,7 @@ try {
           );
           await page
             .getByRole("textbox", {
-              name: zh ? "向 AI 旅行规划助手发送消息" : "Message AI Trip Planner",
+              name: zh ? "给 AI 旅行规划助手发消息" : "Message AI Trip Planner",
             })
             .fill("Add one more preference");
           await page.keyboard.press("Enter");

@@ -383,8 +383,8 @@ try {
     .getByRole("group", { name: "行程信息" })
     .getAttribute("aria-label");
   check(
-    (await home(zh.page).getByRole("button", { name: "返回行程" }).count()) === 1 &&
-      zhTags.includes("2 位旅行人员") &&
+    (await home(zh.page).getByRole("button", { name: "返回行程列表" }).count()) === 1 &&
+      zhTags.includes("2 人") &&
       zhTagList === "行程信息",
     "Chinese back button, tag list name and traveller tag are translated",
     { zhTags, zhTagList },
