@@ -390,11 +390,8 @@ async function runPlannedStorage() {
       .getByRole("button", { name: /^Performance fixture/ })
       .click();
     await page.getByRole("tab", { name: "Chat", exact: true }).click();
-    await page.waitForFunction(
-      () =>
-        JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.plan.tripId ===
-        "performance-trip",
-    );
+    await page.getByRole("banner").getByText("Trip to Tokyo", { exact: true }).waitFor();
+    await page.waitForTimeout(500);
     await settle(page);
     await page.evaluate(() => {
       window.__plannedWrites = [];
@@ -403,7 +400,8 @@ async function runPlannedStorage() {
     await input.fill("planned draft saved once");
     await page.waitForFunction(
       () =>
-        JSON.parse(localStorage.getItem("trip-workspace-v1")).input === "planned draft saved once",
+        JSON.parse(localStorage.getItem("trip-workspace-v1") ?? "null")?.input ===
+        "planned draft saved once",
     );
     await settle(page);
     const saved = await page.evaluate(

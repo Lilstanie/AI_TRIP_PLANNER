@@ -396,11 +396,9 @@ node apps/web/tests/cli-e2e/run.mjs
 node apps/web/tests/e2e/run-performance.mjs
 ```
 
-这条本地命令复用 CLI 的 fixture 环境，由旧运行器独占 production 构建、服务器和临时 TypeScript 配置。它清空已知集成凭证，强制使用 mock 工具，禁用 Agent Lab 实时运行，并提供合成的浏览器 Maps key `map-animation-fixture`。CLI 验收会临时修改依赖入口，请与它分开执行。
+这条本地命令复用 CLI 的 fixture 环境，由旧运行器独占 production 构建、服务器和临时 TypeScript 配置。它清空已知集成凭证，强制使用 mock 工具，禁用 Agent Lab 实时运行。CLI 验收会临时修改依赖入口，请与它分开执行。
 
 工作区 journey 测量桌面上的 10 条、200 条消息，以及手机上的 200 条消息。它检查一次稳定输入保存只写一次 catalog，并覆盖刷新、存储配额错误重试、切换前 flush、重命名、布局保存、已规划行程的快照镜像和旧标签页存储保护。第二个标签页直接写入 revision 协议，不覆盖计划编辑 API。
-
-这条命令仍会让运行器执行地图 journey `map-animation-lifecycle`，而 TP-165（#809）已删除该脚本，所以它在构建前就以 `no script matches "map-animation-lifecycle"` 停止（见[已知 E2E 失败](e2e-known-failures.zh.md)）。修复之前，用 `pnpm --filter @trip/web e2e workspace-performance --prod` 单独运行工作区 journey。
 
 每次命令分配新 label。日志和总摘要位于 `output/e2e/performance-acceptance/<label>/`；截图、工作区 trace、CPU profile 和 JSON 位于 `output/playwright/workspace-performance/<label>/`。MessageItem 计数是输入与保存或合成 stream 测量窗口内的 V8 函数调用次数，不是 React commit 或 DOM 变化次数。耗时包含防抖和 profile 开销；这些 fixture 不能证明真实用户 Core Web Vitals 或速度提升。比较其他版本时，先单独构建该版本，再用 `BASE_URL=<owned-server> LABEL=before-<unique-label>` 运行工作区脚本；`before-` label 记录基线写入次数，不要求满足优化后的次数。保留失败尝试。
 

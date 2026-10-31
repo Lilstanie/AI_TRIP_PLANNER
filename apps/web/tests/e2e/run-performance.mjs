@@ -11,28 +11,21 @@ const log = createWriteStream(resolve(out, "runner.log"));
 const env = fixtureEnv({ port: 0, mode: "production" });
 delete env.NEXT_DIST_DIR;
 delete env.NEXT_TSCONFIG_PATH;
-env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY = "map-animation-fixture";
 env.LABEL = label;
 const summary = {
   outcome: "running",
   reproductionCommand: "node apps/web/tests/e2e/run-performance.mjs",
   label,
   workspaceEvidence: `output/playwright/workspace-performance/${label}/summary.json`,
-  mapEvidence: `output/playwright/map-animation-lifecycle/${label}/summary.json`,
   boundary:
-    "Production fixture server; integrations disabled; synthetic Google SDK, real MapLibre empty style; no live provider verification or user p75 claim",
+    "Production fixture server; integrations disabled; no live provider verification or user p75 claim",
 };
 const save = () =>
   writeFileSync(resolve(out, "summary.json"), `${JSON.stringify(summary, null, 2)}\n`);
 save();
 const child = spawn(
   process.execPath,
-  [
-    resolve(import.meta.dirname, "legacy-runner.mjs"),
-    "workspace-performance",
-    "map-animation-lifecycle",
-    "--prod",
-  ],
+  [resolve(import.meta.dirname, "legacy-runner.mjs"), "workspace-performance", "--prod"],
   { cwd: root, env, stdio: ["ignore", "pipe", "pipe"] },
 );
 let interrupted = false;
