@@ -82,7 +82,11 @@ function parseDate(date: string): number {
   return value;
 }
 
-export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegment[] {
+export function splitStay(
+  brief: TripBrief,
+  hops: ScheduledHop[] = [],
+  arrivalDay = 1,
+): StaySegment[] {
   if (!Number.isSafeInteger(brief.groupSize) || brief.groupSize <= 0) {
     throw new Error("Accommodation requires a positive integer group size.");
   }
@@ -97,9 +101,13 @@ export function splitStay(brief: TripBrief, hops: ScheduledHop[] = []): StaySegm
     throw new Error("Each destination needs at least one overnight stay.");
   let offset = 0;
   return cities.flatMap((city, index) => {
-    const cityNights =
+    let cityNights =
       fromHops?.[index] ??
       Math.floor(nights / cities.length) + (index < nights % cities.length ? 1 : 0);
+    if (index === 0 && arrivalDay > 1 && arrivalDay - 1 < cityNights) {
+      offset = arrivalDay - 1;
+      cityNights -= offset;
+    }
     if (cityNights === 0) return [];
     const segment = {
       city,
