@@ -67,6 +67,8 @@ export interface TripChatOptions extends OrchestratorOptions {
 
   extractor?: BriefExtractor;
 
+  accountMemory?: boolean;
+
   clock?: () => Date;
 }
 
@@ -541,7 +543,13 @@ export async function runTripChat(
   request: ChatRequest,
   options: TripChatOptions = {},
 ): Promise<ChatResponse> {
-  const { model, extractor, clock = () => new Date(), ...orchestrationOptions } = options;
+  const {
+    model,
+    extractor,
+    clock = () => new Date(),
+    accountMemory = true,
+    ...orchestrationOptions
+  } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
   const mem: MemoryStore = orchestrationOptions.mem ?? memory;
   const orchestrate = (brief: TripBrief, mention?: OrchestratorOptions["mention"]) =>
@@ -646,6 +654,7 @@ export async function runTripChat(
             orchestrate,
             orchestrationOptions.onProgress,
             clock,
+            accountMemory,
           )
         : await runOffline(request, intake, extractor, orchestrate);
     }
@@ -730,6 +739,9 @@ const STYLE_TEXT: Record<AssistantSettings["style"], string> = {
     "Give fuller replies: explain the reasoning, timings and trade-offs behind each suggestion.",
 };
 
+const NO_ACCOUNT_MEMORY_RULE =
+  "\n\nThe traveller's account memory is not available in this session: never pass rememberForAccount, and never say a preference was saved or will be remembered for future trips. When they ask you to remember one, say it applies to this trip and that it can be saved once they sign in.";
+
 function styleRule(assistant: AssistantSettings | undefined): string {
   const text = assistant ? STYLE_TEXT[assistant.style] : "";
   const memory =
@@ -762,6 +774,7 @@ async function runConversationAgent(
   orchestrate: (brief: TripBrief) => Promise<TripPlan>,
   onProgress?: (event: AgentProgressEvent) => void,
   clock: () => Date = () => new Date(),
+  accountMemory = true,
 ): Promise<ChatResponse> {
   let planned: TripPlan | undefined;
   let lasting: LastingPreference[] | undefined;
@@ -780,7 +793,9 @@ async function runConversationAgent(
         ...(tripDays !== undefined && Number.isInteger(tripDays) ? { tripDays } : {}),
       });
       const remembered =
-        request.assistant?.memory === false ? undefined : lastingPreferencesFrom(update);
+        request.assistant?.memory === false || !accountMemory
+          ? undefined
+          : lastingPreferencesFrom(update);
       if (remembered?.length) lasting = remembered;
       planned = undefined;
       blockingAsk = undefined;
@@ -845,6 +860,7 @@ async function runConversationAgent(
     systemPrompt:
       COORDINATOR_PROMPT +
       styleRule(request.assistant) +
+      (accountMemory ? "" : NO_ACCOUNT_MEMORY_RULE) +
       replyLanguageRule(replyLanguage(request.message, request.interfaceLanguage)),
   });
 

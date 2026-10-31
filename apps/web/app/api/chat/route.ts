@@ -99,6 +99,7 @@ export async function POST(req: Request) {
           runTripChat(requestData, {
             onProgress: send,
             mem: accountMemoryStore(accountId, memoryEnabled),
+            accountMemory: Boolean(accountId) && memoryEnabled,
           });
         const response = ChatResponse.parse(
           await runWithDataMode(dataMode, () =>

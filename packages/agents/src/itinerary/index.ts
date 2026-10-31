@@ -73,6 +73,7 @@ export interface ItineraryGenerator {
     revision?: RevisionRequest;
 
     feedback?: string;
+    rejectedDraft?: string[];
 
     activityBudget: number;
 
@@ -90,6 +91,7 @@ export interface ItineraryGenerator {
     previous?: { summary: string; activities: string[] };
     language?: InterfaceLanguage;
     arrival?: Landing;
+    schedule?: { day: number; travelling?: true; earliestStart?: string }[];
     restaurantsByCity?: Record<string, string[]>;
   }): Promise<ItineraryDraft>;
 }
@@ -257,12 +259,15 @@ function validateDraft(
     }
     seen.add(key);
   }
-  const freeDays = landing ? days - landing.day : days;
-  if (
-    requireEveryDay &&
-    [...representedDays].filter((day) => !landing || day > landing.day).length !== freeDays
-  )
-    throw new Error("Itinerary must include every trip day.");
+  const firstFreeDay = landing ? landing.day + 1 : 1;
+  const missingDays = Array.from(
+    { length: Math.max(0, days - firstFreeDay + 1) },
+    (_, index) => firstFreeDay + index,
+  ).filter((day) => !representedDays.has(day));
+  if (requireEveryDay && missingDays.length)
+    throw new Error(
+      `Itinerary must include every trip day: day ${missingDays.join(", ")} ${missingDays.length > 1 ? "have" : "has"} no activities. Add activities on ${missingDays.length > 1 ? "those days" : "that day"} and keep the other days as they are${landing ? `; plan nothing before day ${landing.day}${landing.earliestStart ? ` at ${landing.earliestStart}` : ""}, while the traveller is still flying` : ""}.`,
+    );
   for (let day = 1; day <= days; day += 1) {
     const scheduled = parsed.activities
       .filter((activity) => activity.day === day)
@@ -463,7 +468,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day the traveller is not flying with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When schedule is given, it lists every trip day: a day marked travelling gets no activities at all, and a day with earliestStart gets none that start before it. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -475,7 +480,16 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
               tripId: input.brief.tripId,
               revision: input.revision?.reason,
               ...(input.feedback
-                ? { previousDraftRejected: `${input.feedback} Fix this and return a new draft.` }
+                ? {
+                    previousDraftRejected: `${input.feedback} Fix this and return a new draft.`,
+                    ...(input.rejectedDraft
+                      ? {
+                          rejectedDraft: input.rejectedDraft,
+                          rejectedDraftRule:
+                            "rejectedDraft is the draft that was rejected: keep every activity that is not named in previousDraftRejected, and change only what it names.",
+                        }
+                      : {}),
+                  }
                 : {}),
             }),
           },
@@ -624,61 +638,61 @@ async function planItinerary(
   let usedFallback = !generator;
   if (generator) {
     let feedback: string | undefined;
+    let rejectedDraft: string[] | undefined;
     let accepted: ItineraryDraft | undefined;
     for (let attempt = 0; attempt < 2 && !accepted; attempt += 1) {
+      let generated: ItineraryDraft | undefined;
       try {
+        generated = await generator.generate({
+          brief,
+          days,
+          places,
+          preferences,
+          revision,
+          activityBudget,
+          pace: { name: pace, activities: PACE_ACTIVITIES[pace] },
+          ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
+          ...(placesByCity.size > 1
+            ? {
+                dayCities: dayCities.map((cities, index) => ({
+                  day: index + 1,
+                  cities,
+                  ...(transferWindows.has(index + 1)
+                    ? { transfers: transferWindows.get(index + 1) }
+                    : {}),
+                })),
+                candidatesByCity: Object.fromEntries(
+                  [...placesByCity].map(([city, found]) => [
+                    city,
+                    found.map((place) => place.name),
+                  ]),
+                ),
+              }
+            : {}),
+          ...(otherSections.length ? { otherSections } : {}),
+          ...(extras.previous
+            ? {
+                previous: {
+                  summary: extras.previous.summary,
+                  activities: extras.previous.items.map(
+                    (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
+                  ),
+                },
+              }
+            : {}),
+          ...(feedback ? { feedback } : {}),
+          ...(rejectedDraft ? { rejectedDraft } : {}),
+          ...(landing ? { arrival: landing } : {}),
+          ...(grounded.places.length > places.length
+            ? {
+                restaurantsByCity: Object.fromEntries(
+                  [...mealsByCity].map(([city, found]) => [city, found.map((place) => place.name)]),
+                ),
+              }
+            : {}),
+        });
         accepted = validateDraft(
-          await generator.generate({
-            brief,
-            days,
-            places,
-            preferences,
-            revision,
-            activityBudget,
-            pace: { name: pace, activities: PACE_ACTIVITIES[pace] },
-            ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
-            ...(placesByCity.size > 1
-              ? {
-                  dayCities: dayCities.map((cities, index) => ({
-                    day: index + 1,
-                    cities,
-                    ...(transferWindows.has(index + 1)
-                      ? { transfers: transferWindows.get(index + 1) }
-                      : {}),
-                  })),
-                  candidatesByCity: Object.fromEntries(
-                    [...placesByCity].map(([city, found]) => [
-                      city,
-                      found.map((place) => place.name),
-                    ]),
-                  ),
-                }
-              : {}),
-            ...(otherSections.length ? { otherSections } : {}),
-            ...(extras.previous
-              ? {
-                  previous: {
-                    summary: extras.previous.summary,
-                    activities: extras.previous.items.map(
-                      (item) =>
-                        `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
-                    ),
-                  },
-                }
-              : {}),
-            ...(feedback ? { feedback } : {}),
-            ...(landing ? { arrival: landing } : {}),
-            ...(grounded.places.length > places.length
-              ? {
-                  restaurantsByCity: Object.fromEntries(
-                    [...mealsByCity].map(([city, found]) => [
-                      city,
-                      found.map((place) => place.name),
-                    ]),
-                  ),
-                }
-              : {}),
-          }),
+          generated,
           days,
           grounded.places,
           dayCities,
@@ -690,6 +704,9 @@ async function planItinerary(
       } catch (error) {
         ctx.signal?.throwIfAborted();
         feedback = error instanceof Error ? error.message : "unknown model error";
+        rejectedDraft = generated?.activities.map(
+          (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
+        );
         console.warn(
           `[itinerary] Model draft failed validation (attempt ${attempt + 1}): ${feedback}`,
         );

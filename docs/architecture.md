@@ -485,7 +485,13 @@ local regexes (`extractBriefPatchLocally`, `statedTripDays` and the dietary word
 
 The model also returns `lastingPreferences` for wishes the traveller says hold for every trip, and
 the chat route saves them to the account memory; `recognize-memory.mjs` is the fallback when the
-model returned none. A wish for this trip only is not saved.
+model returned none. A wish for this trip only is not saved. When the route has no signed-in
+account with memory on, it passes `accountMemory: false` to `runTripChat`, and the model is told not
+to record lasting preferences or say that one was saved.
+
+When the itinerary model's draft fails validation, the retry receives the error and the rejected
+draft, and is told to change only what the error names. A missing-day error names the days and the
+landing limit.
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
 `noAccommodation: true`; every other trip needs at least one night per destination. When a brief
