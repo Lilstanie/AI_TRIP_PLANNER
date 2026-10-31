@@ -85,7 +85,7 @@ seniors`（宠物不计为旅客）；`groupSize` 仍是校验字段，因此至
   - 导航作为抽屉打开，Trip 占满内容宽度。导航抽屉无标题行：它从侧边栏自己的 Logo 行开始，关闭按钮位于行末，对话框通过视觉隐藏的标题（`Drawer` 的 `hideTitle`）保留“Navigation”无障碍名称。
 - **手机（≤520 px）。** [手机外壳决策](../.agents/notes/implemented/feature/2026-10-05-phone-shell.md)仅适用于这一宽度；桌面和平板保留既有导航。
   - 适配安全区的底部 Tab 栏提供 Chat、Map、Trip 和 Mine，并支持键盘操作。有 Plan 时显示 Trip，空工作区显示 Chat、Map 和 Mine。Agent Team 入口以全屏模态框打开手机轨迹，保留账本、搜索、筛选和详情检查；关闭、Escape 或浏览器返回会回到原来的视图和焦点。每次只显示一个面板；面板保持挂载以保留滚动位置。已保存的布局恢复上次使用的 Tab，也兼容旧的 Chat/Map 选择。
-  - 没有消息也没有 Plan 的聊天，在输入框上方用一行可横滑的标签显示 Where、When、Who、Budget 和 Preferences；聊天开始后标签回到顶栏。仅手机生效的视觉样式（悬浮底部 Tab 栏、卡片表面、分组列表、底部弹出的 Settings）位于 `phone-polish.css`，[手机视觉更新 Agent Note](../.agents/notes/implemented/feature/2026-10-30-phone-visual-refresh.md) 记录了原因。
+  - 没有消息也没有 Plan 的聊天，在输入框上方用一行可横滑的标签显示 Where、When、Who、Budget 和 Preferences；聊天开始后标签回到顶栏。仅手机生效的视觉样式（悬浮底部 Tab 栏、卡片表面、分组列表、底部弹出的 Settings）位于 `phone-polish.css`，[手机视觉更新 Agent Note](../.agents/notes/implemented/feature/2026-10-30-phone-visual-refresh.md) 记录了原因。行程需求 sheet 停在悬浮 Tab 栏上方；在聊天里上下滑只滚动消息列表，不会拖动整个页面。
   - 单行顶栏显示目的地和日期，未填写时显示 New trip。点击标题打开 Trip details，按行列出 Where、When、Who、Budget 和 Preferences。每行打开既有编辑器；保存或关闭后，焦点返回标题。行程需求编辑使用底部 sheet，Stop 编辑在该行上以小弹层打开，不再使用 sheet 或整页。点击目标至少为 44 px，包括每个 sheet 的关闭按钮和主操作按钮，When 中的每个日期格、两个翻月箭头和 Clear，以及 Who 中每个 − 和 + 步进按钮。
   - 有改动的行程需求 sheet 会在切换 Tab 时保留输入；Escape、关闭、点击外部或浏览器返回要丢弃时会先询问。Stop 的弹层在提交时立即生效，关闭时不再询问：Escape、Cancel、点击外部和返回都会丢弃已输入的内容，不保留草稿，导航后也不列出。时间或地点修改失败后保留已输入的值，并在原处显示错误。已有 Plan 时，行程需求编辑使用明确的 Replan trip（重新规划行程）操作。参见[即时行程编辑 Agent Note](../.agents/notes/implemented/feature/2026-10-27-instant-itinerary-edits.md)。
   - Trip 直接显示 Your Trip，包含 Budget 和日视图。规划前说明空状态并提供 Plan in Chat。在其他 Tab 中创建或修改方案时，Trip 显示带无障碍说明的更新小红点；打开 Trip 后清除。按行程记录已读版本，因此切换未修改的已保存行程不会产生新通知。

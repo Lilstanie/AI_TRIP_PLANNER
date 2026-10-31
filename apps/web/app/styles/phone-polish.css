@@ -2,12 +2,21 @@
   --phone-card: var(--surface);
   --phone-card-shadow: 0 1px 2px rgb(0 0 0 / 4%), 0 4px 16px -6px rgb(0 0 0 / 10%);
   --phone-gutter: max(var(--space-4), env(safe-area-inset-left));
+  --phone-tabbar-gap: max(var(--space-2), env(safe-area-inset-bottom));
   background: var(--page);
 }
 
+html:has(.workspace-app[data-phone]),
+html:has(.workspace-app[data-phone]) body {
+  overscroll-behavior: none;
+}
+.workspace-app[data-phone] .chat__stream {
+  overscroll-behavior-y: contain;
+}
+
 .workspace-app[data-phone] .phone-tabbar {
-  margin: 0 max(var(--space-3), env(safe-area-inset-right))
-    max(var(--space-2), env(safe-area-inset-bottom)) max(var(--space-3), env(safe-area-inset-left));
+  margin: 0 max(var(--space-3), env(safe-area-inset-right)) var(--phone-tabbar-gap)
+    max(var(--space-3), env(safe-area-inset-left));
   padding: 5px;
   border-width: 1px !important;
   border-radius: var(--radius-pill);
@@ -35,6 +44,11 @@
 .workspace-app[data-phone] .phone-tabbar__dot {
   top: 7px;
   box-shadow: 0 0 0 2px var(--surface);
+}
+
+.workspace-app[data-phone]:not([data-phone-keyboard]) .fact-popover-scrim,
+.workspace-app[data-phone]:not([data-phone-keyboard]) .fact-popover.fact-popover--modal {
+  inset-block-end: calc(62px + var(--phone-tabbar-gap));
 }
 
 .workspace-app[data-phone] .workspace-topbar::before {
@@ -195,6 +209,8 @@
   background: var(--fill-hover) !important;
 }
 .workspace-app[data-phone] .phone-mine .chats-panel__section-head .sidebar-history__title {
+  flex: none;
+  white-space: nowrap;
   color: var(--text);
   font-family: var(--font-display);
   font-size: 1.375rem;

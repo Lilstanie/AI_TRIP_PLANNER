@@ -53,7 +53,9 @@
   position: relative;
   border-bottom: 0;
 }
-[data-phone] .workspace-topbar > :not(.fact-chips) {
+[data-phone]
+  .workspace-topbar
+  > :not(.fact-chips, .fact-popover, .fact-popover-scrim, .phone-trajectory) {
   position: relative;
 }
 [data-phone] .workspace-topbar::before {

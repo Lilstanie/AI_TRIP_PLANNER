@@ -46,6 +46,12 @@ hidden Brief bar on a blank desktop chat. `phone-polish.e2e.mjs` (with `phone-po
 covers the chip row and its editor, the tab bar, grouped lists, the Settings sheet, dark theme,
 Chinese at 360 px and an unchanged desktop, and saves screenshots and `summary.json`.
 
+Follow-up TP-199 (2026-10-31, from Joey's iPhone): a glass rule gave every top-bar child
+`position: relative`, which pulled the Trip details sheet into the top bar; it now skips the fact
+sheet, its scrim and the trajectory dialog. Brief sheets end at `62px + --phone-tabbar-gap` so the
+floating tab bar no longer covers their last row; Mine section titles do not shrink; the document
+and the chat stream contain overscroll so a swipe never drags the page.
+
 ## Sources
 
 - Thread "大幅美化手机端界面" (2026-10-30); [phone shell note](2026-10-05-phone-shell.md).

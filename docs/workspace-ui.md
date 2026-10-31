@@ -330,7 +330,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     chip row above the composer; the chips move to the top bar once the chat starts. Phone-only visual
     styling (floating tab bar, card surfaces, grouped lists, Settings as a bottom sheet) lives in
     `phone-polish.css`; the [phone visual refresh note](../.agents/notes/implemented/feature/2026-10-30-phone-visual-refresh.md)
-    records why.
+    records why. Brief sheets end above the floating tab bar, and a chat swipe scrolls only the message
+    list, never the whole page.
   - The single-row top bar shows the destination and dates, or New trip. Its title opens Trip details:
     Where, When, Who, Budget and Preferences as rows. Each row opens the existing editor; saving or
     closing returns focus to the title. Brief edits are bottom sheets with 44 px targets; Stop
