@@ -49,7 +49,7 @@ The full rendered versions of the activity, sequence and state machine diagrams 
 
 LangGraph (`@langchain/langgraph`) owns the deterministic planning state machine. It decides when to dispatch specialists, detect conflicts, revise targeted proposals, and build or stop at a `TripPlan`. LangChain does not choose the graph's next state.
 
-LangChain JS (`langchain`) provides `createAgent` for the conversation coordinator, dispatch and revision supervisors, and five role-specific agents. The coordinator exposes `update_trip_brief`, `ask_user_question`, and `replan_trip` as typed tools. Specialists use bounded evidence tools; structured results are parsed against shared Zod contracts.
+LangChain JS (`langchain`) provides `createAgent` for the conversation coordinator, dispatch and revision supervisors, and five role-specific agents. The coordinator exposes `update_trip_brief`, `ask_user_question`, `replan_trip` and `change_itinerary` as typed tools; `change_itinerary` sends a change to particular stops to the itinerary specialist alone, as an @ mention does, and returns the stops it removed and added. Specialists use bounded evidence tools; structured results are parsed against shared Zod contracts.
 
 `packages/agents/src/models.ts` centralizes model routing through the OpenAI-compatible DeepSeek adapter. MiniMax is configured but not routed. Model or tool failures keep planning available through validated deterministic fallbacks. Agents receive `ToolGateway` and `MemoryStore` through `AgentContext`; they do not import provider or service singletons.
 
