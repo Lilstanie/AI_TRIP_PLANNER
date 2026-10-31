@@ -492,7 +492,8 @@ to record lasting preferences or say that one was saved.
 
 When the itinerary model's draft fails validation, the retry receives the error and the rejected
 draft, and is told to change only what the error names. A missing-day error names the days and the
-landing limit.
+landing limit. A valid draft whose stops leave too little route time is sent back once with those
+legs, and the draft with fewer route conflicts is kept.
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
 `noAccommodation: true`; every other trip needs at least one night per destination. When a brief
