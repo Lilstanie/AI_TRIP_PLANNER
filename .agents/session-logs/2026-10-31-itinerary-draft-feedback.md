@@ -13,6 +13,8 @@ contract-impact: none
 
 - `packages/agents/src/itinerary/index.ts`: the missing-day error names the days and the landing
   limit; the retry receives the rejected draft and is told to keep everything the error does not name.
+  The evidence lists a `schedule` of trip days, marking flying days and the landing-day start, and
+  the prompt no longer asks for activities on every day.
 - `packages/orchestrator/src/chat.ts`: `TripChatOptions.accountMemory`; when false the coordinator
   is told not to record lasting preferences or say one was saved, and none are returned.
 - `apps/web/app/api/chat/route.ts` passes `accountMemory` (signed-in account with memory on).
