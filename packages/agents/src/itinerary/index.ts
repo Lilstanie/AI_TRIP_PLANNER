@@ -302,6 +302,8 @@ const PACKED_SLOTS = [
   { startTime: "16:30", endTime: "17:45" },
 ] as const;
 
+const PACE_MAX: Record<TripPace, number> = { relaxed: 2, balanced: 3, packed: 6 };
+
 const PACE_ACTIVITIES: Record<TripPace, string> = {
   relaxed: "1-2 activities a day",
   balanced: "2-3 activities a day",
@@ -572,17 +574,7 @@ async function planItinerary(
           readPlaces("neighborhood", city),
           wantsMuseums ? readPlaces("museum", city) : Promise.resolve([]),
         ]);
-        return [
-          city,
-          [
-            ...new Map(
-              [...museums, ...sights, ...neighborhoods].map((place) => [
-                place.name.trim().toLowerCase(),
-                place,
-              ]),
-            ).values(),
-          ],
-        ] as const;
+        return [city, { spots: [...museums, ...sights], neighborhoods }] as const;
       }),
     ),
     preferencesRead,
@@ -590,7 +582,18 @@ async function planItinerary(
   ]);
   ctx.signal?.throwIfAborted();
   const pace = planningPace(brief, preferences);
-  const placesByCity = new Map(byCity);
+  const placesByCity = new Map(
+    byCity.map(([city, { spots, neighborhoods }]) => [
+      city,
+      [
+        ...new Map(
+          [...spots, ...(spots.length < days * PACE_MAX[pace] ? neighborhoods : [])].map(
+            (place) => [place.name.trim().toLowerCase(), place],
+          ),
+        ).values(),
+      ],
+    ]),
+  );
   const transportProposal = extras.board?.proposals.find(
     (proposal) => proposal.agent === "transport",
   );
