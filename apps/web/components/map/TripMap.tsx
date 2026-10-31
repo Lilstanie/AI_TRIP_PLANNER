@@ -107,7 +107,16 @@ export function TripMap({
   const moving = useRef(false);
   const panOnLocate = useRef(false);
   const markers = useRef(
-    new Map<string, { marker: MapMarker; content: HTMLElement; activityId: string }>(),
+    new Map<
+      string,
+      {
+        marker: MapMarker;
+        content: HTMLElement;
+        activityId: string;
+        signature: string;
+        dispose(): void;
+      }
+    >(),
   );
   const routeLayer = useRef<ReturnType<typeof drawItineraryRoutes> | null>(null);
   const popup = useRef<HTMLDivElement>(null);
@@ -393,10 +402,34 @@ export function TripMap({
 
   useEffect(() => {
     if (!runtime) return;
+    const created = markers.current;
+    return () => [...created.values()].forEach((entry) => entry.dispose());
+  }, [runtime]);
+
+  useEffect(() => {
+    if (!runtime) return;
     const { maps, map } = runtime;
     const created = markers.current;
-    const markerCleanups: Array<() => void> = [];
+    const wanted = new Map<string, MapStop>();
     mapped.forEach((stop) => {
+      if (!wanted.has(stop.place.id)) wanted.set(stop.place.id, stop);
+    });
+    const signatureOf = (stop: MapStop) =>
+      JSON.stringify([
+        stop.activityId,
+        stop.number,
+        stop.day,
+        coordinate(stop.place),
+        placeName(stop.place),
+        stop.place.primaryType,
+        locale,
+      ]);
+    created.forEach((entry, placeId) => {
+      const stop = wanted.get(placeId);
+      if (!stop || signatureOf(stop) !== entry.signature) entry.dispose();
+    });
+    wanted.forEach((stop) => {
+      if (created.has(stop.place.id)) return;
       const position = coordinate(stop.place)!;
       const content = markerContent(stop.place, stop.number, stop.day);
       const marker = new maps.marker.AdvancedMarkerElement({
@@ -428,9 +461,12 @@ export function TripMap({
       const leave = () => hoverStop(undefined);
       content.addEventListener("pointerenter", hover);
       content.addEventListener("pointerleave", leave);
-      created.set(stop.place.id, { marker, content, activityId: stop.activityId });
-      markerCleanups.push(
-        ownCleanup(() => {
+      created.set(stop.place.id, {
+        marker,
+        content,
+        activityId: stop.activityId,
+        signature: signatureOf(stop),
+        dispose: ownCleanup(() => {
           marker.removeEventListener("gmp-click", select);
           label?.removeEventListener("click", selectLabel);
           content.removeEventListener("pointerenter", hover);
@@ -438,9 +474,8 @@ export function TripMap({
           runtime.removeMarker(marker);
           if (created.get(stop.place.id)?.marker === marker) created.delete(stop.place.id);
         }),
-      );
+      });
     });
-    return () => markerCleanups.forEach((cleanup) => cleanup());
   }, [runtime, mapped, locale, ownCleanup]);
 
   useEffect(() => {
