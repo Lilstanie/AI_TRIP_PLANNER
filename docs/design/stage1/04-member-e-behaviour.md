@@ -4,8 +4,10 @@ English | [中文](04-member-e-behaviour.zh.md)
 
 These models derive from **AH-E1 / R-E1–R-E6** in [Requirements](01-requirements.md#member-e-ah-e1) and
 **UC-E1 Edit Itinerary (Timeline / Map)** in [Use cases](02-use-cases.md#uc-e1-edit-itinerary-timeline--map).
-The chat coordinator can update the brief or replan, but it has no edit tool; the timeline and map edit
-path is deterministic from preview through local application.
+Timeline and map edits are deterministic: the browser applies an accepted, current result immediately
+and offers Undo. There is no Apply/Cancel review checkpoint. The chat coordinator can update the brief
+or replan but has no `EditRequest` tool. The [immediate-edit decision](../../../.agents/notes/implemented/feature/2026-10-08-immediate-timeline-edits.md)
+and [Trip editing decision](../../../.agents/notes/implemented/feature/2026-10-27-itinerary-interaction.md) explain these controls.
 
 ## 4.1 Activity diagram: Edit Itinerary (UC-E1)
 
@@ -17,28 +19,28 @@ flowchart TB
 
   subgraph T["Traveller"]
     how
-    pick["Move, retime or swap a stop on Timeline / Map"]
-    choose{"Apply or cancel?"}
+    pick["Move, retime, remove or schedule a stop"]
+    undo{"Undo the last applied edit?"}
     chat["Ask for a change in chat"]
   end
 
   subgraph W["Web workspace (browser)"]
     send["POST EditRequest: plan, baseVersion, operation"]
-    show["Show preview: differences, routes, blockers"]
     blocked{"Any blockers?"}
-    fresh{"preview.baseVersion = current editVersion?"}
-    apply["Apply previewed plan, keep one undo step, save locally"]
-    stale["Drop preview: the trip changed"]
+    fresh{"Current plan and tab revision still match?"}
+    apply["Apply accepted plan immediately, save locally, offer Undo"]
+    restore["Restore item snapshot, or send checked timeline undo"]
+    stale["Discard stale result; keep current plan"]
     err["Show error; plan unchanged"]
   end
 
-  subgraph P["Preview route (deterministic)"]
+  subgraph P["Deterministic edit route"]
     check{"Schema, version, IDs and segment rules pass?"}
-    retime["Re-time affected days: route time + 15 min buffer"]
-    recompute["Recompute conflicts, cost roll-up, price flags; editVersion + 1"]
+    retime["Route and re-time affected days with 15 min buffer"]
+    recompute["Recompute conflicts, costs and price flags; editVersion + 1"]
   end
 
-  subgraph G["Google Maps / Places"]
+  subgraph G["Maps / Routes / Places"]
     maps["Place details, time zone, route duration"]
   end
 
@@ -50,23 +52,23 @@ flowchart TB
   check -- no --> err --> stop(((●)))
   check -- yes --> retime
   retime <--> maps
-  retime --> recompute --> show --> blocked
-  blocked -- yes --> err
-  blocked -- no --> choose
-  choose -- cancel --> stop
-  choose -- apply --> fresh
+  retime --> recompute --> fresh
   fresh -- no --> stale --> stop
-  fresh -- yes --> apply --> stop
+  fresh -- yes --> blocked
+  blocked -- yes --> err
+  blocked -- no --> apply --> undo
+  undo -- no --> stop
+  undo -- yes --> restore --> stop
   chat --> replan --> stop
   style start fill:#14213D,stroke:#14213D
   style stop fill:#FFFFFF,stroke:#14213D
 ```
 
-The activity diagram separates the current chat path from the implemented Timeline/Map edit path. The
-chat coordinator can update the brief or replan, but it does not produce an `EditRequest`. The edit path
-is deterministic from preview through local application.
+The browser checks the current plan and tab revision before applying the server's answer. Blockers
+leave the plan unchanged; an accepted edit applies without another traveller decision. The Undo action
+is available only while its edited plan remains current.
 
-## 4.2 Sequence diagram: Timeline/Map edit with preview and version check (UC-E1)
+## 4.2 Sequence diagram: Timeline/Map edit with version check and Undo (UC-E1)
 
 ```mermaid
 sequenceDiagram
@@ -74,84 +76,86 @@ sequenceDiagram
   actor T as Traveller
   participant W as Web workspace
   participant P as /api/trip/preview-edit
-  participant G as Google Maps / Places
+  participant G as Maps / Routes / Places
   participant CC as Chat coordinator (LLM)
 
-  T->>W: Move, retime or swap a stop
-  W->>P: EditRequest (plan, baseVersion, operation, mode)
-  P->>P: Parse schema, check editVersion = baseVersion, IDs, segment
-  alt Invalid or stale
-    P-->>W: 400 with reason
+  T->>W: Move, retime, remove or schedule a stop
+  W->>P: EditRequest (plan, baseVersion, operation)
+  P->>P: Check schema, editVersion, IDs and segment rules
+  alt Invalid or stale request
+    P-->>W: Error with reason
     W-->>T: Error, plan unchanged
   else Valid
-    loop Each stop on an affected day
-      P->>G: placeDetails, timeZone, route(previous, current)
-      G-->>P: Duration or error
-      P->>P: Start no earlier than route + 15 min, or record a blocker
+    loop Affected route legs
+      P->>G: Place details, time zone and route duration
+      G-->>P: Evidence or unavailable result
+      P->>P: Re-time with route + 15 min or record blocker
     end
-    P->>P: detectConflicts, rollUpCost, price flags, editVersion = base + 1
-    P-->>W: Preview: plan, differences, routes, blockers
-    W-->>T: Show preview
-    alt Blockers present
-      Note over T,W: Apply is disabled
-      T->>W: Cancel
-    else Traveller cancels
-      T->>W: Cancel
-      W->>W: Drop preview
-    else Traveller applies
-      T->>W: Apply
-      W->>W: Compare preview.baseVersion with current editVersion
-      alt Plan changed meanwhile
-        W-->>T: The trip changed, make the change again
-      else Same version
-        W->>W: Keep undo step, save new plan locally
-        W-->>T: Updated Timeline / Map
+    P->>P: Recompute conflicts, costs, price flags and editVersion
+    P-->>W: Checked plan, differences, routes and blockers
+    alt Current plan or tab revision changed
+      W->>W: Discard answer; keep current plan
+    else Blockers present
+      W-->>T: Show blockers; keep current plan
+    else Accepted and current
+      W->>W: Keep undo step, apply immediately, save locally
+      W-->>T: Updated Timeline / Map and Undo action
+      opt Traveller chooses Undo
+        alt Remove, idea, schedule or local item edit
+          W->>W: Restore the previous item-edit plan locally
+        else Timeline time, place, drag or leg edit
+          W->>P: Undo operation with saved scheduled activities
+          P-->>W: Revalidated result
+          W->>W: Apply only if accepted and still current
+        end
       end
     end
   end
 
-  Note over T,CC: Chat is a separate path
+  Note over T,CC: Chat is a separate path, with no EditRequest tool
   T->>CC: Chat message
-  CC-->>T: Updated brief or a replan (UC-A1), never an EditRequest
+  CC-->>W: Updated brief or replacement plan
+  W->>W: A replacement plan clears the previous Undo
 ```
 
-The sequence diagram shows the implemented Timeline/Map path and marks chat as a separate coordinator
-path. The important control point is the browser-side comparison of `preview.baseVersion` and the
-current plan version; persistence is local and there is no server-side atomic commit.
+The API name `preview-edit` describes a deterministic check, not a user-facing preview screen. The
+browser holds the undo state. Item Undo restores the previous plan for remove, idea, schedule and
+local item edits; timeline Undo revalidates the saved scheduled activities through the edit route.
+A replacement plan from chat clears both kinds of undo. Browser storage is the local persistence
+boundary; no server-side atomic commit is claimed.
 
 ## 4.3 State machine: Timeline/Map edit lifecycle (UC-E1)
 
 ```mermaid
 stateDiagram-v2
   [*] --> Requested : traveller edits a stop
-  Requested --> Previewing : POST EditRequest
-  state Previewing {
-    Validating --> Routing : [schema, version, IDs, segment ok]
-    Routing --> Recomputing : affected days re-timed
+  Requested --> Checking : POST EditRequest
+  state Checking {
+    Validating --> Routing : schema, version, IDs and segment valid
+    Routing --> Recomputing : route and re-time affected days
   }
-  Validating --> Rejected : [invalid or stale] / 400 with reason
-  Previewing --> Shown : preview returned
-  Shown --> Blocked : [blockers present] / apply disabled
-  Shown --> Ready : [no blockers]
-  Blocked --> Cancelled : cancel
-  Ready --> Cancelled : cancel
-  Ready --> Stale : apply [preview.baseVersion ≠ editVersion]
-  Ready --> Applied : apply [versions match] / save locally, keep undo
-  Shown --> Stale : new plan arrives (chat, restore)
+  Checking --> Rejected : invalid input, failure or blockers
+  Checking --> Stale : current plan or tab revision changed
+  Checking --> Applied : accepted and current / apply immediately and save
+  Applied --> UndoAvailable : retain one undo step
+  UndoAvailable --> ItemRestored : item Undo / restore previous plan locally
+  UndoAvailable --> Checking : timeline Undo / revalidate saved activities
+  UndoAvailable --> Replaced : chat or restore replaces this plan / clear Undo
   Rejected --> [*]
-  Cancelled --> [*]
   Stale --> [*]
-  Applied --> [*]
+  ItemRestored --> [*]
+  Replaced --> [*]
 
-  note right of Previewing
+  note right of Checking
     Deterministic code only.
-    The chat LLM has no edit tool
-    and never enters this machine.
+    No Apply/Cancel review state.
+    The chat LLM has no edit tool.
   end note
 ```
 
-The state machine models the implemented Timeline/Map edit lifecycle. It does not include chat
-interpretation because the current chat coordinator has no edit tool. A request the preview route
-rejects ends in `Rejected`. A preview with blockers can only be cancelled. A preview the traveller
-applies ends in `Applied` when its `baseVersion` still matches the plan, and in `Stale` when the plan
-changed meanwhile; the applied plan is then saved locally.
+An accepted result moves directly from checking to applied, with one undo step. A refused or stale
+result never overwrites the current plan. Background place saves and route checks preserve Undo and
+their unrelated updates. Navigation retains the step for its Trip, without exposing it on another
+Trip. A replacement plan from chat or restore clears the step; reload clears all in-memory steps.
+Chat interpretation and confirmation before replacing manual changes remain outside this deterministic
+state machine.
