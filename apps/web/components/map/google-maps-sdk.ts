@@ -52,24 +52,25 @@ export type MapRuntime = {
 
 let sdk: Promise<MapsSDK> | undefined;
 const authFailureOwners = new Set<() => void>();
-let previousAuthFailure: (() => void) | undefined;
 let installedAuthFailure: (() => void) | undefined;
 let authRejected = false;
 
 export const googleAuthRejected = () => authRejected;
 
-export function subscribeGoogleAuthFailure(fn: () => void) {
+function watchGoogleAuthFailure() {
   const host = window as typeof window & { gm_authFailure?: () => void };
-  if (!authFailureOwners.size) {
-    previousAuthFailure = host.gm_authFailure;
-    installedAuthFailure = () => {
-      const previous = previousAuthFailure;
-      authRejected = true;
-      for (const listener of [...authFailureOwners]) listener();
-      previous?.();
-    };
-    host.gm_authFailure = installedAuthFailure;
-  }
+  if (installedAuthFailure && host.gm_authFailure === installedAuthFailure) return;
+  const previous = host.gm_authFailure;
+  installedAuthFailure = () => {
+    authRejected = true;
+    for (const listener of [...authFailureOwners]) listener();
+    previous?.();
+  };
+  host.gm_authFailure = installedAuthFailure;
+}
+
+export function subscribeGoogleAuthFailure(fn: () => void) {
+  watchGoogleAuthFailure();
   authFailureOwners.add(fn);
   let active = true;
   return {
@@ -77,17 +78,13 @@ export function subscribeGoogleAuthFailure(fn: () => void) {
       if (!active) return;
       active = false;
       authFailureOwners.delete(fn);
-      if (!authFailureOwners.size) {
-        if (host.gm_authFailure === installedAuthFailure) host.gm_authFailure = previousAuthFailure;
-        installedAuthFailure = undefined;
-        previousAuthFailure = undefined;
-      }
     },
   };
 }
 
 export function loadMaps() {
   if (sdk) return sdk;
+  watchGoogleAuthFailure();
   sdk = new Promise<MapsSDK>((resolve, reject) => {
     const key = process.env.NEXT_PUBLIC_GOOGLE_MAPS_API_KEY;
     if (!key) {

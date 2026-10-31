@@ -3,8 +3,9 @@
 `TripMap` disposes marker and route layers, observers, animation frames and pending callbacks before
 disposing its renderer. Each renderer owns one full-height child of the map surface. A failed Google
 constructor removes that child before fallback; a late SDK response cannot create a map after unmount.
-Google authentication subscriptions preserve the existing host callback, snapshot listeners before
-dispatch and restore the host callback when the last owner leaves. Their module-level set is a registry
+Google calls `gm_authFailure` at most once per page, so the SDK loader installs it once, chains any
+existing host callback, snapshots listeners before dispatch and never removes it; a rejection that
+arrives while no map is mounted still marks the key as rejected for the next map. Their module-level set is a registry
 of active map owners that becomes empty on disposal, not a cache of failed trips. Once Google rejects
 the key, the SDK's `map.addListener` returns `undefined`; the renderer keeps no handle for it, so
 disposing that map cannot throw. A rejected map has also lost its container, so setting `marker.map = null`
