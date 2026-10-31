@@ -33,14 +33,40 @@ function rememberFolded(tripId: string, value: boolean) {
   }
 }
 
+const PACKED_KEY = (tripId: string) => `trip-packing:${tripId}`;
+
+function savedPacked(tripId: string): string[] {
+  try {
+    const value: unknown = JSON.parse(window.localStorage.getItem(PACKED_KEY(tripId)) ?? "[]");
+    return Array.isArray(value) ? value.filter((item) => typeof item === "string") : [];
+  } catch {
+    return [];
+  }
+}
+
+function rememberPacked(tripId: string, packed: string[]) {
+  try {
+    window.localStorage.setItem(PACKED_KEY(tripId), JSON.stringify(packed));
+  } catch {
+    return;
+  }
+}
+
 export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: boolean }) {
-  const { t, locale } = useLocale();
+  const { t } = useLocale();
   const items = (
     plan.sections.find((section) => section.id === "destination-guide")?.proposal?.items ?? []
   )
     .filter((item) => item.detail.trim() || packingLine(item.packing, ""))
     .slice(0, MAX_TIPS);
-  const separator = locale.startsWith("zh") ? "、" : ", ";
+  const [packed, setPacked] = useState(() => savedPacked(plan.tripId));
+  const togglePacked = (item: string) => {
+    const next = packed.includes(item)
+      ? packed.filter((entry) => entry !== item)
+      : [...packed, item];
+    setPacked(next);
+    rememberPacked(plan.tripId, next);
+  };
 
   const preference = useRef(savedFolded(plan.tripId));
   const [open, setOpen] = useState(() =>
@@ -73,8 +99,21 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
             {item.detail.trim() ? (
               <p>{item.kind === "weather-packing" ? item.detail : tipSentence(item.detail)}</p>
             ) : null}
-            {packingLine(item.packing, "") ? (
-              <p className="trip-tips__packing">{packingLine(item.packing, separator)}</p>
+            {item.packing?.length ? (
+              <ul className="trip-tips__packing">
+                {item.packing.map((entry) => (
+                  <li key={entry}>
+                    <label className="trip-tips__check">
+                      <input
+                        type="checkbox"
+                        checked={packed.includes(entry)}
+                        onChange={() => togglePacked(entry)}
+                      />
+                      <span>{entry}</span>
+                    </label>
+                  </li>
+                ))}
+              </ul>
             ) : null}
           </li>
         ))}

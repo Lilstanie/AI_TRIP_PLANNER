@@ -146,7 +146,8 @@ dialog.phone-trajectory[open] {
 
 .workspace-app[data-phone] .phone-map-sheet__days button,
 .workspace-app[data-phone] .trip-panel__budget-summary > summary,
-.workspace-app[data-phone] .trip-tips > summary {
+.workspace-app[data-phone] .trip-tips > summary,
+.workspace-app[data-phone] .trip-tips__check {
   min-height: 44px !important;
   align-content: center;
 }
