@@ -499,7 +499,9 @@ city has fewer sights than the trip needs at its pace (2, 3 or 6 a day). A model
 assumption lines are not shown, because they described edits the model had not made; the proposal
 keeps only the notes the code checks. A hop whose only route is an OSRM estimate is labelled as a
 drive. When the chosen round-trip fare carries a return token, the transport agent fetches that
-fare's return leg (`searchReturnLeg`), so the return flight shows its times.
+fare's return leg (`searchReturnLeg`), so the return flight shows its times. When the selected round-trip fare's return leg is known, the last day's stops end three hours
+before that flight, and a flight before 13:30 leaves the day empty
+([Agent Note](../.agents/notes/implemented/bug-fix/2026-10-31-plan-before-return-flight.md)).
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
 `noAccommodation: true`; every other trip needs at least one night per destination. When a brief
