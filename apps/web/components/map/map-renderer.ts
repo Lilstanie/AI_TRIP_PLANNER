@@ -72,6 +72,10 @@ function runtime(
         },
       };
     },
+    removeMarker(marker) {
+      if (provider === "google" && googleAuthRejected()) marker.remove();
+      else marker.map = null;
+    },
     dispose() {
       if (disposed) return;
       disposed = true;

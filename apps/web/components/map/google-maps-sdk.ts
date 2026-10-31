@@ -46,6 +46,7 @@ export type MapRuntime = {
   listen(event: string, fn: () => void): { remove(): void };
   listenOnce(event: string, fn: () => void): { remove(): void };
   onAuthFailure(fn: () => void): { remove(): void };
+  removeMarker(marker: MapMarker): void;
   dispose(): void;
 };
 

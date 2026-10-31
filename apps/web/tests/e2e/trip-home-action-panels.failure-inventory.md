@@ -16,5 +16,6 @@ The journey must fail when any of these outcomes regress:
 10. Zoom, a narrow content container, a responsive breakpoint clips the panel, traps focus or creates horizontal overflow.
 11. Browser console or page errors occur during the journey.
 12. Saving Trip preferences after an outside Budget edit restores the older Budget or drops the unsubmitted preference.
+13. Google rejects the key while markers are on the map: detaching a marker from the rejected map throws, the failure handler stops halfway, the map stays mounted and nothing replaces it.
 
 The repeatable evidence is `trip-home-action-panels.e2e.mjs`. It seeds local fixture data and writes screenshots plus `summary.json` under `output/playwright/trip-home-action-panels/`. Fixture and browser results do not establish live-provider or physical-device behaviour.
