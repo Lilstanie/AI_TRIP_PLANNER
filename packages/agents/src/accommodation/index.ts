@@ -1,4 +1,5 @@
 import {
+  outboundArrival,
   displayCurrencyOf,
   estimateNote,
   formatMoney,
@@ -67,6 +68,7 @@ async function gatherStayEvidence(
       brief.destination,
       board?.proposals.find((proposal) => proposal.agent === "transport"),
     ),
+    outboundArrival(brief, board?.proposals ?? [])?.day,
   );
   const preferences = await ctx.mem.getLongTerm(brief.userId);
   const rememberedPreferences = readPreferences(preferences);
