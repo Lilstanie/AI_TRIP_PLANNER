@@ -495,7 +495,10 @@ draft, and is told to change only what the error names. A missing-day error name
 landing limit. A valid draft whose stops leave too little route time is sent back with those
 legs or with days holding more sights than the pace allows (2, 3 or 6), and the draft with fewer
 conflicts is kept; it gets two tries, and sights still over the cap are then dropped, latest first. Neighbourhoods are offered as stops only when a
-city has fewer sights than the trip needs at its pace (2, 3 or 6 a day).
+city has fewer sights than the trip needs at its pace (2, 3 or 6 a day). When the selected
+round-trip fare's return leg is known, the last day's stops end three hours before that flight, and
+a flight before 13:30 leaves the day empty
+([Agent Note](../.agents/notes/implemented/bug-fix/2026-10-31-plan-before-return-flight.md)).
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
 `noAccommodation: true`; every other trip needs at least one night per destination. When a brief
