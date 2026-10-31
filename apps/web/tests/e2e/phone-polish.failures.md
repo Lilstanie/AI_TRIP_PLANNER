@@ -16,3 +16,11 @@ above the composer on a new chat. Each line is a way the change could fail.
 - In the dark theme a new card keeps a light surface.
 - At 1440 px the top-bar fact chips disappear or the phone tab bar shows.
 - In Chinese a chip label wraps onto two lines.
+
+Added 2026-10-31 from Joey's iPhone screenshots:
+
+- Mine's 行程 and 聊天 headings stack one character per line beside the New action.
+- Tapping the phone chat title opens Trip details inside a stretched top bar, cut off at the top,
+  instead of a sheet above the tab bar.
+- A Trip details or fact sheet hides its last row under the floating tab bar.
+- Swiping up or down on a chat drags the whole page instead of only the message list.

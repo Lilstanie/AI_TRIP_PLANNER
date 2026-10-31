@@ -112,6 +112,29 @@ async function phoneRun(browser, { width, height, language, scheme }) {
   );
   await shot("01-new-chat");
 
+  const topbar = page.locator(".workspace-topbar");
+  const topbarBefore = await box(topbar);
+  await page.locator(".phone-topbar__title-button").click();
+  const factsSheet = page.locator(".fact-popover--facts");
+  await factsSheet.waitFor();
+  await settle(page, 600);
+  const factsBox = await box(factsSheet);
+  const topbarOpen = await box(topbar);
+  const tabbarTop = (await box(page.locator(".phone-tabbar"))).y;
+  check(
+    factsBox && factsBox.y >= 0 && factsBox.y + factsBox.height <= tabbarTop + 1,
+    `${label}: Trip details opens as a whole sheet above the tab bar`,
+    { factsBox, tabbarTop },
+  );
+  check(
+    Math.abs(topbarOpen.height - topbarBefore.height) <= 1,
+    `${label}: opening Trip details leaves the top bar its height`,
+    { before: topbarBefore.height, open: topbarOpen.height },
+  );
+  await shot("01b-trip-details");
+  await page.keyboard.press("Escape");
+  await settle(page, 400);
+
   const who = chips.nth(2);
   await who.click();
   const popover = page.locator(".fact-popover--who");
@@ -143,6 +166,16 @@ async function phoneRun(browser, { width, height, language, scheme }) {
     `${label}: the chip row leaves once the chat has a plan`,
   );
   await shot("03-planned");
+  const overscroll = await page.evaluate(() => ({
+    html: getComputedStyle(document.documentElement).overscrollBehaviorY,
+    body: getComputedStyle(document.body).overscrollBehaviorY,
+    stream: getComputedStyle(document.querySelector(".chat__stream")).overscrollBehaviorY,
+  }));
+  check(
+    overscroll.html === "none" && overscroll.body === "none" && overscroll.stream === "contain",
+    `${label}: swiping the chat cannot drag the whole page`,
+    overscroll,
+  );
 
   await tab(page, copy.trip).click();
   await settle(page, 800);
@@ -170,6 +203,19 @@ async function phoneRun(browser, { width, height, language, scheme }) {
   if (scheme === "dark")
     check(await surfaceIsDark(page, ".phone-mine .history-list"), `${label}: Mine list is dark`);
   check(await noSideScroll(page), `${label}: no sideways page scroll on Mine`);
+  const headings = await page
+    .locator(".phone-mine .chats-panel__section-head .sidebar-history__title")
+    .evaluateAll((nodes) =>
+      nodes.map((node) => {
+        const rect = node.getBoundingClientRect();
+        return { text: node.textContent, width: rect.width, height: rect.height };
+      }),
+    );
+  check(
+    headings.length >= 2 && headings.every((heading) => heading.height < heading.width),
+    `${label}: Mine section headings read on one line`,
+    headings,
+  );
   await shot("05-mine");
 
   await page.getByRole("button", { name: copy.settings, exact: true }).click();
