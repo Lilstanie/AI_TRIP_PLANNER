@@ -2,13 +2,7 @@ import {
   TripBrief as TripBriefSchema,
   type AgentContext,
   type AgentProposal,
-  type ArriveBy,
-  type GeoPoint,
   type Place,
-  type RouteLeg,
-  type RouteOption,
-  type RouteQuery,
-  type TravelMode,
   type RevisionRequest,
   type Specialist,
   type TripBrief,
@@ -21,7 +15,8 @@ import {
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
 import { createRoutedChatModel, readStructuredResponse } from "../models";
-import { dateForDay, planningDays, routeProblem } from "../transport/validation";
+import { dateForDay, planningDays } from "../transport/validation";
+import { connectionKey, placeCoordinates, travelConflicts, type Connections } from "./travel";
 import { cities, cityForDay, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
 import { mealsByCityFrom, withGrounded, withMeals } from "./meals";
@@ -206,7 +201,7 @@ function validateDraft(
   for (const activity of parsed.activities) {
     if (beforeLanding(activity, landing)) {
       throw new Error(
-        `Day ${activity.day} activity ${activity.location} starts before the flight lands on day ${landing!.day} at ${landing!.time}; ${landing!.earliestStart ? `start after ${landing!.earliestStart} on day ${landing!.day}` : `start on day ${landing!.day + 1}`}.`,
+        `Day ${activity.day} activity ${activity.location} starts before the flight lands on day ${landing!.day} at ${landing!.time}; move it to ${landing!.earliestStart ? `day ${landing!.day} at ${landing!.earliestStart} or later` : `day ${landing!.day + 1} or later`} instead of dropping it.`,
       );
     }
   }
@@ -461,105 +456,6 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
       return readStructuredResponse("itinerary", ItineraryDraft, result);
     },
   };
-}
-
-export type Connections = Map<string, ArriveBy>;
-
-const connectionKey = (activity: { day: number; startTime: string; location: string }) =>
-  `${activity.day}|${activity.startTime}|${activity.location}`;
-
-function describeHop(
-  legs: RouteLeg[],
-  options: RouteOption[],
-): { mode: TravelMode; line?: string } {
-  const best = options.find((option) => option.mode !== "drive") ?? options[0];
-
-  const line = best?.note?.match(/via [a-z]+ ([\w-]+)/i)?.[1];
-  if (best) return { mode: best.mode, ...(line ? { line } : {}) };
-  const leg = legs[0];
-  return { mode: leg?.mode ?? "transit" };
-}
-
-function placeCoordinates(places: Place[]): ReadonlyMap<string, GeoPoint> {
-  return new Map(
-    places.flatMap((place) =>
-      place.location ? [[place.name.trim().toLocaleLowerCase(), place.location] as const] : [],
-    ),
-  );
-}
-
-async function travelConflicts(
-  draft: ItineraryDraft,
-  ctx: AgentContext,
-  brief: TripBrief,
-  connections: Connections,
-  coordinates: ReadonlyMap<string, GeoPoint>,
-): Promise<string[]> {
-  const conflicts: string[] = [];
-  const days = new Set(draft.activities.map((activity) => activity.day));
-  for (const day of days) {
-    const activities = draft.activities
-      .filter((activity) => activity.day === day)
-      .sort((left, right) => minutes(left.startTime) - minutes(right.startTime));
-    for (let index = 1; index < activities.length; index += 1) {
-      const previous = activities[index - 1]!;
-      const current = activities[index]!;
-      if (previous.location === current.location) continue;
-      ctx.signal?.throwIfAborted();
-
-      const at = (name: string) => coordinates.get(name.trim().toLocaleLowerCase());
-      const fromLocation = at(previous.location);
-      const toLocation = at(current.location);
-      const query: RouteQuery = {
-        from: previous.location,
-        to: current.location,
-        date: dateForDay(brief.dates[0], day),
-        localTime: previous.endTime,
-        ...(fromLocation ? { fromLocation } : {}),
-        ...(toLocation ? { toLocation } : {}),
-      };
-      let legs;
-      try {
-        legs = await ctx.tools.maps.route(query);
-      } catch {
-        ctx.signal?.throwIfAborted();
-        conflicts.push(
-          `geography conflict on day ${day}: route provider failed; connection unverified`,
-        );
-        continue;
-      }
-      ctx.signal?.throwIfAborted();
-      const problem = routeProblem(legs);
-      if (problem) {
-        conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location}: ${problem}`,
-        );
-        continue;
-      }
-      const durationMin = Math.ceil(legs.reduce((sum, leg) => sum + leg.durationMin, 0));
-
-      const options = ctx.tools.maps.routeOptions
-        ? await ctx.tools.maps.routeOptions(query).catch(() => [] as RouteOption[])
-        : [];
-      if (durationMin > 0) {
-        const { mode, line } = describeHop(legs, options);
-        connections.set(connectionKey(current), {
-          mode,
-          durationMin,
-          ...(line ? { line } : {}),
-          from: previous.location,
-        });
-      }
-      const required = durationMin + 15;
-      const available = minutes(current.startTime) - minutes(previous.endTime);
-      if (required > available) {
-        conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location} needs ${required} minutes including a 15-minute buffer but only ${available} are available`,
-        );
-      }
-    }
-  }
-  return conflicts;
 }
 
 async function planItinerary(
@@ -829,6 +725,8 @@ async function planItinerary(
     ),
   );
   let connections: Connections = new Map();
+  const travel = await travelConflicts(draft, ctx, brief, connections, coordinates);
+  let drivingEstimates = travel.drivingEstimates;
   let conflicts = [
     ...adjusted.conflicts,
     ...dayCities.flatMap((allowed, index) =>
@@ -838,7 +736,7 @@ async function planItinerary(
             `geography conflict: day ${index + 1} transport does not end in the selected overnight city; activities were omitted`,
           ],
     ),
-    ...(await travelConflicts(draft, ctx, brief, connections, coordinates)),
+    ...travel.conflicts,
     ...(usedFallback
       ? Array.from({ length: days }, (_, index) => index + 1)
           .filter((day) => !landing || day > landing.day)
@@ -887,14 +785,19 @@ async function planItinerary(
     }
 
     const fallbackConnections: Connections = new Map();
-    const fallbackConflicts = [
-      ...fallback.conflicts,
-      ...(await travelConflicts(fallback.draft, ctx, brief, fallbackConnections, coordinates)),
-    ];
+    const fallbackTravel = await travelConflicts(
+      fallback.draft,
+      ctx,
+      brief,
+      fallbackConnections,
+      coordinates,
+    );
+    const fallbackConflicts = [...fallback.conflicts, ...fallbackTravel.conflicts];
     if (fallbackConflicts.length < conflicts.length) {
       usedFallback = true;
       draft = fallback.draft;
       connections = fallbackConnections;
+      drivingEstimates = fallbackTravel.drivingEstimates;
       conflicts = fallbackConflicts;
     }
   }
@@ -930,6 +833,11 @@ async function planItinerary(
       ...evidenceIssues,
       ...(landing ? [landingNote(landing)] : []),
       "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
+      ...(drivingEstimates
+        ? [
+            "Travel times between stops are OSRM driving estimates; public transport was not checked and can take longer.",
+          ]
+        : []),
       `Activity prices unknown: no source publishes admission prices for these ${draft.activities.length} stops, so none is counted in the trip total.`,
       ...(placesByCity.size > 1
         ? [

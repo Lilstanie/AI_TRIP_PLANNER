@@ -183,6 +183,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
       { body: geoTokyo },
       { body: geoSights },
       { body: { features: [] } },
+      { body: { features: [] } },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -198,7 +199,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(placesUrl!.searchParams.get("limit")).toBe("500");
     expect(placesUrl!.searchParams.get("conditions")).toBe("named");
     expect(placesUrl!.searchParams.get("categories")).toContain("tourism.sights");
-    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(fetcher).toHaveBeenCalledTimes(4);
     expect(found).toEqual([
       {
         name: "Senso-ji",
@@ -243,6 +244,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
         },
       },
       { body: { features: [] } },
+      { body: { features: [] } },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -251,7 +253,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(found).toHaveLength(20);
   });
 
-  it("also asks for temples and shrines, which Geoapify files under religion rather than sights", async () => {
+  it("asks for temples and shrines in their own requests, which Geoapify files under religion rather than sights", async () => {
     const fetcher = withGeoapify(
       { body: geoTokyo },
       {
@@ -291,32 +293,65 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
           ],
         },
       },
+      {
+        body: {
+          features: [
+            {
+              properties: {
+                name: "明治神宮",
+                lat: 35.6764,
+                lon: 139.6993,
+                datasource: { raw: { wikipedia: "ja:明治神宮" } },
+              },
+            },
+          ],
+        },
+      },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
 
-    const categories = fetcher.mock.calls
-      .slice(1)
-      .map(([url]) => new URL(String(url)).searchParams.get("categories"));
-    expect(categories[0]).toContain("tourism.sights");
-    expect(categories[1]).toContain("religion.place_of_worship.buddhism");
-    expect(categories[1]).toContain("religion.place_of_worship.shinto");
-    expect(found.map((place) => place.name)).toEqual(["金龍山 浅草寺", "Memorial"]);
+    const requests = fetcher.mock.calls.slice(1).map(([url]) => new URL(String(url)).searchParams);
+    expect(requests.map((params) => params.get("categories"))).toEqual([
+      "tourism.sights,tourism.attraction",
+      "religion.place_of_worship.buddhism",
+      "religion.place_of_worship.shinto",
+    ]);
+    expect(requests.map((params) => params.get("limit"))).toEqual(["500", "200", "200"]);
+    expect(found.map((place) => place.name)).toEqual(["金龍山 浅草寺", "明治神宮", "Memorial"]);
     expect(found[0]!.website).toBe("https://senso-ji.jp");
   });
 
-  it("keeps the sights when the slower temple request times out", async () => {
-    withGeoapify({ body: geoTokyo }, { body: geoSights }, { status: 504, body: {} });
+  it("keeps the sights and shrines when the temple request times out, says so, and asks again next time", async () => {
+    const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
+    const shrine = { properties: { name: "明治神宮", lat: 35.6764, lon: 139.6993 } };
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { body: geoSights },
+      { status: 504, body: {} },
+      { body: { features: [shrine] } },
+      { body: geoTokyo },
+      { body: geoSights },
+      { body: { features: [] } },
+      { body: { features: [shrine] } },
+    );
 
     const found = await places({ near: "Tokyo", category: "sight" });
+    await places({ near: "Tokyo", category: "sight" });
 
-    expect(found.map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu"]);
+    expect(found.map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu", "明治神宮"]);
+    expect(warn).toHaveBeenCalledTimes(1);
+    expect(String(warn.mock.calls[0]![0])).toMatch(
+      /Geoapify religion\.place_of_worship\.buddhism unavailable near Tokyo: .*504/,
+    );
+    expect(fetcher).toHaveBeenCalledTimes(8);
   });
 
-  it("falls back to Overpass only when both sight requests fail", async () => {
+  it("falls back to Overpass only when every sight request fails", async () => {
     vi.spyOn(console, "warn").mockImplementation(() => {});
     const fetcher = withGeoapify(
       { body: geoTokyo },
+      { status: 504, body: {} },
       { status: 504, body: {} },
       { status: 504, body: {} },
       { body: tokyo },
@@ -325,7 +360,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
 
     const found = await places({ near: "Tokyo", category: "sight" });
 
-    expect(String(fetcher.mock.calls[4]![0])).toContain("/interpreter");
+    expect(String(fetcher.mock.calls[5]![0])).toContain("/interpreter");
     expect(found.map((place) => place.name)).toEqual(["浅草寺", "東京スカイツリー"]);
   });
 
@@ -333,6 +368,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     const fetcher = withGeoapify(
       { body: geoTokyo },
       { body: geoSights },
+      { body: { features: [] } },
       { body: { features: [] } },
     );
 
@@ -342,7 +378,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     ]);
     const third = await places({ near: "Tokyo", category: "sight" });
 
-    expect(fetcher).toHaveBeenCalledTimes(3);
+    expect(fetcher).toHaveBeenCalledTimes(4);
     expect(second).toEqual(first);
     expect(third).toEqual(first);
   });
@@ -412,6 +448,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
         },
       },
       { body: { features: [] } },
+      { body: { features: [] } },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -440,6 +477,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
         },
       },
       { body: { features: [] } },
+      { body: { features: [] } },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -448,7 +486,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(found.map((place) => place.name).sort()).toEqual(["Senso-ji", "Unlabelled Shrine"]);
   });
 
-  it("lists one OSM object once even when the two sight requests name it differently", async () => {
+  it("lists one OSM object once even when two sight requests name it differently", async () => {
     const version = (name: string) => ({
       properties: {
         name,
@@ -461,6 +499,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
       { body: geoTokyo },
       { body: { features: [version("Храм Сенсодзи 金龍山 浅草寺")] } },
       { body: { features: [version("金龍山 浅草寺")] } },
+      { body: { features: [] } },
     );
 
     const found = await places({ near: "Tokyo", category: "sight" });
@@ -480,6 +519,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
           ],
         },
       },
+      { body: { features: [] } },
       { body: { features: [] } },
     );
 
@@ -596,13 +636,53 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     );
   });
 
-  it("keeps neighbourhoods on Overpass, which Geoapify cannot list", async () => {
-    const fetcher = withGeoapify({ body: tokyo }, { body: { elements: [] } });
+  it("asks Geoapify for suburbs, quarters and neighbourhoods inside the city, without Overpass", async () => {
+    const fetcher = withGeoapify(
+      { body: [{ ...geoTokyo[0], address: { "ISO3166-2-lvl4": "JP-13" } }] },
+      {
+        body: {
+          features: [
+            { properties: { name: "谷中", iso3166_2: "JP-13", lat: 35.7266, lon: 139.7671 } },
+            { properties: { name: "浦安", iso3166_2: "JP-12", lat: 35.653, lon: 139.902 } },
+            {
+              properties: {
+                name: "秋葉原",
+                iso3166_2: "JP-13",
+                lat: 35.6984,
+                lon: 139.7731,
+                datasource: { raw: { wikipedia: "ja:秋葉原" } },
+              },
+            },
+          ],
+        },
+      },
+    );
+
+    const found = await places({ near: "Tokyo", category: "neighborhood" });
+
+    expect(fetcher).toHaveBeenCalledTimes(2);
+    const params = new URL(String(fetcher.mock.calls[1]![0])).searchParams;
+    expect(params.get("categories")).toBe(
+      "populated_place.suburb,populated_place.quarter,populated_place.neighbourhood",
+    );
+    expect(params.get("filter")).toBe("circle:139.7671,35.6812,15000");
+    expect(found.map((place) => [place.name, place.category])).toEqual([
+      ["秋葉原", "neighborhood"],
+      ["谷中", "neighborhood"],
+    ]);
+  });
+
+  it("falls back to Overpass for neighbourhoods when Geoapify finds none", async () => {
+    const fetcher = withGeoapify(
+      { body: geoTokyo },
+      { body: { features: [] } },
+      { body: tokyo },
+      { body: { elements: [] } },
+    );
 
     await places({ near: "Tokyo", category: "neighborhood" });
 
-    expect(String(fetcher.mock.calls[0]![0])).toContain("nominatim");
-    expect(String(fetcher.mock.calls[1]![0])).toContain("/interpreter");
+    expect(String(fetcher.mock.calls[3]![0])).toContain("/interpreter");
   });
 });
 

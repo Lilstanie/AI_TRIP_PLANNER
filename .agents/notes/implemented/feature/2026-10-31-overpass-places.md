@@ -24,27 +24,35 @@ the Nominatim text search.
 When `GEOAPIFY_API_KEY` is set, `packages/tools/src/geoapify.ts` answers `sight`, `museum` and
 `restaurant` first: Nominatim finds the city centre (Geoapify's own city search put `京都`
 in Shantou or Hainan in 2 of 6 live runs), then Places lists up to 500 named places of that category
-within 15 km (`filter=circle`, `conditions=named`). Sights take two requests, `tourism.sights,tourism.attraction`
-and Buddhist/Shinto places of worship: Geoapify files Meiji Jingu under `religion.*` only, and
-浅草寺 was missing from 500 `tourism.*` results. It keeps 20, each name once, ranked by an OSM
+within 15 km (`filter=circle`, `conditions=named`). Sights take three requests: up to 500
+`tourism.sights,tourism.attraction`, then up to 200 Buddhist and up to 200 Shinto places of worship,
+because Geoapify files Meiji Jingu under `religion.*` only, and 浅草寺 was missing from 500
+`tourism.*` results. It keeps 20, each name once, ranked by an OSM
 `tourism` tag or a Wikipedia link (2 each), a Wikidata id and an image (1 each), then the nearest;
 the official `contact:website` wins over `website`; a feature whose name is not text is skipped. The city's
 own boundary is not used: Tokyo's includes the Ogasawara islands, and a live run put every stop on
 Iwo Jima, about 1,200 km away. Pure nearest-first ordering is not used either: a live run then
 filled all 20 slots with statues within 1 km of Tokyo Station. A Geoapify error, a missing city or an empty list
 logs a warning without the key and falls back to Overpass; when both fail the error names both.
-The two sight requests are settled separately: a live trip lost all its stops twice when the temple
+The sight requests are settled separately: a live trip lost all its stops twice when the temple
 request passed the 15 s timeout and took the sights with it, so one answered request is enough and
-only two failures count as a Geoapify failure. A city and category's places are kept for 10 minutes
+only failures of all of them count as a Geoapify failure. Buddhist and Shinto places are separate
+requests (TP-197): one combined request of 500 took 15–22 s and timed out on the 2026-10-31 live
+trip, which then had no temple, while each alone of 200 took 4–6 s. A failed request among the
+others logs which categories failed near which city. A city and category's places are kept for 10 minutes
 and shared by concurrent callers, since one trip's agents asked for the same sights several times at
-8–13 s each; failed or empty lookups are not kept.
+8–13 s each; failed, partial or empty lookups are not kept.
 A place is named by its local-language tag (`name:ja` in Japan, `name:zh` in China and so on)
 when it has one, because one of two live versions of 浅草寺's OSM way was named
 "Храм Сенсодзи 金龍山 浅草寺"; an OSM object returned by both sight requests is listed once. The
 city's ISO 3166-2 region comes from the Nominatim centre (`addressdetails=1`). A place whose own
 `iso3166_2` differs is dropped, because Tokyo's circle reached four Tokyo Disney rides in Urayasu,
 Chiba. A place without a region code is kept, and so is every place when the city's region is unknown.
-Neighbourhoods always use Overpass, because Geoapify Places has no neighbourhood category.
+Neighbourhoods come from Geoapify too (TP-197), as `populated_place.suburb`,
+`populated_place.quarter` and `populated_place.neighbourhood` within the same circle and region:
+the first version kept them on Overpass in the belief that Geoapify had no neighbourhood category,
+and on the 2026-10-31 live trip all three Overpass requests timed out or returned 502. Geoapify
+answered Tokyo's in 4.8 s (Akihabara, Yanaka, Gotanda). Overpass stays their fallback.
 
 ## Alternatives considered
 
