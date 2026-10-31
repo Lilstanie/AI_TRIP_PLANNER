@@ -5,7 +5,14 @@ import { Fragment, useContext, useEffect, useId, useMemo, useRef, useState } fro
 import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { TripPlaces } from "../map/useTripPlaces";
-import { connectionBetween, dayCount, dayLabel, dayRows, stayingAt } from "@/lib/trip/timeline";
+import {
+  connectionBetween,
+  dayCount,
+  dayLabel,
+  dayRows,
+  emptyDayKey,
+  stayingAt,
+} from "@/lib/trip/timeline";
 import { OnTripContext } from "@/lib/trip/on-trip-day";
 import { applyItemAction, type ItemAction } from "@/lib/trip/item-actions";
 import {
@@ -187,7 +194,7 @@ export function TripEditorView({
           day: index + 1,
           date,
           stops: stops.length,
-          rows: rows.length,
+          empty: emptyDayKey(rows),
           attention: stops.some((activity) => locationStatus(activity) !== "located"),
         };
       }),
