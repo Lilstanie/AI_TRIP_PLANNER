@@ -17,7 +17,7 @@ import { requestPreview, type PreviewAnswer } from "./previewRequest";
 export type EditOperation = EditInput["operation"];
 
 export const PLAN_CHANGED: Notice = {
-  key: "The plan changed while this change was being checked. Try the change again.",
+  key: "thePlanChangedWhileThisChange",
 };
 
 export type JobOutcome =

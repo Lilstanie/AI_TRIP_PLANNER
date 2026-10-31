@@ -1,12 +1,16 @@
 "use client";
 
 import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import { NextIntlClientProvider, useTranslations } from "next-intl";
 import {
   browserLocale,
   intlLocale,
+  MESSAGES,
   translate,
+  withVisiblePlaceholders,
   type AppLocale,
   type MessageKey,
+  type MessageParams,
 } from "@/lib/i18n/locale";
 import { moneyDisplay, type Money } from "@/lib/money";
 import { noticeText, type Notice } from "@/lib/i18n/notice";
@@ -16,7 +20,7 @@ import { effectiveCurrency, type Currency, type TripBrief } from "@trip/shared";
 
 type LocaleState = Money & {
   locale: AppLocale;
-  t(text: MessageKey, params?: Record<string, string | number>): string;
+  t(text: MessageKey, params?: MessageParams): string;
   currency: Currency;
 
   notice(notice: Notice | undefined): string;
@@ -44,21 +48,44 @@ export function LocaleProvider({
   children: ReactNode;
   brief?: Pick<TripBrief, "budgetSource" | "displayCurrency">;
 }) {
-  const { settings } = useSettings();
-  const currency = effectiveCurrency(brief, settings.displayCurrency);
   const locale = useInterfaceLocale();
   useEffect(() => {
     document.documentElement.lang = intlLocale(locale);
   }, [locale]);
+  return (
+    <NextIntlClientProvider locale={locale} messages={MESSAGES[locale]}>
+      <LocaleValue locale={locale} brief={brief}>
+        {children}
+      </LocaleValue>
+    </NextIntlClientProvider>
+  );
+}
+
+function LocaleValue({
+  children,
+  locale,
+  brief,
+}: {
+  children: ReactNode;
+  locale: AppLocale;
+  brief?: Pick<TripBrief, "budgetSource" | "displayCurrency">;
+}) {
+  const { settings } = useSettings();
+  const currency = effectiveCurrency(brief, settings.displayCurrency);
+  const translations = useTranslations();
   const value = useMemo<LocaleState>(
     () => ({
       locale,
-      t: (text, params) => translate(locale, text, params),
+      t: (text, params = {}) =>
+        (translations as (key: string, values: MessageParams) => string)(
+          text,
+          withVisiblePlaceholders(text, params),
+        ),
       currency,
       notice: (notice) => localNotice(locale, notice),
       ...moneyDisplay({ currency, locale }),
     }),
-    [locale, currency],
+    [locale, currency, translations],
   );
   return <LocaleContext.Provider value={value}>{children}</LocaleContext.Provider>;
 }

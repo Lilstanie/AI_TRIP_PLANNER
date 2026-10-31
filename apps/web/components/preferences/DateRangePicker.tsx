@@ -26,7 +26,7 @@ export function DateRangePicker({
       </div>
       <div className="date-picker__actions">
         <button type="button" onClick={onClose}>
-          {t("Cancel")}
+          {t("cancel")}
         </button>
         <button
           type="button"
@@ -37,7 +37,7 @@ export function DateRangePicker({
             onClose();
           }}
         >
-          {t("Use these dates")}
+          {t("useTheseDates")}
         </button>
       </div>
     </Dialog>

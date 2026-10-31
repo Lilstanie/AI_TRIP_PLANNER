@@ -55,7 +55,7 @@ export function dayCount(plan: TripPlan) {
 
 export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") {
   const time = Date.parse(`${plan.brief.dates[0]}T00:00:00Z`) + (day - 1) * 86400000;
-  if (!Number.isFinite(time)) return translate(locale, "Day {v0}", { v0: day });
+  if (!Number.isFinite(time)) return translate(locale, "dayV0", { v0: day });
   return new Intl.DateTimeFormat(intlLocale(locale), {
     weekday: "short",
     day: "numeric",
@@ -79,7 +79,7 @@ function transportRow(item: ProposalItem, index: number, locale: AppLocale): Fix
       detail: [
         MODE_LABELS[mode ?? ""]
           ? translate(locale, MODE_LABELS[mode!]!)
-          : translate(locale, "Transfer"),
+          : translate(locale, "transfer"),
         duration && formatDuration(Number(duration), locale),
       ]
         .filter(Boolean)
@@ -88,7 +88,7 @@ function transportRow(item: ProposalItem, index: number, locale: AppLocale): Fix
       endTime: item.endTime,
       cost: item.estCost,
       costNote: /fare unavailable/i.test(item.detail)
-        ? translate(locale, "Fare not published")
+        ? translate(locale, "fareNotPublishedTitle")
         : undefined,
     };
   }
@@ -101,8 +101,8 @@ function transportRow(item: ProposalItem, index: number, locale: AppLocale): Fix
     title,
     detail: [
       carrier,
-      returning ? translate(locale, "return flight {date}", { date: returning }) : undefined,
-      translate(locale, "whole group"),
+      returning ? translate(locale, "returnFlightDate", { date: returning }) : undefined,
+      translate(locale, "wholeGroup"),
     ]
       .filter(Boolean)
       .join(" · "),
@@ -126,12 +126,12 @@ function stayRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow
     kind: "stay",
     title: name,
     detail: [
-      translate(locale, "Check in"),
+      translate(locale, "checkInTitle"),
       nights &&
         (locale === "en" && nights === "1"
           ? "1 night"
-          : translate(locale, "{count} nights", { count: nights })),
-      rating && translate(locale, "rated {rating}/5", { rating }),
+          : translate(locale, "countNights", { count: nights })),
+      rating && translate(locale, "ratedRating5", { rating }),
     ]
       .filter(Boolean)
       .join(" · "),
@@ -254,19 +254,19 @@ export function formatDuration(total: number, locale: AppLocale = "en") {
 }
 
 const MODE_LABELS: Record<string, MessageKey> = {
-  walk: "Walk",
-  WALK: "Walk",
-  bus: "Bus",
-  train: "Train",
-  tram: "Tram",
-  ferry: "Ferry",
-  drive: "Drive",
-  DRIVE: "Drive",
-  cycle: "Cycle",
-  BICYCLE: "Cycle",
-  transit: "Public transport",
-  TRANSIT: "Public transport",
-  flight: "Fly",
+  walk: "walk",
+  WALK: "walk",
+  bus: "bus",
+  train: "train",
+  tram: "tram",
+  ferry: "ferry",
+  drive: "drive",
+  DRIVE: "drive",
+  cycle: "cycle",
+  BICYCLE: "cycle",
+  transit: "publicTransport",
+  TRANSIT: "publicTransport",
+  flight: "fly",
 };
 
 const SERVICE_NAMES = { google: "Google", osrm: "OSRM", transitous: "Transitous" } as const;
@@ -299,7 +299,7 @@ export function connectionBetween(
     if (route.status !== "ok" || route.durationMin === undefined)
       return {
         mode: route.mode,
-        label: translate(locale, "No route found"),
+        label: translate(locale, "noRouteFound"),
         status: "failed",
         choice,
       };

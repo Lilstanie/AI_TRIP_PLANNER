@@ -38,7 +38,7 @@ describe("POST /api/places/details", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "The map service is temporarily unavailable. Please retry.",
-      notice: { key: "The map service is temporarily unavailable. Please retry." },
+      notice: { key: "theMapServiceIsTemporarily" },
     });
   });
 
@@ -72,7 +72,7 @@ describe("POST /api/places/details", () => {
       expect(response.status).toBe(404);
       await expect(response.json()).resolves.toEqual({
         error: "This saved place is no longer available.",
-        notice: { key: "This saved place is no longer available." },
+        notice: { key: "thisSavedPlaceIsNo" },
       });
     },
   );

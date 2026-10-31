@@ -18,7 +18,7 @@ const SearchRequest = z.object({
 export async function POST(request: Request) {
   const parsed = SearchRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
-    return Response.json(noticeBody({ key: "Enter a place name to search." }), { status: 400 });
+    return Response.json(noticeBody({ key: "enterAPlaceNameTo" }), { status: 400 });
   const { kind, ...query } = parsed.data;
   const withKind = kind ? `${query.text} ${KIND_QUERY_WORD[kind]}` : query.text;
   const text = withKind.length <= MAX_QUERY ? withKind : query.text;

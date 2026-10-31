@@ -45,7 +45,7 @@ const fields =
 
 export class GoogleNotConfiguredError extends NoticeError {
   constructor() {
-    super({ key: "Google Maps is not configured. Add the server MAPS_API_KEY." });
+    super({ key: "googleMapsIsNotConfigured" });
     this.name = "GoogleNotConfiguredError";
   }
 }
@@ -60,7 +60,7 @@ export class GoogleRequestError extends NoticeError {
     readonly reason?: string,
     notice?: Notice,
   ) {
-    super(notice ?? { key: "Google request failed ({status}). Please retry.", params: { status } });
+    super(notice ?? { key: "googleRequestFailedStatusPlease", params: { status } });
     this.name = "GoogleRequestError";
   }
 }
@@ -80,8 +80,8 @@ async function failureReason(response: Response): Promise<string | undefined> {
 
 export const placesUnavailable = (status: number | undefined): Notice =>
   status === 429
-    ? { key: "Google Places is busy. Please retry shortly." }
-    : { key: "Google Places is temporarily unavailable. Please retry." };
+    ? { key: "googlePlacesIsBusyPlease" }
+    : { key: "googlePlacesIsTemporarilyUnavailablePlease" };
 async function request(url: string, mask?: string, body?: unknown) {
   const response = await fetch(url, {
     method: body ? "POST" : "GET",
@@ -146,7 +146,7 @@ const TIME_ZONE_FAILURES: Record<string, number> = {
   UNKNOWN_ERROR: 500,
 };
 export async function timeZone(place: GooglePlace, date: string) {
-  if (!place.location) throw new NoticeError({ key: "This place has no verified coordinates." });
+  if (!place.location) throw new NoticeError({ key: "thisPlaceHasNoVerified" });
   const { latitude, longitude } = place.location;
   const url = new URL("https://maps.googleapis.com/maps/api/timezone/json");
   url.search = new URLSearchParams({
@@ -156,7 +156,7 @@ export async function timeZone(place: GooglePlace, date: string) {
   }).toString();
   const data = await request(url.toString());
 
-  const unverified = { key: "Destination time zone could not be verified." } as const;
+  const unverified = { key: "destinationTimeZoneCouldNot" } as const;
   const failed = TIME_ZONE_FAILURES[data.status as string];
   if (failed) throw new GoogleRequestError(failed, data.status, unverified);
   if (data.status !== "OK" || typeof data.timeZoneId !== "string")
@@ -183,7 +183,7 @@ export function localInstant(date: string, time: string, zone: string) {
   }
   if (matches.length !== 1)
     throw new NoticeError({
-      key: "Local time is ambiguous or nonexistent due to daylight saving. Choose another time.",
+      key: "localTimeIsAmbiguousOr",
     });
   return new Date(matches[0]!).toISOString();
 }
@@ -217,7 +217,7 @@ export function unavailableRoute(
     ...base,
     status: "unavailable",
     error: error instanceof Error ? error.message : "Route unavailable",
-    notice: errorNotice(error, { key: "Route unavailable" }),
+    notice: errorNotice(error, { key: "routeUnavailable" }),
   };
 }
 
@@ -231,7 +231,7 @@ export async function requestGoogleRoute(
   const delta = Date.parse(departure) - Date.now();
   if (mode === "TRANSIT" && (delta < -7 * 86400000 || delta > 100 * 86400000))
     throw new NoticeError({
-      key: "Transit departure is outside Google's supported date window.",
+      key: "transitDepartureIsOutsideGoogle",
     });
   const data = await request(
     "https://routes.googleapis.com/directions/v2:computeRoutes",
@@ -247,10 +247,10 @@ export async function requestGoogleRoute(
   if (!data.routes?.length) return { ...base, status: "no_route" };
   const route = data.routes[0];
   if (!/^\d+(\.\d+)?s$/.test(route.duration))
-    throw new NoticeError({ key: "No verified route was returned." });
+    throw new NoticeError({ key: "noVerifiedRouteWasReturned" });
   const durationMin = Math.ceil(Number(route.duration.slice(0, -1)) / 60);
   if (!Number.isFinite(durationMin) || durationMin <= 0)
-    throw new NoticeError({ key: "Invalid route duration." });
+    throw new NoticeError({ key: "invalidRouteDuration" });
   const fare = route.travelAdvisory?.transitFare;
   const amount = Number(fare?.units ?? 0) + Number(fare?.nanos ?? 0) / 1e9;
   return {
@@ -295,11 +295,11 @@ export async function requestGoogleRouteFromCoordinates(
   );
   const route = data.routes?.[0];
   if (!route || !/^\d+(\.\d+)?s$/.test(route.duration))
-    throw new NoticeError({ key: "No verified route was returned." });
+    throw new NoticeError({ key: "noVerifiedRouteWasReturned" });
   const durationMin = Math.ceil(Number(route.duration.slice(0, -1)) / 60);
   const distanceMeters = Number(route.distanceMeters);
   if (!Number.isFinite(durationMin) || durationMin <= 0)
-    throw new NoticeError({ key: "Invalid route duration." });
+    throw new NoticeError({ key: "invalidRouteDuration" });
   const fare = route.travelAdvisory?.transitFare;
   const amount = Number(fare?.units ?? 0) + Number(fare?.nanos ?? 0) / 1e9;
   return {

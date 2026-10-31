@@ -28,7 +28,7 @@ export async function POST(request: Request) {
     );
   } catch (error) {
     const notice = errorNotice(error instanceof ZodError ? undefined : error, {
-      key: "Route lookup failed.",
+      key: "routeLookupFailed",
     });
     return Response.json(noticeBody(notice), { status: 400 });
   }

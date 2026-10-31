@@ -532,7 +532,7 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   } catch {
     result.storageEnabled = false;
     result.storageError = {
-      key: "Your last workspace could not be read. It was kept unchanged; your history may be incomplete. Retry storage or explicitly replace the unreadable workspace.",
+      key: "yourLastWorkspaceCouldNot",
     };
   }
   try {
@@ -563,7 +563,7 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
   } catch {
     result.storageEnabled = false;
     result.storageError = {
-      key: "Workspace history could not be read. Existing stored data was kept; you can still plan a new trip.",
+      key: "workspaceHistoryCouldNotBe",
     };
   }
   return result;

@@ -75,13 +75,13 @@ function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
       </div>
       <p className="itinerary-leg__stops">
         {stops === 0
-          ? t("Nonstop")
-          : `${t(stops === 1 ? "{count} stop" : "{count} stops", { count: stops })} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
+          ? t("nonstop")
+          : `${t(stops === 1 ? "countStop" : "countStops", { count: stops })} (${leg.layovers.map((stop) => stop.place.code).join(", ")})`}
       </p>
       <span className="sr-only">
         {label}: {first.from.name} {t("to")}
         {last.to.name}
-        {t(", departing")}
+        {t("departing2")}
         {clock(first.departsAt, locale)}.
       </span>
     </div>
@@ -105,16 +105,16 @@ export function FlightItineraryCard({
   return (
     <article
       className="itinerary"
-      aria-label={t("From {from} to {to}", { from: first.from.name, to: last.to.name })}
+      aria-label={t("fromFromToTo", { from: first.from.name, to: last.to.name })}
     >
       <header className="itinerary__badges">
         {cheapest && (
-          <span className="itinerary__badge itinerary__badge--best">{t("Cheapest")}</span>
+          <span className="itinerary__badge itinerary__badge--best">{t("cheapest")}</span>
         )}
         <span className="itinerary__badge">
           {stops === 0
-            ? t("Nonstop")
-            : t(stops === 1 ? "{count} stop" : "{count} stops", { count: stops })}
+            ? t("nonstop")
+            : t(stops === 1 ? "countStop" : "countStops", { count: stops })}
         </span>
       </header>
       <p className="itinerary__route">
@@ -125,21 +125,19 @@ export function FlightItineraryCard({
         {returning ? ` – ${shortDate(returning.arrivesAt, locale)}` : ""}
       </p>
       <p className="itinerary__class">
-        {option.roundTrip ? t("Round trip") : t("One way")}
+        {option.roundTrip ? t("roundTrip") : t("oneWay")}
         {first.cabin ? ` · ${first.cabin}` : ""}
       </p>
       <div className="itinerary__legs">
-        <Leg leg={outbound} label={t("Outbound")} />
-        {option.inbound && <Leg leg={option.inbound} label={t("Return")} />}
+        <Leg leg={outbound} label={t("outbound")} />
+        {option.inbound && <Leg leg={option.inbound} label={t("return")} />}
       </div>
       {option.roundTrip && !option.inbound && (
-        <p className="itinerary__pending">
-          {t("Return flights not looked up; the price covers the way home.")}
-        </p>
+        <p className="itinerary__pending">{t("returnFlightsNotLookedUp")}</p>
       )}
       <footer className="itinerary__footer">
         <span className="itinerary__price">{money(option.price)}</span>
-        <span className="itinerary__price-note">{t("whole party")}</span>
+        <span className="itinerary__price-note">{t("wholeParty")}</span>
       </footer>
     </article>
   );

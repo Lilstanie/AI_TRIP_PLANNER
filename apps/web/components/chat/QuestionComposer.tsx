@@ -10,18 +10,18 @@ import {
 } from "@/lib/workspace/ask-user";
 
 const copy = {
-  incomplete: "Please complete this question first.",
-  unanswered: "Please select an option or enter a custom answer.",
-  prev: "Previous question",
-  next: "Next question",
-  minimize: "Collapse the question card",
-  maximize: "Expand the question card",
-  cancel: "Dismiss all questions",
-  recommended: "Recommended",
-  placeholder: "Type your answer",
-  skip: "Skip this question",
-  advance: "Next",
-  submit: "Submit",
+  incomplete: "pleaseCompleteThisQuestionFirst",
+  unanswered: "pleaseSelectAnOptionOr",
+  prev: "previousQuestion",
+  next: "nextQuestion",
+  minimize: "collapseTheQuestionCard",
+  maximize: "expandTheQuestionCard",
+  cancel: "dismissAllQuestions",
+  recommended: "recommended",
+  placeholder: "typeYourAnswer",
+  skip: "skipThisQuestion",
+  advance: "next",
+  submit: "submit",
 } as const;
 
 type Feedback = "incomplete" | "unanswered";
@@ -394,7 +394,7 @@ export function QuestionComposer({
                       variant="inline"
                       value={draft.custom}
                       disabled={submitting}
-                      label={t("Other answer")}
+                      label={t("otherAnswer")}
                       placeholder={t(copy.placeholder)}
                       onChange={draftCustom}
                       onKeyDown={continueFromCustom}
@@ -407,7 +407,7 @@ export function QuestionComposer({
                     variant="block"
                     value={draft.custom}
                     disabled={submitting}
-                    label={t("Your answer")}
+                    label={t("yourAnswer")}
                     placeholder={t(copy.placeholder)}
                     onFocus={() => focusedQuestions.current.add(index)}
                     onChange={draftCustom}
@@ -471,10 +471,10 @@ export function QuestionComposer({
                   <button
                     type="button"
                     className="question__button question__button--outline"
-                    aria-label={t("Stop planning")}
+                    aria-label={t("stopPlanning")}
                     onClick={onStop}
                   >
-                    {t("Stop planning")}
+                    {t("stopPlanning")}
                   </button>
                 )}
               </div>

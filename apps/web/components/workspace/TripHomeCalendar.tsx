@@ -23,10 +23,10 @@ import { FlowAttractionIcon, FlowFlightIcon, FlowStayIcon } from "../ui/flow-ico
 type CalendarView = "week" | "month";
 
 function categoryLabel(category: CalendarCategory, locale: AppLocale) {
-  if (category === "activity") return translate(locale, "Stops");
-  if (category === "stay") return translate(locale, "Stay");
-  if (category === "transport") return translate(locale, "Transport");
-  return translate(locale, "Flight");
+  if (category === "activity") return translate(locale, "stopsTitle");
+  if (category === "stay") return translate(locale, "stay");
+  if (category === "transport") return translate(locale, "transport");
+  return translate(locale, "flight");
 }
 
 function CategoryIcon({ category, size }: { category: CalendarCategory; size: number }) {
@@ -42,8 +42,8 @@ function CategoryIcon({ category, size }: { category: CalendarCategory; size: nu
 function statusLabel(entry: CalendarEntry, locale: AppLocale) {
   if (entry.allDay) {
     return entry.category === "activity"
-      ? translate(locale, "Untimed")
-      : translate(locale, "All day");
+      ? translate(locale, "untimed")
+      : translate(locale, "allDay");
   }
   return [entry.startTime, entry.endTime].filter(Boolean).join("–");
 }
@@ -69,10 +69,10 @@ function CalendarEvent({
       </span>
       <span className="trip-home-calendar__event-meta">
         {entry.allDay && entry.category === "activity" && (
-          <span>{translate(locale, "All day")}</span>
+          <span>{translate(locale, "allDay")}</span>
         )}
         <span>{status}</span>
-        {entry.overlap && <span>{translate(locale, "Overlap")}</span>}
+        {entry.overlap && <span>{translate(locale, "overlap")}</span>}
       </span>
     </>
   );
@@ -115,7 +115,7 @@ function TimelineDay({
   return (
     <section
       className="trip-home-calendar__timeline-day"
-      aria-label={translate(locale, "Timed activities")}
+      aria-label={translate(locale, "timedActivities")}
     >
       {layout?.items.map(({ entry, start, end, lane }) => (
         <div
@@ -166,9 +166,9 @@ function CalendarEntries({
       {allDay.length > 0 && (
         <section
           className="trip-home-calendar__row trip-home-calendar__row--all-day"
-          aria-label={translate(locale, "All day activities")}
+          aria-label={translate(locale, "allDayActivities")}
         >
-          <h4>{translate(locale, "All day")}</h4>
+          <h4>{translate(locale, "allDay")}</h4>
           {allDay.map((entry) => (
             <CalendarEvent
               key={entry.key}
@@ -183,7 +183,7 @@ function CalendarEntries({
       {timed.length > 0 && (
         <section
           className="trip-home-calendar__row trip-home-calendar__row--timed"
-          aria-label={translate(locale, "Timed activities")}
+          aria-label={translate(locale, "timedActivities")}
         >
           {timed.map((entry) => (
             <CalendarEvent
@@ -276,8 +276,8 @@ export function TripHomeCalendar({
     Date.UTC(currentMonth.getUTCFullYear(), currentMonth.getUTCMonth() + 1, 0),
   ).getUTCDate();
   const monthWeek = weekStart(visibleMonth);
-  const previousLabel = view === "week" ? "Previous week" : "Previous month";
-  const nextLabel = view === "week" ? "Next week" : "Next month";
+  const previousLabel = view === "week" ? "previousWeek" : "previousMonth";
+  const nextLabel = view === "week" ? "nextWeek" : "nextMonth";
   const canPrevious = view === "week" ? weekIndex > 0 : monthIndex > 0;
   const canNext = view === "week" ? weekIndex < weeks.length - 1 : monthIndex < months.length - 1;
 
@@ -292,7 +292,7 @@ export function TripHomeCalendar({
         <div
           className="trip-home-calendar__views"
           role="group"
-          aria-label={translate(locale, "Calendar view")}
+          aria-label={translate(locale, "calendarView")}
         >
           {(["week", "month"] as const).map((value) => (
             <button
@@ -302,11 +302,11 @@ export function TripHomeCalendar({
               aria-pressed={view === value}
               onClick={() => setView(value)}
             >
-              {translate(locale, value === "week" ? "Week" : "Month")}
+              {translate(locale, value === "week" ? "week" : "month")}
             </button>
           ))}
         </div>
-        <div className="trip-home-calendar__legend" aria-label={translate(locale, "Trip details")}>
+        <div className="trip-home-calendar__legend" aria-label={translate(locale, "tripDetails")}>
           {(["activity", "flight", "stay"] as const).map((category) => (
             <span data-category={category} key={category}>
               <CategoryIcon category={category} size={14} />
@@ -388,7 +388,7 @@ export function TripHomeCalendar({
             })}
           </div>
           {stays.length > 0 && (
-            <ul className="trip-home-calendar__stays" aria-label={translate(locale, "Stay")}>
+            <ul className="trip-home-calendar__stays" aria-label={translate(locale, "stay")}>
               {stays.map((stay) => (
                 <li
                   key={stay.key}
@@ -400,7 +400,7 @@ export function TripHomeCalendar({
                   <span className="trip-home-calendar__stay-nights">
                     {locale === "en" && stay.nights === 1
                       ? "1 night"
-                      : translate(locale, "{count} nights", { count: stay.nights })}
+                      : translate(locale, "countNights", { count: stay.nights })}
                   </span>
                 </li>
               ))}

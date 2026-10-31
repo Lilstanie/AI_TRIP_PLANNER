@@ -34,7 +34,7 @@ export function DayStrip({
     strip.current?.querySelector<HTMLElement>(`[data-day="${next}"]`)?.focus();
   };
   return (
-    <div className="day-strip" role="tablist" aria-label={t("Trip days")} ref={strip}>
+    <div className="day-strip" role="tablist" aria-label={t("tripDays")} ref={strip}>
       {days.map(({ day, date, stops, rows, attention }) => (
         <button
           key={day}
@@ -59,19 +59,19 @@ export function DayStrip({
             event.preventDefault();
           }}
         >
-          <span className="day-strip__title">{t("Day {v0}", { v0: day })}</span>
-          {day === today && <span className="day-strip__today">{t("Today")}</span>}
+          <span className="day-strip__title">{t("dayV0", { v0: day })}</span>
+          {day === today && <span className="day-strip__today">{t("today")}</span>}
           <span className="day-strip__date">{date}</span>
           <span className="day-strip__meta">
             {stops
               ? `${stops} ${stops === 1 ? t("stop") : t("stops")}`
               : rows
-                ? t("Booked")
-                : t("Free day")}
+                ? t("booked")
+                : t("freeDay")}
             {attention && (
               <span className="day-strip__flag">
                 <span aria-hidden="true"> · </span>
-                {t("needs a place")}
+                {t("needsAPlace")}
               </span>
             )}
           </span>

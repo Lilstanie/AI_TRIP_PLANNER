@@ -91,13 +91,13 @@ export function SplitResizer({
       className="split-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label={t("Resize chat and map")}
+      aria-label={t("resizeChatAndMap")}
       aria-valuemin={Math.round(CHAT_SHARE.min * 100)}
       aria-valuemax={Math.round(CHAT_SHARE.max * 100)}
       aria-valuenow={now}
-      aria-valuetext={t("Chat {percent}% of the width", { percent: now })}
+      aria-valuetext={t("chatPercentOfTheWidth", { percent: now })}
       tabIndex={0}
-      title={t("Drag to resize · double-click to reset")}
+      title={t("dragToResizeDoubleClick")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

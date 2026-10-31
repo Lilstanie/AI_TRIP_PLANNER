@@ -6,11 +6,11 @@ import { dateRangeLabel } from "./trip-facts";
 
 export function tripName(
   trip: TripRecord,
-  t: (text: "Trip to {destination}", params: { destination: string }) => string,
+  t: (text: "tripToDestination", params: { destination: string }) => string,
 ): string {
   return trip.renamed
     ? trip.title
-    : t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination });
+    : t("tripToDestination", { destination: trip.snapshot.plan.brief.destination });
 }
 
 export function distinctTripTitles(

@@ -6,7 +6,7 @@ export async function POST(request: Request) {
   if ("response" in account) return account.response;
   const body = await request.json().catch(() => null);
   if (!body || typeof body.token !== "string")
-    return badRequest({ key: "The request was invalid. Please retry." });
+    return badRequest({ key: "theRequestWasInvalidPlease" });
   const undone = await undoAccountMemory(account.userId, body.token);
   return Response.json({ undone }, { headers: noStore });
 }

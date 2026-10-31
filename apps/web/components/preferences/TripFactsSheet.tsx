@@ -10,11 +10,11 @@ import { useLocale } from "../account/LocaleProvider";
 import { FactPopover, type CloseReason } from "./FactPopover";
 
 const NAMES: Record<FactKey, MessageKey> = {
-  where: "Where",
-  when: "When",
-  who: "Who",
-  budget: "Budget",
-  preferences: "Preferences",
+  where: "where",
+  when: "when",
+  who: "who",
+  budget: "budgetTitle",
+  preferences: "preferences",
 };
 
 export const TRIP_FACTS_SHEET_ID = "trip-facts-sheet";
@@ -44,7 +44,7 @@ export function TripFactsSheet({
   return (
     <FactPopover
       id={TRIP_FACTS_SHEET_ID}
-      title={t("Trip details")}
+      title={t("tripDetails")}
       anchor={anchor}
       onClose={onClose}
       modal

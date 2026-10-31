@@ -137,10 +137,9 @@ export type EditPreview = {
   blockers: string[];
   blockerNotices: Notice[];
 };
-const BEYOND_DAY = "Day {day}: {stop} would extend beyond the day.";
-const CONFIRM_PLACE =
-  "Day {day}: confirm the place for {stop} first, so its travel time can be checked.";
-const NAMED_REASON = "{stop}: {reason}";
+const BEYOND_DAY = "dayDayStopWouldExtend";
+const CONFIRM_PLACE = "dayDayConfirmThePlace";
+const NAMED_REASON = "stopReason";
 const outsideDay = (blocker: Notice) => "key" in blocker && blocker.key === BEYOND_DAY;
 
 const stopName = (item: ProposalItem) => item.location ?? item.detail.split(/[:;]/)[0]!.trim();
@@ -179,10 +178,9 @@ function chooseCandidate(
   const aud = (amount: number) => formatMoney(amount, currency);
   const section = plan.sections.find((s) => s.id === operation.section);
   const proposal = section?.proposal;
-  if (!proposal)
-    throw new NoticeError({ key: "That part of the plan has nothing to choose from." });
+  if (!proposal) throw new NoticeError({ key: "thatPartOfThePlan" });
   const item = proposal.items.find((i) => i.selectionId === operation.selectionId);
-  if (!item) throw new NoticeError({ key: "That choice is no longer part of the plan." });
+  if (!item) throw new NoticeError({ key: "thatChoiceIsNoLonger" });
 
   let before: string;
   let after: string;
@@ -192,8 +190,7 @@ function chooseCandidate(
     const stay = proposal.stays?.find((s) => s.id === operation.selectionId);
     const chosen = stay?.candidates.find((c) => c.id === operation.candidateId);
     const was = stay?.candidates.find((c) => c.id === stay.selectedId);
-    if (!stay || !chosen || !was)
-      throw new NoticeError({ key: "That stay option is no longer offered." });
+    if (!stay || !chosen || !was) throw new NoticeError({ key: "thatStayOptionIsNo" });
     const cost = stayChoiceCost(chosen.pricePerNight, stay.rooms, stay.nights);
     label = stay.city;
     before = `${was.name}, ${aud(stayChoiceCost(was.pricePerNight, stay.rooms, stay.nights))}`;
@@ -213,8 +210,7 @@ function chooseCandidate(
     const flight = proposal.flights?.find((f) => f.id === operation.selectionId);
     const chosen = flight?.candidates.find((c) => c.id === operation.candidateId);
     const was = flight?.candidates.find((c) => c.id === flight.selectedId);
-    if (!flight || !chosen || !was)
-      throw new NoticeError({ key: "That fare is no longer offered." });
+    if (!flight || !chosen || !was) throw new NoticeError({ key: "thatFareIsNoLonger" });
     label = `${flight.from} → ${flight.to}`;
     before = `${was.carrier}, ${aud(was.price)}`;
     after = `${chosen.carrier}, ${aud(chosen.price)}`;
@@ -277,15 +273,15 @@ export async function previewEdit(
   const { plan, baseVersion, operation, displayCurrency } = EditRequest.parse(input);
   const currency = effectiveCurrency(plan.brief, displayCurrency ?? "AUD");
   if ((plan.editVersion ?? 0) !== baseVersion)
-    throw new NoticeError({ key: "This edit is stale. Start from the current plan." });
+    throw new NoticeError({ key: "thisEditIsStaleStart" });
   if (
     plan.tripId !== plan.brief.tripId ||
     plan.sections.some((s) => s.proposal && s.proposal.agent !== s.id)
   )
-    throw new NoticeError({ key: "Plan identifiers do not match. Restore or replan first." });
+    throw new NoticeError({ key: "planIdentifiersDoNotMatch" });
   if (operation.kind === "choose") return chooseCandidate(plan, baseVersion, operation, currency);
   let section = plan.sections.find((s) => s.id === "itinerary");
-  if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
+  if (!section?.proposal) throw new NoticeError({ key: "thereAreNoActivitiesTo" });
 
   if (operation.kind === "undo" && operation.addedIds?.length) {
     const added = new Set(operation.addedIds);
@@ -321,13 +317,13 @@ export async function previewEdit(
     activities.some((i) => !i.id || !i.day) ||
     new Set(activities.map((i) => i.id)).size !== activities.length
   )
-    throw new NoticeError({ key: "Activities need unique IDs before editing." });
+    throw new NoticeError({ key: "activitiesNeedUniqueIdsBefore" });
 
   if (isStructural(operation)) {
     const moved = applyItemAction(plan, operation.id, actionOf(operation), currency);
     plan.sections = moved.sections;
     section = plan.sections.find((s) => s.id === "itinerary");
-    if (!section?.proposal) throw new NoticeError({ key: "There are no activities to edit." });
+    if (!section?.proposal) throw new NoticeError({ key: "thereAreNoActivitiesTo" });
     ideas = section.proposal.items.filter((i) => i.kind === "activity" && i.day === undefined);
     activities = section.proposal.items.filter((i) => i.kind === "activity" && i.day !== undefined);
   }
@@ -344,7 +340,7 @@ export async function previewEdit(
   let autoTimed = false;
   if (operation.kind === "add") {
     if (section.proposal.items.some((item) => item.id === operation.id))
-      throw new NoticeError({ key: "That activity already exists in this plan." });
+      throw new NoticeError({ key: "thatActivityAlreadyExistsIn" });
     autoTimed = operation.day !== undefined && operation.startTime === undefined;
     if (autoTimed) {
       const lastEnd = activities
@@ -377,11 +373,10 @@ export async function previewEdit(
       ideas.push(item);
     } else {
       if (operation.day > days || !segment(operation.day))
-        throw new NoticeError({ key: "Activity day is outside trip dates." });
+        throw new NoticeError({ key: "activityDayIsOutsideTrip" });
       const start = mins(operation.startTime!);
       const end = mins(operation.endTime!);
-      if (end <= start)
-        throw new NoticeError({ key: "End time must be after start time on the same day." });
+      if (end <= start) throw new NoticeError({ key: "endTimeMustBeAfter" });
       if (
         activities.some(
           (activity) =>
@@ -393,7 +388,7 @@ export async function previewEdit(
         )
       )
         throw new NoticeError({
-          key: "Two scheduled items overlap on Day {day}.",
+          key: "twoScheduledItemsOverlapOn",
           params: { day: operation.day },
         });
       const index = activities.findIndex(
@@ -412,11 +407,11 @@ export async function previewEdit(
       new Set(operation.activities.map((a) => a.id)).size !== activities.length ||
       operation.activities.some((saved) => !activities.some((activity) => activity.id === saved.id))
     )
-      throw new NoticeError({ key: "Undo activities do not match this plan." });
+      throw new NoticeError({ key: "undoActivitiesDoNotMatch" });
     const restored: ProposalItem[] = operation.activities.map((saved) => {
       const item = activities.find((a) => a.id === saved.id);
       if (!item || !segment(item.day!) || segment(saved.day) !== segment(item.day!))
-        throw new NoticeError({ key: "Undo cannot change destination segments." });
+        throw new NoticeError({ key: "undoCannotChangeDestinationSegments" });
       affected.add(saved.day);
       affected.add(item.day!);
       const restoredItem: ProposalItem = {
@@ -445,7 +440,7 @@ export async function previewEdit(
       if (stop?.day !== undefined) affected.add(stop.day);
   } else {
     const item = activities.find((a) => a.id === operation.id);
-    if (!item) throw new NoticeError({ key: "Activity not found." });
+    if (!item) throw new NoticeError({ key: "activityNotFound" });
     affected.add(item.day!);
     if (operation.kind === "move") {
       if (
@@ -454,11 +449,11 @@ export async function previewEdit(
         segment(item.day!) !== segment(operation.day)
       )
         throw new NoticeError({
-          key: "Move must stay within the same destination accommodation segment.",
+          key: "moveMustStayWithinThe",
         });
       const target = activities.filter((a) => a.day === operation.day && a.id !== item.id);
       if (operation.index > target.length)
-        throw new NoticeError({ key: "Invalid activity position." });
+        throw new NoticeError({ key: "invalidActivityPosition" });
       anchor = {
         day: operation.day,
         index: operation.index,
@@ -482,12 +477,12 @@ export async function previewEdit(
       affected.add(operation.day);
     } else if (operation.kind === "time") {
       if (operation.endTime <= operation.startTime)
-        throw new NoticeError({ key: "End time must be after start time on the same day." });
+        throw new NoticeError({ key: "endTimeMustBeAfter" });
       item.startTime = operation.startTime;
       item.endTime = operation.endTime;
     } else if (operation.kind === "leg") {
       if (activities.filter((a) => a.day === item.day)[0] === item)
-        throw new NoticeError({ key: "This stop has no journey before it." });
+        throw new NoticeError({ key: "thisStopHasNoJourney" });
     } else {
       const place = await placeOf(operation.placeId);
       item.placeId = operation.placeId;
@@ -527,8 +522,7 @@ export async function previewEdit(
     return { fromLocation: origin.location, toLocation: destination.location };
   };
   for (const day of routed ? affected : []) {
-    if (day < 1 || day > days)
-      throw new NoticeError({ key: "Activity day is outside trip dates." });
+    if (day < 1 || day > days) throw new NoticeError({ key: "activityDayIsOutsideTrip" });
     const daily = activities.filter((a) => a.day === day && a.startTime && a.endTime);
     const original = before.filter((a) => a.day === day && a.startTime && a.endTime);
 
@@ -591,7 +585,7 @@ export async function previewEdit(
                   route.durationMin <= 0))
             ) {
               block(
-                route.notice ?? (route.error ? { raw: route.error } : { key: "Route unavailable" }),
+                route.notice ?? (route.error ? { raw: route.error } : { key: "routeUnavailable" }),
                 current.id,
                 stopName(current),
               );
@@ -619,7 +613,7 @@ export async function previewEdit(
               if (start < earliest)
                 block(
                   {
-                    key: "Day {day}: {stop} needs at least {minutes} minutes after the previous activity.",
+                    key: "dayDayStopNeedsAt",
                     params: { day, stop: current.detail, minutes: travel + 15 },
                   },
                   current.id,
@@ -628,7 +622,7 @@ export async function previewEdit(
           }
         } catch (error) {
           block(
-            errorNotice(error, { key: "Route verification failed" }),
+            errorNotice(error, { key: "routeVerificationFailed" }),
             current.id,
             stopName(current),
           );

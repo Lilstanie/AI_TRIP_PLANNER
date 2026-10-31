@@ -31,10 +31,10 @@ export const routeModeIconPaths: Record<RouteMode, string[]> = {
 };
 
 export const routeModeLabel: Record<RouteMode, MessageKey> = {
-  WALK: "Walk",
-  TRANSIT: "Public transport",
-  DRIVE: "Drive",
-  BICYCLE: "Cycle",
+  WALK: "walk",
+  TRANSIT: "publicTransport",
+  DRIVE: "drive",
+  BICYCLE: "cycle",
 };
 
 export function routeModeIcon(mode: RouteMode) {

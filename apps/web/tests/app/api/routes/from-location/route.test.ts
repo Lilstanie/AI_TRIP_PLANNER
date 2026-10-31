@@ -85,7 +85,7 @@ describe("POST /api/routes/from-location", () => {
     const { requestGoogleRouteFromCoordinates } = await import("@/lib/integrations/google");
     const { NoticeError } = await import("@/lib/i18n/notice");
     vi.mocked(requestGoogleRouteFromCoordinates).mockRejectedValue(
-      new NoticeError({ key: "No verified route was returned." }),
+      new NoticeError({ key: "noVerifiedRouteWasReturned" }),
     );
 
     const response = await POST(request(validBody));
@@ -93,7 +93,7 @@ describe("POST /api/routes/from-location", () => {
     await expect(response.json()).resolves.toMatchObject({
       status: "unavailable",
       error: "No verified route was returned.",
-      notice: { key: "No verified route was returned." },
+      notice: { key: "noVerifiedRouteWasReturned" },
     });
   });
 });

@@ -58,7 +58,7 @@ export function TripHomeActionHost({
           type="button"
           tabIndex={-1}
           className="trip-home-action-backdrop"
-          aria-label={t("Close open panel")}
+          aria-label={t("closeOpenPanel")}
           onClick={onClose}
         />
       )}

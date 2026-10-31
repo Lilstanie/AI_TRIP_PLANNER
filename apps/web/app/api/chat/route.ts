@@ -26,7 +26,7 @@ import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/mem
 import { accountMemoryEnabled } from "@/lib/account/memory-enabled";
 import { recognizeAccountMemory } from "@/lib/account/recognize-memory.mjs";
 
-const INVALID_REQUEST: Notice = { key: "The request was invalid. Please retry." };
+const INVALID_REQUEST: Notice = { key: "theRequestWasInvalidPlease" };
 
 export async function POST(req: Request) {
   const dataMode = await requestDataMode(req);
@@ -39,7 +39,7 @@ export async function POST(req: Request) {
       noticeBody(
         attachmentIssue
           ? {
-              key: "Attachment rejected: {reason}",
+              key: "attachmentRejectedReason",
               params: { reason: { raw: attachmentIssue.message } },
             }
           : INVALID_REQUEST,
@@ -151,9 +151,9 @@ export async function POST(req: Request) {
           const notice: Notice =
             error instanceof Error && error.message.startsWith("No valid stays")
               ? {
-                  key: "No stays match your accommodation preferences. Lower the minimum rating or change cancellation preferences, then retry.",
+                  key: "noStaysMatchYourAccommodation",
                 }
-              : { key: "Unable to update this trip. Check the request and try again." };
+              : { key: "unableToUpdateThisTrip" };
           send({ type: "error", ...noticeBody(notice) });
         }
       } finally {

@@ -67,13 +67,13 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const text = clean(pending);
     if (!text) return;
     if (items.some((item) => same(item, text))) {
-      setProblem({ key: "That preference is already on the list." });
+      setProblem({ key: "thatPreferenceIsAlreadyOn" });
       return;
     }
     const next = [...items, text];
     setItems(next);
     setPending("");
-    setNotice({ key: "Added “{text}”.", params: { text } });
+    setNotice({ key: "addedText", params: { text } });
     publish(next, "");
   };
   const remove = (index: number) => {
@@ -81,7 +81,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const next = items.filter((_, at) => at !== index);
     setItems(next);
     setEditing(undefined);
-    setNotice({ key: "Removed “{text}”.", params: { text: removed ?? "" } });
+    setNotice({ key: "removedText", params: { text: removed ?? "" } });
     publish(next, pending, undefined);
     setFocusNext(next.length ? { row: index, part: "edit" } : "add");
   };
@@ -97,7 +97,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
     const duplicate = items.some((item, at) => at !== index && same(item, text));
     if (keep && !text) return remove(index);
     const next = keep && !duplicate ? items.map((item, at) => (at === index ? text : item)) : items;
-    setProblem(keep && duplicate ? { key: "That preference is already on the list." } : undefined);
+    setProblem(keep && duplicate ? { key: "thatPreferenceIsAlreadyOn" } : undefined);
     setItems(next);
     setEditing(undefined);
     publish(next, pending, undefined);
@@ -115,17 +115,17 @@ export function PreferenceList({ value, onChange, errors }: Props) {
 
   const error = errors.preferences || problem;
   return (
-    <section className="fact-section" aria-label={t("Your preferences")}>
+    <section className="fact-section" aria-label={t("yourPreferences")}>
       <label className="preference-check">
         <input
           type="checkbox"
           checked={value.noAccommodation ?? false}
           onChange={(event) => onChange({ ...value, noAccommodation: event.target.checked })}
         />
-        {t("No accommodation needed")}
+        {t("noAccommodationNeeded")}
       </label>
       <label className="sr-only" htmlFor="fact-preference">
-        {t("Add a preference")}
+        {t("addAPreference")}
       </label>
       <Input
         ref={addInput}
@@ -136,7 +136,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
         disabled={full}
         data-autofocus=""
         enterKeyHint="enter"
-        placeholder={full ? t("The list is full") : t("Add a trip preference…")}
+        placeholder={full ? t("theListIsFull") : t("addATripPreference")}
         aria-invalid={!!error || undefined}
         aria-describedby={
           error ? "fact-preference-error" : full ? "fact-preference-hint" : undefined
@@ -160,14 +160,14 @@ export function PreferenceList({ value, onChange, errors }: Props) {
       ) : (
         full && (
           <small className="muted form-field__hint" id="fact-preference-hint">
-            {t("You have {v0} preferences, the most a trip keeps. Remove one to add another.", {
+            {t("youHaveV0PreferencesThe", {
               v0: MAX_TRIP_PREFERENCES,
             })}
           </small>
         )
       )}
       {items.length > 0 && (
-        <ul ref={list} className="pref-list" aria-label={t("Your preferences")}>
+        <ul ref={list} className="pref-list" aria-label={t("yourPreferences")}>
           {items.map((item, index) =>
             editing?.index === index ? (
               <li key={index} className="pref-row pref-row--editing">
@@ -175,7 +175,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                   className="field pref-row__field"
                   value={editing.text}
                   maxLength={MAX_TRIP_PREFERENCE_LENGTH}
-                  aria-label={t("Edit preference {v0}", { v0: index + 1 })}
+                  aria-label={t("editPreferenceV0", { v0: index + 1 })}
                   onChange={(event) => {
                     const next = { index, text: event.target.value };
                     setEditing(next);
@@ -190,7 +190,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                 <button
                   type="button"
                   className="pref-row__text pref-row__edit"
-                  aria-label={t("Edit “{v0}”", { v0: item })}
+                  aria-label={t("editV0Title", { v0: item })}
                   disabled={!!editing}
                   onClick={() => startEdit(index)}
                 >
@@ -199,7 +199,7 @@ export function PreferenceList({ value, onChange, errors }: Props) {
                 <button
                   type="button"
                   className="pref-row__remove"
-                  aria-label={t("Remove “{v0}”", { v0: item })}
+                  aria-label={t("removeV0Title", { v0: item })}
                   onClick={() => remove(index)}
                 >
                   <CloseIcon />
@@ -278,7 +278,7 @@ function LearnedList({
   return (
     <div className="pref-learned">
       <h3 className="pref-learned__title" id="pref-learned-title">
-        {t("Learned from your chats")}
+        {t("learnedFromYourChats")}
       </h3>
       <ul className="pref-list" aria-labelledby="pref-learned-title">
         {rows.map((row) => (
@@ -287,10 +287,10 @@ function LearnedList({
             <button
               type="button"
               className="pref-row__remove"
-              aria-label={t("Remove “{v0}”", { v0: row.text })}
+              aria-label={t("removeV0Title", { v0: row.text })}
               onClick={() => {
                 onChange(row.remove());
-                onNotice({ key: "Removed “{text}”.", params: { text: row.text } });
+                onNotice({ key: "removedText", params: { text: row.text } });
               }}
             >
               <CloseIcon />

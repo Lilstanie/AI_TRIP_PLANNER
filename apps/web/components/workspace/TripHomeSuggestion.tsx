@@ -19,45 +19,39 @@ export function tripSuggestion(
   const ideas = tripIdeas(plan).length;
   if (ideas === 1)
     return {
-      text: t("1 unscheduled idea in {destination}", { destination: plan.brief.destination }),
-      prompt: t(
-        "Review the 1 unscheduled idea in my current {destination} plan and suggest where it fits.",
-        { destination: plan.brief.destination },
-      ),
-      action: t("Place it"),
+      text: t("n1UnscheduledIdeaInDestination", { destination: plan.brief.destination }),
+      prompt: t("reviewThe1UnscheduledIdea", { destination: plan.brief.destination }),
+      action: t("placeIt"),
     };
   if (ideas)
     return {
-      text: t("{count} unscheduled ideas in {destination}", {
+      text: t("countUnscheduledIdeasInDestination", {
         count: ideas,
         destination: plan.brief.destination,
       }),
-      prompt: t(
-        "Review the {count} unscheduled ideas in my current {destination} plan and suggest where they fit.",
-        { count: ideas, destination: plan.brief.destination },
-      ),
-      action: t("Place them"),
+      prompt: t("reviewTheCountUnscheduledIdeas", {
+        count: ideas,
+        destination: plan.brief.destination,
+      }),
+      action: t("placeThem"),
     };
   const days = dayCount(plan);
   if (!scheduledCount(plan))
     return {
-      text: t("Your {destination} days are still empty", { destination: plan.brief.destination }),
-      prompt: t("Plan the {days} days of my {destination} trip.", {
+      text: t("yourDestinationDaysAreStill", { destination: plan.brief.destination }),
+      prompt: t("planTheDaysDaysOf", {
         days,
         destination: plan.brief.destination,
       }),
-      action: t("Plan the days"),
+      action: t("planTheDays"),
     };
   return {
-    text: t("Your {days}-day {destination} plan is ready", {
+    text: t("yourDaysDayDestinationPlan", {
       days,
       destination: plan.brief.destination,
     }),
-    prompt: t(
-      "Suggest one improvement for my current {days}-day {destination} plan, taking the existing itinerary into account.",
-      { days, destination: plan.brief.destination },
-    ),
-    action: t("Get a suggestion"),
+    prompt: t("suggestOneImprovementForMy", { days, destination: plan.brief.destination }),
+    action: t("getASuggestion"),
   };
 }
 
@@ -112,7 +106,7 @@ export function TripHomeSuggestion({
   return (
     <>
       {!dismissed && (
-        <section className="trip-home-suggestion" aria-label={t("Trip suggestion")}>
+        <section className="trip-home-suggestion" aria-label={t("tripSuggestion")}>
           <p>{suggestion.text}</p>
           <button
             type="button"
@@ -124,7 +118,7 @@ export function TripHomeSuggestion({
           <button
             type="button"
             className="trip-home-suggestion__dismiss"
-            aria-label={t("Dismiss")}
+            aria-label={t("dismiss")}
             onClick={dismiss}
           >
             <CloseIcon />
@@ -133,7 +127,7 @@ export function TripHomeSuggestion({
       )}
       {persistenceFailed && (
         <p className="muted trip-home-suggestion__status" role="status">
-          {t("Dismissed for this visit; could not save.")}
+          {t("dismissedForThisVisitCould")}
         </p>
       )}
     </>

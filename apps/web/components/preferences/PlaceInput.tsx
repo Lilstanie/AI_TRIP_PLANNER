@@ -201,7 +201,7 @@ export function PlaceInput({
         <button
           type="button"
           className="place-input__clear"
-          aria-label={t("Clear")}
+          aria-label={t("clear")}
 
           onMouseDown={(event) => event.preventDefault()}
           onClick={() => {

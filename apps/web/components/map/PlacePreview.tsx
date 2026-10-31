@@ -29,7 +29,7 @@ export function PlacePreview({
   const authors = (visible?.authorAttributions ?? []).filter((author) => author.displayName);
 
   return (
-    <article className="place-preview" aria-label={t("Selected place: {v0}", { v0: name })}>
+    <article className="place-preview" aria-label={t("selectedPlaceV0", { v0: name })}>
       {(!osm || visible) && (
         <div className="place-preview__photo">
           <span className="place-preview__fallback" aria-hidden="true">
@@ -52,7 +52,7 @@ export function PlacePreview({
         <button
           type="button"
           className="place-preview__close"
-          aria-label={t("Close place details")}
+          aria-label={t("closePlaceDetails")}
           onClick={onClose}
         >
           <CloseIcon />
@@ -73,18 +73,18 @@ export function PlacePreview({
         {osm && place.phone && <p>{place.phone}</p>}
         {osm && place.websiteUri && (
           <a href={place.websiteUri} target="_blank" rel="noopener noreferrer">
-            {t("Website")}
+            {t("website")}
           </a>
         )}
         {!osm && place.rating !== undefined && (
           <p className="place-preview__rating">
-            {t("Google rating")}
+            {t("googleRating")}
             {place.rating.toFixed(1)} / 5
           </p>
         )}
         {authors.length > 0 && (
           <p className="place-preview__credit">
-            {t("Photo:")}{" "}
+            {t("photo")}{" "}
             {authors.map((author, index) => (
               <span key={`${author.displayName}-${index}`}>
                 {index > 0 && ", "}
@@ -114,7 +114,7 @@ export function PlacePreview({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t("Open in OpenStreetMap")}
+            {t("openInOpenstreetmap")}
           </a>
         )}
         {place.googleMapsUri && (
@@ -124,7 +124,7 @@ export function PlacePreview({
             target="_blank"
             rel="noopener noreferrer"
           >
-            {t("Open in Google Maps")}
+            {t("openInGoogleMaps")}
           </a>
         )}
         {actions && <div className="place-preview__actions">{actions}</div>}

@@ -9,7 +9,7 @@ export default authEnabled
       const { userId } = await auth();
       if (!userId && !isPublicRoute(request)) {
         if (/^\/(?:api|trpc)(?:\/|$)/.test(request.nextUrl.pathname)) {
-          return NextResponse.json(noticeBody({ key: "Sign in to use your account." }), {
+          return NextResponse.json(noticeBody({ key: "signInToUseYour" }), {
             status: 401,
             headers: { "Cache-Control": "no-store" },
           });

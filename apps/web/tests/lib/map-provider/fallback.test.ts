@@ -186,7 +186,7 @@ describe("when no provider can answer", () => {
 
     expect(leg).toMatchObject({
       status: "unavailable",
-      notice: { key: "Google request failed ({status}). Please retry.", params: { status: 403 } },
+      notice: { key: "googleRequestFailedStatusPlease", params: { status: 403 } },
     });
   });
 });

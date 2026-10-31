@@ -24,7 +24,7 @@ export const ASSISTANT_ICONS: Record<AssistantId, IconComponent> = {
 };
 
 export const ASSISTANT_ROLE_KEYS: Record<AssistantId, MessageKey> = {
-  coordinator: "Coordinator",
+  coordinator: "coordinator",
   ...labels,
 };
 

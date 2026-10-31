@@ -16,19 +16,19 @@ function duration(minutes: number | undefined, locale: AppLocale): string | unde
 function stops(count: number | undefined, locale: AppLocale): string | undefined {
   if (count === undefined) return undefined;
   return count === 0
-    ? translate(locale, "Nonstop")
-    : translate(locale, count === 1 ? "{count} stop" : "{count} stops", { count });
+    ? translate(locale, "nonstop")
+    : translate(locale, count === 1 ? "countStop" : "countStops", { count });
 }
 
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
   const { t, money, locale } = useLocale();
-  const party = t(answer.passengers === 1 ? "{count} traveller" : "{count} travellers", {
+  const party = t(answer.passengers === 1 ? "countTraveller" : "countTravellers", {
     count: answer.passengers,
   });
   return (
     <section
       className="flight-results"
-      aria-label={t("Fares from {v0} to {v1}", { v0: answer.from, v1: answer.to })}
+      aria-label={t("faresFromV0ToV1", { v0: answer.from, v1: answer.to })}
     >
       <header className="flight-results__head">
         <strong>
@@ -73,12 +73,11 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
             })}
         </ol>
       ) : answer.options.length === 0 ? (
-        <p className="muted">{t("No fares were returned for this search.")}</p>
+        <p className="muted">{t("noFaresWereReturnedFor")}</p>
       ) : null}
       <p className="flight-results__note">
-        {t("Whole-party totals.")}
-        {answer.source?.freshness ?? t("Prices change without notice.")}{" "}
-        {t("Nothing here makes a booking.")}
+        {t("wholePartyTotals")}
+        {answer.source?.freshness ?? t("pricesChangeWithoutNotice")} {t("nothingHereMakesABooking")}
       </p>
     </section>
   );

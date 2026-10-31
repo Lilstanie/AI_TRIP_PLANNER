@@ -42,9 +42,9 @@ const ASSIGNMENT_DOTS: Record<AssignmentStatus, StateDotState> = {
 };
 
 const KIND_LABELS = {
-  dispatch: "Dispatch",
-  revision: "Revision",
-  handoff: "Hand-off",
+  dispatch: "dispatch",
+  revision: "revision",
+  handoff: "handOff",
 } as const;
 
 function DecidedMarker({ decidedBy, className }: { decidedBy: DecidedBy; className?: string }) {
@@ -54,7 +54,7 @@ function DecidedMarker({ decidedBy, className }: { decidedBy: DecidedBy; classNa
       tone={decidedBy === "llm" ? "info" : "outline"}
       className={`team-panel__marker team-panel__marker--${decidedBy}${className ? ` ${className}` : ""}`}
     >
-      {t(decidedBy === "llm" ? "Decided by AI" : "Decided by code")}
+      {t(decidedBy === "llm" ? "decidedByAi" : "decidedByCode")}
     </Tag>
   );
 }
@@ -86,7 +86,7 @@ function Description({ text, error = false }: { text: string; error?: boolean })
           aria-expanded={expanded}
           onClick={() => setExpanded(!expanded)}
         >
-          {t(expanded ? "Show less" : "Show more")}
+          {t(expanded ? "showLess" : "showMore")}
           <IconChevronDownOutlineRegular
             size={12}
             {...(expanded ? { className: css.expandToggleOpen } : {})}
@@ -101,7 +101,7 @@ function TaskCard({ entry }: { entry: Assignment }) {
   const { t } = useLocale();
   const name = useAssistantName();
   const text = entry.handoffTo
-    ? t("That is not my area. The {name} specialist should handle this.", {
+    ? t("thatIsNotMyArea", {
         name: name(entry.handoffTo),
       })
     : (entry.error ?? entry.objective);
@@ -139,14 +139,14 @@ export function TeamPanel({
   const { t } = useLocale();
   const name = useAssistantName();
   return (
-    <section className={`team-panel ${css.panel}`} aria-label={t("Specialist team")} tabIndex={-1}>
+    <section className={`team-panel ${css.panel}`} aria-label={t("specialistTeam")} tabIndex={-1}>
       <div className={css.body}>
         <section>
           <h3>
-            {t("Members")}
+            {t("members")}
             <span className={css.count}>{model.rows.length}</span>
           </h3>
-          <ul className={css.roster} aria-label={t("Assistants")}>
+          <ul className={css.roster} aria-label={t("assistants")}>
             {model.rows.map((row) => {
               const pressable = Boolean(onSelect) && row.status !== "idle" && row.status !== "none";
               return (
@@ -162,7 +162,7 @@ export function TeamPanel({
                     disabled={!pressable}
                     {...(pressable
                       ? {
-                          "aria-label": t("Show {name} trajectory", { name: name(row.assistant) }),
+                          "aria-label": t("showNameTrajectory", { name: name(row.assistant) }),
                           onClick: () => onSelect?.(row.assistant),
                         }
                       : {})}
@@ -199,12 +199,12 @@ export function TeamPanel({
         {model.entries.length > 0 && (
           <section>
             <h3>
-              {t("Assignments")}
+              {t("assignments")}
               <span className={css.count}>
                 {model.entries.filter((entry) => entry.type === "assignment").length}
               </span>
             </h3>
-            <ol className={css.tasks} aria-label={t("Assignments")}>
+            <ol className={css.tasks} aria-label={t("assignments")}>
               {model.entries.map((entry) =>
                 entry.type === "check" ? (
                   <li key={entry.id} className="team-panel__check" data-check={entry.decision.type}>
@@ -220,7 +220,7 @@ export function TeamPanel({
                       <span>{checkText(t, name, entry.decision)}</span>
                       {entry.decision.type === "conflicts_detected" &&
                         entry.decision.conflicts.length > 0 && (
-                          <Tag tone="warning">{t("Needs change")}</Tag>
+                          <Tag tone="warning">{t("needsChange")}</Tag>
                         )}
                     </div>
                   </li>

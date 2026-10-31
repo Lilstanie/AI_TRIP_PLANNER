@@ -26,17 +26,15 @@ export function useChooseCandidate(
     try {
       const result = await revisions.edit(
         { kind: "choose", section: sectionName, selectionId, candidateId },
-        { signal: controller.signal, failure: { key: "That change could not be made." } },
+        { signal: controller.signal, failure: { key: "thatChangeCouldNotBe" } },
       );
 
       if (result.kind === "refused")
-        setProblem(result.blockers[0] ?? { key: "That change could not be made." });
+        setProblem(result.blockers[0] ?? { key: "thatChangeCouldNotBe" });
       else if (result.kind === "stale") setProblem(PLAN_CHANGED);
     } catch (error) {
       if (!controller.signal.aborted)
-        setProblem(
-          error instanceof NoticeError ? error.notice : { key: "That change could not be made." },
-        );
+        setProblem(error instanceof NoticeError ? error.notice : { key: "thatChangeCouldNotBe" });
     } finally {
       if (request.current === controller) request.current = undefined;
       setWorking(false);

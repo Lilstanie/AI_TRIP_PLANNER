@@ -111,10 +111,7 @@ export function useWorkspaceTransport({
       (currentPlan.editVersion ?? 0) > 0 &&
       (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
     if (!hasDirectEdits) return true;
-    const message = translate(
-      interfaceLanguage,
-      "Replace your edited plan? Your direct timeline edits will be replaced if the new plan succeeds.",
-    );
+    const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
     return window.confirm(message);
   }
 

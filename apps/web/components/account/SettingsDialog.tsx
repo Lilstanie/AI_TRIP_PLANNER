@@ -13,49 +13,49 @@ import { useSettings } from "./SettingsProvider";
 import { useLocale } from "./LocaleProvider";
 import { SUPPORTED_CURRENCIES } from "@trip/shared";
 import { CurrencyNotice } from "./CurrencyNotice";
-import type { MessageKey } from "@/lib/i18n/locale";
+import { keyForText, type MessageKey } from "@/lib/i18n/locale";
 import { failureNotice, type Notice } from "@/lib/i18n/notice";
 
 export type SettingsSection = "profile" | "account" | "personalization" | "region" | "connected";
 type Section = SettingsSection;
 type AccountModalProps = { onAccountModal(open: () => void): void };
 const SECTIONS: [Section, MessageKey][] = [
-  ["profile", "Edit profile"],
-  ["account", "Your account"],
-  ["personalization", "Personalization"],
-  ["region", "Language & region"],
-  ["connected", "Connected accounts"],
+  ["profile", "editProfile"],
+  ["account", "yourAccount"],
+  ["personalization", "personalization"],
+  ["region", "languageRegion"],
+  ["connected", "connectedAccounts"],
 ];
 
 const SYNC_TEXT = {
-  local: "Saved in this browser.",
-  syncing: "Saving to your account…",
-  synced: "Saved to your account.",
-  failed: "Could not reach your account; saved in this browser and will retry.",
+  local: "savedInThisBrowserTitle",
+  syncing: "savingToYourAccount",
+  synced: "savedToYourAccount",
+  failed: "couldNotReachYourAccount",
 } as const;
 
 const STYLE_LABEL: Record<(typeof COMMUNICATION_STYLES)[number], MessageKey> = {
-  neutral: "Neutral",
-  friendly: "Friendly",
-  concise: "Concise",
-  detailed: "Detailed",
+  neutral: "neutral",
+  friendly: "friendly",
+  concise: "concise",
+  detailed: "detailed",
 };
-const PACE_LABEL = { relaxed: "Relaxed", balanced: "Balanced", packed: "Packed" } as const;
-const THEME_LABEL = { system: "System preference", light: "Light", dark: "Dark" } as const;
+const PACE_LABEL = { relaxed: "relaxed", balanced: "balanced", packed: "packed" } as const;
+const THEME_LABEL = { system: "systemPreference", light: "light", dark: "dark" } as const;
 const DATA_LABEL = {
-  default: "This site's default",
-  live: "Live prices",
-  mock: "Sample data",
+  default: "thisSiteSDefault",
+  live: "livePrices",
+  mock: "sampleData",
 } as const;
 const MEMORY_CATEGORY_LABEL: Record<string, MessageKey> = {
-  dietary: "Dietary needs",
-  pace: "Pace",
-  interests: "Interests",
-  accessibility: "Accessibility needs",
-  accommodation: "Accommodation preferences",
-  departure_city: "Usual departure city",
-  "accommodation.minRating": "Accommodation preferences",
-  "accommodation.freeCancellation": "Accommodation preferences",
+  dietary: "dietaryNeeds",
+  pace: "pace",
+  interests: "interests",
+  accessibility: "accessibilityNeeds",
+  accommodation: "accommodationPreferences",
+  departure_city: "usualDepartureCity",
+  "accommodation.minRating": "accommodationPreferences",
+  "accommodation.freeCancellation": "accommodationPreferences",
 };
 
 import {
@@ -117,23 +117,19 @@ function ProfileSection({ onAccountModal }: AccountModalProps) {
               className="settings-text-button"
               onClick={() => onAccountModal(signedIn.manage)}
             >
-              {t("Change profile photo")}
+              {t("changeProfilePhoto")}
             </button>
           </span>
         </div>
       ) : (
         <p className="settings-lead">
-          {account.status === "local"
-            ? t("Accounts are not set up on this site, so your profile stays in this browser.")
-            : t(
-                "Sign in to add your name and photo. Your location is kept in this browser until then.",
-              )}
+          {account.status === "local" ? t("accountsAreNotSetUpOn") : t("signInToAddYour")}
         </p>
       )}
       {signedIn && (
         <>
           <label className="settings-field">
-            <span>{t("First name")}</span>
+            <span>{t("firstName")}</span>
             <input
               value={first}
               maxLength={60}
@@ -141,20 +137,20 @@ function ProfileSection({ onAccountModal }: AccountModalProps) {
             />
           </label>
           <label className="settings-field">
-            <span>{t("Last name")}</span>
+            <span>{t("lastName")}</span>
             <input value={last} maxLength={60} onChange={(event) => setLast(event.target.value)} />
           </label>
         </>
       )}
       <label className="settings-field">
-        <span>{t("Location")}</span>
+        <span>{t("location")}</span>
         <input
           value={location}
           maxLength={120}
-          placeholder={t("e.g. Sydney, Australia")}
+          placeholder={t("eGSydneyAustralia")}
           onChange={(event) => setLocation(event.target.value)}
         />
-        <small className="settings-hint">{t("New trips start from here.")}</small>
+        <small className="settings-hint">{t("newTripsStartFromHere")}</small>
       </label>
       <div className="settings-actions">
         <button
@@ -162,16 +158,16 @@ function ProfileSection({ onAccountModal }: AccountModalProps) {
           className="settings-pill settings-pill--ink"
           disabled={!dirty || state === "saving"}
         >
-          {state === "saving" ? t("Saving…") : t("Save")}
+          {state === "saving" ? t("saving") : t("save")}
         </button>
         {state === "saved" && !dirty && (
           <span role="status" className="settings-saved">
-            {t("Saved.")}
+            {t("saved")}
           </span>
         )}
         {state === "failed" && (
           <span role="alert" className="settings-error">
-            {t("Your name could not be saved. Try again.")}
+            {t("yourNameCouldNotBe")}
           </span>
         )}
       </div>
@@ -187,14 +183,14 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
   const [problem, setProblem] = useState<Notice>();
 
   const theme = (
-    <SettingRow label={t("Theme")} value={t(THEME_LABEL[settings.appearance])}>
+    <SettingRow label={t("theme")} value={t(THEME_LABEL[settings.appearance])}>
       {() => (
         <Segmented
-          label={t("Theme")}
+          label={t("theme")}
           options={[
-            ["system", t("System")],
-            ["light", t("Light")],
-            ["dark", t("Dark")],
+            ["system", t("system")],
+            ["light", t("light")],
+            ["dark", t("dark")],
           ]}
           value={settings.appearance}
           onChange={(value) => value && update({ appearance: value })}
@@ -208,38 +204,30 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
       <div className="settings-form">
         {account.status === "loading" ? (
           <p className="settings-lead" role="status">
-            {t("Checking your account…")}
+            {t("checkingYourAccount")}
           </p>
         ) : account.status === "signed-out" ? (
           <>
-            <p className="settings-lead">
-              {t(
-                "Sign in to keep your chats, trips and settings in your account and open them on any device. What is in this browser now is added to your account the first time you sign in.",
-              )}
-            </p>
+            <p className="settings-lead">{t("signInToKeepYour")}</p>
             <div className="settings-actions">
               <button
                 type="button"
                 className="settings-pill settings-pill--ink"
                 onClick={() => onAccountModal(account.signIn)}
               >
-                {t("Sign in")}
+                {t("signIn")}
               </button>
               <button
                 type="button"
                 className="settings-pill"
                 onClick={() => onAccountModal(account.signUp)}
               >
-                {t("Create account")}
+                {t("createAccount")}
               </button>
             </div>
           </>
         ) : (
-          <p className="settings-lead">
-            {t(
-              "Accounts are not set up on this site, so this is a single-user workspace: chats, trips and settings stay in this browser and do not sync to other devices.",
-            )}
-          </p>
+          <p className="settings-lead">{t("accountsAreNotSetUp")}</p>
         )}
         {theme}
       </div>
@@ -255,21 +243,21 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
       return;
     }
     const body = await response?.json().catch(() => undefined);
-    setProblem(failureNotice(body, { key: "Your account could not be deleted. Try again." }));
+    setProblem(failureNotice(body, { key: "yourAccountCouldNotBe" }));
     setDeleting("failed");
   }
 
   return (
     <div className="settings-form">
       <SettingRow
-        label={t("Email")}
+        label={t("email")}
         value={
           <>
-            {account.email ?? t("No email")}{" "}
-            {account.emailVerified && <span className="settings-verified">{t("(verified)")}</span>}
+            {account.email ?? t("noEmail")}{" "}
+            {account.emailVerified && <span className="settings-verified">{t("verified")}</span>}
           </>
         }
-        action="Manage"
+        action="manage"
       >
         {() => (
           <div className="settings-actions">
@@ -278,28 +266,24 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
               className="settings-pill"
               onClick={() => onAccountModal(account.manage)}
             >
-              {t("Manage email and password")}
+              {t("manageEmailAndPassword")}
             </button>
           </div>
         )}
       </SettingRow>
       {theme}
-      <SettingRow
-        label={t("Your data")}
-        value={t("Chats, trips and settings sync to this account.")}
-        action="Export"
-      >
+      <SettingRow label={t("yourData")} value={t("chatsTripsAndSettingsSync")} action="export">
         {() => (
           <div className="settings-actions">
             <a className="settings-pill" href="/api/account/export" download>
-              {t("Download a copy")}
+              {t("downloadACopy")}
             </a>
           </div>
         )}
       </SettingRow>
       <div className="settings-actions">
         <button type="button" className="settings-pill" onClick={() => void signOut()}>
-          {t("Sign out")}
+          {t("signOut")}
         </button>
       </div>
       <div className="settings-danger">
@@ -310,17 +294,13 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
               className="settings-danger__button"
               onClick={() => setDeleting("confirm")}
             >
-              {t("Delete my account")}
+              {t("deleteMyAccount")}
             </button>
-            <p>{t("Permanently delete the account and remove access to your data.")}</p>
+            <p>{t("permanentlyDeleteTheAccountAnd")}</p>
           </>
         ) : (
           <>
-            <p>
-              {t(
-                "This deletes your account and every chat, trip and setting stored in it. It cannot be undone. This browser's copy stays until you clear it.",
-              )}
-            </p>
+            <p>{t("thisDeletesYourAccountAnd")}</p>
             <div className="settings-actions">
               <button
                 type="button"
@@ -328,7 +308,7 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
                 disabled={deleting === "working"}
                 onClick={() => void remove()}
               >
-                {deleting === "working" ? t("Deleting…") : t("Delete permanently")}
+                {deleting === "working" ? t("deleting") : t("deletePermanently")}
               </button>
               <button
                 type="button"
@@ -336,7 +316,7 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
                 disabled={deleting === "working"}
                 onClick={() => setDeleting("idle")}
               >
-                {t("Keep my account")}
+                {t("keepMyAccount")}
               </button>
             </div>
           </>
@@ -379,7 +359,7 @@ function AssistantNameField({ id }: { id: AssistantId }) {
           value={value}
           maxLength={MAX_ASSISTANT_NAME_LENGTH}
           placeholder={role}
-          aria-label={t("Name of {name}", { name: role })}
+          aria-label={t("nameOfName", { name: role })}
           aria-invalid={taken}
           onChange={(event) => setValue(event.target.value)}
           onBlur={commit}
@@ -388,7 +368,7 @@ function AssistantNameField({ id }: { id: AssistantId }) {
       </label>
       {taken && (
         <p className="settings-error assistant-name__error" role="alert">
-          {t("That name is already used by another assistant.")}
+          {t("thatNameIsAlreadyUsed")}
         </p>
       )}
     </li>
@@ -475,41 +455,35 @@ function PersonalizationSection() {
       <section className="settings-block" aria-labelledby="settings-long-term-memory">
         <div className="settings-row-item__line">
           <div className="settings-row-item__text">
-            <h3 id="settings-long-term-memory">{t("Long-term memory")}</h3>
-            <p className="settings-hint">
-              {t("Preferences remembered from chat are used in later plans.")}
-            </p>
+            <h3 id="settings-long-term-memory">{t("longTermMemory")}</h3>
+            <p className="settings-hint">{t("preferencesRememberedFromChatAre")}</p>
           </div>
           <Switch
-            label={t("Use long-term memory")}
+            label={t("useLongTermMemory")}
             checked={settings.assistant.memory}
             disabled={account.status !== "signed-in"}
             onChange={(memory) => update({ assistant: { ...settings.assistant, memory } })}
           />
         </div>
-        {account.status !== "signed-in" && (
-          <p className="settings-hint">{t("Sign in to use long-term memory.")}</p>
-        )}
-        {memoryDeletionFailed && (
-          <p role="alert">{t("Your remembered preference could not be deleted. Try again.")}</p>
-        )}
+        {account.status !== "signed-in" && <p className="settings-hint">{t("signInToUseLong")}</p>}
+        {memoryDeletionFailed && <p role="alert">{t("yourRememberedPreferenceCouldNot")}</p>}
         {account.status !== "signed-in" ? (
-          <p>{t("Nothing is remembered yet.")}</p>
+          <p>{t("nothingIsRememberedYet")}</p>
         ) : memoryState === "loading" ? (
-          <p role="status">{t("Loading remembered preferences…")}</p>
+          <p role="status">{t("loadingRememberedPreferences")}</p>
         ) : memoryState === "failed" ? (
           <div role="alert">
-            <p>{t("Could not load remembered preferences.")}</p>
+            <p>{t("couldNotLoadRememberedPreferences")}</p>
             <button type="button" className="settings-pill" onClick={() => void loadMemories()}>
-              {t("Retry")}
+              {t("retry")}
             </button>
           </div>
         ) : memories.length === 0 ? (
-          <p>{t("Nothing is remembered yet.")}</p>
+          <p>{t("nothingIsRememberedYet")}</p>
         ) : (
           <ul className="memory-list">
             {memories.map(({ key, value }) => {
-              const label = t(MEMORY_CATEGORY_LABEL[key] ?? "Other preferences");
+              const label = t(MEMORY_CATEGORY_LABEL[key] ?? "otherPreferences");
               return (
                 <li className="memory-row memory-row--remembered" key={key}>
                   <div className="memory-row__main">
@@ -519,11 +493,11 @@ function PersonalizationSection() {
                   <button
                     type="button"
                     className="settings-pill"
-                    aria-label={t("Delete memory: {v0}", { v0: label })}
+                    aria-label={t("deleteMemoryV0", { v0: label })}
                     disabled={deletingMemory === key}
                     onClick={() => void deleteMemory(key)}
                   >
-                    {deletingMemory === key ? t("Deleting…") : t("Delete")}
+                    {deletingMemory === key ? t("deleting") : t("delete")}
                   </button>
                 </li>
               );
@@ -532,13 +506,11 @@ function PersonalizationSection() {
         )}
       </section>
       <section className="settings-block" aria-labelledby="settings-style">
-        <h3 id="settings-style">{t("Communication style")}</h3>
-        <p className="settings-hint">
-          {t("Choose how you would like the planner to talk with you.")}
-        </p>
+        <h3 id="settings-style">{t("communicationStyle")}</h3>
+        <p className="settings-hint">{t("chooseHowYouWouldLike")}</p>
         <select
           className="settings-select"
-          aria-label={t("Communication style")}
+          aria-label={t("communicationStyle")}
           value={settings.assistant.style}
           onChange={(event) =>
             update({
@@ -557,32 +529,26 @@ function PersonalizationSection() {
         </select>
       </section>
       <section className="settings-block" aria-labelledby="settings-assistant-names">
-        <h3 id="settings-assistant-names">{t("Assistant names")}</h3>
-        <p className="settings-hint">
-          {t("Rename the assistants. Leave a name empty to use its role name.")}
-        </p>
+        <h3 id="settings-assistant-names">{t("assistantNames")}</h3>
+        <p className="settings-hint">{t("renameTheAssistantsLeaveA")}</p>
         <ul className="assistant-names">
           {ASSISTANT_ORDER.map((id) => (
             <AssistantNameField key={id} id={id} />
           ))}
         </ul>
       </section>
-      <p className="settings-hint">
-        {t(
-          "What the planner knows about you fills in every new trip. You can change any of it for one trip, and trips already planned stay as they are.",
-        )}
-      </p>
-      <h3 className="settings-group">{t("Identity")}</h3>
+      <p className="settings-hint">{t("whatThePlannerKnowsAbout")}</p>
+      <h3 className="settings-group">{t("identity")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="🏡"
-          label={t("Home base")}
+          label={t("homeBase")}
           value={travel.homeCity}
-          question={t("Where do your trips usually start?")}
+          question={t("whereDoYourTripsUsually")}
         >
           {(close) => (
             <TextEditor
-              label={t("Home base")}
+              label={t("homeBase")}
               initial={travel.homeCity}
               onSave={(homeCity) => {
                 setTravel({ homeCity });
@@ -592,27 +558,27 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Travel party")}</h3>
+      <h3 className="settings-group">{t("travelParty")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="👥"
-          label={t("Travellers")}
+          label={t("travellers")}
           value={
             travel.travellers
               ? `${travel.travellers} ${travel.travellers === 1 ? t("person") : t("people")}`
               : ""
           }
-          question={t("How many people usually travel?")}
+          question={t("howManyPeopleUsuallyTravel")}
         >
           {(close) => (
             <TextEditor
-              label={t("Travellers")}
+              label={t("travellers")}
               numeric
               initial={travel.travellers?.toString() ?? ""}
               validate={(value) =>
                 value &&
                 !(Number.isInteger(Number(value)) && Number(value) >= 1 && Number(value) <= 20)
-                  ? { key: "From 1 to 20." }
+                  ? { key: "from1To20" }
                   : undefined
               }
               onSave={(value) => {
@@ -624,21 +590,21 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Travel style")}</h3>
+      <h3 className="settings-group">{t("travelStyle")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="🐢"
-          label={t("Pace")}
+          label={t("pace")}
           value={travel.pace ? t(PACE_LABEL[travel.pace]) : ""}
-          question={t("How full should a day be?")}
+          question={t("howFullShouldADay")}
         >
           {() => (
             <Segmented
-              label={t("Pace")}
+              label={t("pace")}
               options={[
-                ["relaxed", t("Relaxed")],
-                ["balanced", t("Balanced")],
-                ["packed", t("Packed")],
+                ["relaxed", t("relaxed")],
+                ["balanced", t("balanced")],
+                ["packed", t("packed")],
               ]}
               value={travel.pace}
               onChange={(pace) => {
@@ -650,13 +616,13 @@ function PersonalizationSection() {
         </MemoryRow>
         <MemoryRow
           icon="✨"
-          label={t("Interests")}
-          value={travel.interests.map((item) => t(item)).join("、")}
-          question={t("What do you love doing on a trip?")}
+          label={t("interests")}
+          value={travel.interests.map((item) => t(keyForText(item))).join("、")}
+          question={t("whatDoYouLoveDoing")}
         >
           {() => (
             <ChipGroup
-              label={t("Interests")}
+              label={t("interests")}
               options={INTERESTS}
               value={travel.interests}
               onChange={(interests) => setTravel({ interests })}
@@ -664,19 +630,17 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Food")}</h3>
+      <h3 className="settings-group">{t("foodTitle")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="🥗"
-          label={t("Dietary")}
-          value={travel.dietary.map((item) => t(item)).join("、")}
-          question={t(
-            "Any dietary restrictions or allergies? (e.g., vegetarian, gluten-free, nut allergies)",
-          )}
+          label={t("dietary")}
+          value={travel.dietary.map((item) => t(keyForText(item))).join("、")}
+          question={t("anyDietaryRestrictionsOrAllergies")}
         >
           {() => (
             <ChipGroup
-              label={t("Dietary needs")}
+              label={t("dietaryNeeds")}
               options={DIETARY}
               value={travel.dietary}
               onChange={(dietary) => setTravel({ dietary })}
@@ -684,25 +648,23 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Budget")}</h3>
+      <h3 className="settings-group">{t("budgetTitle")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="💰"
-          label={t("Trip budget")}
+          label={t("tripBudget")}
           value={
-            travel.budget
-              ? t("AUD {v0} for a whole trip", { v0: travel.budget.toLocaleString("en-AU") })
-              : ""
+            travel.budget ? t("audV0ForAWhole", { v0: travel.budget.toLocaleString("en-AU") }) : ""
           }
-          question={t("What do you usually spend on a trip, in AUD?")}
+          question={t("whatDoYouUsuallySpend")}
         >
           {(close) => (
             <TextEditor
-              label={t("Budget (AUD, whole trip)")}
+              label={t("budgetAudWholeTrip")}
               numeric
               initial={travel.budget?.toString() ?? ""}
               validate={(value) =>
-                value && !(Number(value) > 0) ? { key: "Enter an amount above 0." } : undefined
+                value && !(Number(value) > 0) ? { key: "enterAnAmountAbove0" } : undefined
               }
               onSave={(value) => {
                 const { budget: _old, ...rest } = travel;
@@ -713,13 +675,13 @@ function PersonalizationSection() {
           )}
         </MemoryRow>
       </ul>
-      <h3 className="settings-group">{t("Other preferences")}</h3>
+      <h3 className="settings-group">{t("otherPreferences")}</h3>
       <ul className="memory-list">
         <MemoryRow
           icon="📝"
-          label={t("Standing preferences")}
+          label={t("standingPreferences")}
           value={travel.preferences.join("; ")}
-          question={t("Anything else every trip should respect?")}
+          question={t("anythingElseEveryTripShould")}
         >
           {(close) => (
             <div className="settings-form">
@@ -733,7 +695,7 @@ function PersonalizationSection() {
                     close();
                   }}
                 >
-                  {t("Save preferences")}
+                  {t("savePreferences")}
                 </button>
               </div>
             </div>
@@ -750,10 +712,10 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
   const languageLabel = locale === "zh" ? "简体中文" : "English";
   return (
     <div className="settings-form">
-      <SettingRow label={t("Language")} value={languageLabel}>
+      <SettingRow label={t("language")} value={languageLabel}>
         {() => (
           <Segmented
-            label={t("Language")}
+            label={t("language")}
             options={
               [
                 ["en", "English"],
@@ -768,16 +730,14 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
       <p className="settings-hint">
         {locale === "zh"
           ? "界面使用简体中文。你可以用任何语言聊天，规划助手会使用你的语言回复。"
-          : t(
-              "The interface follows this setting. Chat in any language: the planner replies in yours.",
-            )}
+          : t("theInterfaceFollowsThisSetting")}
       </p>
-      <SettingRow label={t("Region")} value={`🇦🇺 ${t("Australia")}`} />
-      <h3 className="settings-group">{t("Advanced")}</h3>
-      <SettingRow label={t("Display currency")} value={settings.displayCurrency}>
+      <SettingRow label={t("region")} value={`🇦🇺 ${t("australia")}`} />
+      <h3 className="settings-group">{t("advanced")}</h3>
+      <SettingRow label={t("displayCurrency")} value={settings.displayCurrency}>
         {() => (
           <Segmented
-            label={t("Display currency")}
+            label={t("displayCurrency")}
             options={SUPPORTED_CURRENCIES.map((code) => [code, code] as const)}
             value={settings.displayCurrency}
             onChange={(displayCurrency) => displayCurrency && update({ displayCurrency })}
@@ -785,16 +745,16 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
         )}
       </SettingRow>
       <CurrencyNotice currency={settings.displayCurrency} />
-      <SettingRow label={t("Units")} value={t("Metric (°C, km)")} />
-      <SettingRow label={t("Trip data")} value={t(DATA_LABEL[settings.dataMode])}>
+      <SettingRow label={t("units")} value={t("metricCKm")} />
+      <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
         {() => (
           <>
             <Segmented
-              label={t("Default trip data")}
+              label={t("defaultTripData")}
               options={[
-                ["default", t("This site's default")],
-                ["live", t("Live prices")],
-                ["mock", t("Sample data")],
+                ["default", t("thisSiteSDefault")],
+                ["live", t("livePrices")],
+                ["mock", t("sampleData")],
               ]}
               value={settings.dataMode}
               onChange={(value) => {
@@ -803,11 +763,7 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
                 if (value !== "default") onDataMode(value);
               }}
             />
-            <small className="settings-hint">
-              {t(
-                "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The data switch in the workspace changes it for this browser.",
-              )}
-            </small>
+            <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>
           </>
         )}
       </SettingRow>
@@ -827,24 +783,22 @@ function ConnectedSection({ onAccountModal }: AccountModalProps) {
   if (account.status !== "signed-in")
     return (
       <p className="settings-lead">
-        {account.status === "local"
-          ? t("Accounts are not set up on this site.")
-          : t("Sign in with Google, GitHub or Apple to connect an account.")}
+        {account.status === "local" ? t("accountsAreNotSetUpOnThis") : t("signInWithGoogleGithub")}
       </p>
     );
   return (
     <div className="settings-form">
-      <p className="settings-hint">{t("Accounts you can sign in with.")}</p>
+      <p className="settings-hint">{t("accountsYouCanSignIn")}</p>
       {account.connected.length ? (
         account.connected.map((item) => (
           <SettingRow
             key={`${item.provider}-${item.email ?? ""}`}
             label={PROVIDER_LABEL[item.provider.replace(/^oauth_/, "")] ?? item.provider}
-            value={item.email ?? t("Connected")}
+            value={item.email ?? t("connected")}
           />
         ))
       ) : (
-        <p className="settings-empty">{t("No connected accounts. You sign in with email.")}</p>
+        <p className="settings-empty">{t("noConnectedAccountsYouSign")}</p>
       )}
       <div className="settings-actions">
         <button
@@ -852,7 +806,7 @@ function ConnectedSection({ onAccountModal }: AccountModalProps) {
           className="settings-pill"
           onClick={() => onAccountModal(account.manage)}
         >
-          {t("Connect or disconnect")}
+          {t("connectOrDisconnect")}
         </button>
       </div>
     </div>
@@ -873,7 +827,7 @@ export function SettingsDialog({
   const title = t(SECTIONS.find(([id]) => id === section)![1]);
   return (
     <div className="settings">
-      <nav className="settings-nav" aria-label={t("Settings sections")}>
+      <nav className="settings-nav" aria-label={t("settingsSections")}>
         <ul role="tablist" aria-orientation="vertical">
           {SECTIONS.map(([id, label]) => (
             <li key={id}>

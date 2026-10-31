@@ -15,7 +15,7 @@ export function usePhoneTripTitle(
   const { locale, currency, t } = useLocale();
   const labels = factLabels(draft, plan?.brief, { locale, currency });
   const range = labels.when?.split(" · ")[0];
-  return [name ?? labels.where, range].filter(Boolean).join(" · ") || t("New trip");
+  return [name ?? labels.where, range].filter(Boolean).join(" · ") || t("newTrip");
 }
 
 export function PhoneTripTitle({
@@ -64,7 +64,7 @@ export function PhoneTripTitle({
           ref={button}
           type="button"
           className="phone-topbar__title-button"
-          aria-label={t("Trip details: {title}", { title })}
+          aria-label={t("tripDetailsTitle", { title })}
           aria-haspopup="dialog"
           aria-expanded={open}
           aria-controls={open ? TRIP_FACTS_SHEET_ID : undefined}

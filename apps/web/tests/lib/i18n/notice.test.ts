@@ -11,7 +11,7 @@ import {
 describe("noticeText", () => {
   it("shows a keyed notice in the interface language with its values filled in", () => {
     const notice: Notice = {
-      key: "only {count} files can be attached to one message",
+      key: "onlyCountFilesCanBe",
       params: { count: 4 },
     };
 
@@ -32,10 +32,10 @@ describe("noticeText", () => {
 
   it("translates a notice used as a value of another notice", () => {
     const notice: Notice = {
-      key: "{name} wasn't attached — {reason}.",
+      key: "nameWasnTAttachedReason",
       params: {
         name: "notes.txt",
-        reason: { key: "text files over {size} can't be attached", params: { size: "2.0 MB" } },
+        reason: { key: "textFilesOverSizeCan", params: { size: "2.0 MB" } },
       },
     };
 
@@ -47,9 +47,9 @@ describe("noticeText", () => {
 
   it("rejects a keyed notice whose parameter is missing at typecheck time", () => {
     // @ts-expect-error `{size}` must be given.
-    const missing: Notice = { key: "text files over {size} can't be attached" };
+    const missing: Notice = { key: "textFilesOverSizeCan" };
     // @ts-expect-error a key with no placeholders takes no values.
-    const extra: Notice = { key: "Route lookup failed.", params: { size: "1 MB" } };
+    const extra: Notice = { key: "routeLookupFailed", params: { size: "1 MB" } };
     // @ts-expect-error only dictionary keys can be notices, so untranslated English cannot ship.
     const unknown: Notice = { key: "Something brand new went wrong." };
 
@@ -57,9 +57,7 @@ describe("noticeText", () => {
   });
 
   it("leaves the placeholder visible, not `undefined`, when a parameter is missing at run time", () => {
-    const parsed = JSON.parse(
-      '{"key":"these files together would pass the {size} one message can carry"}',
-    ) as Notice;
+    const parsed = JSON.parse('{"key":"theseFilesTogetherWouldPass"}') as Notice;
 
     expect(noticeText("en", parsed)).toBe(
       "these files together would pass the {size} one message can carry",
@@ -71,7 +69,7 @@ describe("noticeText", () => {
 describe("NoticeError", () => {
   it("carries its notice and keeps an English message for logs", () => {
     const error = new NoticeError({
-      key: "text files over {size} can't be attached",
+      key: "textFilesOverSizeCan",
       params: { size: "2.0 MB" },
     });
 
@@ -82,12 +80,12 @@ describe("NoticeError", () => {
 });
 
 describe("failureNotice", () => {
-  const fallback: Notice = { key: "Request failed ({status}).", params: { status: 502 } };
+  const fallback: Notice = { key: "requestFailedStatus", params: { status: 502 } };
 
   it("shows the keyed notice a route returned, in the interface language", () => {
     const body = {
       error: "Enter a place name to search.",
-      notice: { key: "Enter a place name to search." },
+      notice: { key: "enterAPlaceNameTo" },
     };
 
     expect(noticeText("zh", failureNotice(body, fallback))).toBe("输入地点名称后再搜索。");
@@ -112,10 +110,10 @@ describe("failureNotice", () => {
 });
 
 describe("errorNotice", () => {
-  const fallback: Notice = { key: "Route unavailable" };
+  const fallback: Notice = { key: "routeUnavailable" };
 
   it("keeps an authored error's notice", () => {
-    const error = new NoticeError({ key: "No verified route was returned." });
+    const error = new NoticeError({ key: "noVerifiedRouteWasReturned" });
     expect(noticeText("zh", errorNotice(error, fallback))).toBe("未返回已核实的路线。");
   });
 

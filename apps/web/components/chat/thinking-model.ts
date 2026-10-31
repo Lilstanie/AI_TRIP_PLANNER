@@ -11,21 +11,21 @@ export type ActivityStatus =
   "queued" | "running" | "revising" | "completed" | "failed" | "interrupted" | "unknown";
 
 export const labels: Record<AgentName, MessageKey> = {
-  itinerary: "Day plan",
-  transport: "Getting around",
-  accommodation: "Stay",
-  "destination-guide": "Destination guide",
-  dining: "Food & dining",
+  itinerary: "dayPlan",
+  transport: "gettingAround",
+  accommodation: "stay",
+  "destination-guide": "destinationGuide",
+  dining: "foodDining",
 };
 
 export const statusLabels: Record<ActivityStatus, MessageKey> = {
-  queued: "Waiting",
-  running: "Thinking",
-  revising: "Revising",
-  completed: "Complete",
-  failed: "Needs attention",
-  interrupted: "Interrupted",
-  unknown: "Waiting for update",
+  queued: "waiting",
+  running: "thinking",
+  revising: "revising",
+  completed: "complete",
+  failed: "needsAttention",
+  interrupted: "interrupted",
+  unknown: "waitingForUpdate",
 };
 
 export type ToolState = "running" | "completed" | "failed";
@@ -387,17 +387,17 @@ export function countLine(counts: Counts, locale: AppLocale = "en"): string {
   const parts: string[] = [];
   if (counts.toolCalls > 0)
     parts.push(
-      translate(locale, counts.toolCalls === 1 ? "{count} tool call" : "{count} tool calls", {
+      translate(locale, counts.toolCalls === 1 ? "countToolCall" : "countToolCalls", {
         count: counts.toolCalls,
       }),
     );
   if (counts.subagents > 0)
     parts.push(
-      translate(locale, counts.subagents === 1 ? "{count} subagent" : "{count} subagents", {
+      translate(locale, counts.subagents === 1 ? "countSubagent" : "countSubagents", {
         count: counts.subagents,
       }),
     );
-  if (counts.rounds > 1) parts.push(translate(locale, "{count} rounds", { count: counts.rounds }));
+  if (counts.rounds > 1) parts.push(translate(locale, "countRounds", { count: counts.rounds }));
   return parts.join(" · ");
 }
 
@@ -443,10 +443,10 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
   if (waiting > 0) {
     const agent = activeAgent(activity);
     if (agent)
-      return translate(locale, "Working with {agent}", { agent: translate(locale, labels[agent]) });
+      return translate(locale, "workingWithAgent", { agent: translate(locale, labels[agent]) });
     return translate(
       locale,
-      waiting === 1 ? "Waiting for {count} subagent" : "Waiting for {count} subagents",
+      waiting === 1 ? "waitingForCountSubagent" : "waitingForCountSubagents",
       { count: waiting },
     );
   }
@@ -456,7 +456,7 @@ function liveSummary(activity: AgentProgressEvent[], locale: AppLocale): string 
     if (event.type === "agent_completed" && event.summary)
       return `${translate(locale, labels[event.agent])} · ${event.summary}`;
   }
-  return translate(locale, "Preparing your request.");
+  return translate(locale, "preparingYourRequest");
 }
 
 export function turnSummary(
@@ -474,12 +474,12 @@ export function turnSummary(
       translate(
         locale,
         failed
-          ? "Needs attention"
+          ? "needsAttention"
           : outcome === "planned"
-            ? "Trip plan ready"
+            ? "tripPlanReady"
             : outcome === "asked"
-              ? "Need more details"
-              : "Done",
+              ? "needMoreDetails"
+              : "done",
       ),
     streaming: false,
   };

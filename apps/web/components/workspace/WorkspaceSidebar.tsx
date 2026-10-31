@@ -123,8 +123,8 @@ export function HistoryMenu({
   }, [open]);
 
   const label = subtitle
-    ? t("Actions for {v0}, {v1}", { v0: title, v1: subtitle })
-    : t("Actions for {v0}", { v0: title });
+    ? t("actionsForV0V1", { v0: title, v1: subtitle })
+    : t("actionsForV0", { v0: title });
 
   const act = (run: () => void) => {
     setOpen(false);
@@ -148,10 +148,10 @@ export function HistoryMenu({
       {open && (
         <div ref={menu} className="history-item__menu" role="menu" aria-label={label}>
           <button ref={firstItem} type="button" role="menuitem" onClick={() => act(onRename)}>
-            {t("Rename")}
+            {t("rename")}
           </button>
           <button type="button" role="menuitem" onClick={() => act(onDelete)}>
-            {t("Delete")}
+            {t("delete")}
           </button>
         </div>
       )}
@@ -212,7 +212,7 @@ export function WorkspaceSidebar({
   return (
     <aside
       className={`workspace-sidebar${isCollapsed ? " is-collapsed" : ""}`}
-      aria-label={t("Chats and trips")}
+      aria-label={t("chatsAndTrips")}
     >
       <div className="sidebar-head">
         <BrandMark showName={!isCollapsed} />
@@ -220,9 +220,9 @@ export function WorkspaceSidebar({
           <button
             type="button"
             className="sidebar-toggle"
-            aria-label={t(isCollapsed ? "Expand sidebar" : "Collapse sidebar")}
+            aria-label={t(isCollapsed ? "expandSidebar" : "collapseSidebar")}
             aria-expanded={!isCollapsed}
-            data-tooltip={isCollapsed ? t("Expand sidebar") : undefined}
+            data-tooltip={isCollapsed ? t("expandSidebar") : undefined}
             onClick={onToggleCollapsed}
           >
             <SidebarIcon />
@@ -230,10 +230,10 @@ export function WorkspaceSidebar({
         )}
       </div>
 
-      <nav className="sidebar-nav" aria-label={t("Workspace")}>
+      <nav className="sidebar-nav" aria-label={t("workspace")}>
         <NavButton
           icon={<ComposeIcon />}
-          label={t("New chat")}
+          label={t("newChat")}
           collapsed={isCollapsed}
           onClick={onNewChat}
         />
@@ -241,7 +241,7 @@ export function WorkspaceSidebar({
           <NavButton
             buttonRef={chatsButton}
             icon={<ChatIcon filled={chatsOpen} />}
-            label={t("Chats")}
+            label={t("chats")}
             collapsed={isCollapsed}
             count={chatCount}
             current={chatsOpen}
@@ -252,7 +252,7 @@ export function WorkspaceSidebar({
         )}
         <NavButton
           icon={<SuitcaseIcon filled={page === "trips" && tripsView === "trips" && !chatsOpen} />}
-          label={t("Trips")}
+          label={t("trips")}
           collapsed={isCollapsed}
           count={tripCount}
           current={page === "trips" && tripsView === "trips" && !chatsOpen}
@@ -260,7 +260,7 @@ export function WorkspaceSidebar({
         />
         <NavButton
           icon={<CalendarIcon />}
-          label={t("Calendar")}
+          label={t("calendar")}
           collapsed={isCollapsed}
           current={page === "trips" && tripsView === "calendar" && !chatsOpen}
           onClick={onCalendar}
@@ -268,7 +268,7 @@ export function WorkspaceSidebar({
         {onTrajectory && (
           <NavButton
             icon={<LedgerIcon />}
-            label={t("Trajectory")}
+            label={t("trajectory")}
             collapsed={isCollapsed}
             current={trajectoryOpen}
             onClick={onTrajectory}
@@ -285,14 +285,14 @@ export function WorkspaceSidebar({
             role="status"
           >
             {saveState === "failed"
-              ? t("Save failed")
+              ? t("saveFailed")
               : syncStatus === "syncing" || saveState === "saving"
-                ? t("Saving…")
+                ? t("saving")
                 : syncStatus === "synced"
-                  ? t("Synced to your account")
+                  ? t("syncedToYourAccount")
                   : syncStatus === "offline"
-                    ? t("Saved here · sync paused")
-                    : t("Saved locally")}
+                    ? t("savedHereSyncPaused")
+                    : t("savedLocally")}
           </span>
         )}
         <div className="sidebar-footer__actions">

@@ -38,7 +38,7 @@ describe("GET /api/places/photo", () => {
     expect(response.status).toBe(503);
     await expect(response.json()).resolves.toEqual({
       error: "The map service is temporarily unavailable. Please retry.",
-      notice: { key: "The map service is temporarily unavailable. Please retry." },
+      notice: { key: "theMapServiceIsTemporarily" },
     });
   });
 

@@ -6,7 +6,7 @@ export class MapProviderUnavailableError extends NoticeError {
     readonly provider: MapProviderId,
     readonly reason: UnavailableReason,
   ) {
-    super({ key: "The map service is temporarily unavailable. Please retry." });
+    super({ key: "theMapServiceIsTemporarily" });
     this.name = "MapProviderUnavailableError";
   }
 }

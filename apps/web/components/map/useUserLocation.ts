@@ -43,12 +43,11 @@ async function permissionState(): Promise<PermissionState | undefined> {
 export function geolocationError(error: GeolocationPositionError): Notice {
   if (error.code === 1)
     return {
-      key: "Location permission was denied. You can retry after allowing it in your browser settings.",
+      key: "locationPermissionWasDeniedYou",
     };
-  if (error.code === 2)
-    return { key: "Your current location is unavailable. Check your device settings and retry." };
-  if (error.code === 3) return { key: "Finding your location timed out. Please retry." };
-  return { key: "Your current location could not be found. Please retry." };
+  if (error.code === 2) return { key: "yourCurrentLocationIsUnavailable" };
+  if (error.code === 3) return { key: "findingYourLocationTimedOut" };
+  return { key: "yourCurrentLocationCouldNot" };
 }
 
 export function useUserLocation(): UserLocation {
@@ -58,7 +57,7 @@ export function useUserLocation(): UserLocation {
     if (typeof navigator === "undefined" || !navigator.geolocation) {
       setLocation({
         status: "error",
-        message: { key: "Location is not supported by this browser." },
+        message: { key: "locationIsNotSupportedBy" },
       });
       return;
     }
@@ -69,7 +68,7 @@ export function useUserLocation(): UserLocation {
         setLocation({
           status: "success",
           position: { lat: coords.latitude, lng: coords.longitude },
-          message: { key: "Your current location is shown on the map." },
+          message: { key: "yourCurrentLocationIsShown" },
         });
       },
       (cause) => setLocation({ status: "error", message: geolocationError(cause) }),

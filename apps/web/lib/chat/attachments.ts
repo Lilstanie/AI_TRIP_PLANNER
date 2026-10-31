@@ -127,7 +127,7 @@ export function truncateText(
 
 export function parseDataUrl(url: string): { mediaType: string; data: string } {
   const match = /^data:([^;,]+)(;base64)?,(.*)$/s.exec(url);
-  if (!match) throw new NoticeError({ key: "The image could not be read." });
+  if (!match) throw new NoticeError({ key: "theImageCouldNotBe" });
   const [, mediaType = "", base64, payload = ""] = match;
   if (base64) return { mediaType, data: payload };
 
@@ -161,7 +161,7 @@ export async function prepareAttachments(
       rejections.push({
         name: file.name,
         reason: {
-          key: "only {count} files can be attached to one message",
+          key: "onlyCountFilesCanBe",
           params: { count: MAX_ATTACHMENTS_PER_MESSAGE },
         },
       });
@@ -170,7 +170,7 @@ export async function prepareAttachments(
     const mediaType = mediaTypeOf(file);
     const kind = attachmentKind(mediaType);
     if (!kind) {
-      rejections.push({ name: file.name, reason: { key: "that file type can't be attached" } });
+      rejections.push({ name: file.name, reason: { key: "thatFileTypeCanT" } });
       continue;
     }
 
@@ -179,7 +179,7 @@ export async function prepareAttachments(
       rejections.push({
         name: file.name,
         reason: {
-          key: "these files together would pass the {size} one message can carry",
+          key: "theseFilesTogetherWouldPass",
           params: { size: formatBytes(MAX_TOTAL_ATTACHMENT_PAYLOAD) },
         },
       });
@@ -196,8 +196,7 @@ export async function prepareAttachments(
       rejections.push({
         name: file.name,
 
-        reason:
-          failure instanceof NoticeError ? failure.notice : { key: "the file could not be read" },
+        reason: failure instanceof NoticeError ? failure.notice : { key: "theFileCouldNotBe" },
       });
     }
   }
@@ -222,9 +221,7 @@ async function prepareImage(
   }
   if (!encoded)
     throw new NoticeError(
-      cap < MAX_IMAGE_BASE64_LENGTH
-        ? { key: "there isn't room left on this message for another image" }
-        : { key: "the image is too large to send, even after it was scaled down" },
+      cap < MAX_IMAGE_BASE64_LENGTH ? { key: "thereIsnTRoomLeft" } : { key: "theImageIsTooLarge" },
     );
 
   const thumbnail = await render(file, {
@@ -252,7 +249,7 @@ async function prepareTextFile(
 ): Promise<PreparedAttachment> {
   if (file.size > MAX_TEXT_FILE_BYTES)
     throw new NoticeError({
-      key: "text files over {size} can't be attached",
+      key: "textFilesOverSizeCan",
       params: { size: formatBytes(MAX_TEXT_FILE_BYTES) },
     });
   const { text, truncated } = truncateText(
@@ -288,7 +285,7 @@ export const renderImageInBrowser: ImageRenderer = async (file, { maxEdge, quali
   canvas.width = width;
   canvas.height = height;
   const context = canvas.getContext("2d");
-  if (!context) throw new NoticeError({ key: "this browser could not read the image" });
+  if (!context) throw new NoticeError({ key: "thisBrowserCouldNotRead" });
   const keepAlpha = format === "auto" && mayHaveAlpha(file.type);
   if (!keepAlpha) {
     context.fillStyle = "#ffffff";

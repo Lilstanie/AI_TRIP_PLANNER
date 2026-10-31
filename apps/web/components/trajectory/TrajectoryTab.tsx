@@ -83,10 +83,10 @@ export const TrajectoryTab = memo(function TrajectoryTab({
     return (
       <div className="trajectory-tab">
         <div className="trajectory-empty">
-          <p>{t("Each step the assistant takes will be listed here after you send a message.")}</p>
+          <p>{t("eachStepTheAssistantTakes")}</p>
           {onPlanInChat && (
             <button type="button" onClick={onPlanInChat}>
-              {t("Plan in Chat")}
+              {t("planInChat")}
             </button>
           )}
         </div>
@@ -121,7 +121,7 @@ export const TrajectoryTab = memo(function TrajectoryTab({
           <AssistantIcon id={only} />
           <strong>{assistantName(only, names, locale)}</strong>
           <button type="button" onClick={onClear}>
-            {t("Show all records")}
+            {t("showAllRecords")}
           </button>
         </div>
       )}

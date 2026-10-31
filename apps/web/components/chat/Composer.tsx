@@ -233,7 +233,7 @@ export function Composer({
       {...dragProps}
     >
       {attachments.length > 0 && (
-        <ul className="attachment-chips composer__attachments" aria-label={t("Attached files")}>
+        <ul className="attachment-chips composer__attachments" aria-label={t("attachedFiles")}>
           {attachments.map((attachment) => (
             <AttachmentChip
               key={attachment.id}
@@ -258,7 +258,7 @@ export function Composer({
       <textarea
         ref={inputRef}
         className="composer__input"
-        aria-label={t("Message AI Trip Planner")}
+        aria-label={t("messageAiTripPlanner")}
         placeholder={placeholder}
         rows={1}
         value={value}
@@ -289,8 +289,8 @@ export function Composer({
           <button
             type="button"
             className="composer__add"
-            aria-label={t("Upload files")}
-            title={t("Upload files")}
+            aria-label={t("uploadFiles")}
+            title={t("uploadFiles")}
             disabled={busy || !canAttach}
 
             onMouseDown={(event) => event.preventDefault()}
@@ -302,7 +302,7 @@ export function Composer({
             ref={fileInputRef}
             className="composer__file-input"
             type="file"
-            aria-label={t("Add files")}
+            aria-label={t("addFiles")}
             multiple
 
             tabIndex={-1}
@@ -315,7 +315,7 @@ export function Composer({
             <button
               type="button"
               className="composer__primary composer__primary--stop"
-              aria-label={t("Stop planning")}
+              aria-label={t("stopPlanning")}
               disabled={!canCancel}
               onClick={onCancel}
             >
@@ -325,7 +325,7 @@ export function Composer({
             <button
               type="button"
               className="composer__primary"
-              aria-label={t("Send")}
+              aria-label={t("send")}
               disabled={!canSend}
 
               onClick={() => onSend()}
