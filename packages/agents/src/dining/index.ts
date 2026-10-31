@@ -86,7 +86,10 @@ function dietaryPreferences(preferences: UserPreference[]): UserPreference[] {
   );
 }
 
-function dietaryPreferencesForBrief(brief: TripBrief, saved: UserPreference[]): UserPreference[] {
+export function dietaryPreferencesForBrief(
+  brief: TripBrief,
+  saved: UserPreference[],
+): UserPreference[] {
   for (const values of [brief.learnedPreferences, brief.preferences]) {
     const explicit = dietaryPreferences(
       (values ?? []).map((value) => ({ key: "preference", value, source: "filter" as const })),

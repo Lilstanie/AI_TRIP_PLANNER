@@ -24,6 +24,8 @@ import { createRoutedChatModel, readStructuredResponse } from "../models";
 import { dateForDay, planningDays, routeProblem } from "../transport/validation";
 import { cities, cityForDay, scheduledHops } from "../transport/legs";
 import { avoidBlockedWindows } from "./revision";
+import { mealsByCityFrom, withGrounded, withMeals } from "./meals";
+import { dietaryPreferencesForBrief } from "../dining";
 import {
   arrivalSlots,
   beforeLanding,
@@ -89,6 +91,7 @@ export interface ItineraryGenerator {
     previous?: { summary: string; activities: string[] };
     language?: InterfaceLanguage;
     arrival?: Landing;
+    restaurantsByCity?: Record<string, string[]>;
   }): Promise<ItineraryDraft>;
 }
 
@@ -389,23 +392,33 @@ function validatedFallbackDraft(
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
   language: InterfaceLanguage | undefined,
   landing: Landing | undefined,
+  mealsByCity: ReadonlyMap<string, readonly Place[]>,
 ): ItineraryDraft {
+  const grounded = withGrounded(places, placesByCity, mealsByCity);
   return validateDraft(
-    fallbackDraft(
-      brief,
+    withMeals(
+      fallbackDraft(
+        brief,
+        days,
+        places,
+        preferences,
+        placesByCity,
+        dayCities,
+        transferWindows,
+        language,
+        landing,
+      ),
       days,
-      places,
-      preferences,
-      placesByCity,
+      mealsByCity,
       dayCities,
       transferWindows,
-      language,
       landing,
+      language,
     ),
     days,
-    places,
+    grounded.places,
     dayCities,
-    placesByCity,
+    grounded.byCity,
     transferWindows,
     false,
     landing,
@@ -427,7 +440,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day with 1-3 non-overlapping activities using 24-hour HH:mm times, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When restaurantsByCity is given, add one lunch or dinner a day at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -570,9 +583,13 @@ async function planItinerary(
       items: proposal.items.map((item) => `day ${item.day ?? "?"}: ${item.detail}`),
     }));
   const evidenceIssues: string[] = [];
-  const readPlaces = async (category: string, near: string) => {
+  const readPlaces = async (category: string, near: string, textQuery?: string) => {
     try {
-      const found = await ctx.tools.maps.places({ near, category });
+      const found = await ctx.tools.maps.places({
+        near,
+        category,
+        ...(textQuery ? { textQuery } : {}),
+      });
       return found.filter(
         (place) =>
           typeof place.name === "string" &&
@@ -589,7 +606,21 @@ async function planItinerary(
   };
 
   const cityNames = cities(brief.destination);
-  const [byCity, preferences] = await Promise.all([
+  const preferencesRead = ctx.mem.getLongTerm(brief.userId);
+  const readMeals = async (city: string) => {
+    const dietary = dietaryPreferencesForBrief(brief, await preferencesRead);
+    return [
+      city,
+      await readPlaces(
+        "restaurant",
+        city,
+        dietary.length
+          ? `restaurant in ${city}; dietary requirements: ${dietary.map(({ value }) => value).join("; ")}`
+          : undefined,
+      ),
+    ] as const;
+  };
+  const [byCity, preferences, mealsFound] = await Promise.all([
     Promise.all(
       cityNames.map(async (city) => {
         const [sights, neighborhoods] = await Promise.all([
@@ -609,7 +640,8 @@ async function planItinerary(
         ] as const;
       }),
     ),
-    ctx.mem.getLongTerm(brief.userId),
+    preferencesRead,
+    Promise.all(cityNames.map(readMeals)),
   ]);
   ctx.signal?.throwIfAborted();
   const placesByCity = new Map(byCity);
@@ -633,6 +665,8 @@ async function planItinerary(
       [...placesByCity.values()].flat().map((place) => [place.name.trim().toLowerCase(), place]),
     ).values(),
   ];
+  const mealsByCity = mealsByCityFrom(mealsFound, places);
+  const grounded = withGrounded(places, placesByCity, mealsByCity);
   if (!places.length) {
     return {
       agent: "itinerary",
@@ -701,11 +735,21 @@ async function planItinerary(
               : {}),
             ...(feedback ? { feedback } : {}),
             ...(landing ? { arrival: landing } : {}),
+            ...(grounded.places.length > places.length
+              ? {
+                  restaurantsByCity: Object.fromEntries(
+                    [...mealsByCity].map(([city, found]) => [
+                      city,
+                      found.map((place) => place.name),
+                    ]),
+                  ),
+                }
+              : {}),
           }),
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
           true,
           landing,
@@ -731,6 +775,7 @@ async function planItinerary(
         transferWindows,
         ctx.replyLanguage,
         landing,
+        mealsByCity,
       );
     }
   } else {
@@ -744,6 +789,7 @@ async function planItinerary(
       transferWindows,
       ctx.replyLanguage,
       landing,
+      mealsByCity,
     );
   }
   let adjusted = avoidBlockedWindows(draft, revision);
@@ -754,9 +800,9 @@ async function planItinerary(
         draft: validateDraft(
           adjusted.draft,
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
           false,
           landing,
@@ -773,9 +819,9 @@ async function planItinerary(
     }
   }
   draft = adjusted.draft;
-  const coordinates = placeCoordinates(places);
+  const coordinates = placeCoordinates(grounded.places);
   const placeIds = new Map(
-    places.flatMap((place) =>
+    grounded.places.flatMap((place) =>
       place.placeId ? [[place.name.trim().toLocaleLowerCase(), place.placeId] as const] : [],
     ),
   );
@@ -808,6 +854,7 @@ async function planItinerary(
       transferWindows,
       ctx.replyLanguage,
       landing,
+      mealsByCity,
     );
     const adjustedFallback = avoidBlockedWindows(originalFallback, revision);
     let fallback = adjustedFallback;
@@ -817,9 +864,9 @@ async function planItinerary(
         draft: validateDraft(
           adjustedFallback.draft,
           days,
-          places,
+          grounded.places,
           dayCities,
-          placesByCity,
+          grounded.byCity,
           transferWindows,
           false,
           landing,

@@ -44,6 +44,8 @@ const ENGLISH = {
     `${category} candidate${rating ? ` with supplied rating ${rating}` : ""}.${requirements ? ` Ask the venue to confirm these requirements directly: ${requirements}.` : " Confirm ingredients and dietary suitability directly with the venue."}`,
   suggestedStop: (name: string, category: string) =>
     `${name} (${category}) is a suggested stop; confirm timing and suitability before visiting.`,
+  mealStop: (name: string) =>
+    `${name} is a suggested meal stop; check opening hours and whether to book before going.`,
   customs: "Follow posted venue rules and check official local visitor guidance before travel.",
   safety:
     "Save local emergency contacts, keep copies of essential documents, and follow current official travel advisories.",
@@ -103,6 +105,7 @@ const CHINESE: typeof ENGLISH = {
   diningPick: (_category, rating, requirements) =>
     `候选餐厅${rating ? `，评分 ${rating}` : ""}。${requirements ? `请直接向餐厅确认这些要求：${requirements}。` : "请直接向餐厅确认食材和饮食要求。"}`,
   suggestedStop: (name) => `${name}：推荐游览点，出发前请确认时间和是否适合。`,
+  mealStop: (name) => `${name}：推荐用餐地点，出发前请确认营业时间和是否需要预约。`,
   customs: "遵守场所张贴的规定，出行前查看当地官方游客指引。",
   safety: "保存当地紧急联系方式，备份重要证件，并关注最新的官方旅行提示。",
   entryHealth: (nationality) =>
