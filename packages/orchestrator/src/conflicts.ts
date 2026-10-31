@@ -1,5 +1,4 @@
-import { outboundArrival } from "@trip/agents";
-import { formatMoney } from "@trip/shared";
+import { formatMoney, outboundArrival } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, moneyDifference, NEGOTIATION_OVERRUN_PCT, sumMoney } from "./budget";
 

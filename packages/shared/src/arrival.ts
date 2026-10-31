@@ -1,4 +1,4 @@
-import type { AgentProposal, TripBrief } from "@trip/shared";
+import type { AgentProposal, TripBrief } from "./contracts";
 
 export interface OutboundArrival {
   day: number;
