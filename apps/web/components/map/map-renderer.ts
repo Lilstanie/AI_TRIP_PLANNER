@@ -85,8 +85,7 @@ function runtime(
       authListeners.clear();
       auth?.remove();
       map.destroy?.();
-      if (provider === "google" && googleAuthRejected()) element.hidden = true;
-      else element.remove();
+      element.remove();
     },
   };
 }
