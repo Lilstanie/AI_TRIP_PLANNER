@@ -42,11 +42,6 @@ export type TripInterest = z.infer<typeof TripInterest>;
 
 export const STAY_TYPES = ["hotel", "hostel", "apartment", "guesthouse"] as const;
 
-/**
- * What the traveller asked for that changes how the planner behaves, as the chat model understood
- * it from any language. Specialists read these fields instead of matching keywords in the free-text
- * preferences; a field is absent when the traveller has not said.
- */
 export const TripIntent = z.object({
   pace: TripPace.optional(),
   dietary: z.array(z.string().trim().min(1).max(MAX_TRIP_PREFERENCE_LENGTH)).max(8).optional(),

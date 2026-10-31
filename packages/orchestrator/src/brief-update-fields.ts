@@ -66,7 +66,6 @@ export function intentFrom(update: IntentFields): TripIntent | undefined {
   return Object.keys(intent).length ? intent : undefined;
 }
 
-/** Lasting preferences the model reported, valid entries only; `undefined` when it reported none. */
 export function lastingPreferencesFrom(update: IntentFields): LastingPreference[] | undefined {
   if (!Array.isArray(update.rememberForAccount)) return undefined;
   const entries = update.rememberForAccount.flatMap((entry): LastingPreference[] => {

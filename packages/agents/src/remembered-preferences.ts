@@ -1,6 +1,5 @@
 import type { Place, TripIntent, UserPreference } from "@trip/shared";
 
-/** Pace and interests from the brief's intent win over the account memory; pace is `""` when neither gives one. */
 export function rememberedPlanningPreferences(preferences: UserPreference[], intent?: TripIntent) {
   const values = new Map(
     preferences

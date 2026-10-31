@@ -304,7 +304,6 @@ const PACE_ACTIVITIES: Record<TripPace, string> = {
     "4-6 sights a day from morning to evening, plus lunch and dinner when restaurantsByCity is given",
 };
 
-/** The pace the planner follows: the brief's intent, then the remembered pace, else balanced. */
 export function planningPace(brief: TripBrief, preferences: UserPreference[]): TripPace {
   const { pace } = rememberedPlanningPreferences(preferences, brief.intent);
   return TRIP_PACES.find((option) => pace.includes(option)) ?? "balanced";

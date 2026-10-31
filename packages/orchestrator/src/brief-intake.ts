@@ -217,10 +217,6 @@ export class BriefIntake {
       : undefined;
   }
 
-  /**
-   * `fromModel` patches keep the model's counts and dates, with the end date counted from the
-   * model's `tripDays`; the local regex reads them only when no model produced the patch.
-   */
   update(
     patch: BriefPatch,
     message: string,

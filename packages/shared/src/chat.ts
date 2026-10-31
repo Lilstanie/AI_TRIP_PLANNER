@@ -175,7 +175,6 @@ export const LASTING_PREFERENCE_KEYS = [
   "departure_city",
 ] as const;
 
-/** A preference the traveller said applies to every trip, for the account memory to keep. */
 export const LastingPreference = z.object({
   key: z.enum(LASTING_PREFERENCE_KEYS),
   value: z.string().trim().min(1).max(200),

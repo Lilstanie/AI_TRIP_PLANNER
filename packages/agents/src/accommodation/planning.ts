@@ -66,7 +66,6 @@ export function readPreferences(prefs: UserPreference[]): StayPreferences {
   };
 }
 
-/** Hard stay requirements the traveller stated for this trip win, field by field, over saved ones. */
 export function withStayIntent(prefs: StayPreferences, stay?: TripIntent["stay"]): StayPreferences {
   return stay ? { ...prefs, ...stay } : prefs;
 }
