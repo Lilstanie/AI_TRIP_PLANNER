@@ -9,6 +9,14 @@ describe("offline extraction of origin and destination", () => {
 
     ["Plan a 5-day trip to Seoul for 2 people", "Seoul", undefined],
     ["从墨尔本出发去悉尼玩", "悉尼", "墨尔本"],
+    [
+      "Plan Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults, budget AUD 6000",
+      "Tokyo",
+      "Sydney",
+    ],
+    ["Tokyo from Sydney, 2027-02-01 to 2027-02-04, 2 adults", "Tokyo", "Sydney"],
+    ["Plan Kyoto, 2027-02-01 to 2027-02-04", "Kyoto", undefined],
+    ["Sydney, 2026-10-01 to 2026-10-05, 2 people", "Sydney", undefined],
   ];
   for (const [message, destination, origin] of cases) {
     it(`reads ${JSON.stringify(message)}`, () => {
