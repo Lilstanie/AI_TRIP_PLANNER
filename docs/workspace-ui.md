@@ -887,7 +887,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   for that exact pair of places; otherwise it is a gentle arc (`curvedPath`, a quadratic curve in
   Web Mercator bending to the left of travel), so a day reads as one flowing path rather than a
   zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
-  every day when nothing is selected) is drawn Apple Maps style in its day colour over a
+  every day when nothing is selected; a day with no stops, such as a flight day, shows every trip stop) is drawn Apple Maps style in its day colour over a
   `--route-casing`, with a white chevron at the middle of each leg pointing to the next stop and
   white dashes flowing from stop to stop; other days are a thin static `--text-dim` line. A leg whose verified route names a travel mode also carries a round badge at the midpoint between its two stops, with a walking, public transport, driving or cycling glyph and that mode as its accessible name; a leg drawn as an arc has no verified route and so no badge. The badge sits under the place markers, so a stop's label is never covered. Switching the interface language immediately updates existing badge titles without changing the selected day.
   Dash animation pauses while the map panel or document is hidden, without discarding the map, camera

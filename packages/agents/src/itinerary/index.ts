@@ -925,7 +925,7 @@ async function planItinerary(
       };
     }),
     assumptions: [
-      ...draft.assumptions,
+      ...(usedFallback ? draft.assumptions : []),
       ...evidenceIssues,
       ...(landing ? [landingNote(landing)] : []),
       ...(departure ? [departureNote(departure)] : []),
