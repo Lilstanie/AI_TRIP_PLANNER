@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { AgentContext, Place, PlaceQuery, TripBrief } from "@trip/shared";
-import { createItineraryAgent, type ItineraryGenerator } from "../../src/itinerary";
+import { createItineraryAgent } from "../../src/itinerary";
 
 const brief: TripBrief = {
   tripId: "packed-pace",
