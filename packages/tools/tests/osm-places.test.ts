@@ -636,13 +636,30 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     );
   });
 
-  it("asks Geoapify for suburbs, quarters and neighbourhoods inside the city, without Overpass", async () => {
+  it("asks Geoapify for notable suburbs, quarters and neighbourhoods inside the city, without Overpass or numbered blocks", async () => {
     const fetcher = withGeoapify(
       { body: [{ ...geoTokyo[0], address: { "ISO3166-2-lvl4": "JP-13" } }] },
       {
         body: {
           features: [
-            { properties: { name: "谷中", iso3166_2: "JP-13", lat: 35.7266, lon: 139.7671 } },
+            {
+              properties: {
+                name: "谷中",
+                iso3166_2: "JP-13",
+                lat: 35.7266,
+                lon: 139.7671,
+                datasource: { raw: { place: "quarter", wikidata: "Q11515702" } },
+              },
+            },
+            {
+              properties: {
+                name: "新富一丁目",
+                iso3166_2: "JP-13",
+                lat: 35.6716,
+                lon: 139.7745,
+                datasource: { raw: { place: "neighbourhood" } },
+              },
+            },
             { properties: { name: "浦安", iso3166_2: "JP-12", lat: 35.653, lon: 139.902 } },
             {
               properties: {

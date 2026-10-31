@@ -492,9 +492,6 @@ export function createMapsPort(config: ToolRuntimeConfig, reportSelection = fals
     return {
       route: osmRoute,
       places: osmPlaces,
-      routeOptions: async () => {
-        throw new Error("Unsupported maps provider: osm");
-      },
     };
   }
 
