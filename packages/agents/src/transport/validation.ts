@@ -39,10 +39,6 @@ export function dateForDay(start: string, day: number): string {
 export const isDrivingEstimate = (leg: RouteLeg): boolean =>
   leg.mode !== "drive" && /OSRM|driving/i.test(leg.note ?? "");
 
-/**
- * Names why a route cannot be trusted, or returns undefined. A driving estimate is a problem
- * unless `acceptDrivingEstimates` is set, as it is for short hops between itinerary stops.
- */
 export function routeProblem(
   legs: RouteLeg[],
   { acceptDrivingEstimates = false } = {},

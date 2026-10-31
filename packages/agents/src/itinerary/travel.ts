@@ -13,7 +13,6 @@ import { dateForDay, isDrivingEstimate, routeProblem } from "../transport/valida
 import { minutes } from "./landing";
 import type { ItineraryDraft } from "./index";
 
-/** Conflicts between stops, and how many hops were timed by a driving estimate. */
 export type TravelCheck = { conflicts: string[]; drivingEstimates: number };
 
 export type Connections = Map<string, ArriveBy>;
