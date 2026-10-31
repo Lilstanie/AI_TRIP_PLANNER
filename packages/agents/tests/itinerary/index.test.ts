@@ -100,7 +100,8 @@ describe("itinerary planner", () => {
     expect(result.summary).not.toContain("STUB");
     expect(result.assumptions.join(" ")).toContain("Opening hours and live availability");
 
-    expect(ctx.tools.maps.places).toHaveBeenCalledTimes(4);
+    expect(ctx.tools.maps.places).toHaveBeenCalledTimes(6);
+    expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Kyoto", category: "restaurant" });
     expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Tokyo", category: "sight" });
     expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Kyoto", category: "sight" });
   });
