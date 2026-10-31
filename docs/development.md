@@ -521,6 +521,15 @@ and cleanup results are retained under `apps/web/output/playwright/real-clerk-au
 no session tokens or storage states are retained. This does not verify expired valid JWTs, production
 configuration without Clerk or the daily quota policy pending #440.
 
+Inspect its route-method inventory without credentials or provisioning with
+`node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --list-routes`. The same TypeScript export analysis
+feeds the anonymous requests, including function, constant, alias and re-exported HTTP handlers and
+explicit HEAD/OPTIONS exports. Route groups do not enter request URLs; private folders, comments,
+strings and type-only declarations are excluded. This command only lists methods; it performs no
+HTTP authentication checks. The credential-free regression command
+`node apps/web/tests/cli-e2e/real-clerk-route-inventory.e2e.mjs` retains its assertions under
+`output/e2e/real-clerk-route-inventory/after/summary.json`.
+
 `LABEL=<unique-attempt> node apps/web/tests/e2e/neon-memory-driver.e2e.mjs` exercises account-memory
 writes through the installed Neon WebSocket client and Drizzle session; existing reads and undo use
 the installed HTTP adapter. Only the test transport is replaced with in-process PGlite PostgreSQL

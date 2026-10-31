@@ -346,6 +346,14 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 `apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
 此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
 
+执行 `node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --list-routes` 可在不提供凭据、
+不创建账号的情况下查看路由方法清单。匿名请求也使用同一份 TypeScript 导出分析结果，
+涵盖函数、常量、别名和重导出的 HTTP 处理器，以及显式导出的 HEAD/OPTIONS。
+路由组不进入请求 URL；私有目录、注释、字符串和纯类型声明被排除。
+此命令只列出方法，不执行 HTTP 认证检查。无需凭据的回归命令
+`node apps/web/tests/cli-e2e/real-clerk-route-inventory.e2e.mjs` 将断言结果保存在
+`output/e2e/real-clerk-route-inventory/after/summary.json`。
+
 `LABEL=<unique-attempt> node apps/web/tests/e2e/neon-memory-driver.e2e.mjs` 通过已安装的 Neon
 WebSocket 客户端和 Drizzle session 测试账号记忆写入；现有读取和撤销使用已安装的 HTTP
 适配器。测试仅把传输层替换为进程内 PGlite 提供的 PostgreSQL 协议和 HTTP 响应，不需要

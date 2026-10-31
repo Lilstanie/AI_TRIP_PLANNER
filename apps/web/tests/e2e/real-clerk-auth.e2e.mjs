@@ -1,10 +1,20 @@
 // requires-env: CLERK_SECRET_KEY, DATABASE_URL
 import assert from "node:assert/strict";
 import { randomUUID } from "node:crypto";
-import { mkdir, readdir, readFile, writeFile } from "node:fs/promises";
+import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
+import { apiRouteMethods, isAnonymousRefusal } from "./support/api-route-methods.mjs";
+
+const web = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
+if (process.argv.includes("--list-routes")) {
+  const directoryIndex = process.argv.indexOf("--api-dir");
+  const directory = directoryIndex < 0 ? resolve(web, "app/api") : process.argv[directoryIndex + 1];
+  assert(directory, "--api-dir requires a directory");
+  console.log(JSON.stringify(await apiRouteMethods(directory), null, 2));
+  process.exit(0);
+}
 
 const require = createRequire(import.meta.url);
 const { chromium } = require("playwright");
@@ -16,7 +26,6 @@ assert(
   base && ["localhost", "127.0.0.1"].includes(new URL(base).hostname),
   "Requires local BASE_URL",
 );
-const web = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 const output = resolve(web, "output/playwright/real-clerk-auth", process.env.LABEL || "after");
 await mkdir(output, { recursive: true });
 const checks = [];
@@ -58,22 +67,7 @@ let phase = "anonymous API boundary";
 try {
   const anonymous = await browser.newContext();
   contexts.push(anonymous);
-  const routes = [];
-  const walk = async (directory, segments = []) => {
-    for (const entry of await readdir(directory, { withFileTypes: true })) {
-      if (entry.isDirectory())
-        await walk(resolve(directory, entry.name), [...segments, entry.name]);
-      else if (entry.name === "route.ts") {
-        const source = await readFile(resolve(directory, entry.name), "utf8");
-        for (const match of source.matchAll(
-          /export (?:async )?function (GET|POST|PUT|DELETE|PATCH)\(/g,
-        )) {
-          routes.push({ path: `/api/${segments.join("/")}`, method: match[1] });
-        }
-      }
-    }
-  };
-  await walk(resolve(web, "app/api"));
+  const routes = await apiRouteMethods(resolve(web, "app/api"));
   const publicRoutes = new Set([
     "/api/agent-lab/benchmark",
     "/api/agent-lab/runs",
@@ -89,10 +83,8 @@ try {
     if (publicRoutes.has(path)) continue;
     const result = await request(anonymous, path, method);
     check(
-      result.status === 401 &&
-        result.body?.notice?.key === "Sign in to use your account." &&
-        result.headers["cache-control"] === "no-store",
-      `anonymous ${method} ${path} returns uncached 401 JSON`,
+      isAnonymousRefusal(result, method),
+      `anonymous ${method} ${path} returns uncached 401${method === "HEAD" ? "" : " JSON"}`,
     );
   }
   const protectedPage = await request(anonymous, "/trips");
