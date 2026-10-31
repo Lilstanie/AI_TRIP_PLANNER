@@ -10,6 +10,9 @@
 渲染器不保留这样的句柄，因此销毁该地图不会抛错。被拒绝的地图也失去了容器，此时设置 `marker.map = null`
 会抛错。`MapRuntime.removeMarker` 是摘除 marker 的唯一入口：Google 已拒绝密钥时它只移除元素，让失败处理
 走完，回退地图才能挂载。
+释放已被拒绝的 Google 地图时，只隐藏它的子元素而不移除：拒绝之后，Google 仍会在这张地图上执行排队的
+promise 和动画帧任务，子元素一旦离开页面，这些任务就会在 Google 的脚本里抛出 `getRootNode` 或
+`setAttribute` 错误。
 
 回退状态属于当前挂载的地图。重新挂载时再次遵循配置的供应商，不缓存失败的 Trip 身份。Google 每个页面只报告一次密钥被拒，因此 `google-maps-sdk.ts` 在页面内保留这一事实，之后的渲染器不再创建 Google 地图，直接挂载 OSM；严格 Google 模式下则显示地图不可用。
 严格 Google 模式保留已保存地点并提供明确的重试操作，不会静默切换供应商。

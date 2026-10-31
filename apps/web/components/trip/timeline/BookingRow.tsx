@@ -162,9 +162,9 @@ function FlightCard({
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
   if (!selected) return <p>{t("thisFlightNeedsANew")}</p>;
   const others = flight.candidates.filter((candidate) => candidate.id !== flight.selectedId);
-  const duration = out
-    ? selected.inbound?.durationMin
-    : (selected.outbound?.durationMin ?? selected.durationMin);
+  const leg = out ? selected.inbound : selected.outbound;
+  const duration = out ? leg?.durationMin : (leg?.durationMin ?? selected.durationMin);
+  const stops = leg ? leg.layovers.length : out ? undefined : selected.stops;
   return (
     <article className="proposal-item result-card result-card--flight">
       <div className="result-card__head">
@@ -184,10 +184,10 @@ function FlightCard({
           <dt>{t("travellers")}</dt>
           <dd>{flight.passengers}</dd>
         </div>
-        {selected.stops !== undefined && (
+        {stops !== undefined && (
           <div>
             <dt>{t("flightStops")}</dt>
-            <dd>{selected.stops === 0 ? t("nonstop") : selected.stops}</dd>
+            <dd>{stops === 0 ? t("nonstop") : stops}</dd>
           </div>
         )}
         {duration !== undefined && (
