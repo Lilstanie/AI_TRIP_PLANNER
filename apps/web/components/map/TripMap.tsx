@@ -436,7 +436,7 @@ export function TripMap({
           label?.removeEventListener("click", selectLabel);
           content.removeEventListener("pointerenter", hover);
           content.removeEventListener("pointerleave", leave);
-          marker.map = null;
+          runtime.removeMarker(marker);
           if (created.get(stop.place.id)?.marker === marker) created.delete(stop.place.id);
         }),
       );
@@ -544,9 +544,7 @@ export function TripMap({
       runtime.map.panTo(location.position);
       panOnLocate.current = false;
     }
-    return ownCleanup(() => {
-      marker.map = null;
-    });
+    return ownCleanup(() => runtime.removeMarker(marker));
   }, [runtime, location, t, ownCleanup]);
 
   const showMyLocation = useCallback(() => {

@@ -7,7 +7,9 @@ Google authentication subscriptions preserve the existing host callback, snapsho
 dispatch and restore the host callback when the last owner leaves. Their module-level set is a registry
 of active map owners that becomes empty on disposal, not a cache of failed trips. Once Google rejects
 the key, the SDK's `map.addListener` returns `undefined`; the renderer keeps no handle for it, so
-disposing that map cannot throw.
+disposing that map cannot throw. A rejected map has also lost its container, so setting `marker.map = null`
+throws. `MapRuntime.removeMarker` is the one way to detach a marker: it removes the element when
+Google has rejected the key, which lets the failure handler finish and the fallback mount.
 
 Fallback belongs to the mounted map. A new mount follows the configured provider again; failed Trip
 identities are not cached. Google reports a rejected key once per page, so `google-maps-sdk.ts` keeps
@@ -25,6 +27,7 @@ twice has one marker, which belongs to its first stop, so the later stop highlig
 
 `trip-home-action-panels` runs the local Google SDK fixture (`google-renderer-fixture.mjs`) and proves one
 renderer is kept when the action panel opens beside the map. It also rejects the key like Google does
-and leaves and reopens Trip home twice without a browser error. SDK and constructor failures have no
+with markers on the map, checks the map and its markers are gone without an error in the failure
+handler, and leaves and reopens Trip home twice without a browser error. SDK and constructor failures have no
 dedicated browser script. The fixture does not verify live Google services, production login, physical devices or
 route duration accuracy.

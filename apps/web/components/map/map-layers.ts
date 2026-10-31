@@ -218,7 +218,7 @@ export function drawItineraryRoutes({
       document.removeEventListener("visibilitychange", updateAnimation);
       drawn.forEach((line) => line.setMap(null));
       badges.forEach((badge) => {
-        badge.map = null;
+        runtime.removeMarker(badge);
       });
     },
     {

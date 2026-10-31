@@ -12,6 +12,7 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
     authRejected: false,
     previousAuthFailure,
     externalAuthFailure: undefined,
+    authHandlerErrors: [],
     maps,
     pending,
     failure,
@@ -29,7 +30,11 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
         error.textContent = "Controlled Google authentication failure";
         map.element.append(error);
       }
-      window.gm_authFailure?.();
+      try {
+        window.gm_authFailure?.();
+      } catch (error) {
+        this.authHandlerErrors.push(String(error));
+      }
     },
     replaceHost() {
       this.externalAuthFailure = () => {
@@ -152,6 +157,8 @@ export function installGoogleRendererFixture({ failure = "none" } = {}) {
       return this.current;
     }
     set map(value) {
+      if (!value && fixture.authRejected)
+        throw new TypeError("Cannot read properties of undefined (reading 'getRootNode')");
       this.current = value;
       if (!value) this.remove();
     }

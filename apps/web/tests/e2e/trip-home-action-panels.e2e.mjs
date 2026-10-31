@@ -762,6 +762,25 @@ try {
   await openHome(rejected.page);
   await markMap(rejected.page);
   await rejected.page.evaluate(() => window.__googleRendererFixture.fail());
+  await rejected.page
+    .locator(".trip-home__map")
+    .getByText("The map could not load. Try again.")
+    .first()
+    .waitFor({ timeout: 5_000 })
+    .catch(() => {});
+  const teardown = await rejected.page.evaluate(() => {
+    const fixture = window.__googleRendererFixture;
+    return {
+      handlerErrors: fixture.authHandlerErrors,
+      liveMaps: fixture.maps.filter((map) => !map.destroyed).length,
+      markers: document.querySelectorAll("fixture-google-marker").length,
+    };
+  });
+  check(
+    teardown.handlerErrors.length === 0 && teardown.liveMaps === 0 && teardown.markers === 0,
+    "Google rejecting the key removes the markers and the map without throwing",
+    teardown,
+  );
   for (let visit = 0; visit < 2; visit += 1) {
     await home(rejected.page).getByRole("button", { name: "Back to trips" }).click();
     await rejected.page.locator(".trip-cards .trip-card").first().waitFor();
