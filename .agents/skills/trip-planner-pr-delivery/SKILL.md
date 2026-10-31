@@ -73,8 +73,10 @@ Done: no duplicate PR exists, or you are working on the existing one.
 Status of one or more PRs in one line each:
 
 ```sh
-for n in <PRs>; do sha=$(gh api $R/pulls/$n --jq .head.sha); echo "#$n ${sha:0:7} $(gh api $R/pulls/$n --jq .mergeable_state) bad=[$(gh api "$R/commits/$sha/check-runs?per_page=50" --jq '[.check_runs[]|select(.conclusion!="success")|"\(.name):\(.conclusion // .status)"]|join(",")')]"; done
+for n in <PRs>; do pr=$(gh api $R/pulls/$n); sha=$(echo "$pr" | jq -r .head.sha); echo "#$n ${sha:0:7} $(echo "$pr" | jq -r .mergeable_state) behind=$(gh api $R/compare/main...$sha --jq .behind_by) bad=[$( { gh api "$R/commits/$sha/check-runs?per_page=100" --jq '.check_runs[]|select(.conclusion!="success" and .conclusion!="skipped")|"\(.name):\(.conclusion // .status)"'; gh api "$R/commits/$sha/status" --jq '.statuses[]|select(.state!="success")|"\(.context):\(.state)"'; } | paste -sd, - )]"; done
 ```
+
+`bad` lists every GitHub Actions check run and every commit status (the Vercel deployment) on the head that is not green, including ones still `queued`, `in_progress` or `pending`. The PR page's red cross comes from either source, so a status line that reads only check runs misses a red Vercel status.
 
 If `gh` is unavailable, use MCP `pull_request_read` with `get` and `get_check_runs`. Judge mergeability from `mergeable_state`, not from `base.sha`, which keeps the old base after main moves.
 
@@ -88,12 +90,15 @@ A `cli-acceptance-workers` job that times out inside a setup step, or fails with
 
 `dirty` means a conflict with main: merge `origin/main`, resolve, re-run the checks the conflicted files select, push. Never rewrite history on a branch you did not create.
 `blocked` with every check `success` means the required code-owner approval is missing (`main` requires one since TP-159). It is not a failure.
-Done: every check `success`, and `mergeable_state` is `clean`, or `blocked` only by the approval.
+`behind` above 0 means the head's CI ran against an older main (`main` does not require branches to be up to date). Merge `origin/main` into the branch, push and wait for the fresh run before merging; a run from hours or days ago does not cover what main gained since.
+A Vercel status `failure` with "Deployment rate limited" is not your diff, but it is still red: do not merge past it. Tell the user it clears when the limit resets and let them decide.
+Done: `bad=[]`, `behind=0`, and `mergeable_state` is `clean`, or `blocked` only by the approval.
 
 ## 6. Merge and clean up
 
 - `main` needs one approval from a code owner in `.github/CODEOWNERS` (`@Lilstanie`, `@HeadmasterEggy`), and nobody approves their own PR. Both owners are bypass actors, so a PR opened under Joey's account merges without an approval; the merge call succeeds although GitHub shows `blocked`. A PR from members B, D or E waits for an owner's approval.
 - Merge PRs you opened in this session, or ones the user named, when green and nothing awaits the user's decision; protected files need the user's OK first. Joey has said a PR he owns needs no review from Lilstanie. Another person's PR (a teammate's, or one saying "No merge is requested") needs the user's explicit OK for that batch.
+- Owner bypass also skips the required checks, so GitHub will not stop a red or unfinished merge. Run the step 5 status line immediately before the merge call, and merge only when it prints `bad=[]` and `behind=0`. A green result read earlier in the turn does not count.
 - Mark ready with `gh api -X POST $R/pulls/<n>/ccr/ready_for_review` (GraphQL is blocked; MCP `update_pull_request` with `draft: false` also works), then `gh api -X PUT $R/pulls/<n>/merge -f merge_method=squash -f sha=<head sha>`.
 - After the merge, list the issues the PR was meant to close and close any still open (`issue_write`, `state_reason: completed`).
 - Delete the local branch after merge, then run `node scripts/worktrees.mjs --apply --worktree <this PR's worktree>` from the main checkout: it moves that worktree to the Trash if it is clean, prunes the worktree registry, never deletes a branch, and reports it kept if it holds work. The cloud container cannot delete remote branches; once the repo owner turns on auto-delete, GitHub does it.
