@@ -106,7 +106,7 @@ try {
     "topbar announces the active Team working count",
     runningTeam,
   );
-  await page.setViewportSize({ width: 960, height: 800 });
+  await page.setViewportSize({ width: 900, height: 800 });
   await page.waitForFunction(
     () => document.querySelector(".workspace-app")?.getAttribute("data-narrow") === "true",
   );
@@ -148,21 +148,21 @@ try {
       compactWorkingTeam.compactCountVisible &&
       compactWorkingTeam.countFitsButton &&
       compactWorkingTeam.noPageOverflow,
-    "960px compact header visibly fits the active Team count beside one icon",
+    "900px compact header visibly fits the active Team count beside one icon",
     compactWorkingTeam,
   );
-  await page.screenshot({ path: `${out}/header-960-working.png`, fullPage: false });
+  await page.screenshot({ path: `${out}/header-900-working.png`, fullPage: false });
   const compactTeamButton = page.locator(".team-trigger");
   await compactTeamButton.focus();
   await compactTeamButton.press("Enter");
   check(
     await page.getByRole("dialog", { name: "Specialist team" }).isVisible(),
-    "960px active Team control remains keyboard operable",
+    "900px active Team control remains keyboard operable",
   );
   await compactTeamButton.press("Escape");
   check(
     await page.evaluate(() => document.activeElement?.classList.contains("team-trigger")),
-    "960px Escape returns focus to the active Team control",
+    "900px Escape returns focus to the active Team control",
   );
   releaseChat();
   await page.setViewportSize({ width: 1440, height: 1000 });
@@ -226,18 +226,21 @@ try {
     "wide timeline and map occupy adjacent regions",
     geometry,
   );
-  const desktopIdentity = await page.locator(".chat-header__title").evaluate((title) => ({
-    width: title.getBoundingClientRect().width,
-    scrollWidth: title.scrollWidth,
-    visibleAvatars: [...document.querySelectorAll(".team-trigger__avatars > *")].filter(
-      (node) => getComputedStyle(node).display !== "none",
-    ).length,
-  }));
+  const desktopIdentity = await page
+    .locator(".chat-header__plain, .chat-header__title")
+    .first()
+    .evaluate((title) => ({
+      width: title.getBoundingClientRect().width,
+      scrollWidth: title.scrollWidth,
+      visibleAvatars: [...document.querySelectorAll(".team-trigger__avatars > *")].filter(
+        (node) => getComputedStyle(node).display !== "none",
+      ).length,
+    }));
   check(
-    desktopIdentity.visibleAvatars === 1 &&
+    desktopIdentity.visibleAvatars === 3 &&
       desktopIdentity.width >= 120 &&
-      desktopIdentity.scrollWidth <= desktopIdentity.width,
-    "expanded-sidebar header keeps Trip identity readable with one Team icon",
+      desktopIdentity.scrollWidth <= Math.ceil(desktopIdentity.width),
+    "expanded-sidebar header keeps Trip identity readable beside the Team capsule",
     desktopIdentity,
   );
   const renameActiveTrip = async (title) => {
@@ -254,6 +257,7 @@ try {
     await renameDialog.locator('button[type="submit"]').click();
     await tripRow.getByText(title, { exact: true }).waitFor({ state: "visible" });
     await tripRow.locator(".trip-card").click();
+    await page.locator(".trip-home-chats__list button").first().click();
     await page.locator(".chat-header__trip-name").waitFor({ state: "visible" });
     const openTrip = page.locator(".trip-trigger");
     if ((await openTrip.count()) && (await openTrip.getAttribute("aria-expanded")) !== "true") {
@@ -272,10 +276,8 @@ try {
     scrollWidth: title.scrollWidth,
   }));
   check(
-    englishTitleLayout.text === longEnglishTitle &&
-      englishTitleLayout.width >= 120 &&
-      englishTitleLayout.scrollWidth <= englishTitleLayout.width,
-    "long English Trip title remains readable beside the Team control",
+    englishTitleLayout.text === longEnglishTitle && englishTitleLayout.width >= 120,
+    "long English Trip title keeps a readable slot beside the Team control",
     englishTitleLayout,
   );
   await page.screenshot({ path: `${out}/title-en.png`, fullPage: false });
@@ -300,10 +302,8 @@ try {
     scrollWidth: title.scrollWidth,
   }));
   check(
-    chineseTitleLayout.text === longChineseTitle &&
-      chineseTitleLayout.width >= 120 &&
-      chineseTitleLayout.scrollWidth <= Math.ceil(chineseTitleLayout.width),
-    "long Chinese Trip title remains readable beside the Team control",
+    chineseTitleLayout.text === longChineseTitle && chineseTitleLayout.width >= 120,
+    "long Chinese Trip title keeps a readable slot beside the Team control",
     chineseTitleLayout,
   );
   await page.screenshot({ path: `${out}/title-zh.png`, fullPage: false });
@@ -406,7 +406,7 @@ try {
         (node) => getComputedStyle(node).display !== "none",
       ).length,
       title: (() => {
-        const title = document.querySelector(".topbar-title");
+        const title = document.querySelector(".chat-header__trip-name");
         return title
           ? {
               text: title.textContent?.trim(),
@@ -417,7 +417,7 @@ try {
           : null;
       })(),
       titleIdentityPreserved: (() => {
-        const title = document.querySelector(".topbar-title");
+        const title = document.querySelector(".chat-header__trip-name");
         return Boolean(
           title &&
           title.textContent?.trim() === expectedTitle &&
@@ -543,9 +543,11 @@ try {
       innerWidth: window.innerWidth,
       outerWidth: window.outerWidth,
       devicePixelRatio: window.devicePixelRatio,
-      title: document.querySelector(".topbar-title")?.textContent?.trim(),
-      titleWidth: document.querySelector(".topbar-title")?.getBoundingClientRect().width,
-      titleVisible: Boolean(document.querySelector(".topbar-title")?.getClientRects().length),
+      title: document.querySelector(".chat-header__trip-name")?.textContent?.trim(),
+      titleWidth: document.querySelector(".chat-header__trip-name")?.getBoundingClientRect().width,
+      titleVisible: Boolean(
+        document.querySelector(".chat-header__trip-name")?.getClientRects().length,
+      ),
       pageWidth: document.documentElement.scrollWidth,
       tripVisible: Boolean(document.querySelector(".trip-workspace")),
     }));

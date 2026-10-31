@@ -1,6 +1,7 @@
 "use client";
 import {
   loadMaps,
+  googleAuthRejected,
   subscribeGoogleAuthFailure,
   type MapsSDK,
   type MapRuntime,
@@ -61,6 +62,10 @@ function runtime(
     onAuthFailure(fn) {
       if (disposed || provider !== "google") return { remove() {} };
       authListeners.add(fn);
+      if (googleAuthRejected())
+        queueMicrotask(() => {
+          if (authListeners.has(fn)) fn();
+        });
       return {
         remove() {
           authListeners.delete(fn);
