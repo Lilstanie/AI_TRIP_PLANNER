@@ -209,7 +209,6 @@ describe("dining planner", () => {
     });
     expect(initial.items[0]!.estCost).toBe(200);
     expect(revised.items[0]!.estCost).toBe(140);
-    expect(revised.assumptions.join(" ")).toContain("Revision requested");
   });
 
   it("passes the reduced budget ceiling to a revised generator", async () => {

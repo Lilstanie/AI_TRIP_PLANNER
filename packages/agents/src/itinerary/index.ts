@@ -944,12 +944,6 @@ async function planItinerary(
       ...(usedFallback
         ? ["Planner source: deterministic fallback from the gathered place evidence."]
         : []),
-      ...(revision
-        ? [
-            `Revision requested: ${revision.reason}.`,
-            "The orchestrator must recheck the full plan budget; no percentage saving is claimed without a previous proposal baseline.",
-          ]
-        : []),
     ],
     conflictsWith: conflicts,
     source: usedFallback

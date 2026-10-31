@@ -705,6 +705,9 @@ async function planTransport(
             carrier: option.carrier,
             totalCost: option.price,
             note: option.note,
+            departsAt: option.outbound?.segments[0]?.departsAt,
+            arrivesAt: option.outbound?.segments.at(-1)?.arrivesAt,
+            durationMin: option.outbound?.durationMin ?? option.durationMin,
           })),
         ),
         hops: evidence.routed.map(({ query, legs }, index) => ({
