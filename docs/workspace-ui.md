@@ -800,7 +800,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   the source note, and a link to the property's details when the planner has one. A stay whose
   selection no longer matches says "This stay needs a new selection."
 - **Flight card.** Each flight shows its carrier, departure (or return), travellers, stops ("Nonstop"
-  when none) and the flight time of the leg it shows, so the return card shows the return leg's time.
+  when none) and the flight time and stops of the leg it shows, so the return card shows the return leg's.
   A flight whose selection no longer matches says "This flight needs a new
   selection."
 - **Also found.** Each card lists the alternatives the chosen flight or stay beat, each with its price and
