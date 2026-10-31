@@ -136,7 +136,7 @@ function blocks(
       if (head === undefined) continue;
       const failed = event.type === "agent_failed";
       const result =
-        event.type === "agent_failed" ? event.error : (event.outcome ?? event.summary ?? t("Done"));
+        event.type === "agent_failed" ? event.error : (event.outcome ?? event.summary ?? t("done"));
       head.running = false;
       head.outputDetail = result;
       head.result = oneLine(result);
@@ -199,7 +199,7 @@ function blocks(
     }
   }
   if (settled) {
-    const stopped = t("Stopped");
+    const stopped = t("stopped");
     for (const block of out) {
       for (const draft of [block.head, ...block.children]) {
         if (!draft.running) continue;

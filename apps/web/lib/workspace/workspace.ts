@@ -461,13 +461,12 @@ export async function readPlanStream(
     const body = await response.json().catch(() => null);
     throw new NoticeError(
       failureNotice(body, {
-        key: "Request failed ({status}).",
+        key: "requestFailedStatus",
         params: { status: response.status },
       }),
     );
   }
-  if (!response.body)
-    throw new NoticeError({ key: "No progress stream was received. Please retry." });
+  if (!response.body) throw new NoticeError({ key: "noProgressStreamWasReceived" });
   const reader = response.body.getReader();
   const decoder = new TextDecoder();
   let buffer = "";
@@ -488,21 +487,21 @@ export async function readPlanStream(
     if (data.type === "complete") {
       const parsed = ChatResponse.safeParse(data.response);
       if (parsed.success) result = parsed.data;
-      else error = { key: "The returned plan was invalid. Please retry." };
+      else error = { key: "theReturnedPlanWasInvalid" };
     } else if (data.type === "needs_info") {
       const parsed = ChatNeedsInfo.safeParse(data);
       if (parsed.success) needsInfo = parsed.data;
-      else error = { key: "The assistant's question was invalid. Please retry." };
+      else error = { key: "theAssistantSQuestionWas" };
     } else if (data.type === "ask_user") {
       const parsed = ChatAskUser.safeParse(data);
       if (parsed.success) askUser = parsed.data;
-      else error = { key: "The assistant's question was invalid. Please retry." };
+      else error = { key: "theAssistantSQuestionWas" };
     } else if (data.type === "flight_answer") {
       const parsed = FlightAnswer.safeParse(data);
       if (parsed.success) flights = parsed.data;
-      else error = { key: "The returned fares were invalid. Please retry." };
+      else error = { key: "theReturnedFaresWereInvalid" };
     } else if (data.type === "error")
-      error = failureNotice(data, { key: "Planning failed. Please retry." });
+      error = failureNotice(data, { key: "planningFailedPleaseRetry" });
     else {
       const parsed = AgentProgressEvent.safeParse(data);
       if (parsed.success) onProgress(parsed.data);
@@ -525,8 +524,7 @@ export async function readPlanStream(
   if (needsInfo) throw new NeedsInfoError(needsInfo);
   if (askUser) throw new AskUserError(askUser);
   if (flights) throw new FlightAnswerError(flights);
-  if (!result)
-    throw new NoticeError({ key: "Connection ended before the plan was ready. Please retry." });
+  if (!result) throw new NoticeError({ key: "connectionEndedBeforeThePlan" });
   return result;
 }
 

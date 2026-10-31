@@ -1,4 +1,4 @@
-import { translate, type AppLocale, type MessageKey } from "../i18n/locale";
+import { keyForStoredText, translate, type AppLocale } from "../i18n/locale";
 
 export function memoryDisplay(value: string, locale: AppLocale): string {
   try {
@@ -8,17 +8,17 @@ export function memoryDisplay(value: string, locale: AppLocale): string {
       [
         typeof preference.stayType === "string" ? memoryDisplay(preference.stayType, locale) : "",
         typeof preference.minRating === "number"
-          ? translate(locale, "Minimum rating: {v0}", { v0: preference.minRating })
+          ? translate(locale, "minimumRatingV0", { v0: preference.minRating })
           : "",
-        preference.freeCancellation === true ? translate(locale, "Free cancellation") : "",
+        preference.freeCancellation === true ? translate(locale, "freeCancellationTitle") : "",
       ]
         .filter(Boolean)
         .join(" · ") || value
     );
   } catch {
     const rating = /^minimum rating: (\d(?:\.\d)?)$/i.exec(value);
-    return rating
-      ? translate(locale, "Minimum rating: {v0}", { v0: rating[1]! })
-      : translate(locale, value as MessageKey);
+    if (rating) return translate(locale, "minimumRatingV0", { v0: rating[1]! });
+    const key = keyForStoredText(value);
+    return key ? translate(locale, key) : value;
   }
 }

@@ -1,15 +1,16 @@
-import { AUTHORED_KEYS, translate, type AppLocale, type MessageKey } from "./locale";
+import { translate, type AppLocale, type MessageKey } from "./locale";
+import { en } from "./messages/en";
 
-type Placeholders<Key extends string> = Key extends `${string}{${infer Name}}${infer Rest}`
+type Placeholders<Text extends string> = Text extends `${string}{${infer Name}}${infer Rest}`
   ? Name | Placeholders<Rest>
   : never;
 
 export type NoticeValue = string | number | Notice;
 
 type KeyedNotice = {
-  [Key in MessageKey]: [Placeholders<Key>] extends [never]
+  [Key in MessageKey]: [Placeholders<(typeof en)[Key]>] extends [never]
     ? { key: Key; params?: never }
-    : { key: Key; params: Record<Placeholders<Key>, NoticeValue> };
+    : { key: Key; params: Record<Placeholders<(typeof en)[Key]>, NoticeValue> };
 }[MessageKey];
 
 export type Notice = KeyedNotice | { raw: string };
@@ -31,11 +32,27 @@ export class NoticeError extends Error {
 
 export const noticeBody = (notice: Notice) => ({ error: noticeText("en", notice), notice });
 
+const keyOfSentence = new Map<string, MessageKey>();
+for (const [key, sentence] of Object.entries(en) as [MessageKey, string][])
+  if (!keyOfSentence.has(sentence)) keyOfSentence.set(sentence, key);
+
+function messageKeyOf(key: string): MessageKey | undefined {
+  return key in en ? (key as MessageKey) : keyOfSentence.get(key);
+}
+
+function keyedNotice(value: { key: string; params?: unknown }): Notice | undefined {
+  const key = messageKeyOf(value.key);
+  return key ? ({ ...value, key } as Notice) : undefined;
+}
+
 export function failureNotice(body: unknown, fallback: Notice): Notice {
   if (!body || typeof body !== "object") return fallback;
   const { notice, error } = body as { notice?: unknown; error?: unknown };
   if (notice && typeof notice === "object") {
-    if (typeof (notice as { key?: unknown }).key === "string") return notice as Notice;
+    if (typeof (notice as { key?: unknown }).key === "string") {
+      const keyed = keyedNotice(notice as { key: string });
+      if (keyed) return keyed;
+    }
     if (typeof (notice as { raw?: unknown }).raw === "string") return notice as Notice;
   }
   return typeof error === "string" && error ? { raw: error } : fallback;
@@ -52,19 +69,21 @@ type AuthoredPattern = { key: MessageKey; names: string[]; sentence: RegExp };
 let authoredPatterns: AuthoredPattern[] | undefined;
 
 function patternsOf(): AuthoredPattern[] {
-  authoredPatterns ??= AUTHORED_KEYS.map((key) => {
-    const names: string[] = [];
-    const source = key
-      .split(/(\{[A-Za-z]+\})/)
-      .map((part) => {
-        const placeholder = /^\{([A-Za-z]+)\}$/.exec(part);
-        if (!placeholder) return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
-        names.push(placeholder[1]!);
-        return "(.+?)";
-      })
-      .join("");
-    return { key, names, sentence: new RegExp(`^${source}$`) };
-  });
+  authoredPatterns ??= (Object.entries(en) as [MessageKey, string][])
+    .filter(([, sentence]) => !sentence.startsWith("{") && !sentence.includes(", plural,"))
+    .map(([key, sentence]) => {
+      const names: string[] = [];
+      const source = sentence
+        .split(/(\{[A-Za-z]+\})/)
+        .map((part) => {
+          const placeholder = /^\{([A-Za-z]+)\}$/.exec(part);
+          if (!placeholder) return part.replace(/[.*+?^${}()|[\]\\]/g, "\\$&");
+          names.push(placeholder[1]!);
+          return "(.+?)";
+        })
+        .join("");
+      return { key, names, sentence: new RegExp(`^${source}$`) };
+    });
   return authoredPatterns;
 }
 
@@ -90,7 +109,10 @@ export function readStoredNotice(text: string): Notice {
     try {
       const parsed: unknown = JSON.parse(decodeURIComponent(text.slice(STORED_PREFIX.length)));
       if (parsed && typeof parsed === "object") {
-        if (typeof (parsed as { key?: unknown }).key === "string") return parsed as Notice;
+        if (typeof (parsed as { key?: unknown }).key === "string") {
+          const keyed = keyedNotice(parsed as { key: string });
+          if (keyed) return keyed;
+        }
         if (typeof (parsed as { raw?: unknown }).raw === "string") return parsed as Notice;
       }
     } catch {}

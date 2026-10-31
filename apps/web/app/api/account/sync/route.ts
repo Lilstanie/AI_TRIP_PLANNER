@@ -19,7 +19,7 @@ export async function POST(request: Request) {
   const parsed = SyncPush.safeParse(await request.json().catch(() => undefined));
   if (!parsed.success) {
     const issue = parsed.error.issues[0]?.message;
-    return badRequest(issue ? { raw: issue } : { key: "Invalid sync request." });
+    return badRequest(issue ? { raw: issue } : { key: "invalidSyncRequest" });
   }
   const tripResult = await writeRecords(trips, user.userId, parsed.data.trips);
   const conversationResult = await writeRecords(

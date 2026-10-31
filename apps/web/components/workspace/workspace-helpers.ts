@@ -11,5 +11,5 @@ export const seed: Message[] = [
   },
 ];
 export const STORAGE_FULL: Notice = {
-  key: "Browser storage is unavailable or full. Your current plan is still in this tab. Retry after freeing space.",
+  key: "browserStorageIsUnavailableOr",
 };

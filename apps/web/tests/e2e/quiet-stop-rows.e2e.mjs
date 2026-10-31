@@ -312,7 +312,7 @@ try {
       `a confirmed planned stop has no tag at ${tag}`,
     );
     check(
-      !(await rowOf("Alder").innerText()).match(/Planned|待游览/),
+      !(await rowOf("Alder").innerText()).match(/Planned|还没去/),
       `no Planned tag on a stop at ${tag}`,
     );
     check(
@@ -321,7 +321,7 @@ try {
     );
     check(
       (await rowOf("Birch").locator(".timeline-row__cost").innerText()) ===
-        (zh ? "价格未知" : "Price unknown"),
+        (zh ? "价格待定" : "Price unknown"),
       `an unpriced stop shows Price unknown on the right at ${tag}`,
     );
     check(
@@ -332,11 +332,11 @@ try {
       !(await editor.innerText()).match(SENTENCE),
       `no drag helper sentence under day 1 at ${tag}`,
     );
-    const badge = page.getByRole("button", { name: /^(Open items, |待处理事项，)\d+/ });
+    const badge = page.getByRole("button", { name: /^(Open items, \d+|待处理 \d+ 项)/ });
     check((await badge.count()) === 1, `the Open item badge is present at ${tag}`);
     if (await badge.count()) {
       await badge.click();
-      const popover = page.getByRole("dialog", { name: /^(Open items|待处理事项)$/ });
+      const popover = page.getByRole("dialog", { name: /^(Open items|待处理)$/ });
       check(
         (await popover.getByText(/Time conflict|时间冲突/).count()) > 0,
         `the Open item badge lists the time conflict at ${tag}`,

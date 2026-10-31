@@ -6,11 +6,11 @@ import { dateRangeLabel } from "./trip-facts";
 
 export function tripName(
   trip: TripRecord,
-  t: (text: "Trip to {destination}", params: { destination: string }) => string,
+  t: (text: "tripToDestination", params: { destination: string }) => string,
 ): string {
   return trip.renamed
     ? trip.title
-    : t("Trip to {destination}", { destination: trip.snapshot.plan.brief.destination });
+    : t("tripToDestination", { destination: trip.snapshot.plan.brief.destination });
 }
 
 export function distinctTripTitles(
@@ -46,7 +46,7 @@ export function tripMeta(
   trip: TripRecord,
   locale: AppLocale,
   displayCurrency: Currency,
-  t: (text: "day" | "days") => string,
+  t: (text: "countDays", params: { count: number }) => string,
 ): string {
   const { brief, estTotal } = trip.snapshot.plan;
   const length = tripDays(trip);
@@ -54,28 +54,22 @@ export function tripMeta(
   const total = moneyDisplay({ currency: effectiveCurrency(brief, displayCurrency), locale }).money(
     estTotal,
   );
-  return `${brief.destination} · ${dateRange ? `${dateRange} · ` : ""}${length} ${length === 1 ? t("day") : t("days")} · ${total}`;
+  return `${brief.destination} · ${dateRange ? `${dateRange} · ` : ""}${t("countDays", { count: length })} · ${total}`;
 }
 
 export function tripTags(
   trip: TripRecord,
   locale: AppLocale,
   displayCurrency: Currency,
-  t: (
-    text: "day" | "days" | "{count} traveller" | "{count} travellers",
-    params?: { count: number },
-  ) => string,
+  t: (text: "countDays" | "countTravellers", params: { count: number }) => string,
 ): string[] {
   const { brief } = trip.snapshot.plan;
   const days = tripDays(trip);
   const travellers = brief.groupSize;
   return [
     brief.destination.trim(),
-    dateRangeLabel(brief.dates[0], brief.dates[1], locale) ??
-      `${days} ${days === 1 ? t("day") : t("days")}`,
-    travellers > 0
-      ? t(travellers === 1 ? "{count} traveller" : "{count} travellers", { count: travellers })
-      : "",
+    dateRangeLabel(brief.dates[0], brief.dates[1], locale) ?? t("countDays", { count: days }),
+    travellers > 0 ? t("countTravellers", { count: travellers }) : "",
     brief.budgetTotal > 0
       ? moneyDisplay({
           currency: effectiveCurrency(brief, displayCurrency),

@@ -25,7 +25,7 @@ describe("item action refusals", () => {
     }
     expect(error).toBeInstanceOf(NoticeError);
     expect((error as NoticeError).notice).toEqual({
-      key: "Day {day} has no room left for this stop; shorten another stop first.",
+      key: "dayDayHasNoRoom",
       params: { day: 2 },
     });
   });

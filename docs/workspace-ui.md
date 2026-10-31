@@ -1387,8 +1387,9 @@ the account section explains that everything stays in this browser.
     names and dates follow it, including data-mode tooltips and untitled-chat actions. Traveller
     text, agent-produced content and provider errors are not
     translated. Authored text that carries a value (the attachment limit, a timeline edit preview's
-    differences and blockers, a stop that cannot move) is translated with `{placeholders}`, through
-    `t()` or as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it
+    differences and blockers, a stop that cannot move) is translated with `{placeholders}` and ICU
+    plurals, through `t()` (next-intl, catalogs in `apps/web/lib/i18n/messages/`, Chinese written as
+    native copy) or as a keyed `Notice` (`apps/web/lib/i18n/notice.ts`) that the view translates once when it
     is shown. Every notice the workspace and Settings show is a `Notice`: field errors, request and
     storage failures, map and location messages, and the `notice` the app's own routes return beside
     their English `error`. A response whose body has no `notice` is shown as received (`{ raw }`);

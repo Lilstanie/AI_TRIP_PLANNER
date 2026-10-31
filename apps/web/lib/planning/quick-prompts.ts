@@ -15,23 +15,23 @@ export function quickPrompts(today: Date = new Date()): QuickPrompt[] {
   };
   return [
     {
-      label: "Sydney · 4 days",
-      text: "Plan a 4-day trip to Sydney for 2 people from {start} to {end}, total budget 4000.",
+      label: "sydney4Days",
+      text: "planA4DayTrip",
       params: { start: inDays(21), end: inDays(24) },
     },
     {
-      label: "Melbourne → Sydney · 5 days",
-      text: "Plan a 5-day trip from Melbourne to Sydney for 2 people from {start} to {end}, total budget 5000.",
+      label: "melbourneSydney5Days",
+      text: "planA5DayTrip",
       params: { start: inDays(30), end: inDays(34) },
     },
     {
-      label: "Melbourne → Sydney & Brisbane · 9 days",
-      text: "Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from {start} to {end}, total budget 9000.",
+      label: "melbourneSydneyBrisbane9Days",
+      text: "planA9DayTrip",
       params: { start: inDays(45), end: inDays(53) },
     },
     {
-      label: "Sydney & Wollongong · 5 days",
-      text: "Plan a 5-day trip to Sydney & Wollongong for 2 people from {start} to {end}, total budget 4500.",
+      label: "sydneyWollongong5Days",
+      text: "planA5DayTripTo",
       params: { start: inDays(60), end: inDays(64) },
     },
   ];

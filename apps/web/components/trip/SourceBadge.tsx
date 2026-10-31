@@ -5,12 +5,12 @@ import type { AgentProposalSource } from "@trip/shared";
 import { Badge } from "../ui/badge";
 
 const SOURCE_KIND_LABEL: Record<AgentProposalSource["kind"] | "unknown", MessageKey> = {
-  live: "Live data",
-  estimated: "Estimated data",
-  mock: "Mock data",
-  fallback: "Fallback plan",
-  unavailable: "Data unavailable",
-  unknown: "Source not recorded",
+  live: "liveData",
+  estimated: "estimatedData",
+  mock: "mockData",
+  fallback: "fallbackPlan",
+  unavailable: "dataUnavailable",
+  unknown: "sourceNotRecorded",
 };
 
 export function SourceBadge({

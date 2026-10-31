@@ -16,6 +16,9 @@ gone from this page; restore a script from Git history only with a reason it is 
 reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` waiting for three
 `.msg-item--agent` messages.
 
+`ui-language` fails on `main` `a184575` (2026-10-31) with `pnpm --filter @trip/web e2e ui-language`:
+it times out waiting for a "Conversation" tab that the workspace no longer shows.
+
 ## Covered regressions
 
 - `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on

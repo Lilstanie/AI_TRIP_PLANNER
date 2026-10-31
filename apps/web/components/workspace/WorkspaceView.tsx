@@ -148,7 +148,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
   const chatHeader = (
     <ChatHeaderMenu
       key={currentChat?.id ?? "new-chat"}
-      title={currentChat ? conversationTitle(currentChat, locale) : t("New chat")}
+      title={currentChat ? conversationTitle(currentChat, locale) : t("newChat")}
       tripTitle={linkedTrip ? tripName(linkedTrip, t) : undefined}
       siblings={
         linkedTrip
@@ -446,9 +446,9 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     <Drawer
       side="left"
       open={navOpen}
-      title={t("Navigation")}
+      title={t("navigation")}
       hideTitle
-      closeLabel={t("Close navigation")}
+      closeLabel={t("closeNavigation")}
       onClose={closeDrawer}
       returnFocus={navToggle}
       className="workspace-drawer workspace-drawer--nav"
@@ -479,7 +479,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       ref={navToggle}
       type="button"
       className="topbar-icon-button"
-      aria-label={t("Open navigation")}
+      aria-label={t("openNavigation")}
       aria-expanded={navOpen}
       aria-haspopup="dialog"
       onClick={openNav}
@@ -548,7 +548,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
           id="chats-panel"
           className={`chats-panel${chatsOpen ? " is-open" : ""}`}
           role="region"
-          aria-label={t("Chats")}
+          aria-label={t("chats")}
           inert={!chatsOpen}
         >
           {chatsContent(chatsSearch)}
@@ -652,7 +652,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 type="button"
                 tabIndex={-1}
                 className="workspace-drawer-backdrop"
-                aria-label={t("Close open panel")}
+                aria-label={t("closeOpenPanel")}
                 onClick={() => {
                   closeDrawer();
                   navToggle.current?.focus({ preventScroll: true });
@@ -730,7 +730,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 ref={viewSwitch}
                 className="topbar-views segmented"
                 role="group"
-                aria-label={t(tripOpen ? "Trip views" : "Workspace view")}
+                aria-label={t(tripOpen ? "tripViews" : "workspaceView")}
               >
                 {tripOpen
                   ? (["itinerary", "map"] as const).map((view) => (
@@ -740,7 +740,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                         aria-pressed={tripView === view}
                         onClick={() => setTripView(view)}
                       >
-                        {t(view === "itinerary" ? "Itinerary" : "Map")}
+                        {t(view === "itinerary" ? "itinerary" : "map")}
                       </button>
                     ))
                   : (["chat", "map"] as const).map((view) => (
@@ -750,14 +750,14 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                         aria-pressed={mobileView === view}
                         onClick={() => selectView(view)}
                       >
-                        {t(view === "chat" ? "Chat" : "Map")}
+                        {t(view === "chat" ? "chat" : "map")}
                       </button>
                     ))}
               </div>
             )}
             {!phone && (
               <div className="topbar-actions">
-                <div className="topbar-control-cluster" role="group" aria-label={t("Data mode")}>
+                <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
                   <DataModeToggle
                     mode={dataMode.mode}
                     providers={dataMode.providers}
@@ -772,12 +772,12 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     ref={tripToggle}
                     type="button"
                     className="topbar-button trip-trigger"
-                    aria-label={t("Open your trip")}
+                    aria-label={t("openYourTrip")}
                     aria-expanded={tripOpen}
                     onClick={() => (tripOpen ? closeTrip() : openTrip())}
                   >
                     <RouteIcon />
-                    <span className="topbar-button__label">{t("Trip")}</span>
+                    <span className="topbar-button__label">{t("trip")}</span>
                   </button>
                 )}
               </div>
@@ -788,26 +788,26 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {estimateChange !== undefined && (
               <div className="estimate-notice" role="status">
                 <span>
-                  {t("Estimate changed by {change} from the previous plan.", {
+                  {t("estimateChangedByChangeFrom", {
                     change: delta(estimateChange),
                   })}
                 </span>
                 <button type="button" onClick={session.dismissEstimate}>
-                  {t("Dismiss")}
+                  {t("dismiss")}
                 </button>
               </div>
             )}
             {replacedChange && (
               <div className="replaced-notice" role="status">
-                <span>{t("The new plan replaced your last change to the timeline.")}</span>
+                <span>{t("theNewPlanReplacedYour")}</span>
                 <button type="button" onClick={session.dismissReplaced}>
-                  {t("Dismiss")}
+                  {t("dismiss")}
                 </button>
               </div>
             )}
             {status === "stopped" && (
               <div className="error-banner" role="status">
-                {t("Planning stopped.")}
+                {t("planningStopped")}
               </div>
             )}
             {error && (
@@ -815,7 +815,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 {localizeNotice(error)}{" "}
                 {canRetry && (
                   <button disabled={busy} onClick={session.retry}>
-                    {t("Retry update")}
+                    {t("retryUpdate")}
                   </button>
                 )}
               </div>
@@ -823,9 +823,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {storageError && (
               <div className="error-banner" role="alert">
                 {localizeNotice(storageError)}{" "}
-                <button onClick={history.retryStorage}>
-                  {t("Retry / replace workspace storage")}
-                </button>
+                <button onClick={history.retryStorage}>{t("retryReplaceWorkspaceStorage")}</button>
               </div>
             )}
           </div>
@@ -845,7 +843,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             {tripOpen && !phone ? (
               <section
                 className="trip-workspace"
-                aria-label={t("Your trip")}
+                aria-label={t("yourTrip")}
                 data-day={layout.mapDay}
                 data-view={tripView}
               >
@@ -903,7 +901,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                 <div className="workspace-panel workspace-panel--trip" {...phonePanel("trip")}>
                   {phone && plan && (
                     <div className="phone-trip__head">
-                      <h2 className="phone-trip__title">{t("Your trip")}</h2>
+                      <h2 className="phone-trip__title">{t("yourTrip")}</h2>
                       {openItems}
                     </div>
                   )}
@@ -911,8 +909,8 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     side="right"
                     open={phone || tripOpen}
                     embedded={phone}
-                    title={t("Your trip")}
-                    closeLabel={t("Close your trip")}
+                    title={t("yourTrip")}
+                    closeLabel={t("closeYourTrip")}
                     onClose={closeTrip}
                     returnFocus={tripToggle}
                     className={
@@ -939,7 +937,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     className="workspace-drawer-backdrop"
                     data-leaving={backdrop.leaving || undefined}
                     aria-hidden={backdrop.leaving || undefined}
-                    aria-label={t("Close open panel")}
+                    aria-label={t("closeOpenPanel")}
                     onClick={() => {
                       const trigger = tripOpen ? tripToggle : navToggle;
                       closeDrawer();

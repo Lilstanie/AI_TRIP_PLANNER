@@ -48,7 +48,7 @@ export function AttachmentChip({
         <button
           type="button"
           className="attachment-chip__remove"
-          aria-label={t("Remove {v0}", { v0: name })}
+          aria-label={t("removeV0", { v0: name })}
 
           onMouseDown={(event) => event.preventDefault()}
           onClick={onRemove}

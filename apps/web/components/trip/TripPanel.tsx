@@ -1,4 +1,5 @@
 "use client";
+import { keyForText } from "@/lib/i18n/locale";
 import type { ReactNode } from "react";
 import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
@@ -52,18 +53,18 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
         ? "caution"
         : "within";
   const statusText = !hasLimit
-    ? t("Budget not set")
+    ? t("budgetNotSet")
     : over
-      ? t("Over budget")
+      ? t("overBudget")
       : atBudget
         ? transportMissing
-          ? t("At budget · unpriced costs not counted")
+          ? t("atBudgetUnpricedCostsNot")
           : unpriced > 0
-            ? t("At budget · unpriced stops not counted")
-            : t("At budget")
+            ? t("atBudgetUnpricedStopsNot")
+            : t("atBudget")
         : unpricedCaution
-          ? t("Known estimate within budget · unpriced costs not counted")
-          : t("Within budget");
+          ? t("knownEstimateWithinBudgetUnpriced")
+          : t("withinBudget");
   const budgetConflicts = placeConflicts(plan).budget;
 
   return (
@@ -79,17 +80,17 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
               budgetManuallyChanged.current = true;
             }}
           >
-            <span className="sr-only">{t("Trip budget")}</span>
+            <span className="sr-only">{t("tripBudget")}</span>
             <span className="trip-panel__budget-line">
               <span className="trip__budget">
                 <strong>
-                  {estimated === undefined ? t("Estimate unavailable") : money(estimated)}
+                  {estimated === undefined ? t("estimateUnavailable") : money(estimated)}
                 </strong>
                 {budget !== undefined && <span>/ {money(budget, plan.brief.budgetSource)}</span>}
               </span>
               {unpriced > 0 && (
                 <span className="trip-panel__budget-unknown">
-                  {t("{count} unpriced", { count: unpriced })}
+                  {t("countUnpriced", { count: unpriced })}
                 </span>
               )}
               <span className={`budget-status budget-status--${statusTone}`}>{statusText}</span>
@@ -97,7 +98,7 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
             <span
               className={`bar${over ? " bar--over" : ""}`}
               role="progressbar"
-              aria-label={t("Budget used")}
+              aria-label={t("budgetUsed")}
               aria-valuemin={0}
               aria-valuemax={100}
               aria-valuenow={pct}
@@ -105,16 +106,16 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
               <span style={{ width: `${pct}%` }} />
             </span>
           </summary>
-          <ul className="trip-panel__budget-breakdown" aria-label={t("Budget breakdown")}>
+          <ul className="trip-panel__budget-breakdown" aria-label={t("budgetBreakdown")}>
             {budgetBreakdown.map((category) => (
               <li key={category.id}>
-                <span>{t(category.label)}</span>
-                <strong>{category.notCosted ? t("Not costed") : money(category.amount)}</strong>
+                <span>{t(keyForText(category.label))}</span>
+                <strong>{category.notCosted ? t("notCosted") : money(category.amount)}</strong>
               </li>
             ))}
           </ul>
           {budgetConflicts.length > 0 && (
-            <ul className="trip-panel__conflicts" aria-label={t("Open conflicts")}>
+            <ul className="trip-panel__conflicts" aria-label={t("openConflicts")}>
               {budgetConflicts.map((notice, index) => (
                 <li key={index}>{localizeNotice(notice)}</li>
               ))}
@@ -128,11 +129,7 @@ export function TripPanel({ plan, timeline, problem }: TripPanelProps) {
             {localizeNotice(problem)}
           </p>
         )}
-        {!plan.sections.length && (
-          <p className="section__empty">
-            {t("No itinerary yet. Fill in your preferences and select Update trip.")}
-          </p>
-        )}
+        {!plan.sections.length && <p className="section__empty">{t("noItineraryYetFillIn")}</p>}
       </div>
     </OnTripContext.Provider>
   );

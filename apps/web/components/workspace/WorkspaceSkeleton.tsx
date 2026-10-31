@@ -26,7 +26,7 @@ export function WorkspaceSkeleton() {
           <section className="workspace-panel workspace-panel--chat">
             <div className="panel chat">
               <p className="skeleton__status" role="status">
-                {t("Opening your workspace…")}
+                {t("openingYourWorkspace")}
               </p>
             </div>
           </section>

@@ -35,12 +35,12 @@ const COPY = {
     budgetRows: ["Accommodation", "Transport", "Meals", "Activities"],
   },
   zh: {
-    ask: "询问 AI",
+    ask: "问问 AI",
     nav: ["新聊天", "聊天", "行程", "日历"],
     newChat: "新聊天",
     trajectory: "轨迹",
     conversation: "对话",
-    tips: "旅行提示",
+    tips: "出行贴士",
     budgetRows: ["住宿", "交通", "餐饮", "活动"],
   },
 };
@@ -490,7 +490,7 @@ try {
     check(
       (await editor.getByText(REMOVED_TAGS).count()) === 0 &&
         (await rowOf("Alder").locator(".timeline-tag").count()) === 0 &&
-        !(await rowOf("Alder").innerText()).match(/Planned|待游览/),
+        !(await rowOf("Alder").innerText()).match(/Planned|还没去/),
       `stops carry no status tags at ${tag}`,
     );
     check(!(await editor.innerText()).match(SENTENCE), `no drag helper sentence at ${tag}`);
@@ -618,7 +618,7 @@ try {
       await ideasChip.allInnerTexts(),
     );
     await page
-      .getByRole("button", { name: /^(Undo( last change)?|撤销|撤销上次修改)$/ })
+      .getByRole("button", { name: /^(Undo( last change)?|撤销|撤销刚才的修改)$/ })
       .first()
       .click();
     check(

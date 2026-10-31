@@ -383,7 +383,7 @@ try {
     await setPhoneLanguage(page, "zh");
     await page.locator(".phone-tabbar").getByRole("tab", { name: /^地图/ }).click();
     check(
-      await sheet.innerText().then((text) => text.includes("当日站点")),
+      await sheet.innerText().then((text) => text.includes("当天行程")),
       `${width}: Chinese labels`,
     );
     await page.setViewportSize({ width: 1280, height: 900 });

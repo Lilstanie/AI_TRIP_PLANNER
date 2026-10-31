@@ -181,7 +181,7 @@ export function FactPopover({
           <button
             type="button"
             className="fact-popover__close"
-            aria-label={t("Close {v0}", { v0: title.toLowerCase() })}
+            aria-label={t("closeV0", { v0: title.toLowerCase() })}
             onClick={() => onClose("dismiss")}
           >
             <CloseIcon />

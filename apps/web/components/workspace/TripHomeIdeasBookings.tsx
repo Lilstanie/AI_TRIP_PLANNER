@@ -68,14 +68,14 @@ export function TripHomeIdeas({
       )}
       {showNotice && (
         <div className="timeline-undo" role="status">
-          <span>{t("Change applied.")}</span>
+          <span>{t("changeApplied")}</span>
           <button type="button" disabled={disabled} onClick={onUndo}>
-            {t("Undo last change")}
+            {t("undoLastChange")}
           </button>
         </div>
       )}
-      {!ideas.length && <p className="trip-home-action__empty">{t("No ideas yet.")}</p>}
-      <ul className="trip-home-ideas-bookings__ideas" aria-label={t("Unscheduled suggestions")}>
+      {!ideas.length && <p className="trip-home-action__empty">{t("noIdeasYet")}</p>}
+      <ul className="trip-home-ideas-bookings__ideas" aria-label={t("unscheduledSuggestions")}>
         {ideas.map((idea, index) => {
           const title = titleOf(idea);
           return (
@@ -90,18 +90,18 @@ export function TripHomeIdeas({
               <div
                 className="trip-home-ideas-bookings__schedule"
                 role="group"
-                aria-label={t("Schedule on a day")}
+                aria-label={t("scheduleOnADay")}
               >
                 {Array.from({ length: dayCount(plan) }, (_, index) => index + 1).map((day) => (
                   <button
                     key={day}
                     type="button"
                     disabled={disabled || busy}
-                    aria-label={t("Schedule {name} on Day {day}", { name: title, day })}
+                    aria-label={t("scheduleNameOnDayDay", { name: title, day })}
                     title={dayLabel(plan, day, locale)}
                     onClick={() => void schedule(idea, day)}
                   >
-                    <span>{t("Day {v0}", { v0: day })}</span>
+                    <span>{t("dayV0", { v0: day })}</span>
                     <small>
                       {new Intl.DateTimeFormat(intlLocale(locale), {
                         day: "numeric",
@@ -184,9 +184,9 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: item.id ?? `activity-${index}`,
       title: titleOf(item),
       meta: [
-        item.day === undefined ? "" : t("Day {v0}", { v0: item.day }),
+        item.day === undefined ? "" : t("dayV0", { v0: item.day }),
         [item.startTime, item.endTime].filter(Boolean).join("–"),
-        t("Booked"),
+        t("booked"),
       ]
         .filter(Boolean)
         .join(" · "),
@@ -212,7 +212,7 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       title: `${selection.from} → ${selection.to} · ${candidate.carrier}`,
       meta: [
         selection.depart,
-        `${selection.passengers} ${t("Travellers").toLocaleLowerCase()}`,
+        `${selection.passengers} ${t("travellers").toLocaleLowerCase()}`,
         money(candidate.price),
       ].join(" · "),
     })),
@@ -227,9 +227,9 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: `stay-${selection.id}`,
       title: candidate.name,
       meta: [
-        `${t("Check-in")} ${selection.checkIn}`,
-        `${t("Check-out")} ${selection.checkOut}`,
-        `${selection.rooms} / ${selection.nights} ${t("Rooms / nights").toLocaleLowerCase()}`,
+        `${t("checkIn")} ${selection.checkIn}`,
+        `${t("checkOut")} ${selection.checkOut}`,
+        `${selection.rooms} / ${selection.nights} ${t("roomsNights").toLocaleLowerCase()}`,
         money(candidate.pricePerNight * selection.rooms * selection.nights),
       ].join(" · "),
     })),
@@ -243,16 +243,16 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
   if (!activities.length && !flightEntries.length && !stayEntries.length)
     return (
       <div className="trip-home-action trip-home-ideas-bookings">
-        <p className="trip-home-action__empty">{t("No bookings yet.")}</p>
+        <p className="trip-home-action__empty">{t("noBookingsYet")}</p>
       </div>
     );
 
   return (
     <div className="trip-home-action trip-home-ideas-bookings trip-home-ideas-bookings--bookings">
       <CurrencyNotice />
-      <BookingGroup label={t("Activities")} icon="activity" entries={activities} />
-      <BookingGroup label={t("Flights")} icon="flight" entries={flightEntries} />
-      <BookingGroup label={t("Stays")} icon="stay" entries={stayEntries} />
+      <BookingGroup label={t("activities")} icon="activity" entries={activities} />
+      <BookingGroup label={t("flights")} icon="flight" entries={flightEntries} />
+      <BookingGroup label={t("stays")} icon="stay" entries={stayEntries} />
     </div>
   );
 }

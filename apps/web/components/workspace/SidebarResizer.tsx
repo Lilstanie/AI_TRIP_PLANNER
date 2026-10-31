@@ -100,12 +100,12 @@ export function SidebarResizer({
       className="sidebar-resizer"
       role="separator"
       aria-orientation="vertical"
-      aria-label={t("Resize sidebar")}
+      aria-label={t("resizeSidebar")}
       aria-valuemin={SIDEBAR_WIDTH.min}
       aria-valuemax={SIDEBAR_WIDTH.max}
       aria-valuenow={width ?? rendered ?? SIDEBAR_WIDTH.default}
       tabIndex={0}
-      title={t("Drag to resize · double-click to reset")}
+      title={t("dragToResizeDoubleClick")}
       onPointerDown={onPointerDown}
       onPointerMove={onPointerMove}
       onPointerUp={endDrag}

@@ -96,7 +96,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
     <>
       <div className="fact-section">
         {stops.length > 0 && (
-          <ol ref={list} className="stop-list" aria-label={t("Destinations")}>
+          <ol ref={list} className="stop-list" aria-label={t("destinations")}>
             {stops.map((stop, index) => (
               <li key={stop} className="stop-card">
                 <span className="stop-card__thumb" aria-hidden="true">
@@ -114,7 +114,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
                 <button
                   type="button"
                   className="stop-card__remove"
-                  aria-label={t("Remove {v0}", { v0: stop })}
+                  aria-label={t("removeV0", { v0: stop })}
                   onClick={() => remove(index)}
                 >
                   <CloseIcon />
@@ -126,12 +126,12 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
         {adding ? (
           <PlaceInput
             id="fact-destination"
-            label={t("Add a destination")}
+            label={t("addADestination")}
             value={pending}
             inputRef={addInput}
             autoFocus
             suggest={suggestPlaces}
-            placeholder={t("City or region")}
+            placeholder={t("cityOrRegion")}
             invalid={!!error}
             describedBy={error ? "fact-destination-error" : undefined}
             onChange={(text) => {
@@ -161,7 +161,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
             }}
           >
             <PlusIcon />
-            {t("Add destination")}
+            {t("addDestination")}
           </button>
         )}
         {error && (
@@ -172,13 +172,13 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
       </div>
       <section className="fact-section fact-section--secondary">
         <label className="fact-section__label" htmlFor="fact-origin">
-          {t("Departing from")} <span className="fact-section__optional">{t("(optional)")}</span>
+          {t("departingFrom")} <span className="fact-section__optional">{t("optional")}</span>
         </label>
         <PlaceInput
           id="fact-origin"
           value={value.origin}
           suggest={suggestPlaces}
-          placeholder={t("Your home city")}
+          placeholder={t("yourHomeCity")}
           invalid={!!errors.origin}
           describedBy={errors.origin ? "fact-origin-error" : "fact-origin-hint"}
           onChange={(origin) => onChange({ ...value, origin })}
@@ -190,7 +190,7 @@ export function WhereFields({ value, onChange, errors, suggestPlaces }: Props) {
           </small>
         ) : (
           <small className="muted form-field__hint" id="fact-origin-hint">
-            {t("Leave blank to plan the destination only, without long-haul flights.")}
+            {t("leaveBlankToPlanThe")}
           </small>
         )}
       </section>

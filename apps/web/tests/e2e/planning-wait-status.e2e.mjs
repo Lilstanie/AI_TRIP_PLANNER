@@ -95,9 +95,9 @@ try {
     {
       locale: "zh-CN",
       label: "zh",
-      preparing: "正在准备你的请求。",
+      preparing: "正在理解你的需求。",
       assembling: /正在整理方案/,
-      deepDiving: "深度求索中",
+      deepDiving: "深入研究中",
     },
   ]) {
     const context = await browser.newContext({ locale, viewport: { width: 1440, height: 1000 } });

@@ -27,7 +27,7 @@ function Alternatives({
   if (!others.length) return null;
   return (
     <div className="alternatives">
-      <h5 className="alternatives__title">{t("Also found")}</h5>
+      <h5 className="alternatives__title">{t("alsoFound")}</h5>
       <ul className="alternatives__list">
         {others.map((other) => {
           const delta = Math.round((other.price - chosen) * 100) / 100;
@@ -47,7 +47,7 @@ function Alternatives({
                   type="button"
                   className="alternatives__pick"
                   onClick={() => onChoose(other.id)}
-                  aria-label={t("Take {v0} instead, {v1}", {
+                  aria-label={t("takeV0InsteadV1", {
                     v0: other.label,
                     v1: money(other.price),
                   })}
@@ -76,7 +76,7 @@ function StayCard({
 }) {
   const { t, money } = useLocale();
   const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
-  if (!selected) return <p>{t("This stay needs a new selection.")}</p>;
+  if (!selected) return <p>{t("thisStayNeedsANew")}</p>;
   const total = selected.pricePerNight * stay.rooms * stay.nights;
   return (
     <article className="proposal-item result-card result-card--hotel">
@@ -89,45 +89,44 @@ function StayCard({
       </div>
       <h4>{selected.name}</h4>
       <p>
-        {selected.area} · {(selected.rating / 2).toFixed(1)}
-        {t("/5 guest rating")}
+        {selected.area} · {t("guestRating", { rating: (selected.rating / 2).toFixed(1) })}
       </p>
       <dl className="stay-facts">
         <div>
-          <dt>{t("Check-in")}</dt>
+          <dt>{t("checkIn")}</dt>
           <dd>{stay.checkIn}</dd>
         </div>
         <div>
-          <dt>{t("Check-out")}</dt>
+          <dt>{t("checkOut")}</dt>
           <dd>{stay.checkOut}</dd>
         </div>
         <div>
-          <dt>{t("Rooms / nights")}</dt>
+          <dt>{t("roomsNights")}</dt>
           <dd>
             {stay.rooms} / {stay.nights}
           </dd>
         </div>
         <div>
-          <dt>{t("Room per night")}</dt>
+          <dt>{t("roomPerNight")}</dt>
           <dd>{money(selected.pricePerNight)}</dd>
         </div>
       </dl>
       <p>
         {selected.freeCancellation === undefined
-          ? t("Cancellation terms unknown")
+          ? t("cancellationTermsUnknown")
           : selected.freeCancellation
-            ? t("Free cancellation")
-            : t("No free cancellation")}{" "}
-        ·
+            ? t("freeCancellationTitle")
+            : t("noFreeCancellation")}{" "}
+        ·{" "}
         {source?.kind === "live"
-          ? t(" availability can change before booking")
+          ? t("availabilityCanChangeBeforeBooking")
           : source?.kind === "estimated"
-            ? t(" estimated price; verify before booking")
-            : t(" availability is not live verified")}
+            ? t("estimatedPriceVerifyBeforeBooking")
+            : t("availabilityIsNotLiveVerified")}
       </p>
       {selected.detailsUrl && (
         <a href={selected.detailsUrl} target="_blank" rel="noreferrer">
-          {t("View property details")}
+          {t("viewPropertyDetails")}
         </a>
       )}
       <Alternatives
@@ -161,7 +160,7 @@ function FlightCard({
 }) {
   const { t, locale, money } = useLocale();
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
-  if (!selected) return <p>{t("This flight needs a new selection.")}</p>;
+  if (!selected) return <p>{t("thisFlightNeedsANew")}</p>;
   const others = flight.candidates.filter((candidate) => candidate.id !== flight.selectedId);
   return (
     <article className="proposal-item result-card result-card--flight">
@@ -175,27 +174,27 @@ function FlightCard({
       <h4>{selected.carrier}</h4>
       <dl className="stay-facts">
         <div>
-          <dt>{out ? t("Return") : t("Depart")}</dt>
+          <dt>{out ? t("return") : t("depart")}</dt>
           <dd>{date ?? flight.depart}</dd>
         </div>
         <div>
-          <dt>{t("Travellers")}</dt>
+          <dt>{t("travellers")}</dt>
           <dd>{flight.passengers}</dd>
         </div>
         {selected.stops !== undefined && (
           <div>
-            <dt>{t("Stops")}</dt>
-            <dd>{selected.stops === 0 ? t("Nonstop") : selected.stops}</dd>
+            <dt>{t("flightStops")}</dt>
+            <dd>{selected.stops === 0 ? t("nonstop") : selected.stops}</dd>
           </div>
         )}
         {selected.durationMin !== undefined && (
           <div>
-            <dt>{t("Flight time")}</dt>
+            <dt>{t("flightTime")}</dt>
             <dd>{formatDuration(selected.durationMin, locale)}</dd>
           </div>
         )}
       </dl>
-      {out && <p>{t("Included in the outbound fare")}</p>}
+      {out && <p>{t("includedInTheOutboundFare")}</p>}
       {selected.note && <p>{selected.note}</p>}
       <Alternatives
         chosen={selected.price}
@@ -229,9 +228,7 @@ export function BookingRow({
   if (row.kind === "stay") {
     const stay = row.selection as StaySelection;
     const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
-    const night = row.night
-      ? t("Night {v0} of {v1}", { v0: row.night.index, v1: row.night.of })
-      : "";
+    const night = row.night ? t("nightV0OfV1", { v0: row.night.index, v1: row.night.of }) : "";
     const Icon = FlowStayIcon;
     return (
       <li
@@ -249,9 +246,9 @@ export function BookingRow({
             aria-controls={cardId}
             onClick={() => setOpen((value) => !value)}
           >
-            <span className="sr-only">{t("Stay")}: </span>
+            <span className="sr-only">{t("stay")}: </span>
             <span className="timeline-fixed__title">
-              {selected ? selected.name : t("This stay needs a new selection.")}
+              {selected ? selected.name : t("thisStayNeedsANew")}
             </span>
             <span className="timeline-row__meta">
               {[stay.city, night].filter(Boolean).join(" · ")}
@@ -268,16 +265,16 @@ export function BookingRow({
           )}
         </div>
         <span className="timeline-row__cost">
-          {selected ? money(selected.pricePerNight * stay.rooms) : t("Price unknown")}
+          {selected ? money(selected.pricePerNight * stay.rooms) : t("priceUnknown")}
           {selected?.detailsUrl && (
             <a
               className="timeline-booking__book"
               href={selected.detailsUrl}
               target="_blank"
               rel="noreferrer"
-              aria-label={t("Book {name}", { name: selected.name })}
+              aria-label={t("bookName", { name: selected.name })}
             >
-              {t("Book")}
+              {t("book")}
             </a>
           )}
         </span>
@@ -315,15 +312,15 @@ export function BookingRow({
           aria-controls={cardId}
           onClick={() => setOpen((value) => !value)}
         >
-          <span className="sr-only">{t("Flight")}: </span>
+          <span className="sr-only">{t("flight")}: </span>
           <span className="timeline-fixed__title">
             {out ? `${flight.to} → ${flight.from}` : `${flight.from} → ${flight.to}`}
           </span>
           <span className="timeline-row__meta">
             {[
               selected?.carrier,
-              out ? t("return flight {date}", { date: row.date ?? "" }) : t("whole group"),
-              departs ? undefined : t("time not set"),
+              out ? t("returnFlightDate", { date: row.date ?? "" }) : t("wholeGroup"),
+              departs ? undefined : t("timeNotSet"),
             ]
               .filter(Boolean)
               .join(" · ")}
@@ -343,10 +340,10 @@ export function BookingRow({
       </div>
       <span className="timeline-row__cost">
         {out
-          ? t("Included in the outbound fare")
+          ? t("includedInTheOutboundFare")
           : selected
             ? money(selected.price)
-            : t("Price unknown")}
+            : t("priceUnknown")}
       </span>
     </li>
   );

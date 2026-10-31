@@ -12,7 +12,7 @@ const DetailsRequest = z.object({
 export async function POST(request: Request) {
   const parsed = DetailsRequest.safeParse(await request.json().catch(() => null));
   if (!parsed.success)
-    return Response.json(noticeBody({ key: "A place ID is required." }), { status: 400 });
+    return Response.json(noticeBody({ key: "aPlaceIdIsRequired" }), { status: 400 });
   try {
     const { value, source } = await mapProviderFor(await requestDataMode(request)).placeDetails(
       parsed.data.placeId,
@@ -20,6 +20,6 @@ export async function POST(request: Request) {
     );
     return Response.json({ place: value, source }, { headers: { "Cache-Control": "no-store" } });
   } catch (error) {
-    return placeErrorResponse(error, { key: "This saved place is no longer available." });
+    return placeErrorResponse(error, { key: "thisSavedPlaceIsNo" });
   }
 }

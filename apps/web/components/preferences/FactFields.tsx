@@ -106,14 +106,14 @@ function WhenFields({ value, onChange, errors }: FieldsProps) {
       <div className="when-fields__summary">
         <span className={dates ? undefined : "muted"}>
           {errors.dates
-            ? t("Choose an end date")
+            ? t("chooseAnEndDate")
             : dates
               ? `${dates.range} · ${dates.days}`
-              : t("Choose your travel dates.")}
+              : t("chooseYourTravelDates")}
         </span>
         {(value.start || value.end) && (
           <button type="button" className="when-fields__clear" onClick={clear}>
-            {t("Clear")}
+            {t("clear")}
           </button>
         )}
       </div>
@@ -153,7 +153,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
                 type="button"
                 className="fact-stepper__button"
                 aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
-                aria-label={t("Remove {v0} {v1}", {
+                aria-label={t("removeV0V1", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
                 })}
@@ -174,7 +174,7 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
                 type="button"
                 className="fact-stepper__button"
                 aria-describedby={errors.groupSize ? "fact-groupSize-error" : undefined}
-                aria-label={t("Add {v0} {v1}", {
+                aria-label={t("addV0V1", {
                   v0: locale === "zh" ? "" : article,
                   v1: locale === "zh" ? t(label) : singular,
                 })}
@@ -196,10 +196,10 @@ function WhoFields({ value, onChange, errors }: FieldsProps) {
 }
 
 const BUDGET_PRESETS = [
-  { name: "Budget|tier", value: 900 },
-  { name: "Moderate", value: 3000 },
-  { name: "Comfort", value: 6000 },
-  { name: "Luxury", value: 10000 },
+  { name: "budgetTier", value: 900 },
+  { name: "moderate", value: 3000 },
+  { name: "comfort", value: 6000 },
+  { name: "luxury", value: 10000 },
 ] as const;
 
 const BUDGET_PRESET_STEP: Record<string, number | undefined> = {
@@ -227,7 +227,7 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
   };
   return (
     <div className="fact-budget">
-      <div className="fact-budget__presets" role="radiogroup" aria-label={t("Budget range")}>
+      <div className="fact-budget__presets" role="radiogroup" aria-label={t("budgetRange")}>
         {BUDGET_PRESETS.map((preset, index) => {
           const checked = current === preset.value;
           return (
@@ -258,11 +258,8 @@ function BudgetFields({ value, onChange, errors }: FieldsProps) {
       </div>
       <Field
         id="fact-budgetTotal"
-        label={`${t("Or enter an amount")} (${currency})`}
-        hint={t("For the whole group and the whole trip, in {currency}.").replace(
-          "{currency}",
-          currency,
-        )}
+        label={`${t("orEnterAnAmount")} (${currency})`}
+        hint={t("forTheWholeGroupAnd").replace("{currency}", currency)}
         error={errors.budgetTotal}
       >
         {(describedBy) => (

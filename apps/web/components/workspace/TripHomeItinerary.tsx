@@ -37,10 +37,10 @@ export function TripHomeItinerary({
               <button
                 type="button"
                 aria-pressed={selectedDay === day}
-                aria-label={`${t("Day {v0}", { v0: day })} · ${dayLabel(plan, day, locale)}`}
+                aria-label={`${t("dayV0", { v0: day })} · ${dayLabel(plan, day, locale)}`}
                 onClick={() => onSelectDay(day)}
               >
-                {t("Day {v0}", { v0: day })} · {dayLabel(plan, day, locale)}
+                {t("dayV0", { v0: day })} · {dayLabel(plan, day, locale)}
               </button>
             </h3>
             {stops.length ? (
@@ -58,9 +58,7 @@ export function TripHomeItinerary({
                 ))}
               </ol>
             ) : (
-              <p className="trip-home-action__empty">
-                {t("Nothing is scheduled on Day {day}.", { day })}
-              </p>
+              <p className="trip-home-action__empty">{t("nothingIsScheduledOnDay", { day })}</p>
             )}
           </section>
         );

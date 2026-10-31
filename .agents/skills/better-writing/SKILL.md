@@ -34,18 +34,22 @@ Read the copy around your change before you write. It establishes these conventi
   [generated-text formatting](../../notes/implemented/architecture/2026-10-07-one-money-formatter-for-generated-text.md),
   [trip currency](../../notes/implemented/feature/2026-10-07-trip-display-currency.md) and
   [PR #229](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/229).
-- **Every interface string is bilingual.** Write the English text as a key passed to `t()` from
-  `useLocale()` and add its Chinese entry to the dictionary in `apps/web/lib/i18n/` (`workspace-messages.ts` for workspace strings); `t()` only
-  accepts keys that have a Chinese entry, so a missing one fails the typecheck. When one English word
-  needs two translations, add a `|context` suffix (`"Budget|tier"`). Use `{name}` placeholders, not
-  concatenation. A notice built outside a component is carried as a keyed `Notice`
+- **Every interface string is bilingual.** Interface copy lives in next-intl message catalogs under
+  `apps/web/lib/i18n/messages/` (`en-workspace.ts`/`zh-workspace.ts` for the workspace,
+  `en-shell.ts`/`zh-shell.ts` for the shell and settings). Add a camelCase message id with its English
+  value and write the Chinese value as native copy, not a word-for-word translation; the zh catalogs
+  `satisfies` the en keys, so a missing entry fails the typecheck. Call `t("messageId")` from
+  `useLocale()` (or `translate(locale, id)` outside React). Use `{name}` placeholders, not
+  concatenation, and ICU plurals (`{count, plural, one {# stop} other {# stops}}`) instead of
+  singular/plural pairs. An English value that is also stored as data (an interest, "New chat") is
+  looked up with `keyForText`. A notice built outside a component is carried as a keyed `Notice`
   (`{ key, params }`, `apps/web/lib/i18n/notice.ts`; code that throws uses `NoticeError`) and shown
   through `notice()` from `useLocale()`, which translates it once; `{ raw }` preserves external
   text, including provider/model prose and browser errors, rather than new authored copy. The compiler rejects a key without a Chinese entry and a missing or unexpected value.
   A route answers with `noticeBody(notice)`, its `notice` beside the English `error`; the client reads
   a failed response with `failureNotice(body, fallback)` and a caught error with `errorNotice`.
-  `notice()` accepts only a `Notice`: there is no lookup from English back to a key, so English
-  passed as `{ raw }` stays English. Stored edit notices use `storeNotice` and `readStoredNotice` in
+  `notice()` accepts only a `Notice`; English passed as `{ raw }` stays English. A stored notice keyed
+  by its English sentence (written before message ids) still resolves to its id. Stored edit notices use `storeNotice` and `readStoredNotice` in
   [notice.ts](../../../apps/web/lib/i18n/notice.ts); older raw messages remain unchanged.
   `conflictsWith` and model/provider prose remain text, not interface keys. The limited
   `keyOfAuthoredSentence` read-back recognizes known authored sentences; it is not a general

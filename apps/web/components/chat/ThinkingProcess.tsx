@@ -76,7 +76,7 @@ export function ThinkingProcess({
       <Disclosure
         className="thinking-turn"
         icon={busy ? <ThinkingOrbIcon activity={activity} /> : <FlowThinkIcon />}
-        title={t("Think")}
+        title={t("think")}
         state={busy ? "running" : failed ? "error" : "ok"}
         open={open.isOpen("turn")}
         expandable
@@ -106,7 +106,7 @@ export function ThinkingProcess({
               <div
                 className="thinking-subagents"
                 role="list"
-                aria-label={t("Subagents thinking together")}
+                aria-label={t("subagentsThinkingTogether")}
               >
                 {group.subagents.map((model) => (
                   <SubagentRow key={model.id} model={model} open={open} />

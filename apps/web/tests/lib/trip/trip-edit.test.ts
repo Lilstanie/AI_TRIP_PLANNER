@@ -1,6 +1,6 @@
 import { describe, it, expect, vi } from "vitest";
 import { previewEdit } from "@/lib/trip/trip-edit";
-import { NoticeError } from "@/lib/i18n/notice";
+import { NoticeError, noticeText } from "@/lib/i18n/notice";
 import { localInstant, googleRoute, searchPlaces, type RouteMode } from "@/lib/integrations/google";
 import { plan as fixture, snapshot } from "@/tests/fixtures/workspace";
 import { identifyActivities, parseSnapshot } from "@/lib/workspace/workspace";
@@ -266,7 +266,7 @@ describe("edit preview notices", () => {
     );
     expect(result.blockerNotices).toEqual([
       {
-        key: "Day {day}: confirm the place for {stop} first, so its travel time can be checked.",
+        key: "dayDayConfirmThePlace",
         params: { day: 1, stop: "Park" },
       },
     ]);
@@ -292,7 +292,7 @@ describe("edit preview notices", () => {
       dependencies(),
     );
     expect(result.blockerNotices).toEqual([
-      { key: "Day {day}: {stop} would extend beyond the day.", params: { day: 1, stop: "Park" } },
+      { key: "dayDayStopWouldExtend", params: { day: 1, stop: "Park" } },
     ]);
   });
 
@@ -309,7 +309,7 @@ describe("edit preview notices", () => {
     expect(
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, silent)).blockerNotices,
     ).toEqual([
-      { key: "{stop}: {reason}", params: { stop: "Museum", reason: { key: "Route unavailable" } } },
+      { key: "stopReason", params: { stop: "Museum", reason: { key: "routeUnavailable" } } },
     ]);
     const worded = dependencies();
     worded.route.mockImplementation(async (from, to, _date, mode) => ({
@@ -324,7 +324,7 @@ describe("edit preview notices", () => {
       (await previewEdit({ plan: plan(), baseVersion: 0, operation: move }, worded)).blockerNotices,
     ).toEqual([
       {
-        key: "{stop}: {reason}",
+        key: "stopReason",
         params: {
           stop: "Museum",
           reason: { raw: "Transit departure is outside Google's supported date window." },
@@ -342,7 +342,7 @@ describe("edit preview notices", () => {
         .blockerNotices,
     ).toEqual([
       {
-        key: "{stop}: {reason}",
+        key: "stopReason",
         params: { stop: "Museum", reason: { raw: "Google request failed (429). Please retry." } },
       },
     ]);
@@ -353,8 +353,8 @@ describe("edit preview notices", () => {
         .blockerNotices,
     ).toEqual([
       {
-        key: "{stop}: {reason}",
-        params: { stop: "Museum", reason: { key: "Route verification failed" } },
+        key: "stopReason",
+        params: { stop: "Museum", reason: { key: "routeVerificationFailed" } },
       },
     ]);
   });
@@ -372,13 +372,13 @@ describe("edit preview notices", () => {
     ],
     [{ operation: { kind: "verify", day: 9 } }, "Activity day is outside trip dates."],
     [{ operation: { kind: "undo", activities: [] } }, "Undo activities do not match this plan."],
-  ])("refuses %o with a keyed notice", async (input, key) => {
+  ])("refuses %o with a keyed notice", async (input, sentence) => {
     const error = await previewEdit(
       { plan: plan(), baseVersion: 0, ...input },
       dependencies(),
     ).catch((e: unknown) => e);
     expect(error).toBeInstanceOf(NoticeError);
-    expect((error as NoticeError).notice).toEqual({ key });
-    expect((error as NoticeError).message).toBe(key);
+    expect(noticeText("en", (error as NoticeError).notice)).toBe(sentence);
+    expect((error as NoticeError).message).toBe(sentence);
   });
 });

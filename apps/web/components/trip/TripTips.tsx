@@ -6,12 +6,12 @@ import { MAX_TIPS, packingLine, tipSentence } from "@/lib/trip/tip-text";
 import { useLocale } from "../account/LocaleProvider";
 
 const KIND_LABEL: Record<string, MessageKey> = {
-  attraction: "Place to explore",
-  customs: "Customs & etiquette",
-  safety: "Safety notes",
-  "entry-health": "Entry & health",
-  "weather-packing": "Weather & packing",
-  note: "Travel note",
+  attraction: "placeToExplore",
+  customs: "customsEtiquette",
+  safety: "safetyNotes",
+  "entry-health": "entryHealth",
+  "weather-packing": "weatherPacking",
+  note: "travelNote",
 };
 
 const FOLDED_KEY = (tripId: string) => `trip-tips-folded:${tripId}`;
@@ -89,7 +89,7 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
         rememberFolded(plan.tripId, !nextOpen);
       }}
     >
-      <summary>{t("Travel tips")}</summary>
+      <summary>{t("travelTips")}</summary>
       <ul className="trip-tips__list">
         {items.map((item, index) => (
           <li key={index}>

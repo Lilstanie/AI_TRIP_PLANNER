@@ -24,9 +24,9 @@ export function TripHomeChats({
   };
   if (!chats.length) return null;
   return (
-    <section className="trip-home-chats" aria-label={t("Chats")}>
-      <h2 className="trip-home-chats__title">{`${t("Chats")} · ${chats.length}`}</h2>
-      <ul className="trip-home-chats__list" aria-label={t("Chats")}>
+    <section className="trip-home-chats" aria-label={t("chats")}>
+      <h2 className="trip-home-chats__title">{`${t("chats")} · ${chats.length}`}</h2>
+      <ul className="trip-home-chats__list" aria-label={t("chats")}>
         {chats.map((chat) => (
           <li key={chat.id}>
             <button type="button" className="trip-home-chats__row" onClick={() => onOpen(chat.id)}>
@@ -70,7 +70,7 @@ export function TripHomeComposer({
     <div className="trip-home__composer-form">
       <Composer
         value={text}
-        placeholder={t("Tell me what to change…")}
+        placeholder={t("tellMeWhatToChange")}
         busy={false}
         canSend={!disabled && (Boolean(text.trim()) || files.attachments.length > 0)}
         canCancel={false}

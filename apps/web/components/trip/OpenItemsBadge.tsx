@@ -1,4 +1,5 @@
 "use client";
+import { keyForText } from "@/lib/i18n/locale";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
@@ -62,7 +63,7 @@ export function OpenItemsBadge({
         ref={button}
         type="button"
         className="open-items__badge"
-        aria-label={t("Open items, {count}", { count: items.length })}
+        aria-label={t("openItemsCount", { count: items.length })}
         aria-haspopup="dialog"
         aria-expanded={open}
         aria-controls={open ? popoverId : undefined}
@@ -75,7 +76,7 @@ export function OpenItemsBadge({
           id={popoverId}
           className="open-items__popover glass-float glass-float--raised"
           role="dialog"
-          aria-label={t("Open items")}
+          aria-label={t("openItems")}
         >
           {OPEN_ITEM_KINDS.map((kind) => {
             const entries = items.filter((item) => item.kind === kind);
@@ -83,7 +84,7 @@ export function OpenItemsBadge({
             return (
               <section key={kind} className="open-items__group">
                 <h3>
-                  {t(kind)} · {entries.length}
+                  {t(keyForText(kind))} · {entries.length}
                 </h3>
                 <ul>
                   {entries.map((item) => (
@@ -93,7 +94,7 @@ export function OpenItemsBadge({
                       ) : (
                         <button
                           type="button"
-                          aria-label={`${t(kind)}: ${item.label}`}
+                          aria-label={`${t(keyForText(kind))}: ${item.label}`}
                           onClick={() => select(item.stopId)}
                         >
                           {item.label}

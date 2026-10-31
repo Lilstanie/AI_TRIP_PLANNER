@@ -4,7 +4,7 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import type { Components } from "react-markdown";
 import type { TripPlan } from "@trip/shared";
 import { memoryDisplay } from "@/lib/account/memory-display";
-import { intlLocale } from "@/lib/i18n/locale";
+import { intlLocale, keyForText } from "@/lib/i18n/locale";
 import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
@@ -28,7 +28,7 @@ function CopyButton({ text }: { text: string }) {
   const [copied, setCopied] = useState(false);
   const timer = useRef<ReturnType<typeof setTimeout> | undefined>(undefined);
   useEffect(() => () => clearTimeout(timer.current), []);
-  const label = t(copied ? "Copied" : "Copy message");
+  const label = t(copied ? "copied" : "copyMessage");
   return (
     <button
       type="button"
@@ -74,7 +74,7 @@ function EditedBubble({
       <textarea
         ref={field}
         className="msg-edit__field"
-        aria-label={t("Edit message")}
+        aria-label={t("editMessage")}
         value={draft}
         rows={Math.min(8, Math.max(2, draft.split("\n").length))}
         onChange={(event) => setDraft(event.target.value)}
@@ -88,7 +88,7 @@ function EditedBubble({
       />
       <div className="msg-edit__actions">
         <button type="button" className="msg-edit__button" onClick={onCancel}>
-          {t("Cancel")}
+          {t("cancel")}
         </button>
         <button
           type="button"
@@ -96,7 +96,7 @@ function EditedBubble({
           disabled={!draft.trim()}
           onClick={submit}
         >
-          {t("Resend")}
+          {t("resend")}
         </button>
       </div>
     </div>
@@ -132,9 +132,9 @@ export function MessageItem({
   if (message.role === "user") {
     return (
       <div className="msg-item msg-item--user">
-        <span className="sr-only">{t("You")}</span>
+        <span className="sr-only">{t("you")}</span>
         {message.attachments && message.attachments.length > 0 && (
-          <ul className="attachment-chips msg-item__attachments" aria-label={t("Attached files")}>
+          <ul className="attachment-chips msg-item__attachments" aria-label={t("attachedFiles")}>
             {message.attachments.map((attachment, index) => (
               <AttachmentChip
                 key={`${attachment.name}:${index}`}
@@ -166,8 +166,8 @@ export function MessageItem({
               <button
                 type="button"
                 className="msg-action"
-                aria-label={t("Edit message")}
-                title={t("Edit message")}
+                aria-label={t("editMessage")}
+                title={t("editMessage")}
                 onClick={() => setEditing(true)}
               >
                 <PencilIcon />
@@ -186,11 +186,11 @@ export function MessageItem({
           <strong>{assistantName(message.assistant)}</strong>
         </span>
       ) : (
-        <span className="sr-only">{t("Travel planning assistant")}</span>
+        <span className="sr-only">{t("travelPlanningAssistant")}</span>
       )}
       {message.activity && message.activity.length > 0 && (
         <>
-          <section className="agent-activity" aria-label={t("Thinking process")}>
+          <section className="agent-activity" aria-label={t("thinkingProcess")}>
             <ThinkingProcess
               activity={message.activity}
               busy={false}
@@ -202,7 +202,7 @@ export function MessageItem({
       )}
       <div className="msg-item__body">
         <RevealedText
-          text={message.text === WELCOME_MESSAGE ? t(WELCOME_MESSAGE) : message.text}
+          text={message.text === WELCOME_MESSAGE ? t(keyForText(WELCOME_MESSAGE)) : message.text}
           components={markdownComponents}
           {...(animate ? { animate } : {})}
         />
@@ -215,10 +215,9 @@ export function MessageItem({
       )}
       {message.memoryChange && (
         <div role="status" className="msg-item__memory-notice">
-          {t(
-            message.memoryChange.action === "updated" ? "Updated: {value}" : "Remembered: {value}",
-            { value: memoryDisplay(message.memoryChange.value, locale) },
-          )}
+          {t(message.memoryChange.action === "updated" ? "updatedValue" : "rememberedValue", {
+            value: memoryDisplay(message.memoryChange.value, locale),
+          })}
           <button
             type="button"
             disabled={undone || undoing}
@@ -236,14 +235,14 @@ export function MessageItem({
               }
             }}
           >
-            {undone ? t("Undone") : t("Undo")}
+            {undone ? t("undone") : t("undo")}
           </button>
         </div>
       )}
       {message.flights && <FlightResults answer={message.flights} />}
       {message.outcome === "planned" && onOpenTrip && (
         <button type="button" className="msg-open-trip" onClick={onOpenTrip}>
-          {t("Open trip")}
+          {t("openTrip")}
         </button>
       )}
       {clock}

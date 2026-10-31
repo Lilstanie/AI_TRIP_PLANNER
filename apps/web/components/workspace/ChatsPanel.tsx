@@ -1,4 +1,5 @@
 "use client";
+import { keyForText } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useId, useRef, type Ref, type ReactNode } from "react";
 import { CloseIcon, ComposeIcon, NewTripIcon, SearchIcon } from "../ui/icons";
@@ -44,7 +45,7 @@ export function ChatsPanel({
 }) {
   const { t } = useLocale();
   const chatTitle = (title: string) =>
-    title === "New chat" || title === "New trip" ? t(title) : title;
+    title === "New chat" || title === "New trip" ? t(keyForText(title)) : title;
   const searchId = useId();
   const localSearch = useRef<HTMLInputElement | null>(null);
   const searching = query.trim() !== "";
@@ -57,7 +58,7 @@ export function ChatsPanel({
         <div className="sidebar-search">
           <SearchIcon />
           <label className="sr-only" htmlFor={searchId}>
-            {t("Search chats and trips")}
+            {t("searchChatsAndTrips")}
           </label>
           <input
             ref={(node) => {
@@ -68,7 +69,7 @@ export function ChatsPanel({
             id={searchId}
             className="field sidebar-search__input"
             type="search"
-            placeholder={t("Search…")}
+            placeholder={t("searchTitle")}
             autoComplete="off"
             value={query}
             onChange={(event) => onQuery(event.target.value)}
@@ -77,7 +78,7 @@ export function ChatsPanel({
             <button
               type="button"
               className="sidebar-search__clear"
-              aria-label={t("Clear search")}
+              aria-label={t("clearSearch")}
               onClick={() => {
                 onQuery("");
                 localSearch.current?.focus();
@@ -92,27 +93,22 @@ export function ChatsPanel({
       <section className="chats-panel__section" aria-labelledby={`${searchId}-trips`}>
         <div className="chats-panel__section-head">
           <h2 className="sidebar-history__title" id={`${searchId}-trips`}>
-            {t("Trips")}
+            {t("trips")}
           </h2>
           {collectionActions && (
             <button type="button" className="chats-panel__action" onClick={onNewTrip}>
               <NewTripIcon />
-              <span>{t("New trip")}</span>
+              <span>{t("newTrip")}</span>
             </button>
           )}
         </div>
-        <p
-          className="sr-only"
-          role="status"
-          aria-live="polite"
-          aria-label={t("Trip search results")}
-        >
+        <p className="sr-only" role="status" aria-live="polite" aria-label={t("tripSearchResults")}>
           {searching
             ? trips.length
-              ? t(trips.length === 1 ? "{count} trip found" : "{count} trips found", {
+              ? t("countTripsFound", {
                   count: trips.length,
                 })
-              : t("No matching trips.")
+              : t("noMatchingTrips")
             : ""}
         </p>
         {deletedTrip && <TripUndo deleted={deletedTrip} />}
@@ -143,9 +139,7 @@ export function ChatsPanel({
               ))}
               {!trips.length && (
                 <p className="history-empty">
-                  {searching
-                    ? t("No matching trips.")
-                    : t("No trips yet. Start one with New trip.")}
+                  {searching ? t("noMatchingTrips") : t("noTripsYetStartOne")}
                 </p>
               )}
             </div>
@@ -155,27 +149,22 @@ export function ChatsPanel({
       <section className="chats-panel__section" aria-labelledby={`${searchId}-chats`}>
         <div className="chats-panel__section-head">
           <h2 className="sidebar-history__title" id={`${searchId}-chats`}>
-            {t("Chats")}
+            {t("chats")}
           </h2>
           {collectionActions && (
             <button type="button" className="chats-panel__action" onClick={onNewChat}>
               <ComposeIcon />
-              <span>{t("New chat")}</span>
+              <span>{t("newChat")}</span>
             </button>
           )}
         </div>
-        <p
-          className="sr-only"
-          role="status"
-          aria-live="polite"
-          aria-label={t("Chat search results")}
-        >
+        <p className="sr-only" role="status" aria-live="polite" aria-label={t("chatSearchResults")}>
           {searching
             ? chats.length
-              ? t(chats.length === 1 ? "{count} chat found" : "{count} chats found", {
+              ? t("countChatsFound", {
                   count: chats.length,
                 })
-              : t("No matching chats.")
+              : t("noMatchingChats")
             : ""}
         </p>
         {!nothingSaved && (
@@ -204,9 +193,7 @@ export function ChatsPanel({
               </article>
             ))}
             {!chats.length && (
-              <p className="history-empty">
-                {searching ? t("No matching chats.") : t("No chats yet.")}
-              </p>
+              <p className="history-empty">{searching ? t("noMatchingChats") : t("noChatsYet")}</p>
             )}
           </div>
         )}

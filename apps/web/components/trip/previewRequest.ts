@@ -19,7 +19,7 @@ export async function requestPreview({
   displayCurrency,
   dataMode,
   signal,
-  failure = { key: "Preview failed. Try the change again." },
+  failure = { key: "previewFailedTryTheChange" },
 }: {
   plan: TripPlan;
   operation: EditInput["operation"];

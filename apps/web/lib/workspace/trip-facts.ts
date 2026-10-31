@@ -11,11 +11,11 @@ import { moneyDisplay } from "../money";
 import type { Notice } from "../i18n/notice";
 
 export const PARTY_ROWS = [
-  { key: "adults", label: "Adults", hint: "Ages 13–64", singular: "adult", article: "an" },
-  { key: "children", label: "Children", hint: "Ages 2–12", singular: "child", article: "a" },
-  { key: "infants", label: "Infants", hint: "Under 2", singular: "infant", article: "an" },
-  { key: "seniors", label: "Seniors", hint: "65+", singular: "senior", article: "a" },
-  { key: "pets", label: "Pets", hint: "", singular: "pet", article: "a" },
+  { key: "adults", label: "adults", hint: "ages1364", singular: "adult", article: "an" },
+  { key: "children", label: "children", hint: "ages212", singular: "child", article: "a" },
+  { key: "infants", label: "infants", hint: "under2", singular: "infant", article: "an" },
+  { key: "seniors", label: "seniors", hint: "n65", singular: "senior", article: "a" },
+  { key: "pets", label: "pets", hint: "", singular: "pet", article: "a" },
 ] as const;
 
 export const FACTS = ["where", "when", "who", "budget", "preferences"] as const;
@@ -73,7 +73,7 @@ export function factErrors(
   if (!requireAll && fact !== "where" && FACT_FIELDS[fact].every((field) => isBlank(draft[field])))
     return {};
   if (fact === "when" && !requireAll && (!draft.start || !draft.end))
-    return { dates: { key: "Choose both a start and an end date." } };
+    return { dates: { key: "chooseBothAStartAnd" } };
   const party = draft.party;
   if (
     fact === "who" &&
@@ -82,13 +82,13 @@ export function factErrors(
     party.children + party.infants > 0
   )
     return {
-      groupSize: { key: "Add at least one adult or senior. Children cannot travel alone." },
+      groupSize: { key: "addAtLeastOneAdult" },
     };
 
   if (fact === "budget" && Number(draft.budgetTotal) > MAX_TOTAL_BUDGET)
     return {
       budgetTotal: {
-        key: "Enter a total budget of {amount} or less.",
+        key: "enterATotalBudgetOf",
         params: {
           amount: `${currency} ${Math.floor(fromAud(MAX_TOTAL_BUDGET, currency)).toLocaleString("en-AU")}`,
         },
@@ -109,22 +109,22 @@ const isBlank = (value: Draft[keyof Draft]) =>
   Array.isArray(value) ? value.length === 0 : String(value ?? "").trim() === "";
 
 const FIX: Record<string, Notice> = {
-  destination: { key: "Enter a destination." },
-  origin: { key: "Enter where you are departing from, or leave it blank." },
-  groupSize: { key: "Enter a whole number of travellers, 1 or more." },
-  budgetTotal: { key: "Enter a total budget above zero." },
+  destination: { key: "enterADestination" },
+  origin: { key: "enterWhereYouAreDeparting" },
+  groupSize: { key: "enterAWholeNumberOf" },
+  budgetTotal: { key: "enterATotalBudgetAbove" },
   preferences: {
-    key: "Keep to {count} preferences of up to {length} characters each.",
+    key: "keepToCountPreferencesOf",
     params: { count: MAX_TRIP_PREFERENCES, length: MAX_TRIP_PREFERENCE_LENGTH },
   },
 };
 
-const CHECK_DETAILS: Notice = { key: "Check the highlighted trip details." };
+const CHECK_DETAILS: Notice = { key: "checkTheHighlightedTripDetails" };
 const DATES_ORDER =
   "End date must follow start date, with at least one night per destination. A one-day trip needs one destination and no accommodation.";
 
 const datesFix = (message: string): Notice =>
-  message === DATES_ORDER ? { key: DATES_ORDER } : { key: "Choose both a start and an end date." };
+  message === DATES_ORDER ? { key: "endDateMustFollowStart" } : { key: "chooseBothAStartAnd" };
 
 export function briefErrors(issues: readonly { path: readonly PropertyKey[]; message: string }[]) {
   const errors: Record<string, Notice> = {};
@@ -166,7 +166,7 @@ export function datesLabel(start: string, end: string, locale: AppLocale = "en")
   if (!range) return undefined;
   return {
     range,
-    days: locale === "zh" ? `${days} 天` : `${days} ${days === 1 ? "day" : "days"}`,
+    days: translate(locale, "countDays", { count: days }),
   };
 }
 
@@ -193,10 +193,7 @@ export function factLabels(
 }
 
 function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
-  const plain =
-    locale === "zh"
-      ? `${travellers} 位旅行人员`
-      : `${travellers} ${travellers === 1 ? "traveller" : "travellers"}`;
+  const plain = translate(locale, "countTravellers", { count: travellers });
   const party = draft.party;
   if (!party) return plain;
   const parts = PARTY_ROWS.map(({ key, singular, label }) => {
