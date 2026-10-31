@@ -373,6 +373,119 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     expect(fetcher).toHaveBeenCalledTimes(14);
   });
 
+  it("names a place by its local-language OSM name, not a version prefixed in another language", async () => {
+    withGeoapify(
+      { body: geoTokyo },
+      {
+        body: {
+          features: [
+            {
+              properties: {
+                name: "Храм Сенсодзи 金龍山 浅草寺",
+                country_code: "jp",
+                lat: 35.7148,
+                lon: 139.7967,
+                datasource: {
+                  raw: { "name:ja": "浅草寺", "name:ru": "Сэнсодзи", tourism: "attraction" },
+                },
+              },
+            },
+            {
+              properties: {
+                name: "Ueno Park",
+                country_code: "jp",
+                lat: 35.7156,
+                lon: 139.7745,
+                datasource: { raw: {} },
+              },
+            },
+            {
+              properties: {
+                name: "Opera House",
+                country_code: "au",
+                lat: 35.7,
+                lon: 139.7,
+                datasource: { raw: { "name:ja": "オペラハウス" } },
+              },
+            },
+          ],
+        },
+      },
+      { body: { features: [] } },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.map((place) => place.name)).toEqual(["浅草寺", "Ueno Park", "Opera House"]);
+  });
+
+  it("drops places in another prefecture inside the circle, and keeps places with no region code", async () => {
+    const fetcher = withGeoapify(
+      { body: [{ ...geoTokyo[0], address: { "ISO3166-2-lvl4": "JP-13" } }] },
+      {
+        body: {
+          features: [
+            {
+              properties: {
+                name: "Tower of Terror",
+                iso3166_2: "JP-12",
+                lat: 35.62,
+                lon: 139.88,
+                datasource: { raw: { tourism: "attraction", wikipedia: "x" } },
+              },
+            },
+            { properties: { name: "Senso-ji", iso3166_2: "JP-13", lat: 35.7148, lon: 139.7967 } },
+            { properties: { name: "Unlabelled Shrine", lat: 35.69, lon: 139.75 } },
+          ],
+        },
+      },
+      { body: { features: [] } },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(new URL(String(fetcher.mock.calls[0]![0])).searchParams.get("addressdetails")).toBe("1");
+    expect(found.map((place) => place.name).sort()).toEqual(["Senso-ji", "Unlabelled Shrine"]);
+  });
+
+  it("lists one OSM object once even when the two sight requests name it differently", async () => {
+    const version = (name: string) => ({
+      properties: {
+        name,
+        lat: 35.7148,
+        lon: 139.7967,
+        datasource: { raw: { osm_type: "w", osm_id: 173154847, tourism: "attraction" } },
+      },
+    });
+    withGeoapify(
+      { body: geoTokyo },
+      { body: { features: [version("Храм Сенсодзи 金龍山 浅草寺")] } },
+      { body: { features: [version("金龍山 浅草寺")] } },
+    );
+
+    const found = await places({ near: "Tokyo", category: "sight" });
+
+    expect(found.map((place) => place.placeId)).toEqual(["osm:way/173154847"]);
+  });
+
+  it("keeps every place when the city's region is unknown", async () => {
+    withGeoapify(
+      { body: geoTokyo },
+      {
+        body: {
+          features: [
+            {
+              properties: { name: "Tower of Terror", iso3166_2: "JP-12", lat: 35.62, lon: 139.88 },
+            },
+          ],
+        },
+      },
+      { body: { features: [] } },
+    );
+
+    expect(await places({ near: "Tokyo", category: "sight" })).toHaveLength(1);
+  });
+
   it("centres Kyoto on the Nominatim result, which Geoapify's city search sometimes puts in China", async () => {
     const fetcher = withGeoapify(
       { body: [{ osm_type: "node", osm_id: 1, lat: "34.9858", lon: "135.7588" }] },

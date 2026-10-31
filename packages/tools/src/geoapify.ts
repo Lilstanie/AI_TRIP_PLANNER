@@ -4,6 +4,20 @@ import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
 
 const OSM_TYPES: Record<string, string> = { n: "node", w: "way", r: "relation" };
 
+const LOCAL_LANGUAGE: Record<string, string> = {
+  jp: "ja",
+  cn: "zh",
+  tw: "zh",
+  hk: "zh",
+  kr: "ko",
+  th: "th",
+  vn: "vi",
+  fr: "fr",
+  de: "de",
+  it: "it",
+  es: "es",
+};
+
 const CATEGORIES: Record<string, string[]> = {
   sight: [
     "tourism.sights,tourism.attraction",
@@ -16,6 +30,8 @@ const CATEGORIES: Record<string, string[]> = {
 type Feature = {
   properties?: {
     name?: unknown;
+    country_code?: string;
+    iso3166_2?: string;
     lat?: number;
     lon?: number;
     website?: string;
@@ -35,6 +51,12 @@ async function request<T>(path: string, params: Record<string, string>): Promise
   if (!response.ok) throw new Error(`Geoapify request failed (${response.status})`);
   return (await response.json()) as T;
 }
+
+const localName = (place: NonNullable<Feature["properties"]>): unknown => {
+  const language = LOCAL_LANGUAGE[String(place.country_code).toLowerCase()];
+  const local = language ? place.datasource?.raw?.[`name:${language}`] : undefined;
+  return typeof local === "string" && local.trim() ? local : place.name;
+};
 
 const notability = ({ datasource }: NonNullable<Feature["properties"]>) => {
   const raw = datasource?.raw ?? {};
@@ -100,22 +122,30 @@ async function lookUp(q: PlaceQuery): Promise<Place[]> {
   );
   const answered = pages.flatMap((page) => (page.status === "fulfilled" ? [page.value] : []));
   if (answered.length === 0) throw (pages[0] as PromiseRejectedResult).reason;
-  const features = answered.flatMap((page) => page.features ?? []);
+  const region = city.address?.["ISO3166-2-lvl4"];
+  const features = answered
+    .flatMap((page) => page.features ?? [])
+    .filter(
+      ({ properties }) =>
+        !region || typeof properties?.iso3166_2 !== "string" || properties.iso3166_2 === region,
+    );
   const seen = new Set<string>();
   return features
     .map((feature) => feature.properties ?? {})
-    .flatMap((place) =>
-      typeof place.name === "string" && place.name.trim()
-        ? [{ ...place, name: place.name.trim() }]
-        : [],
-    )
+    .flatMap((place) => {
+      const name = localName(place);
+      return typeof name === "string" && name.trim() ? [{ ...place, name: name.trim() }] : [];
+    })
     .sort(
       (a, b) => notability(b) - notability(a) || distanceKm(lat, lon, a) - distanceKm(lat, lon, b),
     )
     .filter((place) => {
-      const key = place.name.toLocaleLowerCase();
-      if (seen.has(key)) return false;
-      seen.add(key);
+      const raw = place.datasource?.raw ?? {};
+      const keys = [place.name.toLocaleLowerCase(), `${raw.osm_type}/${raw.osm_id}`].filter(
+        (key) => key !== "undefined/undefined",
+      );
+      if (keys.some((key) => seen.has(key))) return false;
+      for (const key of keys) seen.add(key);
       return true;
     })
     .slice(0, 20)
