@@ -927,7 +927,7 @@ async function planItinerary(
       };
     }),
     assumptions: [
-      ...draft.assumptions,
+      ...(usedFallback ? draft.assumptions : []),
       ...evidenceIssues,
       ...(landing ? [landingNote(landing)] : []),
       "Different-place connections require route time plus a 15-minute arrival buffer. Opening hours remain unverified.",
