@@ -106,19 +106,23 @@ export async function POST(req: Request) {
           ),
         );
         const recognized = recognizeAccountMemory(parsed.data.message);
-        if (!requestAbort.signal.aborted && accountId && recognized && memoryEnabled) {
+        const lasting =
+          response.lastingPreferences?.map(({ key, value }) => ({
+            key,
+            value: key === "pace" ? `${value} pace` : value,
+          })) ?? (recognized ? [recognized] : []);
+        if (!requestAbort.signal.aborted && accountId && lasting.length && memoryEnabled) {
           try {
-            response.memoryChange = await rememberAccountPreference(
-              accountId,
-              recognized.key,
-              recognized.value,
-              requestAbort.signal,
-            );
+            for (const { key, value } of lasting)
+              response.memoryChange =
+                (await rememberAccountPreference(accountId, key, value, requestAbort.signal)) ??
+                response.memoryChange;
           } catch (error) {
             if (!requestAbort.signal.aborted)
               console.warn("[chat] account memory write failed", error);
           }
         }
+        delete response.lastingPreferences;
         send({ type: "complete", response });
         const persistence = new AbortController();
         let timer: ReturnType<typeof setTimeout> | undefined;

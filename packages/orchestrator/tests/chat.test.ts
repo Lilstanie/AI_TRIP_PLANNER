@@ -768,10 +768,11 @@ describe("a trip length the traveller states in days", () => {
   };
   const hobart = { destination: "Hobart", groupSize: 2, budgetAmount: 5000 };
 
-  it("ends on the last of those days when the model adds a departure day", async () => {
+  it("ends on the last of the model's trip days even when its end date adds a departure day", async () => {
     expect(
       await datesFor("3 days in Hobart from 1 Mar 2027, 2 adults, budget AUD 5000", {
         ...hobart,
+        tripDays: 3,
         startDate: "2027-03-01",
         endDate: "2027-03-04",
       }),
@@ -779,7 +780,7 @@ describe("a trip length the traveller states in days", () => {
   });
 
   it("reads hyphenated and Chinese day counts", async () => {
-    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-08" };
+    const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-08", tripDays: 5 };
     expect(await datesFor("a 5-day trip to Hobart from 1 Mar 2027", args)).toEqual([
       "2027-03-01",
       "2027-03-05",
@@ -788,7 +789,10 @@ describe("a trip length the traveller states in days", () => {
       "2027-03-01",
       "2027-03-05",
     ]);
-    expect(await datesFor("霍巴特玩4天，3月1日出发", args)).toEqual(["2027-03-01", "2027-03-04"]);
+    expect(await datesFor("霍巴特玩4天，3月1日出发", { ...args, tripDays: "4" })).toEqual([
+      "2027-03-01",
+      "2027-03-04",
+    ]);
   });
 
   it("adds up the days of each city in a multi-city trip", async () => {
@@ -796,6 +800,7 @@ describe("a trip length the traveller states in days", () => {
       await datesFor("3 days in Hobart and 2 days in Launceston from 1 Mar 2027", {
         ...hobart,
         destination: "Hobart & Launceston",
+        tripDays: 5,
         startDate: "2027-03-01",
         endDate: "2027-03-07",
       }),
@@ -807,6 +812,7 @@ describe("a trip length the traveller states in days", () => {
       await datesFor("4 days in Hobart from 27 Feb 2028", {
         ...hobart,
         startDate: "2028-02-27",
+        tripDays: 4,
         endDate: "2028-03-02",
       }),
     ).toEqual(["2028-02-27", "2028-03-01"]);
@@ -832,7 +838,7 @@ describe("a trip length the traveller states in days", () => {
 
   it("reads a one-day trip as a same-day trip", async () => {
     const args = { ...hobart, startDate: "2027-03-01", endDate: "2027-03-04" };
-    expect(await datesFor("1 day in Hobart from 1 Mar 2027", args)).toEqual([
+    expect(await datesFor("1 day in Hobart from 1 Mar 2027", { ...args, tripDays: 1 })).toEqual([
       "2027-03-01",
       "2027-03-01",
     ]);
@@ -840,7 +846,11 @@ describe("a trip length the traveller states in days", () => {
 
   it("measures from the trip's existing start when only the length changes", async () => {
     expect(
-      await datesFor("make it 3 days", { endDate: "2027-06-18" }, { tripId: brief.tripId, brief }),
+      await datesFor(
+        "make it 3 days",
+        { endDate: "2027-06-18", tripDays: 3 },
+        { tripId: brief.tripId, brief },
+      ),
     ).toEqual(["2027-06-15", "2027-06-17"]);
   });
 });

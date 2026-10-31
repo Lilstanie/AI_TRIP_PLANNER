@@ -129,7 +129,7 @@ function fallbackDraft(
   language: InterfaceLanguage | undefined,
   weatherEvidence: DestinationWeatherEvidence[],
 ): DestinationGuideDraft {
-  const { interests, accessibility } = rememberedPlanningPreferences(preferences);
+  const { interests, accessibility } = rememberedPlanningPreferences(preferences, brief.intent);
   const rankedPlaces = rankPlacesByInterests(places, interests);
   const copy = summaryCopy(language);
   const packing = weatherPacking(weatherEvidence, language);

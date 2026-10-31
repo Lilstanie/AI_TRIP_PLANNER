@@ -1,5 +1,5 @@
 import type { ScheduledHop } from "../transport/legs";
-import type { StayOption, TripBrief, UserPreference } from "@trip/shared";
+import type { StayOption, TripBrief, TripIntent, UserPreference } from "@trip/shared";
 
 const DAY_MS = 86_400_000;
 
@@ -64,6 +64,10 @@ export function readPreferences(prefs: UserPreference[]): StayPreferences {
     freeCancellation: cancellation === "true",
     ...(stayType ? { stayType } : {}),
   };
+}
+
+export function withStayIntent(prefs: StayPreferences, stay?: TripIntent["stay"]): StayPreferences {
+  return stay ? { ...prefs, ...stay } : prefs;
 }
 
 function parseDate(date: string): number {

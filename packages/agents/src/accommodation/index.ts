@@ -24,6 +24,7 @@ import {
   chooseRevised,
   eligibleOptions,
   readPreferences,
+  withStayIntent,
   splitStay,
   stayCost,
   type StayPreferences,
@@ -69,7 +70,10 @@ async function gatherStayEvidence(
   );
   const preferences = await ctx.mem.getLongTerm(brief.userId);
   const rememberedPreferences = readPreferences(preferences);
-  const prefs: StayPreferences = brief.accommodation ?? rememberedPreferences;
+  const prefs: StayPreferences = withStayIntent(
+    brief.accommodation ?? rememberedPreferences,
+    brief.intent?.stay,
+  );
   ctx.signal?.throwIfAborted();
   const rooms =
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
