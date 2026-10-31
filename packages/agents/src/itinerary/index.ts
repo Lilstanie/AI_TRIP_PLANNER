@@ -705,15 +705,30 @@ async function planItinerary(
           true,
           landing,
         );
-        const tight = (
-          await travelConflicts(valid, ctx, brief, new Map(), placeCoordinates(grounded.places))
-        ).conflicts;
+        const restaurants = new Set(
+          [...mealsByCity.values()].flat().map((place) => place.name.trim().toLowerCase()),
+        );
+        const sightsByDay = new Map<number, number>();
+        for (const item of valid.activities)
+          if (!restaurants.has(item.location.trim().toLowerCase()))
+            sightsByDay.set(item.day, (sightsByDay.get(item.day) ?? 0) + 1);
+        const tight = [
+          ...(
+            await travelConflicts(valid, ctx, brief, new Map(), placeCoordinates(grounded.places))
+          ).conflicts,
+          ...[...sightsByDay]
+            .filter(([, count]) => count > PACE_MAX[pace])
+            .map(
+              ([day, count]) =>
+                `day ${day} has ${count} sights but a ${pace} pace allows at most ${PACE_MAX[pace]}`,
+            ),
+        ];
         if (tight.length < acceptedConflicts) {
           accepted = valid;
           acceptedConflicts = tight.length;
         }
         if (tight.length) {
-          feedback = `Route times between stops do not fit: ${tight.join("; ")}. Move the later stop or pick a nearer candidate.`;
+          feedback = `The draft does not fit: ${tight.join("; ")}. Move or drop the stops these name, or pick a nearer candidate.`;
           rejectedDraft = valid.activities.map(
             (item) => `day ${item.day} ${item.startTime}-${item.endTime} ${item.location}`,
           );
