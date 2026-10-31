@@ -195,6 +195,11 @@ through the workflow's `onDecision` hook. The envelope carries the existing `Age
 inspector can show graph stages, specialist lifecycle, objectives, constraints, tool summaries and
 outcomes without publishing prompts or raw chain-of-thought.
 
+One fixture run per way the loop stops (no conflict, resolved by revision, stalled, round limit and
+infeasible budget), with the single-agent baseline on the same tight budget, is recorded in
+[agent-lab-exit-paths.md](../submission/stage2/agent-lab-exit-paths.md);
+`tests/agent-lab-exit-paths.e2e.test.ts` in `packages/orchestrator` fails when a fresh run no longer matches it.
+
 Two benchmark scenarios extend the same registry. `paris-family-infeasible` asks for a Paris trip for four
 travellers on A$3,000, while the shared booking evidence puts the cheapest round-trip flights (A$2,480) and
 the cheapest two rooms for five nights (A$1,400) at A$3,880. The workflow finds the infeasible conflict in

@@ -176,6 +176,10 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `AgentProgressEvent` 联合类型，因此检查器可以展示图阶段、specialist 生命周期、目标、约束、工具摘要和结果，
 而不公开提示词或原始思维链。
 
+循环的每种停止方式（无冲突、经修订解决、停滞、达到轮数上限和预算不可行）各有一次 fixture 运行，连同同一紧预算下的单 agent 基线，
+记录在 [agent-lab-exit-paths.md](../submission/stage2/agent-lab-exit-paths.md)；
+`packages/orchestrator` 中的 `tests/agent-lab-exit-paths.e2e.test.ts` 会在新一次运行与记录不一致时失败。
+
 两个基准场景扩展同一个注册表。`paris-family-infeasible` 要求为四位旅行者规划预算 A$3,000 的巴黎之行，而共享的预订证据把
 最便宜的往返机票（A$2,480）和五晚最便宜的两间客房（A$1,400）定在 A$3,880。工作流在第 1 轮就发现这个不可行的冲突，并以
 `infeasible_budget` 停止、指出这一最低成本，因此两个多 agent 策略都不会再花修订轮次，也没有任何策略编造更便宜的证据或删去分段。
