@@ -242,6 +242,20 @@ const startOf = <A extends { startTime?: string }>(row: TimelineRow<A>) =>
     row.type === "fixed" ? row.startTime : row.type === "stop" ? row.activity.startTime : undefined,
   );
 
+export function emptyDayKey<A>(rows: TimelineRow<A>[]): "flight" | "booked" | "freeDay" {
+  if (rows.some((row) => row.type === "booking" && row.kind === "flight")) return "flight";
+  return rows.length ? "booked" : "freeDay";
+}
+
+const calendarDay = (stamp: string) => Date.parse(`${stamp.split(" ")[0]}T00:00:00Z`);
+
+export function arrivalDayOffset(departsAt: string, arrivesAt: string): string {
+  const from = calendarDay(departsAt);
+  const to = calendarDay(arrivesAt);
+  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return "";
+  return `+${Math.round((to - from) / 86_400_000)}`;
+}
+
 export function formatDuration(total: number, locale: AppLocale = "en") {
   const hours = Math.floor(total / 60);
   const rest = Math.round(total % 60);
