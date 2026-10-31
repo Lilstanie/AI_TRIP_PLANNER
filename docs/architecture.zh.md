@@ -376,16 +376,24 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 并遵循同一条共享规则（`packages/agents/src/prompts/traveller-preferences.ts`）：
 在依据允许的范围内权衡偏好，说明无法满足的偏好，且绝不把偏好当作已验证的事实。
 
-`update_trip_brief` 用另外三个字段记录对话中确定的内容：
+`update_trip_brief` 用更多字段记录对话中确定的内容：
 
 - `learnedPreferences`：旅行者在聊天中说出的愿望，每次整体替换。
 - `excludeFlights`：旅行者自行安排航班。
 - `bookedStay`：旅行者已预订住宿。
 - `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
+- `intent`（`packages/shared/src/contracts.ts` 中的 `TripIntent`）：旅行者想怎么玩，由模型从任何语言的原话和
+  `preferences` 中读出。`pace`（relaxed、balanced、packed）决定行程每天排几站：1-2、2-3，或 4-6 个景点加午餐和晚餐；
+  兜底行程在紧凑的一天排四个景点和两餐。`dietary` 是餐饮搜索的依据，`interests` 让匹配类别的地点排在前面
+  （博物馆、艺术或历史会额外搜索博物馆），`stay`（`minRating`、`freeCancellation`、`stayType`）优先于账户记忆筛选住宿。
+  字段逐项合并，更新时没提到的字段保留。
 
-旅行者以天数说明的行程长度（“3 days”“5-day”“四天”“三日游”）会覆盖模型给出的结束日期：
-`packages/orchestrator/src/chat-offline.ts` 中的 `statedTripDays` 把消息中的天数相加，结束日期为开始日期加上天数再减一，
-因此 N 天就是 N 个日历日，不额外加一个离开日。消息中明确的日期范围优先；“in 3 days”不会被当作长度，“1 day”得到当天往返的行程。
+旅行者以天数说明的行程长度由模型的 `tripDays` 传入，结束日期为开始日期加上天数再减一，因此 N 天就是 N 个日历日，
+不额外加一个离开日。有模型时，人数、同行人和日期只来自模型；本地正则（`extractBriefPatchLocally`、`statedTripDays`
+以及 `packages/orchestrator/src/brief-intake.ts` 中的饮食关键词）只在没有模型产出更新时使用。
+
+模型还会返回 `lastingPreferences`，即旅行者说每次旅行都适用的偏好，聊天路由把它们存入账户记忆；模型没有返回时，
+`recognize-memory.mjs` 作为兜底。只适用于这次旅行的愿望不会保存。
 
 当天往返的行程（`dates[0] === dates[1]`）只在只有一个目的地且 `noAccommodation: true` 时有效；其余行程每个目的地至少一晚。brief patch 让开始和结束成为同一天、且 `noAccommodation` 未设置时，`mergeBriefPatch` 会把它设为 `true`，所以“1 day in Sydney”会规划一天且不住宿。当天往返的行程设置 `noAccommodation: false` 会被拒绝。
 

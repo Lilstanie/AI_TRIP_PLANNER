@@ -23,6 +23,44 @@ export const TripPreferences = z
   .max(MAX_TRIP_PREFERENCES);
 export type TripPreferences = z.infer<typeof TripPreferences>;
 
+export const TRIP_PACES = ["relaxed", "balanced", "packed"] as const;
+export const TripPace = z.enum(TRIP_PACES);
+export type TripPace = z.infer<typeof TripPace>;
+
+export const TRIP_INTERESTS = [
+  "museums",
+  "history",
+  "art",
+  "temples",
+  "nature",
+  "food",
+  "shopping",
+  "nightlife",
+] as const;
+export const TripInterest = z.enum(TRIP_INTERESTS);
+export type TripInterest = z.infer<typeof TripInterest>;
+
+export const STAY_TYPES = ["hotel", "hostel", "apartment", "guesthouse"] as const;
+
+/**
+ * What the traveller asked for that changes how the planner behaves, as the chat model understood
+ * it from any language. Specialists read these fields instead of matching keywords in the free-text
+ * preferences; a field is absent when the traveller has not said.
+ */
+export const TripIntent = z.object({
+  pace: TripPace.optional(),
+  dietary: z.array(z.string().trim().min(1).max(MAX_TRIP_PREFERENCE_LENGTH)).max(8).optional(),
+  interests: z.array(TripInterest).max(TRIP_INTERESTS.length).optional(),
+  stay: z
+    .object({
+      minRating: z.number().min(0).max(10).optional(),
+      freeCancellation: z.boolean().optional(),
+      stayType: z.enum(STAY_TYPES).optional(),
+    })
+    .optional(),
+});
+export type TripIntent = z.infer<typeof TripIntent>;
+
 export const BookedStay = z.object({
   name: z.string().trim().min(1).max(160),
   note: z.string().trim().max(300).optional(),
@@ -95,6 +133,8 @@ export const TripBrief = z
     preferences: TripPreferences.optional(),
 
     learnedPreferences: TripPreferences.optional(),
+
+    intent: TripIntent.optional(),
 
     excludeFlights: z.boolean().optional(),
 

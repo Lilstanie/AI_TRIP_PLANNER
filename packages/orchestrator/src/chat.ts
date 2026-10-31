@@ -10,6 +10,10 @@ import {
   Currency,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
+  LASTING_PREFERENCE_KEYS,
+  STAY_TYPES,
+  TRIP_INTERESTS,
+  type LastingPreference,
   TravelModes,
   PartialTripBrief as PartialTripBriefSchema,
   TripBrief as TripBriefSchema,
@@ -34,6 +38,7 @@ import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { localCalendarDate } from "@trip/tools";
 import { BriefPatchSchema, ISO_DATE, type BriefPatch } from "./brief";
+import { count, intentFrom, lastingPreferencesFrom, text } from "./brief-update-fields";
 import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
 import { extractBriefPatchLocally } from "./chat-offline";
 import {
@@ -75,6 +80,12 @@ export const BriefUpdate = z.object({
   origin: z.string().nullish().describe("the city they are travelling from, if they said one"),
   startDate: z.string().nullish().describe("YYYY-MM-DD"),
   endDate: z.string().nullish().describe("YYYY-MM-DD"),
+  tripDays: z
+    .union([z.number(), z.string()])
+    .nullish()
+    .describe(
+      'how many days the traveller said the trip lasts, in any wording ("3 days", "五日游", "a week"), adding up the days of each city; leave it out when they gave a date range or a start offset such as "leaving in 3 days". The end date is counted from it.',
+    ),
   groupSize: z.union([z.number(), z.string()]).nullish(),
   party: z
     .object({
@@ -102,6 +113,49 @@ export const BriefUpdate = z.object({
     .nullish()
     .describe(
       "The whole list of trip preferences learned from this conversation, replacing the previous one: short phrases, written in the same language as the traveller's own message, for lasting wishes they stated (diet, pace, what to avoid). Leave out anything already in knownSoFar.preferences.",
+    ),
+  pace: z
+    .string()
+    .nullish()
+    .describe(
+      'relaxed, balanced or packed: how full the traveller wants each day, judged from what they said in any language or wording ("特种兵", "排满", "see as much as possible" are packed; "慢慢玩", "take it easy" are relaxed) and from knownSoFar.preferences. Leave it out when they gave no sign.',
+    ),
+  dietary: z
+    .array(z.string())
+    .nullish()
+    .describe(
+      'The whole list of food needs for this trip as short English phrases ("vegetarian", "no pork", "peanut allergy", "gluten free"), translated from any language, keeping entries from knownSoFar.intent.dietary unless they changed. Pass [] when they say they have none.',
+    ),
+  interests: z
+    .array(z.string())
+    .nullish()
+    .describe(
+      `The whole list of what the traveller wants to see, from: ${TRIP_INTERESTS.join(", ")}. Map their words in any language to these names and keep entries from knownSoFar.intent.interests unless they changed.`,
+    ),
+  stayMinRating: z
+    .union([z.number(), z.string()])
+    .nullish()
+    .describe(
+      "the lowest guest rating out of 10 the traveller will accept for a stay, when they state one",
+    ),
+  stayFreeCancellation: z
+    .boolean()
+    .nullish()
+    .describe("true when the traveller requires a stay with free cancellation"),
+  stayType: z
+    .string()
+    .nullish()
+    .describe(`the kind of stay the traveller insists on, one of: ${STAY_TYPES.join(", ")}`),
+  rememberForAccount: z
+    .array(
+      z.object({
+        key: z.enum(LASTING_PREFERENCE_KEYS),
+        value: z.string(),
+      }),
+    )
+    .nullish()
+    .describe(
+      'Preferences the traveller says hold for every trip, not just this one ("I always travel packed", "我们一直吃素", "we always fly from Sydney"): key pace (value relaxed, balanced or packed), dietary, interests, accessibility or departure_city, value in short English. Never pass a wish for this trip only ("这次想轻松点").',
     ),
   excludeFlights: z
     .boolean()
@@ -134,11 +188,6 @@ export const BriefUpdate = z.object({
   bookedStayNote: z.string().nullish().describe("anything they said about that booking, briefly"),
 });
 
-function text(value: unknown): string | undefined {
-  if (typeof value !== "string") return undefined;
-  const trimmed = value.trim();
-  return !trimmed || /^(null|none|n\/a|undefined|unknown)$/i.test(trimmed) ? undefined : trimmed;
-}
 const PARTY_KEYS = ["adults", "children", "infants", "seniors", "pets"] as const;
 
 function partyFrom(value: unknown): TravellerParty | undefined {
@@ -156,10 +205,6 @@ function partyFrom(value: unknown): TravellerParty | undefined {
   return partyPeople(party) > 0 ? party : undefined;
 }
 
-function count(value: unknown): number | undefined {
-  const parsed = typeof value === "number" ? value : Number(text(value)?.replaceAll(",", ""));
-  return Number.isFinite(parsed) && parsed > 0 ? parsed : undefined;
-}
 const isoDate = (value: unknown) => {
   const found = text(value);
   return found && ISO_DATE.test(found) ? found : undefined;
@@ -190,6 +235,7 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
     ...(startDate ? { dateStart: startDate } : {}),
     ...(endDate ? { dateEnd: endDate } : {}),
     ...(learned ? { learnedPreferences: learned } : {}),
+    ...(intentFrom(update) ? { intent: intentFrom(update) } : {}),
     ...(typeof update.excludeFlights === "boolean"
       ? { excludeFlights: update.excludeFlights }
       : {}),
@@ -312,6 +358,8 @@ Choosing what to do:
 - Call replan_trip after any change that affects the plan, and when the traveller asks for a plan.
 - groupSize is authoritative for the number of people and every cost. When a message states both a total and a party breakdown, keep the stated total and include party only when its people add up to that total; never replace an explicit total with the breakdown sum. Pets are not included in groupSize. Never ask again for anything knownSoFar.party already says; if the traveller changes the number of people, update groupSize and drop a breakdown that no longer matches.
 - knownSoFar.preferences, when present, is the traveller's own list of trip preferences from the preferences editor. Respect it when you answer and never ask for something it already says; the planner receives it with the brief.
+- Read how the traveller wants to travel from their words in any language and from knownSoFar.preferences, and record it in update_trip_brief: pace, dietary, interests and stay requirements (stayMinRating, stayFreeCancellation, stayType). The planner, dining and stay agents follow these fields, so never leave a stated pace, food need or hard stay requirement only in learnedPreferences. Pass a field again only when it changed; fields you leave out are kept.
+- When the traveller says a preference holds for every trip, also pass it in rememberForAccount so their account remembers it. A wish for this trip only never goes there.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
 - A one-day trip (same start and end date) is valid for one destination and is planned without accommodation; never ask to make it two days.
@@ -716,6 +764,7 @@ async function runConversationAgent(
   clock: () => Date = () => new Date(),
 ): Promise<ChatResponse> {
   let planned: TripPlan | undefined;
+  let lasting: LastingPreference[] | undefined;
 
   let asked: AskUserQuestionItem[] = [];
   let blockingAsk: AskUserError | undefined;
@@ -725,7 +774,14 @@ async function runConversationAgent(
 
   const updateTripBrief = tool(
     async (update: z.infer<typeof BriefUpdate>) => {
-      intake.update(toPatch(update), request.message + inlineTextAttachments(request.attachments));
+      const tripDays = count(update.tripDays);
+      intake.update(toPatch(update), request.message + inlineTextAttachments(request.attachments), {
+        fromModel: true,
+        ...(tripDays !== undefined && Number.isInteger(tripDays) ? { tripDays } : {}),
+      });
+      const remembered =
+        request.assistant?.memory === false ? undefined : lastingPreferencesFrom(update);
+      if (remembered?.length) lasting = remembered;
       planned = undefined;
       blockingAsk = undefined;
       return { brief: intake.known };
@@ -811,15 +867,17 @@ async function runConversationAgent(
   });
   const reply = lastMessageText(invoked);
   reasoning.flush();
+  const done = (response: ChatResponse): ChatResponse =>
+    lasting ? { ...response, lastingPreferences: lasting } : response;
 
   const noChangeReply = planned ? unchangedPlanReply(request, planned) : undefined;
-  if (planned && noChangeReply) return { reply: noChangeReply, plan: planned };
+  if (planned && noChangeReply) return done({ reply: noChangeReply, plan: planned });
 
   if (planned)
-    return {
+    return done({
       reply: plannedReply(request, planned, reply),
       plan: planned,
-    };
+    });
 
   if (blockingAsk) throw blockingAsk;
 
@@ -835,13 +893,13 @@ async function runConversationAgent(
   }
 
   if (request.plan)
-    return {
+    return done({
       reply: reply ? groundedReply(request, request.plan, reply) : "",
       plan: request.plan,
-    };
+    });
 
   const plan = await orchestrate(intake.requireReady(reply || undefined));
-  return { reply: plannedReply(request, plan, reply), plan };
+  return done({ reply: plannedReply(request, plan, reply), plan });
 }
 
 const OFFLINE_NO_CHANGE: Record<InterfaceLanguage, string> = {
@@ -875,7 +933,7 @@ async function runOffline(
   const patch = extractor
     ? await extractor.extract(message, request.brief)
     : extractBriefPatchLocally(message, intake.known.groupSize);
-  intake.update(patch, message);
+  intake.update(patch, message, { fromModel: Boolean(extractor) });
   const brief = intake.requireReady();
   if (request.plan && sameBrief(brief, request.plan.brief))
     return { reply: OFFLINE_NO_CHANGE[turnLanguage(request)], plan: request.plan };

@@ -458,18 +458,29 @@ on, and every specialist receives them in its evidence or payload with one share
 (`packages/agents/src/prompts/traveller-preferences.ts`): weigh them where the evidence allows, say
 when one could not be met, and never treat one as a verified fact.
 
-`update_trip_brief` records what the conversation settles in three more fields:
+`update_trip_brief` records what the conversation settles in more fields:
 
 - `learnedPreferences`: wishes the traveller states in chat, with the whole list replaced each time.
 - `excludeFlights`: the traveller arranges flights.
 - `bookedStay`: the traveller has booked their stay.
 - `noAccommodation`: the traveller does not need a stay; this is independent of `bookedStay`.
+- `intent` (`TripIntent` in `packages/shared/src/contracts.ts`): how the traveller wants to travel,
+  read by the model from their words in any language and from `preferences`. `pace` (relaxed,
+  balanced, packed) sets how many stops the itinerary plans a day: 1-2, 2-3, or 4-6 sights plus
+  lunch and dinner, and the fallback plans four sights and two meals a packed day. `dietary` is what
+  dining searches for, `interests` rank matching place categories first (and museums are fetched for
+  museums, art or history), and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
+  over the account memory. Fields merge, so an update keeps fields it does not mention.
 
-A trip length the traveller states in days ("3 days", "5-day", "四天", "三日游") overrides the
-model's end date: `statedTripDays` in `packages/orchestrator/src/chat-offline.ts` adds up the day
-counts in the message, and the end date becomes the start date plus that count minus one, so N days
-are N calendar days with no extra departure day. An explicit date range in the message wins, and
-"in 3 days" is not read as a length. "1 day" gives a same-day trip.
+A trip length the traveller states in days reaches the brief as the model's `tripDays`, and the end
+date becomes the start date plus that count minus one, so N days are N calendar days with no extra
+departure day. With a model, the brief's group size, party and dates come only from the model; the
+local regexes (`extractBriefPatchLocally`, `statedTripDays` and the dietary words in
+`packages/orchestrator/src/brief-intake.ts`) read them only when no model produced the update.
+
+The model also returns `lastingPreferences` for wishes the traveller says hold for every trip, and
+the chat route saves them to the account memory; `recognize-memory.mjs` is the fallback when the
+model returned none. A wish for this trip only is not saved.
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
 `noAccommodation: true`; every other trip needs at least one night per destination. When a brief

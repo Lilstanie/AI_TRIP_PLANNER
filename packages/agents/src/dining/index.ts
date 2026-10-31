@@ -90,6 +90,9 @@ export function dietaryPreferencesForBrief(
   brief: TripBrief,
   saved: UserPreference[],
 ): UserPreference[] {
+  const stated = brief.intent?.dietary;
+  if (stated)
+    return stated.map((value) => ({ key: "dietary", value, source: "filter" as const }));
   for (const values of [brief.learnedPreferences, brief.preferences]) {
     const explicit = dietaryPreferences(
       (values ?? []).map((value) => ({ key: "preference", value, source: "filter" as const })),

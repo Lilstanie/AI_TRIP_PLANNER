@@ -12,6 +12,7 @@ import {
   PartialTripBrief,
   partyPeople,
   TripBrief,
+  TripIntent,
   TripPlan,
   TripPreferences,
   type AssistantId,
@@ -72,6 +73,8 @@ export type Draft = {
 
   learnedPreferences?: string[];
 
+  intent?: TripIntent;
+
   excludeFlights?: boolean;
 
   legModes?: LegModeChoice[];
@@ -121,6 +124,7 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.displayCurrency ? { displayCurrency: brief.displayCurrency } : {}),
     preferences: brief.preferences ?? [],
     ...(brief.learnedPreferences?.length ? { learnedPreferences: brief.learnedPreferences } : {}),
+    ...(brief.intent ? { intent: brief.intent } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
     ...(brief.legModes?.length ? { legModes: brief.legModes } : {}),
     ...(brief.noAccommodation !== undefined ? { noAccommodation: brief.noAccommodation } : {}),
@@ -208,6 +212,7 @@ export function isDraft(value: unknown): value is Draft {
     (value.learnedPreferences === undefined ||
       (Array.isArray(value.learnedPreferences) &&
         value.learnedPreferences.every((item) => typeof item === "string"))) &&
+    (value.intent === undefined || TripIntent.safeParse(value.intent).success) &&
     (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
     (value.legModes === undefined || LegModeChoice.array().safeParse(value.legModes).success) &&
     (value.budgetSource === undefined ||
@@ -237,6 +242,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     preferences: preferences.length ? preferences : undefined,
 
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
+    intent: draft.intent,
     excludeFlights: draft.excludeFlights || undefined,
 
     legModes: draft.legModes?.length ? draft.legModes : undefined,
@@ -265,6 +271,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     nationality: draft.nationality.trim() || undefined,
     preferences: statedPreferences(draftPreferences(draft)),
     learnedPreferences: statedPreferences(draft.learnedPreferences ?? []),
+    intent: draft.intent,
     excludeFlights: draft.excludeFlights || undefined,
     legModes: draft.legModes?.length ? draft.legModes : undefined,
     bookedStay: draft.bookedStay,
@@ -316,6 +323,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     nationality: known.nationality ?? draft.nationality,
     preferences: known.preferences ?? draft.preferences,
     learnedPreferences: known.learnedPreferences ?? draft.learnedPreferences,
+    intent: known.intent ?? draft.intent,
     excludeFlights: known.excludeFlights ?? draft.excludeFlights,
     legModes: known.legModes ?? draft.legModes,
     bookedStay: known.bookedStay ?? draft.bookedStay,

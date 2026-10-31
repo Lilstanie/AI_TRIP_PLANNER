@@ -3,6 +3,7 @@ import {
   BookedStay,
   Currency,
   LegModeChoice,
+  TripIntent,
   TripPreferences,
   TravellerParty,
   partyPeople,
@@ -28,6 +29,7 @@ export const BriefPatchSchema = z.object({
   preferences: TripPreferences.optional(),
 
   learnedPreferences: TripPreferences.optional(),
+  intent: TripIntent.optional(),
   excludeFlights: z.boolean().optional(),
   legModes: z.array(LegModeChoice).max(12).optional(),
   bookedStay: BookedStay.optional(),
@@ -47,6 +49,14 @@ export function isRealDate(value: string): boolean {
 export function mergeBriefPatch<T extends BriefPatch>(current: T, patch: BriefPatch) {
   const parsedPatch = BriefPatchSchema.parse(patch);
   const next = { ...current, ...parsedPatch };
+  if (parsedPatch.intent)
+    next.intent = {
+      ...current.intent,
+      ...parsedPatch.intent,
+      ...(parsedPatch.intent.stay || current.intent?.stay
+        ? { stay: { ...current.intent?.stay, ...parsedPatch.intent.stay } }
+        : {}),
+    };
   if (parsedPatch.dateStart !== undefined || parsedPatch.dateEnd !== undefined) {
     const start = parsedPatch.dateStart ?? parsedPatch.dates?.[0] ?? current.dates?.[0];
     const end = parsedPatch.dateEnd ?? parsedPatch.dates?.[1] ?? current.dates?.[1];

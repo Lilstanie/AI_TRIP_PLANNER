@@ -17,6 +17,11 @@ const MEAL_SLOTS = [
   { startTime: "18:30", endTime: "19:45" },
 ] as const;
 
+export const PACKED_MEAL_SLOTS = [
+  { startTime: "12:45", endTime: "13:45" },
+  { startTime: "18:30", endTime: "19:45" },
+] as const;
+
 export function withMeals<T extends { activities: Activity[] }>(
   draft: T,
   days: number,
@@ -25,12 +30,16 @@ export function withMeals<T extends { activities: Activity[] }>(
   transferWindows: ReadonlyMap<number, TransferWindow[]>,
   landing: Landing | undefined,
   language: InterfaceLanguage | undefined,
+  packed = false,
 ): T {
+  const slots = packed ? PACKED_MEAL_SLOTS : MEAL_SLOTS;
+  const mealsPerDay = packed ? 2 : 1;
   const used = new Map<string, number>();
   const meals: Activity[] = [];
   for (let day = 1; day <= days; day += 1) {
     const booked = draft.activities.filter((activity) => activity.day === day);
-    for (const slot of MEAL_SLOTS) {
+    let added = 0;
+    for (const slot of slots) {
       if (beforeLanding({ day, startTime: slot.startTime }, landing)) continue;
       if (
         booked.some(
@@ -51,13 +60,16 @@ export function withMeals<T extends { activities: Activity[] }>(
       const index = used.get(city) ?? 0;
       used.set(city, index + 1);
       const place = options[index % options.length]!;
-      meals.push({
+      const meal = {
         day,
         ...slot,
         location: place.name,
         detail: summaryCopy(language).mealStop(place.name),
-      });
-      break;
+      };
+      meals.push(meal);
+      booked.push(meal);
+      added += 1;
+      if (added === mealsPerDay) break;
     }
   }
   return {

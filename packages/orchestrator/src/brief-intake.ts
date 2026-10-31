@@ -2,6 +2,7 @@ import {
   TripBrief as TripBriefSchema,
   MAX_TRIP_PREFERENCE_LENGTH,
   MAX_TRIP_PREFERENCES,
+  partyPeople,
   type ChatRequest,
   type ChatTurn,
   type TripBrief,
@@ -216,8 +217,28 @@ export class BriefIntake {
       : undefined;
   }
 
-  update(patch: BriefPatch, message: string): void {
+  /**
+   * `fromModel` patches keep the model's counts and dates, with the end date counted from the
+   * model's `tripDays`; the local regex reads them only when no model produced the patch.
+   */
+  update(
+    patch: BriefPatch,
+    message: string,
+    { fromModel = false, tripDays }: { fromModel?: boolean; tripDays?: number } = {},
+  ): void {
     patch = { ...patch };
+    if (patch.destination?.toLowerCase() === "no preference") delete patch.destination;
+    if (!fromModel) this.applyLocalReading(patch, message);
+    else {
+      if (patch.party && patch.groupSize === undefined) patch.groupSize = partyPeople(patch.party);
+      const start = patch.dateStart ?? patch.dates?.[0] ?? this.current.dates?.[0];
+      if (tripDays && start) patch.dateEnd = addDays(start, tripDays - 1);
+    }
+    if (this.request.assistant?.memory === false) delete patch.learnedPreferences;
+    this.current = mergeBriefPatch(this.current, patch);
+  }
+
+  private applyLocalReading(patch: BriefPatch, message: string): void {
     const stated = extractBriefPatchLocally(message, this.current.groupSize);
     if (stated.groupSize !== undefined) {
       patch.groupSize = stated.groupSize;
@@ -231,7 +252,6 @@ export class BriefIntake {
       patch.dates = stated.dates;
       [patch.dateStart, patch.dateEnd] = stated.dates;
     } else if (days && start) patch.dateEnd = addDays(start, days - 1);
-    if (patch.destination?.toLowerCase() === "no preference") delete patch.destination;
     const dietary = message
       .split(/[.;!?。！？\n]/u)
       .map((part) => part.trim())
@@ -247,8 +267,6 @@ export class BriefIntake {
           ...(patch.learnedPreferences ?? this.current.learnedPreferences ?? []),
         ]),
       ].slice(0, MAX_TRIP_PREFERENCES);
-    if (this.request.assistant?.memory === false) delete patch.learnedPreferences;
-    this.current = mergeBriefPatch(this.current, patch);
   }
 
   readiness(): BriefReadiness {

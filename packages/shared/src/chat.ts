@@ -8,6 +8,7 @@ import {
   LegModeChoice,
   TravellerParty,
   TripBrief,
+  TripIntent,
   TripPreferences,
 } from "./contracts";
 import { Currency } from "./money";
@@ -35,6 +36,7 @@ export const PartialTripBrief = z.object({
   preferences: TripPreferences.optional(),
 
   learnedPreferences: TripPreferences.optional(),
+  intent: TripIntent.optional(),
   excludeFlights: z.boolean().optional(),
 
   legModes: z.array(LegModeChoice).max(12).optional(),
@@ -165,6 +167,21 @@ export const ASSISTANT_IDS = ["coordinator", ...AGENT_NAMES] as const;
 export const AssistantId = z.enum(ASSISTANT_IDS);
 export type AssistantId = z.infer<typeof AssistantId>;
 
+export const LASTING_PREFERENCE_KEYS = [
+  "pace",
+  "dietary",
+  "interests",
+  "accessibility",
+  "departure_city",
+] as const;
+
+/** A preference the traveller said applies to every trip, for the account memory to keep. */
+export const LastingPreference = z.object({
+  key: z.enum(LASTING_PREFERENCE_KEYS),
+  value: z.string().trim().min(1).max(200),
+});
+export type LastingPreference = z.infer<typeof LastingPreference>;
+
 export const ChatResponse = z.object({
   reply: z.string(),
   plan: TripPlan,
@@ -176,6 +193,8 @@ export const ChatResponse = z.object({
       value: z.string(),
     })
     .optional(),
+
+  lastingPreferences: z.array(LastingPreference).max(4).optional(),
 });
 export type ChatResponse = z.infer<typeof ChatResponse>;
 
