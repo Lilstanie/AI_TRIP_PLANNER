@@ -581,7 +581,8 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     `HH:mm` for today and a short date otherwise, and long URLs or mixed Chinese/English text wrap
     within the chat column.
   - The latest reply that produced a plan ends with one card per trip day (day, date and up to two
-    stop names, or Free day), in a row that scrolls sideways and fades in card by card. A card opens
+    stop names; without stops, Flight on a day with a flight, Booked on a day with only bookings, else
+    Free day), in a row that scrolls sideways and fades in card by card. A card opens
     the trip on that day; on a phone it switches to the Trip view. Older replies and replies that only
     asked a question have no cards.
     The row fades only on a side that hides more days. With a pointer, a round arrow button at that
@@ -791,14 +792,16 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   flight in. Inter-city flights are rows on their day. When the arrival flight is a round trip, its
   return is a flight out at the end of the last day of the day strip, showing the return date; it shares
   the arrival flight's selection and costs nothing more ("Included in the outbound fare"). A flight row's
-  time column shows the departure and arrival times of its leg when the provider gave them; otherwise the
+  time column shows the departure and arrival times of its leg when the provider gave them, with a
+  superscript day offset such as "+1" when the leg lands on a later date; otherwise the
   row says "time not set", as mock fares do. Timed ground hops
   stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
 - **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
   the source note, and a link to the property's details when the planner has one. A stay whose
   selection no longer matches says "This stay needs a new selection."
 - **Flight card.** Each flight shows its carrier, departure (or return), travellers, stops ("Nonstop"
-  when none) and flight time. A flight whose selection no longer matches says "This flight needs a new
+  when none) and the flight time of the leg it shows, so the return card shows the return leg's time.
+  A flight whose selection no longer matches says "This flight needs a new
   selection."
 - **Also found.** Each card lists the alternatives the chosen flight or stay beat, each with its price and
   its difference from the chosen one; a cheaper difference is green and also carries a minus sign.
@@ -1027,7 +1030,7 @@ the client applies an accepted one at once. Every change to a stop's day, time, 
 checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to previous day, Move to next day and Add again. Details, notes, booked and visit progress apply in the browser. The checks are deterministic and make no LLM calls.
 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
-  place) picks the day. Each tab has a unique ID and controls the single visible day panel; that
+  place; a day without stops says Flight, Booked or Free day as the chat day cards do) picks the day. Each tab has a unique ID and controls the single visible day panel; that
   panel is labelled by the selected tab and contains the day's heading and timeline. The "N ideas" chip
   sits above the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one

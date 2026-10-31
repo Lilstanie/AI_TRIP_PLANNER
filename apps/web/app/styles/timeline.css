@@ -168,6 +168,10 @@ button.day-strip__day[aria-selected="true"] {
   color: var(--text-dim);
   font-weight: 400;
 }
+.timeline-row__offset {
+  margin-left: 1px;
+  font-size: 10px;
+}
 .timeline-row__node {
   position: relative;
   display: grid;

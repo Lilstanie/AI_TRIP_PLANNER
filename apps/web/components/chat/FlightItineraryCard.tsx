@@ -1,5 +1,5 @@
 "use client";
-import { formatDuration } from "@/lib/trip/timeline";
+import { arrivalDayOffset, formatDuration } from "@/lib/trip/timeline";
 import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
 import type { FlightAnswerOption, FlightLeg } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
@@ -24,13 +24,6 @@ function clock(value: string, locale: AppLocale): string {
 
 const dayOf = (value: string) => value.split(" ")[0] ?? value;
 
-function dayOffset(departsAt: string, arrivesAt: string): string {
-  const from = Date.parse(`${dayOf(departsAt)}T00:00:00Z`);
-  const to = Date.parse(`${dayOf(arrivesAt)}T00:00:00Z`);
-  if (!Number.isFinite(from) || !Number.isFinite(to) || to <= from) return "";
-  return `+${Math.round((to - from) / 86_400_000)}`;
-}
-
 function shortDate(value: string, locale: AppLocale): string {
   const parsed = new Date(`${dayOf(value)}T00:00:00Z`);
   return Number.isNaN(parsed.getTime())
@@ -47,7 +40,7 @@ function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
   const { t, locale } = useLocale();
   const first = leg.segments[0]!;
   const last = leg.segments[leg.segments.length - 1]!;
-  const offset = dayOffset(first.departsAt, last.arrivesAt);
+  const offset = arrivalDayOffset(first.departsAt, last.arrivesAt);
   const stops = leg.layovers.length;
   return (
     <div className="itinerary-leg">
