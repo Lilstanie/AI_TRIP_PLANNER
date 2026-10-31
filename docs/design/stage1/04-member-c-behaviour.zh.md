@@ -42,7 +42,9 @@ flowchart TB
   subgraph BOOK["Booking port"]
     search["Search stays for each segment"]
     live{"Live search succeeded?"}
+    estok{"Google Maps provider and key set?"}
     est["Use Google Places estimates, label 'estimated'"]
+    searchFail["Search error ends the specialist; searched once, no retry"]
   end
 
   subgraph LLM["LLM (DeepSeek)"]
@@ -53,7 +55,9 @@ flowchart TB
   booked -- yes --> keep --> post
   booked -- no --> prefs --> rooms --> split --> search --> live
   live -- yes --> filter
-  live -- no --> est --> filter
+  live -- no --> estok
+  estok -- yes --> est --> filter
+  estok -- no --> searchFail --> stopSearch((⊗))
   filter --> empty
   empty -- no --> fail --> stopFail((⊗))
   empty -- yes --> hasModel

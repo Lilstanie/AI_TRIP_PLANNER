@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "bd5c5761-3a44-4026-bd90-cf25ea3f12c8",
+  "status": "current",
+  "command": "deliver",
+  "type": "architecture",
+  "input": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/agent-workflows/specs/agent-trust-boundaries.architecture.json",
+  "output": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/agent-workflows/rendered/agent-trust-boundaries.html",
+  "specification": {
+    "sha256": "b1df8807da6b4664eb7a69c31b1ee75bc408f8be6862085984c2d381ed4e03ea",
+    "bytes": 4839
+  },
+  "artifact": {
+    "sha256": "3449fdd1d61a1676287e2e549f3f4e35f4877d35ae5a08ff639ddae9161476d7",
+    "bytes": 823634
+  }
+}

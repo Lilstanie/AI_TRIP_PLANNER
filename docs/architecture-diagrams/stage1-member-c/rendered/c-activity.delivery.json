@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "5a7bef3b-f1fc-45ee-8be2-fbe6dd54f0ba",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json",
+  "output": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/stage1-member-c/rendered/c-activity.html",
+  "specification": {
+    "sha256": "680a808669cfaef2b88711115df179e6e7a368905ed0727e96ec7a2d84cd5190",
+    "bytes": 8160
+  },
+  "artifact": {
+    "sha256": "2b0127e0b27416f816e9b02faf409c6cbb7cb7b0e8448ea96af534c92e788b5a",
+    "bytes": 846512
+  }
+}

@@ -1,0 +1,17 @@
+{
+  "schemaVersion": 1,
+  "receiptId": "9a81e526-3f14-4cce-ae90-2c48fc2c0a88",
+  "status": "current",
+  "command": "deliver",
+  "type": "workflow",
+  "input": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/agent-workflows/specs/agent-collaboration.workflow.json",
+  "output": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/agent-workflows/rendered/agent-collaboration.html",
+  "specification": {
+    "sha256": "50fb9c220d198eea51a699967eb892598c438b2610129cb300abb13786d6ed63",
+    "bytes": 6933
+  },
+  "artifact": {
+    "sha256": "b68faf16acae964723ff15208a80ebcb52df8c3370d2577b0b6e5c9766207e55",
+    "bytes": 828968
+  }
+}

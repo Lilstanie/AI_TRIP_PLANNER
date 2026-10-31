@@ -3,7 +3,7 @@
   "diagram_type": "workflow",
   "meta": {
     "title": "Chat 请求与 LangChain 使用位置",
-    "output": "chat-langchain.html",
+    "output": "docs/architecture-diagrams/agent-workflows/rendered/chat-langchain.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
     "views": [
@@ -35,6 +35,12 @@
         "label": "无模型回退",
         "focus": ["tripChat", "offline", "workflow", "stream"],
         "note": "未配置 provider key 时使用规则提取和确定性规划路径。"
+      },
+      {
+        "id": "mention",
+        "label": "@提及专家",
+        "focus": ["tripChat", "handoff", "workflow", "stream"],
+        "note": "@一个专家时先判断归属，可能转交；已有计划时只重跑被点名的专家。"
       }
     ]
   },
@@ -54,6 +60,10 @@
     {
       "id": "offlineLane",
       "label": "确定性回退"
+    },
+    {
+      "id": "mentionLane",
+      "label": "@提及专家"
     }
   ],
   "phases": [
@@ -100,80 +110,77 @@
       "lane": "entry",
       "col": 1,
       "type": "frontend",
-      "label": "工作区",
-      "width": 172
+      "label": "工作区"
     },
     {
       "id": "route",
       "lane": "entry",
       "col": 2,
       "type": "backend",
-      "label": "POST /api/chat",
-      "width": 172
+      "label": "POST /api/chat"
     },
     {
       "id": "tripChat",
       "lane": "conversation",
       "col": 2,
       "type": "backend",
-      "label": "runTripChat",
-      "width": 172
+      "label": "runTripChat"
     },
     {
       "id": "coordinator",
       "lane": "conversation",
       "col": 3,
       "type": "backend",
-      "label": "createAgent(trip_conversation)",
-      "width": 210
+      "label": "createAgent(trip_conversation)"
     },
     {
       "id": "briefTool",
       "lane": "conversation",
       "col": 4,
       "type": "backend",
-      "label": "update_trip_brief",
-      "width": 172
+      "label": "update_trip_brief"
     },
     {
       "id": "questionTool",
       "lane": "entry",
       "col": 4,
       "type": "security",
-      "label": "ask_user_question",
-      "width": 190
+      "label": "ask_user_question"
     },
     {
       "id": "planTool",
       "lane": "planning",
       "col": 3,
       "type": "backend",
-      "label": "replan_trip",
-      "width": 172
+      "label": "replan_trip"
+    },
+    {
+      "id": "handoff",
+      "lane": "mentionLane",
+      "col": 3,
+      "type": "security",
+      "label": "judgeHandoff 归属判断"
     },
     {
       "id": "offline",
       "lane": "offlineLane",
       "col": 3,
       "type": "backend",
-      "label": "离线解析器",
-      "width": 190
+      "label": "离线解析器"
     },
     {
       "id": "workflow",
       "lane": "planning",
       "col": 4,
       "type": "backend",
-      "label": "LangGraph 工作流",
-      "width": 190
+      "label": "LangGraph 工作流"
     },
     {
       "id": "stream",
       "lane": "entry",
       "col": 5,
       "type": "messagebus",
-      "label": "NDJSON 数据帧",
-      "width": 190
+      "label": "NDJSON 数据帧"
     }
   ],
   "edges": [
@@ -213,6 +220,13 @@
       "variant": "dashed"
     },
     {
+      "id": "tripChat-handoff",
+      "from": "tripChat",
+      "to": "handoff",
+      "label": "@ 一个专家",
+      "role": "branch"
+    },
+    {
       "id": "agent-brief",
       "from": "coordinator",
       "to": "briefTool",
@@ -237,7 +251,7 @@
       "id": "agent-plan",
       "from": "coordinator",
       "to": "planTool",
-      "label": "规划请求或影响计划的更改",
+      "label": "影响计划的请求",
       "role": "main"
     },
     {
@@ -251,22 +265,29 @@
       "id": "offline-workflow",
       "from": "offline",
       "to": "workflow",
-      "label": "规则提取出的行程需求",
+      "label": "规则提取的需求",
       "role": "branch"
     },
     {
       "id": "question-stream",
       "from": "questionTool",
       "to": "stream",
-      "label": "ask_user / needs_info 数据帧",
+      "label": "ask_user · needs_info",
       "role": "return"
     },
     {
       "id": "workflow-stream",
       "from": "workflow",
       "to": "stream",
-      "label": "已校验的计划和回复",
+      "label": "计划与回复",
       "role": "return"
+    },
+    {
+      "id": "handoff-workflow",
+      "from": "handoff",
+      "to": "workflow",
+      "label": "重跑被点名专家",
+      "role": "branch"
     }
   ],
   "cards": [
@@ -279,19 +300,20 @@
       ]
     },
     {
-      "dot": "emerald",
+      "dot": "amber",
       "title": "追问与规划",
       "items": [
-        "信息不全时通过 needs_info 或 ask_user 结束本轮，旅客在下一条消息回答",
-        "只有行程需求通过校验后，replan_trip 才调用规划流程"
+        "信息不全时 ask_user_question 一次只问一个问题，本轮结束，旅客在下一条消息回答",
+        "只有行程需求通过校验后，replan_trip 才调用规划流程；表单提交（mode=plan）直接进入 LangGraph"
       ]
     },
     {
-      "dot": "amber",
-      "title": "模型回退",
+      "dot": "emerald",
+      "title": "@提及与回退",
       "items": [
-        "未配置模型密钥时使用本地行程提取和确定性回复路径",
-        "单独的机票价格查询直接访问 booking，不运行行程规划"
+        "@专家但还没有计划时，专家先回答，再询问缺少的行程信息",
+        "未配置模型密钥时用本地提取；需求与当前计划相同时直接回复，不重新规划",
+        "机票价格问题在 /api/chat 直接查 booking，不进入 runTripChat"
       ]
     }
   ]

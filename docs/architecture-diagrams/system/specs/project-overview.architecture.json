@@ -3,7 +3,7 @@
   "diagram_type": "architecture",
   "meta": {
     "title": "AI Trip Planner — Project Architecture",
-    "output": "project-overview.html",
+    "output": "docs/architecture-diagrams/system/rendered/project-overview.html",
     "quality_profile": "showcase",
     "locale": "zh-CN",
     "views": [
@@ -18,9 +18,21 @@
         "label": "模型调用",
         "focus": ["agents", "models", "workflow"],
         "note": "LangChain 提供角色 agent；LangGraph 保持控制流程。"
+      },
+      {
+        "id": "accounts",
+        "label": "账号与存储",
+        "focus": ["web", "clerk", "accountDb", "orchestrator", "store"],
+        "note": "登录用 Clerk；账号同步、设置和长期记忆在 Postgres；对话轮次与最新计划走 jsonStore。"
+      },
+      {
+        "id": "maps",
+        "label": "Web 地图",
+        "focus": ["web", "mapProvider", "providers"],
+        "note": "地图地点与路线由 Web 自己的 mapProvider 查询，不经过 ToolGateway。"
       }
     ],
-    "viewBox": [1390, 660]
+    "viewBox": [1180, 700]
   },
   "components": [
     {
@@ -28,64 +40,96 @@
       "type": "external",
       "label": "旅客",
       "sublabel": "浏览器工作区",
-      "pos": [40, 120],
-      "size": [184, 76]
+      "pos": [30, 120],
+      "size": [160, 76]
     },
     {
       "id": "web",
       "type": "frontend",
       "label": "Next.js Web",
       "sublabel": "工作区界面 · API 路由",
-      "pos": [260, 120],
-      "size": [184, 76]
+      "pos": [222, 120],
+      "size": [160, 76]
     },
     {
       "id": "orchestrator",
       "type": "backend",
       "label": "聊天编排器",
-      "sublabel": "brief · reply · progress stream",
-      "pos": [480, 120],
-      "size": [184, 76]
+      "sublabel": "brief · reply · progress",
+      "pos": [414, 120],
+      "size": [160, 76]
     },
     {
       "id": "workflow",
       "type": "backend",
       "label": "LangGraph 工作流",
       "sublabel": "委派 · 冲突 · 修订 · 组装",
-      "pos": [700, 120],
-      "size": [184, 76]
+      "pos": [606, 120],
+      "size": [160, 76]
     },
     {
       "id": "agents",
       "type": "backend",
       "label": "专家 Agents",
       "sublabel": "五个旅行规划角色",
-      "pos": [700, 370],
-      "size": [184, 76]
+      "pos": [606, 370],
+      "size": [160, 76]
     },
     {
       "id": "tools",
       "type": "backend",
       "label": "带类型的工具 Gateway",
       "sublabel": "地图 · 预订 · 天气",
-      "pos": [920, 370],
-      "size": [184, 76]
+      "pos": [798, 370],
+      "size": [160, 76]
     },
     {
       "id": "models",
       "type": "external",
       "label": "DeepSeek 模型",
-      "sublabel": "LangChain OpenAI 兼容适配器",
-      "pos": [700, 520],
-      "size": [184, 76]
+      "sublabel": "LangChain OpenAI 兼容",
+      "pos": [606, 520],
+      "size": [160, 76]
     },
     {
       "id": "providers",
       "type": "external",
       "label": "旅行数据提供方",
-      "sublabel": "Google · OSM · SerpApi",
-      "pos": [1140, 370],
-      "size": [184, 76]
+      "sublabel": "Google · OSM · SerpApi 等",
+      "pos": [990, 370],
+      "size": [160, 76]
+    },
+    {
+      "id": "clerk",
+      "type": "external",
+      "label": "Clerk",
+      "sublabel": "登录身份",
+      "pos": [30, 370],
+      "size": [160, 76]
+    },
+    {
+      "id": "accountDb",
+      "type": "database",
+      "label": "账号数据库",
+      "sublabel": "Postgres · 同步 · 设置 · 记忆",
+      "pos": [222, 370],
+      "size": [160, 76]
+    },
+    {
+      "id": "store",
+      "type": "database",
+      "label": "jsonStore",
+      "sublabel": "Redis REST 或进程内存",
+      "pos": [414, 520],
+      "size": [160, 76]
+    },
+    {
+      "id": "mapProvider",
+      "type": "backend",
+      "label": "Web mapProvider",
+      "sublabel": "Google 优先 · OSM 兜底",
+      "pos": [990, 120],
+      "size": [160, 76]
     }
   ],
   "connections": [
@@ -95,14 +139,14 @@
       "to": "web",
       "label": "聊天 · 编辑 · 浏览",
       "variant": "emphasis",
-      "labelAt": [150, 90]
+      "labelAt": [206, 90]
     },
     {
       "id": "web-chat",
       "from": "web",
       "to": "orchestrator",
       "label": "POST /api/chat · NDJSON",
-      "labelAt": [370, 90]
+      "labelAt": [418, 90]
     },
     {
       "id": "chat-workflow",
@@ -116,28 +160,77 @@
       "from": "workflow",
       "to": "agents",
       "label": "专家提案",
-      "labelAt": [792, 282]
+      "labelAt": [736, 282]
     },
     {
       "id": "agents-tools",
       "from": "agents",
       "to": "tools",
       "label": "带类型的依据",
-      "labelAt": [920, 340]
+      "labelAt": [782, 340]
     },
     {
       "id": "tools-providers",
       "from": "tools",
       "to": "providers",
       "label": "provider adapter",
-      "labelAt": [1140, 340]
+      "labelAt": [974, 340]
     },
     {
       "id": "agents-model",
       "from": "agents",
       "to": "models",
       "label": "LangChain createAgent",
-      "labelAt": [792, 480]
+      "labelAt": [736, 480]
+    },
+    {
+      "id": "web-clerk",
+      "from": "web",
+      "to": "clerk",
+      "label": "登录"
+    },
+    {
+      "id": "web-account",
+      "from": "web",
+      "to": "accountDb",
+      "label": "账号同步 · 记忆"
+    },
+    {
+      "id": "chat-store",
+      "from": "orchestrator",
+      "to": "store",
+      "label": "对话轮次 · 最新计划"
+    },
+    {
+      "id": "chat-model",
+      "from": "orchestrator",
+      "to": "models",
+      "label": "对话协调器",
+      "via": [
+        [590, 158],
+        [590, 558]
+      ],
+      "fromSide": "right",
+      "toSide": "left"
+    },
+    {
+      "id": "web-map",
+      "from": "web",
+      "to": "mapProvider",
+      "label": "/api/places · /api/routes",
+      "via": [
+        [302, 50],
+        [1070, 50]
+      ],
+      "fromSide": "top",
+      "toSide": "top",
+      "labelAt": [680, 40]
+    },
+    {
+      "id": "map-providers",
+      "from": "mapProvider",
+      "to": "providers",
+      "label": "地点 · 路线"
     }
   ],
   "cards": [
@@ -154,7 +247,16 @@
       "title": "数据边界",
       "items": [
         "TripBrief、AgentProposal 与 TripPlan 在 schema 边界校验",
-        "旅行数据通过 ToolGateway；agent 不直连 provider"
+        "旅行数据通过 ToolGateway；agent 不直连 provider",
+        "账号同步、设置与长期偏好存在 Postgres；未登录时浏览器目录仍是工作副本"
+      ]
+    },
+    {
+      "dot": "amber",
+      "title": "两条外部数据路径",
+      "items": [
+        "规划时 agent 经 ToolGateway 查询地图、预订和天气",
+        "工作区地图经 Web mapProvider 查询地点和路线，Google 不可用时改用 OSM"
       ]
     }
   ]

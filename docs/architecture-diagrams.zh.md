@@ -19,7 +19,7 @@
 
 ## 系统结构与信任边界
 
-- [项目架构](architecture-diagrams/system/rendered/project-overview.html)（[源文件](architecture-diagrams/system/specs/project-overview.architecture.json)，[证据](architecture-diagrams/system/evidence/project-overview.visual-check.html)）—— Next.js 请求主链路、LangGraph 工作流、专家 agents、LangChain 模型调用和工具 Gateway。
+- [项目架构](architecture-diagrams/system/rendered/project-overview.html)（[源文件](architecture-diagrams/system/specs/project-overview.architecture.json)，[证据](architecture-diagrams/system/evidence/project-overview.visual-check.html)）—— Next.js 请求主链路、LangGraph 工作流、专家 agents、LangChain 模型调用、工具 Gateway、Clerk 登录、账号数据库、`jsonStore` 和独立的 Web 地图提供方。
 - [Agent、依据与信任边界](architecture-diagrams/agent-workflows/rendered/agent-trust-boundaries.html)（[源文件](architecture-diagrams/agent-workflows/specs/agent-trust-boundaries.architecture.json)，[证据](architecture-diagrams/agent-workflows/evidence/agent-trust-boundaries.visual-check.html)）—— 旅行者输入、仅协调器可见的附件、注入给 agent 的能力，以及外部数据提供方。
 - [共享契约](architecture-diagrams/system/rendered/contracts-flow.html)（[源文件](architecture-diagrams/system/specs/contracts-flow.workflow.json)，[证据](architecture-diagrams/system/evidence/contracts-flow.visual-check.html)）—— `ChatRequest`、`TripBrief`、`AgentProposal` 和 `TripPlan` 如何跨 package 边界传递。
 
@@ -27,17 +27,17 @@
 
 ## 对话与规划
 
-- [对话与 LangChain](architecture-diagrams/agent-workflows/rendered/chat-langchain.html)（[源文件](architecture-diagrams/agent-workflows/specs/chat-langchain.workflow.json)，[证据](architecture-diagrams/agent-workflows/evidence/chat-langchain.visual-check.html)）—— 协调器工具、需求不完整时的追问、无模型路径，以及交给 LangGraph 的规划请求。
-- [聊天请求与 NDJSON 流](architecture-diagrams/agent-workflows/rendered/chat-stream.html)（[源文件](architecture-diagrams/agent-workflows/specs/chat-stream.sequence.json)，[证据](architecture-diagrams/agent-workflows/evidence/chat-stream.visual-check.html)）—— 请求校验、进度帧、最终响应、持久化和非规划结果。
-- [Agent 协作](architecture-diagrams/agent-workflows/rendered/agent-collaboration.html)（[源文件](architecture-diagrams/agent-workflows/specs/agent-collaboration.workflow.json)，[证据](architecture-diagrams/agent-workflows/evidence/agent-collaboration.visual-check.html)）—— 专家分派、共享 planning board、冲突检查、定向修订和停止条件。
+- [对话与 LangChain](architecture-diagrams/agent-workflows/rendered/chat-langchain.html)（[源文件](architecture-diagrams/agent-workflows/specs/chat-langchain.workflow.json)，[证据](architecture-diagrams/agent-workflows/evidence/chat-langchain.visual-check.html)）—— 协调器工具、一次一个问题的追问、@提及转交、无模型路径及其需求未变时的捷径，以及交给 LangGraph 的规划请求。
+- [聊天请求与 NDJSON 流](architecture-diagrams/agent-workflows/rendered/chat-stream.html)（[源文件](architecture-diagrams/agent-workflows/specs/chat-stream.sequence.json)，[证据](architecture-diagrams/agent-workflows/evidence/chat-stream.visual-check.html)）—— 请求校验、进度帧、账号记忆读写、先发终帧再持久化，以及非规划结果。
+- [Agent 协作](architecture-diagrams/agent-workflows/rendered/agent-collaboration.html)（[源文件](architecture-diagrams/agent-workflows/specs/agent-collaboration.workflow.json)，[证据](architecture-diagrams/agent-workflows/evidence/agent-collaboration.visual-check.html)）—— 专家分派、@提及重跑、共享 planning board、冲突检查、定向修订和停止条件。
 - [计划区段生命周期](architecture-diagrams/agent-workflows/rendered/plan-lifecycle.html)（[源文件](architecture-diagrams/agent-workflows/specs/plan-lifecycle.lifecycle.json)，[证据](architecture-diagrams/agent-workflows/evidence/plan-lifecycle.visual-check.html)）—— 区段何时成为 `draft` 或 `needs_you`，以及旅行者如何继续处理。
 
 <a id="data-storage-and-services"></a>
 
 ## 数据、存储与服务
 
-- [ToolGateway 与数据提供方](architecture-diagrams/data-and-storage/rendered/tool-gateway.html)（[源文件](architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/tool-gateway.visual-check.html)）—— 请求级 mock/live 模式、提供方 adapter，以及返回给 agent 的依据。
-- [存储与账号同步](architecture-diagrams/data-and-storage/rendered/storage-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/storage-sync.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/storage-sync.visual-check.html)）—— 浏览器目录、登录账号同步、`MemoryStore`、`tripStore` 和持久化回退。
+- [ToolGateway 与数据提供方](architecture-diagrams/data-and-storage/rendered/tool-gateway.html)（[源文件](architecture-diagrams/data-and-storage/specs/tool-gateway.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/tool-gateway.visual-check.html)）—— 请求级 mock/live 模式和全部真实 adapter：Google 或 OSM 地图（含 Geoapify 与 Overpass）、SerpApi 与 Places 估价、Google Weather 或 Open-Meteo。
+- [存储与账号同步](architecture-diagrams/data-and-storage/rendered/storage-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/storage-sync.workflow.json)，[证据](architecture-diagrams/data-and-storage/evidence/storage-sync.visual-check.html)）—— 浏览器目录、登录账号同步、账号长期记忆、`MemoryStore`、`tripStore` 和持久化回退。
 - [本地与账号同步时序](architecture-diagrams/data-and-storage/rendered/account-sync.html)（[源文件](architecture-diagrams/data-and-storage/specs/account-sync.sequence.json)，[证据](architecture-diagrams/data-and-storage/evidence/account-sync.visual-check.html)）—— 按检查点合并、服务端按 revision 校验写入、只确认被接受的记录、延迟串行推送，以及冲突时保留本地内容。
 
 <a id="workspace-behavior"></a>
@@ -53,7 +53,7 @@
 
 [Stage 1 行为模型](design/stage1/04-member-c-behaviour.zh.md)中活动图、时序图和状态机图的完整渲染版本；该页的 Mermaid 代码块是它们的文本源。这些视图可能超过一屏高度。
 
-- [安排住宿活动图（UC-C1）](architecture-diagrams/stage1-member-c/rendered/c-activity.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）—— 已预订住宿的快捷路径、房间与城市分段准备、实时搜索与 Places 估价回退、唯一一次 LLM 选择，以及定价前的确定性校验。
+- [安排住宿活动图（UC-C1）](architecture-diagrams/stage1-member-c/rendered/c-activity.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-activity.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-activity.visual-check.html)）—— 已预订住宿的快捷路径、房间与城市分段准备、实时搜索与 Places 估价回退或一次性搜索失败、唯一一次 LLM 选择，以及定价前的确定性校验。
 - [预算超支与定向修订（UC-C2）](architecture-diagrams/stage1-member-c/rendered/c-sequence.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-sequence.sequence.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-sequence.visual-check.html)）—— 第一轮规划、`detectConflicts`、带 `targetSaving` 的修订循环和回复；预算不可行的扩展写在卡片中。
 - [住宿区段状态机](architecture-diagrams/stage1-member-c/rendered/c-state.html)（[源文件](architecture-diagrams/stage1-member-c/specs/c-state.workflow.json)，[证据](architecture-diagrams/stage1-member-c/evidence/c-state.visual-check.html)）—— `planning`、`draft` 和 `needs_you` 状态背后的内部状态，包含全部守卫条件和修订循环。
 

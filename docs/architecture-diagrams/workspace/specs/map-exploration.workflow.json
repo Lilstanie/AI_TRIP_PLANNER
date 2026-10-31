@@ -10,7 +10,7 @@
       "url": "https://github.com/Lilstanie/AI_TRIP_PLANNER.git",
       "provider": "github",
       "link_mode": "web",
-      "revision": "87e26199e07a7ed46abaf7614433099401bddf2c"
+      "revision": "29c7bd493e9dd410edba88e2297ad3dc8c528e6c"
     },
     "views": [
       {
@@ -94,7 +94,7 @@
         {
           "path": "apps/web/components/map/useTripPlaces.ts",
           "line": 52,
-          "end_line": 170
+          "end_line": 300
         }
       ]
     },
@@ -109,8 +109,8 @@
       "sources": [
         {
           "path": "apps/web/app/api/places/search/route.ts",
-          "line": 13,
-          "end_line": 23
+          "line": 18,
+          "end_line": 34
         }
       ]
     },
@@ -133,8 +133,8 @@
       "sources": [
         {
           "path": "apps/web/app/api/routes/from-location/route.ts",
-          "line": 5,
-          "end_line": 34
+          "line": 16,
+          "end_line": 35
         }
       ]
     },
@@ -155,8 +155,8 @@
         },
         {
           "path": "apps/web/lib/map-provider/fallback.ts",
-          "line": 10,
-          "end_line": 72,
+          "line": 35,
+          "end_line": 108,
           "label": "冷却与转交"
         }
       ]
@@ -173,7 +173,7 @@
         {
           "path": "apps/web/lib/map-provider/google.ts",
           "line": 19,
-          "end_line": 45
+          "end_line": 52
         }
       ]
     },
@@ -188,8 +188,8 @@
       "sources": [
         {
           "path": "apps/web/lib/map-provider/osm.ts",
-          "line": 29,
-          "end_line": 95
+          "line": 27,
+          "end_line": 99
         }
       ]
     },
@@ -199,17 +199,23 @@
       "col": 3,
       "type": "frontend",
       "label": "loadRenderer",
-      "sublabel": "Google SDK，失败时 MapLibre",
+      "sublabel": "Google SDK，被拒时 MapLibre",
       "width": 176,
       "sources": [
         {
           "path": "apps/web/components/map/map-renderer.ts",
-          "line": 5,
-          "end_line": 15
+          "line": 105,
+          "end_line": 126
+        },
+        {
+          "path": "apps/web/components/map/google-maps-sdk.ts",
+          "line": 53,
+          "end_line": 82,
+          "label": "key 被拒记录"
         },
         {
           "path": "apps/web/components/map/maplibre-renderer.ts",
-          "line": 8,
+          "line": 13,
           "end_line": 25,
           "label": "OpenFreeMap 样式"
         }
@@ -226,8 +232,8 @@
       "sources": [
         {
           "path": "apps/web/components/map/TripMap.tsx",
-          "line": 185,
-          "end_line": 200
+          "line": 250,
+          "end_line": 290
         }
       ]
     }
@@ -322,8 +328,8 @@
       "dot": "amber",
       "title": "浏览器渲染",
       "items": [
-        "Google Maps SDK 加载失败时改用 MapLibre 与 OpenFreeMap 底图",
-        "浏览器与服务端的 Google key 分别配置"
+        "Google Maps SDK 加载失败或 key 被拒（gm_authFailure）时改用 MapLibre 与 OpenFreeMap 底图；页面记住这次拒绝，之后挂载的地图直接用 MapLibre",
+        "浏览器与服务端的 Google key 分别配置；行程卡片与地图标记悬停互相高亮，填了目的地后规划中也能打开地图"
       ]
     }
   ]

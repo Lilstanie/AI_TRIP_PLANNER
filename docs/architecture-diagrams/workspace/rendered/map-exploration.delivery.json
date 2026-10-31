@@ -1,17 +1,17 @@
 {
   "schemaVersion": 1,
-  "receiptId": "d41ce34a-a4bf-42fa-9df0-d3d8bde50951",
+  "receiptId": "e920a5e1-207b-434a-9acd-873e04208c90",
   "status": "current",
   "command": "deliver",
   "type": "workflow",
-  "input": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/specs/map-exploration.workflow.json",
-  "output": "/private/tmp/claude-501/-Users-joey-AI-TRIP-PLANNER/88991aa6-b692-4a2d-8522-48ef8f84be3f/scratchpad/wt4/docs/architecture-diagrams/workspace/rendered/map-exploration.html",
+  "input": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/workspace/specs/map-exploration.workflow.json",
+  "output": "/home/user/AI_TRIP_PLANNER/docs/architecture-diagrams/workspace/rendered/map-exploration.html",
   "specification": {
-    "sha256": "f81a63a175b1a34c2a784955490b85df957ec1f65d867eb84d4f161a502bbfb1",
-    "bytes": 7885
+    "sha256": "c30e96f40528fb0b1e620cefa63bbcf726150b70110ce2dfae6e5d7106b59368",
+    "bytes": 8261
   },
   "artifact": {
-    "sha256": "57c9b399180d23d5bf84d8931b5115aeca441894f3515fd8f4f37a0f6a95fa21",
-    "bytes": 826873
+    "sha256": "fcc61fc773bad8d8f0c40fce058cc9c44dabab058e975ce5d83b8ecbca1b5c2b",
+    "bytes": 829410
   }
 }
