@@ -170,6 +170,9 @@ describe("the day plan starts after the outbound flight lands", () => {
       earliestStart: "10:20",
     });
     expect(String(generate.mock.calls[1]![0].feedback)).toContain("before the flight lands");
+    expect(String(generate.mock.calls[1]![0].feedback)).toContain(
+      "move it to day 2 at 10:20 or later instead of dropping it",
+    );
     expect(result.items.map((item) => [item.day, item.location])).toEqual([
       [2, "Ueno Park"],
       [3, "Tokyo Tower"],

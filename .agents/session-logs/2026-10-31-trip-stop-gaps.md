@@ -19,6 +19,8 @@ contract-impact: none
 - `packages/agents/src/itinerary/travel.ts` (split out of `index.ts`): hops between stops accept an
   OSRM driving estimate, still check it against the gap plus buffer, and count estimates so the plan
   says once that public transport was not checked.
+- The landing rejection now asks the model to move the stop after landing instead of dropping it:
+  the live rerun lost 浅草寺 after two drafts put it on the flight day.
 - `apps/web/lib/map-provider/osm-places.ts`: explicit search for Han text uses Nominatim in any
   interface language.
 - Agent Note `feature/2026-10-31-overpass-places.md`, `docs/architecture(.zh).md`,
@@ -40,6 +42,6 @@ traveller to fix it. In the English interface, `东京` was placed in Zhejiang.
 
 ## Notes for the next person
 
-The split timings and the Geoapify neighbourhood result come from one probe on the developer's
-Mac. A live rerun is still needed. `tourism.sights.place_of_worship` was dropped from the temple
+The live rerun on 6a6fe065 (one run) had 5 shrines, Geoapify neighbourhoods, 0 conflicts and an
+`estimated` source, but no Buddhist temple; the trip home map shows no pins when day 1 has none. `tourism.sights.place_of_worship` was dropped from the temple
 request because `tourism.sights` already covers it.

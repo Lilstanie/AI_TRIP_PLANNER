@@ -201,7 +201,7 @@ function validateDraft(
   for (const activity of parsed.activities) {
     if (beforeLanding(activity, landing)) {
       throw new Error(
-        `Day ${activity.day} activity ${activity.location} starts before the flight lands on day ${landing!.day} at ${landing!.time}; ${landing!.earliestStart ? `start after ${landing!.earliestStart} on day ${landing!.day}` : `start on day ${landing!.day + 1}`}.`,
+        `Day ${activity.day} activity ${activity.location} starts before the flight lands on day ${landing!.day} at ${landing!.time}; move it to ${landing!.earliestStart ? `day ${landing!.day} at ${landing!.earliestStart} or later` : `day ${landing!.day + 1} or later`} instead of dropping it.`,
       );
     }
   }
