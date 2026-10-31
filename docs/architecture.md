@@ -494,7 +494,7 @@ When the itinerary model's draft fails validation, the retry receives the error 
 draft, and is told to change only what the error names. A missing-day error names the days and the
 landing limit. A valid draft whose stops leave too little route time is sent back with those
 legs or with days holding more sights than the pace allows (2, 3 or 6), and the draft with fewer
-conflicts is kept; it gets two tries. Neighbourhoods are offered as stops only when a
+conflicts is kept; it gets two tries, and sights still over the cap are then dropped, latest first. Neighbourhoods are offered as stops only when a
 city has fewer sights than the trip needs at its pace (2, 3 or 6 a day).
 
 A same-day trip (`dates[0] === dates[1]`) is valid only for one destination with
