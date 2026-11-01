@@ -119,7 +119,7 @@ function OfferCard({
             {candidate.inbound ? (
               <FlightLeg leg={candidate.inbound} label={t("return")} />
             ) : (
-              roundTrip && <p className="offer__pending">{t("returnLegOnChoose")}</p>
+              roundTrip && <p className="offer__pending">{t("returnFlightsNotLookedUp")}</p>
             )}
           </>
         ) : (

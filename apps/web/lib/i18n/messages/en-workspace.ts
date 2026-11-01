@@ -849,7 +849,6 @@ export const enWorkspace = {
   previousOptions: "Previous options",
   moreOptions: "More options",
   stayRoomRate: "{price} a night · {rooms, plural, one {# room} other {# rooms}}",
-  returnLegOnChoose: "Return flight details load when you choose this fare",
   cabinEconomy: "Economy",
   cabinPremiumEconomy: "Premium economy",
   cabinBusiness: "Business",

@@ -823,7 +823,6 @@ export const zhWorkspace = {
   previousOptions: "前面的选项",
   moreOptions: "更多选项",
   stayRoomRate: "每晚 {price} · {rooms} 间房",
-  returnLegOnChoose: "选这班后再查返程航段",
   cabinEconomy: "经济舱",
   cabinPremiumEconomy: "超级经济舱",
   cabinBusiness: "公务舱",
