@@ -24,7 +24,8 @@ do not isolate credentials or a reused server.
 
 For manual inspection, start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
-Use mock data unless the change concerns live providers. Mock plans have three stops a day with transport rows between them
+Use mock data unless the change concerns live providers. Start the app with `MOCK_PLACES=multi` for
+mock plans with three stops a day and transport rows between them
 ([mock places](../../../docs/development.md#mock-server)), so a fixture trip shows stop and leg UI. The top-bar data-mode button (Mine on a phone)
 switches the mode per browser, so you can check both without redeploying.
 

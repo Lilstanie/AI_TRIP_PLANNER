@@ -194,7 +194,7 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
 const isMockPlace = (name: string) => name.startsWith("Mock ");
 
 async function mockRoute(q: RouteQuery): Promise<RouteLeg[]> {
-  if (isMockPlace(q.from) && isMockPlace(q.to))
+  if (toolRuntimeConfig().mockMultiStop && isMockPlace(q.from) && isMockPlace(q.to))
     return [{ mode: "transit", durationMin: 20, price: 4, note: `mock ${q.from} -> ${q.to}` }];
   return [{ mode: "train", durationMin: 140, price: 90, note: `mock ${q.from} -> ${q.to}` }];
 }
@@ -339,7 +339,7 @@ const MOCK_PLACE_NAMES: Record<string, readonly string[]> = {
 
 async function mockPlaces(q: PlaceQuery): Promise<Place[]> {
   const category = q.category ?? "sight";
-  const names = MOCK_PLACE_NAMES[category] ?? [];
+  const names = toolRuntimeConfig().mockMultiStop ? (MOCK_PLACE_NAMES[category] ?? []) : [];
   return [
     { name: `Mock attraction near ${q.near}`, category, rating: 4.5 },
     ...names.map((name, index) => ({
