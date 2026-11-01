@@ -30,6 +30,7 @@ export type MapStop = { activityId: string; place: GooglePlace; number: number; 
 
 const LABEL_ZOOM = 12;
 const HOME_ZOOM = 9;
+const STOP_ZOOM = 14;
 const WORLD_ZOOM = 2;
 
 function coordinate(place: GooglePlace): Coordinate | undefined {
@@ -540,9 +541,9 @@ export function TripMap({
 
   useEffect(() => {
     const position = selectedStop && coordinate(selectedStop.place);
-    if (!runtime || !position || (!phone && runtime.map.getBounds()?.contains(position) !== false))
-      return;
+    if (!runtime || !position) return;
     moving.current = true;
+    if ((runtime.map.getZoom() ?? 0) < STOP_ZOOM) runtime.map.setZoom(STOP_ZOOM);
     if (reducedMotion) runtime.map.setCenter(position);
     else runtime.map.panTo(position);
     const settle = runtime.listenOnce("idle", () => {
