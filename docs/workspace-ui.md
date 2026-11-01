@@ -9,6 +9,16 @@ now. Implementation history and browser acceptance for each phase are in the
 The Trip home action area and its acceptance criteria are detailed in
 [Trip home action rail](design/trip-home-actions.md).
 
+## First-visit intro
+
+On a browser's first visit, `/` opens on a full-screen intro (`IntroGate`, `FirstVisitIntro`): headline,
+one line on what the planner does, Start planning, the AI travel team (coordinator and the five
+specialists) and three steps. It has the language toggle and follows light and dark. Start planning
+stores `trip.intro.seen.v1` in `localStorage` and mounts the workspace again, so it picks up a language chosen on the intro. Later
+visits go straight to the workspace. `/?intro` shows the intro again for a demo. Browsers driven by
+automation (`navigator.webdriver`) skip it unless `?intro` is in the URL, so E2E scripts open the
+workspace as before.
+
 ## Layout
 
 | Area              | Content                                                                                                                                                                                                                                                                                                                                    | Implementation                                                                                                                          |
