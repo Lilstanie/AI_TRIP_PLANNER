@@ -62,7 +62,7 @@ try {
   await page.locator("textarea").first().fill("");
 
   await watchComposer(page);
-  await page.getByRole("button", { name: "Sydney · 4 days" }).click();
+  await page.locator(".chat-suggestions__chip").first().click();
   await page.screenshot({ path: resolve(out, "02-composer-moving.png") });
   await page.waitForTimeout(800);
   const BLANK_Y = blank.y;
@@ -96,10 +96,7 @@ try {
   await page.waitForTimeout(1500);
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page
-    .getByRole("button", { name: /Sydney · / })
-    .first()
-    .click();
+  await page.locator(".chats-panel__content").getByRole("button", { name: / · / }).first().click();
   await page.waitForTimeout(1500);
   check(
     (await footer(page).innerText()).includes("Saved"),
@@ -136,7 +133,7 @@ try {
   const still = await reduced.newPage();
   await still.goto(BASE, { waitUntil: "networkidle" });
   await watchComposer(still);
-  await still.getByRole("button", { name: "Sydney · 4 days" }).click();
+  await still.locator(".chat-suggestions__chip").first().click();
   await still.waitForTimeout(500);
   const stillFrames = await still.evaluate(() => window.__composerFrames);
   check(
