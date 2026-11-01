@@ -76,6 +76,41 @@ export function WeatherIcon({ sky }: { sky: WeatherSky }) {
   );
 }
 
+function dateLabels(start: string, day: number): string[] {
+  const time = Date.parse(`${start}T00:00:00Z`) + (day - 1) * 86_400_000;
+  if (!Number.isFinite(time)) return [];
+  return ["en-AU", "zh-CN"].flatMap((locale) => {
+    const label = new Intl.DateTimeFormat(locale, {
+      weekday: "short",
+      day: "numeric",
+      month: "short",
+      timeZone: "UTC",
+    }).format(time);
+    return [label, label.replace(/,/g, "")];
+  });
+}
+
+function entryStart(text: string, at: number): number {
+  const before = text.slice(0, at);
+  const stop = before.lastIndexOf(". ");
+  return Math.max(stop < 0 ? 0 : stop + 2, before.lastIndexOf("。") + 1);
+}
+
+export function weatherForDay(text: string, start: string, day: number, days: number): string {
+  const entries: Array<{ day: number; at: number }> = [];
+  for (let current = 1; current <= days; current++)
+    for (const label of new Set(dateLabels(start, current))) {
+      for (let at = text.indexOf(label); at >= 0; at = text.indexOf(label, at + label.length))
+        entries.push({ day: current, at: entryStart(text, at) });
+    }
+  if (!entries.length) return text;
+  const starts = [...new Set(entries.map((entry) => entry.at))].sort((a, b) => a - b);
+  const mine = new Set(entries.filter((entry) => entry.day === day).map((entry) => entry.at));
+  return starts
+    .flatMap((at, index) => (mine.has(at) ? [text.slice(at, starts[index + 1]).trim()] : []))
+    .join(" ");
+}
+
 export function TripWeather({ text }: { text: string }) {
   return (
     <p className="timeline-day__weather">

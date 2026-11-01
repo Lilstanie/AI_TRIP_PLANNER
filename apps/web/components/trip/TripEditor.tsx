@@ -49,7 +49,7 @@ import { useTimelineEdits, type TimelineEdits } from "./timeline/useTimelineEdit
 import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { DayNoteForm } from "./timeline/DayNoteForm";
 import { TripTips, tripWeather } from "./TripTips";
-import { TripWeather } from "./TripWeather";
+import { TripWeather, weatherForDay } from "./TripWeather";
 import { useTripDay } from "./useTripDay";
 import { useItineraryDrag } from "./useItineraryDrag";
 import { END_OF_DAY, zoneKey, type DragSource, type DropTarget } from "@/lib/trip/drag-target";
@@ -185,7 +185,8 @@ export function TripEditorView({
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
   const staying = stayingAt(plan, day);
-  const weather = tripWeather(plan);
+  const tripText = tripWeather(plan);
+  const weather = tripText && weatherForDay(tripText, plan.brief.dates[0], day, days);
   const locked = disabled || edits.busy;
   const strip = useMemo(
     () =>

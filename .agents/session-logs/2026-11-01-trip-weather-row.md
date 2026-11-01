@@ -12,7 +12,7 @@ contract-impact: none
 ## What changed
 
 - `apps/web/components/trip/TripWeather.tsx`: weather row with an SVG icon picked from the weather words (sun, partly, cloud, fog, rain, snow, storm).
-- `TripEditor.tsx` renders the row under the day heading; `TripTips.tsx` no longer repeats the weather sentence and the tip is labelled Packing / 行李.
+- `TripEditor.tsx` renders the row under the day heading with only that day's lines (`weatherForDay` cuts the guide text at each trip date, en-AU and zh-CN labels); `TripTips.tsx` no longer repeats the weather sentence and the tip is labelled Packing / 行李.
 - `trip-weather.css` (new, imported after `timeline.css`): row style and icon animations (global reduced-motion rule stops them).
 - `packing-checklist.e2e.mjs`: one check that the weather shows once, with an icon. Docs: `workspace-ui.md` and `.zh.md`.
 
@@ -22,7 +22,7 @@ contract-impact: none
 
 ## Validation
 
-- `CHANNEL=chrome pnpm --filter @trip/web e2e packing-checklist`: 25/25 checks passed (en 1440, zh 390).
+- `CHANNEL=chrome pnpm --filter @trip/web e2e packing-checklist`: 25/25 checks passed (en 1440, zh 390); the fixture now has two dated days and day 1 shows only its sun line.
 - `pnpm --filter @trip/web typecheck` passed; lint shows only the existing PhoneTrajectory warning.
 - `check-ui-copy.mjs`: no added helper-copy classes.
 

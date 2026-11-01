@@ -50,7 +50,12 @@ function trip(key, title, packing) {
           summary: "Guide fixture",
           items: [
             { kind: "customs", detail: "Locals queue politely." },
-            { kind: "weather-packing", detail: "Mild days, cool evenings.", packing },
+            {
+              kind: "weather-packing",
+              detail:
+                "Sydney, Tue, 1 Oct (forecast): Clear sky. Sydney, Wed, 2 Oct (forecast): Rain showers.",
+              packing,
+            },
           ],
           assumptions: [],
           conflictsWith: [],
@@ -196,10 +201,10 @@ try {
     let tips = await openTrip(page, "Packing first", phone, zh);
     const weather = page.locator(".timeline-day__weather").filter({ visible: true });
     check(
-      (await weather.innerText()).trim() === "Mild days, cool evenings." &&
-        (await weather.locator(".weather-icon").count()) === 1 &&
-        !(await tips.innerText()).includes("Mild days"),
-      `${tag}: weather shows once, with an icon, above the day`,
+      (await weather.innerText()).trim() === "Sydney, Tue, 1 Oct (forecast): Clear sky." &&
+        (await weather.locator('.weather-icon[data-sky="sun"]').count()) === 1 &&
+        !(await tips.innerText()).includes("Clear sky"),
+      `${tag}: only day 1 weather shows, once, with its icon`,
       await weather.innerText(),
     );
     const boxes = tips.getByRole("checkbox");

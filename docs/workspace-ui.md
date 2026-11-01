@@ -824,11 +824,12 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   dropped. Plans saved before items carried a `selectionId` cannot be re-priced and must be
   replanned. See the
   [Agent Note](../.agents/notes/implemented/architecture/2026-10-07-selection-id-on-proposal-items.md).
-- **Trip weather.** The guide's dated weather lines sit in a tinted row under the selected day's
-  heading, above its stops, on every day. A small animated icon leads the row (sun, sun behind a
-  cloud, cloud, fog, rain, snow or storm), chosen from the weather words in the text; with no match
-  it shows the sun behind a cloud. Reduced motion stops the animation. The row is absent when the
-  plan has no guide or the guide has no weather text.
+- **Trip weather.** Under the selected day's heading, above its stops, a tinted row shows that
+  day's weather lines from the guide (one per city, matched by the day's date); a guide line that
+  names no date shows on every day, and a day with no matching line has no row. A small animated
+  icon leads the row (sun, sun behind a cloud, cloud, fog, rain, snow or storm), chosen from the
+  weather words in that day's text; with no match it shows the sun behind a cloud. Reduced motion
+  stops the animation.
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   packing, and places to explore) is a collapsible block at the bottom of the Trip panel, below the days. It
   starts collapsed unless this viewer has saved an expanded preference for that trip in this browser
