@@ -239,11 +239,11 @@ The chat surface is `apps/web/components/chat/ThinkingProcess.tsx`, rendered by
 process". `apps/web/lib/chat/thinking-model.ts` derives the tree from `activity`
 (`AgentProgressEvent[]`) with no React in it; `Disclosure.tsx` is the one DSH-ported disclosure
 chrome every row in the tree uses; `ThinkingRows.tsx` renders the reasoning, subagent and tool rows
-on top of it. Its styles are `apps/web/app/styles/thinking.css`; a question the coordinator can ask
+on top of it. Its styles are `apps/web/app/styles/chat/thinking.css`; a question the coordinator can ask
 is either the assistant's own prose message or, for a structured ask, `QuestionComposer.tsx` taking
-the composer's seat (`apps/web/app/styles/question.css`); the plain composer is
+the composer's seat (`apps/web/app/styles/chat/question.css`); the plain composer is
 `apps/web/components/chat/Composer.tsx`. Messages themselves render through `MessageItem.tsx`
-(`apps/web/app/styles/messages.css`). Design tokens live in `apps/web/app/styles/tokens.css`, and
+(`apps/web/app/styles/chat/messages.css`). Design tokens live in `apps/web/app/styles/tokens.css`, and
 progress frames are the `AgentProgressEvent` discriminated union in `packages/shared/src/chat/chat.ts`.
 
 The surface mirrors DSH row for row:
@@ -525,7 +525,7 @@ and the todo panel were two summaries of the same run, and the count line is the
 
 ### 4.10 The composer is a card, not a form row
 
-`apps/web/components/chat/Composer.tsx` with `apps/web/app/styles/composer.css` replaces the old
+`apps/web/components/chat/Composer.tsx` with `apps/web/app/styles/chat/composer.css` replaces the old
 input-plus-two-buttons row. It follows DSH's `InputBar` shape: one capsule surface holds the text and
 its controls, a 28px round control sits bottom-left, the primary action bottom-right, the draft grows
 with its content and then scrolls inside the card, and the card carries the focus ring for the whole
@@ -731,22 +731,22 @@ DSH, in the `deepseek-harness` repository:
 
 This project:
 
-| Topic                          | Path                                                                                                                                                                    |
-| ------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Thinking surface               | `apps/web/components/chat/ThinkingProcess.tsx`, `ThinkingRows.tsx`, `thinking-model.ts`                                                                                 |
-| Disclosure chrome              | `apps/web/components/chat/Disclosure.tsx`                                                                                                                               |
-| Icons                          | `apps/web/components/ui/flow-icons.tsx` (ported DSH glyphs and category glyphs), `icons.tsx` (unrelated app chrome)                                                     |
-| Chat rendering                 | `apps/web/components/chat/ChatPanel.tsx`                                                                                                                                |
-| Messages                       | `apps/web/components/chat/MessageItem.tsx`, `apps/web/components/chat/RevealedText.tsx`, `apps/web/lib/workspace/message-chrome.ts`, `apps/web/app/styles/messages.css` |
-| Composer                       | `apps/web/components/chat/Composer.tsx`, `apps/web/app/styles/composer.css`                                                                                             |
-| Ask-question card              | `apps/web/components/chat/QuestionComposer.tsx`, `apps/web/lib/workspace/ask-user.ts`, `apps/web/app/styles/question.css`                                               |
-| Stay decision                  | `ChoiceBlock` in `apps/web/components/chat/ThinkingRows.tsx`                                                                                                            |
-| Thinking styles                | `apps/web/app/styles/thinking.css`                                                                                                                                      |
-| Design tokens                  | `apps/web/app/styles/tokens.css`                                                                                                                                        |
-| Progress and ask-user contract | `packages/shared/src/chat/chat.ts`                                                                                                                                      |
-| Reasoning stream               | `packages/agents/src/reasoning.ts`, `packages/orchestrator/src/planning/reasoning-sink.ts`                                                                              |
-| Thinking model routing         | `packages/agents/src/models.ts` (`RoutedModelOptions`)                                                                                                                  |
-| Tool result detail and kind    | `packages/orchestrator/src/planning/progress-tools.ts`                                                                                                                  |
-| Ask-user tool                  | `packages/orchestrator/src/chat/chat.ts` (`askUserQuestion`, `toQuestions`, `AskUserError`)                                                                             |
-| Round and choice events        | `packages/orchestrator/src/planning/supervisor.ts`, `workflow.ts`, `chat.ts`                                                                                            |
-| Development fixture pages      | `apps/web/app/debug/thinking/page.tsx`, `apps/web/lib/dev/thinking-fixtures.ts`, `apps/web/app/debug/question/page.tsx`                                                 |
+| Topic                          | Path                                                                                                                                                                         |
+| ------------------------------ | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Thinking surface               | `apps/web/components/chat/ThinkingProcess.tsx`, `ThinkingRows.tsx`, `thinking-model.ts`                                                                                      |
+| Disclosure chrome              | `apps/web/components/chat/Disclosure.tsx`                                                                                                                                    |
+| Icons                          | `apps/web/components/ui/flow-icons.tsx` (ported DSH glyphs and category glyphs), `icons.tsx` (unrelated app chrome)                                                          |
+| Chat rendering                 | `apps/web/components/chat/ChatPanel.tsx`                                                                                                                                     |
+| Messages                       | `apps/web/components/chat/MessageItem.tsx`, `apps/web/components/chat/RevealedText.tsx`, `apps/web/lib/workspace/message-chrome.ts`, `apps/web/app/styles/chat/messages.css` |
+| Composer                       | `apps/web/components/chat/Composer.tsx`, `apps/web/app/styles/chat/composer.css`                                                                                             |
+| Ask-question card              | `apps/web/components/chat/QuestionComposer.tsx`, `apps/web/lib/workspace/ask-user.ts`, `apps/web/app/styles/chat/question.css`                                               |
+| Stay decision                  | `ChoiceBlock` in `apps/web/components/chat/ThinkingRows.tsx`                                                                                                                 |
+| Thinking styles                | `apps/web/app/styles/chat/thinking.css`                                                                                                                                      |
+| Design tokens                  | `apps/web/app/styles/tokens.css`                                                                                                                                             |
+| Progress and ask-user contract | `packages/shared/src/chat/chat.ts`                                                                                                                                           |
+| Reasoning stream               | `packages/agents/src/reasoning.ts`, `packages/orchestrator/src/planning/reasoning-sink.ts`                                                                                   |
+| Thinking model routing         | `packages/agents/src/models.ts` (`RoutedModelOptions`)                                                                                                                       |
+| Tool result detail and kind    | `packages/orchestrator/src/planning/progress-tools.ts`                                                                                                                       |
+| Ask-user tool                  | `packages/orchestrator/src/chat/chat.ts` (`askUserQuestion`, `toQuestions`, `AskUserError`)                                                                                  |
+| Round and choice events        | `packages/orchestrator/src/planning/supervisor.ts`, `workflow.ts`, `chat.ts`                                                                                                 |
+| Development fixture pages      | `apps/web/app/debug/thinking/page.tsx`, `apps/web/lib/dev/thinking-fixtures.ts`, `apps/web/app/debug/question/page.tsx`                                                      |
