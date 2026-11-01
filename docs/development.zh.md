@@ -87,6 +87,8 @@ ln -s ../../.env.local apps/web/.env.local
 
 Vercel 的生产构建会在 `next build` 之前执行待运行的迁移（`apps/web/package.json` 里的 `vercel-build`），所以合并的迁移会随部署进入生产数据库。只有 `VERCEL_ENV` 是 `production` 且设置了 `DATABASE_URL` 时才执行；预览构建和没有数据库的构建会跳过，迁移失败会让部署失败。只有项目的 Root Directory 是 `apps/web` 时 Vercel 才会用这个脚本。其他数据库（本地或演示用的）仍要手动跑 `db:migrate`；缺少 `0002_adorable_namor.sql` 里的 `account_memories` 表时，设置里会显示“Could not load remembered preferences”。
 
+只有 `main` 会在 Vercel 上部署：`apps/web/vercel.json` 关掉了其他分支的 Git 部署，所以 PR 不再有预览构建。预览有 Vercel 登录保护，没人用来做检查，却每次推送都消耗部署额度；2026-11-01 额度用完，合并的修复一整天上不了线。线上行为在合并后到官网验证。
+
 Agent Lab 的实时运行默认关闭，除非部署启用它（这些名称不在 `.env.example` 中）：
 
 | 设置                               | 用途                                                                                                                               |

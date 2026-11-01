@@ -124,6 +124,11 @@ the project's Root Directory is `apps/web`. Any other database, such as a local 
 needs `db:migrate` by hand; settings shows "Could not load remembered preferences" when it is
 missing the `account_memories` table from `0002_adorable_namor.sql`.
 
+Only `main` deploys on Vercel: `apps/web/vercel.json` turns off Git deployments for every other
+branch, so a pull request gets no preview build. Previews sat behind Vercel login and were not used
+for checks, but each push used up deployment quota; on 2026-11-01 the quota ran out and merged fixes
+stayed off the live site for a day. Verify live behaviour on the deployed site after the merge.
+
 Agent Lab live runs are off unless the deployment enables them (these names are not in `.env.example`):
 
 | Setting                            | Purpose                                                                                                                                                                         |
