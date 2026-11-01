@@ -225,3 +225,44 @@
     padding: var(--space-5);
   }
 }
+.admin-fields {
+  display: grid;
+  gap: var(--space-3);
+  padding: calc(var(--space-5) * 1.5);
+}
+.admin-fields label {
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+}
+.admin-fields input {
+  min-height: 44px;
+  padding: 0 var(--space-3);
+  border: 1px solid var(--border);
+  border-radius: var(--radius);
+  background: var(--surface-2);
+  color: var(--text);
+  font: inherit;
+}
+.admin-fields input[aria-invalid="true"] {
+  border-color: var(--danger, var(--accent));
+}
+.admin-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 44px;
+  border-radius: var(--radius-pill);
+  font: inherit;
+  text-decoration: none;
+  cursor: pointer;
+}
+.auth-form .admin-button {
+  --button-bg: var(--accent-fill);
+  border: 0;
+  background: var(--accent-fill);
+  color: var(--on-accent);
+}
+.admin-error {
+  margin: 0;
+  color: var(--danger, var(--accent));
+}

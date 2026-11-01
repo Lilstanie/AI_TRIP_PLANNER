@@ -29,7 +29,12 @@ pnpm --filter @trip/web start -p 3000
 
 `pnpm build` 加 `start` 运行的是生产服务器。没有 Clerk 密钥时，生产服务器只用示例数据，也不调用聊天模型，即使设置了
 `DEEPSEEK_API_KEY`（`/api/data-mode` 返回 `liveBlock: "auth-not-configured"`）。要展示模型和真实数据，
-要么把 Clerk 密钥写进 `.env.local` 并登录，要么用 `pnpm dev` 代替 `build` 和 `start`。
+要么把 Clerk 密钥写进 `.env.local` 并登录，要么用 `pnpm dev` 代替 `build` 和 `start`，要么打开
+`/sign-in` 输入管理员口令。
+
+**管理员口令。** `/sign-in` 也接受口令 `admin`、`test` 或 `tutor`，不区分大小写。无论是否配置了 Clerk 密钥，
+它都会在 12 小时内不用 Clerk 账号打开工作台和真实数据。该会话没有账号，所以云同步和长期记忆保持关闭。
+设置 `ADMIN_SESSION_SECRET` 可以用你自己的密钥签名会话 cookie。
 
 原始彩排在 macOS 14.6.1 上使用上述工具链，未设置环境变量，构建约需 30 秒，启动不到 1 秒，构建没有警告。
 请在每台演示机器上彩排；耗时和警告可能不同。
