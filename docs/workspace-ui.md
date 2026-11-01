@@ -909,6 +909,10 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the dashes are
   drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an edit
   preview, stay solid lines. The map follows the system light or dark scheme.
+- **OSM route layers** (`components/map/maplibre-renderer.ts`). Each line is added as soon as the
+  map style has loaded, even while other lines' GeoJSON is still being parsed, so every leg of the
+  focused day is drawn on every redraw. A line is inserted below any route layer with a higher
+  `zIndex`, so other days stay under every casing and every day colour sits on its casing.
 - **Place popup.** Pressing a marker or its label, or a place in the Trip timeline, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
   Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my

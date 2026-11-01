@@ -160,6 +160,13 @@ class LibreMarker extends HTMLElement {
   }
 }
 
+const lineDepth = new WeakMap<maplibre.Map, Map<string, number>>();
+const depthsOf = (map: maplibre.Map) => {
+  const depths = lineDepth.get(map) ?? new Map<string, number>();
+  lineDepth.set(map, depths);
+  return depths;
+};
+
 class LibreLine {
   id = `trip-route-${++sequence}`;
   map?: LibreMap;
@@ -168,17 +175,24 @@ class LibreLine {
     strokeColor?: string;
     strokeOpacity?: number;
     strokeWeight?: number;
+    zIndex?: number;
   };
   constructor(options: object) {
     this.options = options;
     this.map = (options as { map: LibreMap }).map;
     this.map.native.on("style.load", this.draw);
-    if (this.map.native.isStyleLoaded()) this.draw();
+    this.draw();
   }
   draw = () => {
     const map = this.map?.native;
     const o = this.options;
-    if (!map || !map.isStyleLoaded() || !o.path?.length || map.getSource(this.id)) return;
+    if (!map?.style?._loaded || !o.path?.length || map.getSource(this.id)) return;
+    const depth = o.zIndex ?? 0;
+    const depths = depthsOf(map);
+    depths.set(this.id, depth);
+    const before = map
+      .getLayersOrder()
+      .find((id) => id !== this.id && (depths.get(id) ?? -Infinity) > depth);
     map.addSource(this.id, {
       type: "geojson",
       data: {
@@ -187,22 +201,26 @@ class LibreLine {
         geometry: { type: "LineString", coordinates: o.path.map((p) => [p.lng, p.lat]) },
       },
     });
-    map.addLayer({
-      id: this.id,
-      type: "line",
-      source: this.id,
-      layout: { "line-cap": "round", "line-join": "round" },
-      paint: {
-        "line-color": o.strokeColor || "#0071e3",
-        "line-width": o.strokeWeight || 4,
-        "line-opacity": o.strokeOpacity ?? 1,
+    map.addLayer(
+      {
+        id: this.id,
+        type: "line",
+        source: this.id,
+        layout: { "line-cap": "round", "line-join": "round" },
+        paint: {
+          "line-color": o.strokeColor || "#0071e3",
+          "line-width": o.strokeWeight || 4,
+          "line-opacity": o.strokeOpacity ?? 1,
+        },
       },
-    });
+      before,
+    );
   };
   setMap(value: unknown) {
     if (value || !this.map) return;
     const map = this.map.native;
     map.off("style.load", this.draw);
+    lineDepth.get(map)?.delete(this.id);
     if (map.getLayer(this.id)) map.removeLayer(this.id);
     if (map.getSource(this.id)) map.removeSource(this.id);
     this.map = undefined;
