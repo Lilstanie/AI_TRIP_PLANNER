@@ -551,7 +551,13 @@ shard assignments; workers receive that exact plan as an artifact.
 
 - Ordinary documentation can skip CLI acceptance only when every changed path qualifies and the
   inventory is reviewed. Skills and repository instructions are not a general documentation exemption.
-  The reviewed infrastructure inventory includes `ci-integration.e2e.mjs`.
+  The reviewed infrastructure inventory includes `ci-integration.e2e.mjs` and
+  `real-clerk-route-inventory.e2e.mjs`.
+- App source selects only `local-cli-collections.e2e.mjs`, the script that builds the real app and
+  runs its smoke journey: `apps/web/{app,components,lib,public}/`, `apps/web/tests/{app,components,lib,fixtures}/`,
+  `packages/*/{src,tests}/`, and top-level journey scripts or notes under `apps/web/tests/e2e/`
+  other than `agent-lab-*` and `real-clerk-*`. The other scripts test the runner with fixtures
+  ([why](../.agents/notes/implemented/process/2026-11-01-cli-acceptance-app-source.md)).
 - Reviewed dependency rules select the union of their scripts. Shared infrastructure, unknown paths,
   unclassified acceptance scripts or missing expected scripts require full coverage. Missing history,
   invalid revisions and failed comparisons also fall back to full coverage with a reason.

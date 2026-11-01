@@ -31,6 +31,8 @@ export type Itinerary = {
 
   markersFor(day?: number): Marker[];
 
+  pathFor(day?: number): Marker[];
+
   stop(activityId: string): Stop | undefined;
 
   planIndex(activityId: string, day: number, position: number): number;
@@ -79,23 +81,34 @@ export function buildItinerary(
   const byDay = new Map<number, Stop[]>();
   for (const entry of stops) byDay.set(entry.day, [...(byDay.get(entry.day) ?? []), entry]);
 
+  const located = (day?: number) =>
+    (day === undefined ? stops : (byDay.get(day) ?? [])).flatMap((entry): Marker[] =>
+      entry.place && entry.activity.id
+        ? [
+            {
+              activityId: entry.activity.id,
+              place: entry.place,
+              verified: !!entry.activity.placeId,
+              number: entry.number!,
+              day: entry.day,
+              ...(entry.activity.startTime ? { startTime: entry.activity.startTime } : {}),
+            },
+          ]
+        : [],
+    );
   const markersFor = (day?: number) => {
     const seen = new Set<string>();
-    return (day === undefined ? stops : (byDay.get(day) ?? [])).flatMap((entry): Marker[] => {
-      if (!entry.place || !entry.activity.id || seen.has(entry.place.id)) return [];
-      seen.add(entry.place.id);
-      return [
-        {
-          activityId: entry.activity.id,
-          place: entry.place,
-          verified: !!entry.activity.placeId,
-          number: entry.number!,
-          day: entry.day,
-          ...(entry.activity.startTime ? { startTime: entry.activity.startTime } : {}),
-        },
-      ];
+    return located(day).filter((marker) => {
+      if (seen.has(marker.place.id)) return false;
+      seen.add(marker.place.id);
+      return true;
     });
   };
+  const pathFor = (day?: number) =>
+    located(day).filter(
+      (marker, index, all) =>
+        all[index - 1]?.place.id !== marker.place.id || all[index - 1]?.day !== marker.day,
+    );
 
   return {
     days: () => [...byDay.keys()].sort((a, b) => a - b),
@@ -103,6 +116,7 @@ export function buildItinerary(
     ideas: () => ideas,
     stopCount: stops.length,
     markersFor,
+    pathFor,
     stop: (activityId) => stops.find((entry) => entry.activity.id === activityId),
     planIndex(activityId, day, position) {
       const all = byDay.get(day) ?? [];

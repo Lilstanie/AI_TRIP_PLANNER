@@ -369,7 +369,8 @@ WebSocket 客户端和 Drizzle session 测试账号记忆写入；现有读取�
 
 仅使用 Node 内置模块的 `cli-acceptance-plan` 任务检出完整 Git 历史，从显式 PR base/head SHA 的 merge base 比较到 PR head。选择范围包含 PR 的全部提交、新增、删除，以及重命名两端的路径。事件 SHA 通过环境变量进入固定命令。JSON 计划记录变更路径、匹配规则、发现的脚本清单、选中脚本和分片分配；worker 通过 artifact 接收同一份计划。
 
-- 只有每条变更路径都符合规则且脚本清单已审核时，普通文档才可跳过 CLI 验收。技能和仓库指令不属于通用文档豁免。已审核的基础设施脚本清单包括 `ci-integration.e2e.mjs`。
+- 只有每条变更路径都符合规则且脚本清单已审核时，普通文档才可跳过 CLI 验收。技能和仓库指令不属于通用文档豁免。已审核的基础设施脚本清单包括 `ci-integration.e2e.mjs` 和 `real-clerk-route-inventory.e2e.mjs`。
+- 应用源码只选 `local-cli-collections.e2e.mjs`，它会构建真实应用并跑冒烟旅程：`apps/web/{app,components,lib,public}/`、`apps/web/tests/{app,components,lib,fixtures}/`、`packages/*/{src,tests}/`，以及 `apps/web/tests/e2e/` 顶层除 `agent-lab-*` 和 `real-clerk-*` 之外的旅程脚本或说明。其余脚本用 fixture 测试运行器本身（[原因](../.agents/notes/implemented/process/2026-11-01-cli-acceptance-app-source.md)）。
 - 已审核的依赖规则选取对应脚本的并集。共享基础设施、未知路径、未分类的验收脚本或缺失的预期脚本都要求完整覆盖。历史缺失、无效 revision 和比较失败也会退回完整覆盖，并记录原因。
 - 空清单或不安全清单属于规划失败。每次推送到 `main` 都在该次检出的提交上选择当前完整清单，包括合并后的交付内容。
 
