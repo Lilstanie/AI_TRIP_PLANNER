@@ -154,7 +154,6 @@ export const zhShell = {
   dayStopCount: "{count} 站",
   guestRating: "住客评分 {rating}/5",
   googleRatingValue: "Google 评分 {rating}/5",
-  flightStops: "经停",
   stopNumber: "第 {number} 站",
   stopNumberOnDay: "第 {day} 天 · 第 {number} 站",
   routeSourceGoogle: "Google 已核实路线",

@@ -11,7 +11,7 @@
 .timeline-day__conflicts li,
 .timeline-stop__conflicts li {
   padding: var(--space-1) var(--space-2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--warn-bg);
   color: var(--warn);
   font-size: var(--font-size-meta);
@@ -391,7 +391,7 @@
   gap: 4px;
   border: 1px solid var(--border);
   background: var(--surface-2);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   transition:
     border-color var(--transition),
     background var(--transition),
@@ -409,36 +409,6 @@
 .stay-option--selected {
   border: 2px solid var(--accent);
   background: var(--accent-bg);
-}
-.result-card {
-  padding: 12px;
-  border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
-  background: var(--surface);
-}
-.result-card--context {
-  background: var(--surface-2);
-}
-.result-card__head {
-  display: flex;
-  align-items: flex-start;
-  justify-content: space-between;
-  gap: 10px;
-}
-.result-card__head > strong {
-  color: var(--text);
-  white-space: nowrap;
-}
-.result-card a {
-  display: inline-block;
-  margin-top: 8px;
-  color: var(--accent);
-  font-size: 12px;
-  text-decoration: underline;
-  text-underline-offset: 2px;
-}
-.result-card a:hover {
-  color: var(--text);
 }
 .dialog {
   border: 1px solid var(--border);
@@ -543,85 +513,6 @@ button.dialog__close .icon {
     min-width: 0;
   }
 }
-.stay-facts {
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 8px;
-  font-size: 12px;
-}
-.stay-facts dt {
-  color: var(--text-dim);
-}
-.stay-facts dd {
-  margin: 0;
-}
-
-.alternatives {
-  margin-top: 10px;
-  padding-top: 10px;
-  border-top: 1px solid var(--line);
-}
-.alternatives__title {
-  margin: 0 0 6px;
-  font-size: 11px;
-  font-weight: 600;
-  letter-spacing: 0.04em;
-  text-transform: uppercase;
-  color: var(--text-dim);
-}
-.alternatives__list {
-  margin: 0;
-  padding: 0;
-  list-style: none;
-  display: grid;
-  gap: 4px;
-  font-size: 12px;
-}
-.alternatives__row,
-.alternatives__pick {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) auto auto;
-  align-items: baseline;
-  gap: 8px;
-  width: 100%;
-}
-.alternatives__pick {
-  padding: 4px 6px;
-  margin: -4px -6px;
-  border: 0;
-  border-radius: 8px;
-  background: none;
-  color: inherit;
-  font: inherit;
-  text-align: left;
-  cursor: pointer;
-}
-.alternatives__pick:hover,
-.alternatives__pick:focus-visible {
-  background: var(--surface-2, rgb(255 255 255 / 6%));
-}
-
-@media (pointer: coarse) {
-  .alternatives__pick {
-    min-height: 44px;
-  }
-}
-.alternatives__label {
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-.alternatives__price {
-  color: var(--text-dim);
-  font-variant-numeric: tabular-nums;
-}
-.alternatives__delta {
-  font-variant-numeric: tabular-nums;
-  color: var(--text-dim);
-}
-.alternatives__delta.is-cheaper {
-  color: var(--ok);
-}
 .proposal-item > button {
   margin-top: 10px;
 }
@@ -657,7 +548,7 @@ button.dialog__close .icon {
 .item-problem {
   margin: 0;
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   background: var(--warn-bg);
   color: var(--warn);
   font-size: var(--font-size-meta);
