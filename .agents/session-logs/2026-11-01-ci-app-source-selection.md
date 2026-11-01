@@ -2,7 +2,7 @@
 date: 2026-11-01
 author: Claude Code (for Joey)
 branch: fix/TP-230-ci-selection
-pr: pending
+pr: 880
 area: apps/web/tests/cli-e2e, docs
 contract-impact: none
 ---
