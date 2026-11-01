@@ -12,7 +12,7 @@ import {
   seedTabPlan,
   isCurrentTabPlan,
 } from "@/lib/trip/tab-revision";
-import { requestPreview, type PreviewAnswer } from "./previewRequest";
+import { requestPreview, type PreviewAnswer } from "../../lib/trip/preview-request";
 
 export type EditOperation = EditInput["operation"];
 

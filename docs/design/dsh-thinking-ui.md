@@ -236,7 +236,7 @@ to fix rather than behaviour to copy.
 
 The chat surface is `apps/web/components/chat/ThinkingProcess.tsx`, rendered by
 `apps/web/components/chat/ChatPanel.tsx` inside a `section.agent-activity` labelled "Thinking
-process". `apps/web/components/chat/thinking-model.ts` derives the tree from `activity`
+process". `apps/web/lib/chat/thinking-model.ts` derives the tree from `activity`
 (`AgentProgressEvent[]`) with no React in it; `Disclosure.tsx` is the one DSH-ported disclosure
 chrome every row in the tree uses; `ThinkingRows.tsx` renders the reasoning, subagent and tool rows
 on top of it. Its styles are `apps/web/app/styles/thinking.css`; a question the coordinator can ask

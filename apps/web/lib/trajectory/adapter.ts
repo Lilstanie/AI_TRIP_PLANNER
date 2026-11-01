@@ -1,5 +1,5 @@
 import type { AgentProgressEvent, AssistantId } from "@trip/shared";
-import { checkText } from "@/components/chat/team-check";
+import { checkText } from "@/lib/chat/team-check";
 import type { TrajectoryTurnModel, TrajectoryTurnResult } from "@/components/trajectory/layout";
 import type { TrajectoryTranslate } from "@/components/trajectory/locales";
 import type { TrajectoryStep } from "@/components/trajectory/trajectory-table-records";

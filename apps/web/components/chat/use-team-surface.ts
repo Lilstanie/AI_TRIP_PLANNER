@@ -1,7 +1,7 @@
 "use client";
 import { useMemo } from "react";
 import type { AssistantId } from "@trip/shared";
-import { teamModel, type TeamModel, type TeamTurn } from "./team-model";
+import { teamModel, type TeamModel, type TeamTurn } from "../../lib/chat/team-model";
 import { useTrajectoryFocus } from "./trajectory-focus";
 
 export function useTeamSurface(turn: TeamTurn): {

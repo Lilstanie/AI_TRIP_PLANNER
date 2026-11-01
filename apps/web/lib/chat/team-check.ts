@@ -1,6 +1,5 @@
-import { formatMoney } from "@trip/shared";
+import { formatMoney, type AssistantId } from "@trip/shared";
 import type { useLocale } from "@/components/account/LocaleProvider";
-import type { useAssistantName } from "./assistant-names";
 import type { TeamCheck } from "./team-model";
 
 const STOP_KEYS = {
@@ -12,7 +11,7 @@ const STOP_KEYS = {
 
 export function checkText(
   t: ReturnType<typeof useLocale>["t"],
-  displayName: ReturnType<typeof useAssistantName>,
+  displayName: (id: AssistantId) => string,
   decision: TeamCheck["decision"],
 ): string {
   const round = decision.round;

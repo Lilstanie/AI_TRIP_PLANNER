@@ -37,7 +37,7 @@ import { PhoneTabBar, phonePanelId } from "./phone/PhoneTabBar";
 import { PhoneTeamButton } from "./phone/PhoneTeamButton";
 import { PhoneTripTitle } from "./phone/PhoneTripTitle";
 import { TeamControl } from "../chat/TeamControl";
-import { latestTurn } from "../chat/team-model";
+import { latestTurn } from "../../lib/chat/team-model";
 import { PhoneMine } from "./phone/PhoneMine";
 import { PhoneMapSheet } from "./phone/PhoneMapSheet";
 import { usePhoneKeyboard } from "./phone/usePhoneKeyboard";

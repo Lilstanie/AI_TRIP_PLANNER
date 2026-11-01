@@ -7,7 +7,7 @@ import type {
 import type { MessageKey } from "@/lib/i18n/locale";
 import type { Message } from "@/lib/workspace";
 import { PREPARING_SUMMARY } from "@/lib/workspace/session";
-import { ASSISTANT_ORDER } from "./assistant-names";
+import { ASSISTANT_ORDER } from "./assistant-order";
 
 export type DecidedBy = "llm" | "code";
 
