@@ -619,7 +619,8 @@ describe("Workspace interactions", () => {
     expect(screen.queryByRole("button", { name: "Open your trip" })).toBeNull();
     expect(screen.getByText("Where are you going?")).toBeTruthy();
     expect((screen.getByLabelText("Message AI Trip Planner") as HTMLInputElement).value).toBe("");
-    expect(document.body.textContent).not.toMatch(/Tokyo|Kyoto/);
+    const examples = screen.getByLabelText("Example trips").textContent ?? "";
+    expect(document.body.textContent!.replace(examples, "")).not.toMatch(/Tokyo|Kyoto/);
 
     for (const name of ["Where", "When", "Who", "Budget"])
       expect(screen.getByRole("button", { name })).toBeTruthy();
