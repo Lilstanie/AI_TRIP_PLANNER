@@ -217,3 +217,15 @@ html[data-shell="ios-app"]
   .maplibregl-ctrl-top-left {
   top: var(--ios-map-bleed);
 }
+
+html[data-native-tabbar] .workspace-app[data-phone] .phone-tabbar:not([data-hidden]) {
+  visibility: hidden;
+  height: var(--native-tabbar-height, 83px);
+  margin: 0;
+  padding: 0;
+  border: 0 !important;
+  background: none !important;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}

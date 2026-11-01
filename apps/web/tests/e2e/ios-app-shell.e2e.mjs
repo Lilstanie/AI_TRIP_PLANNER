@@ -118,6 +118,51 @@ try {
     await context.close();
   }
 
+  {
+    const { context, page } = await open(browser, { userAgent: IOS_UA, scheme: "light" });
+    await context.addInitScript(() => {
+      window.__shellCalls = [];
+      window.Capacitor = {
+        Plugins: {
+          TripShell: {
+            setTabs: async (state) => {
+              window.__shellCalls.push(state);
+              return { height: 83 };
+            },
+          },
+        },
+      };
+    });
+    await openMockWorkspace(page, BASE);
+    await settle(page, 800);
+    const first = await page.evaluate(() => window.__shellCalls.at(-1));
+    check(
+      first?.tabs.map((tab) => tab.id).join() === "chat,map,mine" && first.selected === "chat",
+      "native tab bar receives the web tabs and the selected one",
+      first,
+    );
+    const webBar = await page.evaluate(() => {
+      const bar = document.querySelector(".phone-tabbar");
+      return {
+        visibility: getComputedStyle(bar).visibility,
+        height: bar.getBoundingClientRect().height,
+      };
+    });
+    check(
+      webBar.visibility === "hidden" && Math.round(webBar.height) === 83,
+      "web tab bar becomes a spacer the native bar covers",
+      webBar,
+    );
+    await page.evaluate(() => document.getElementById("phone-tab-map")?.click());
+    await settle(page, 800);
+    check(
+      (await page.evaluate(() => window.__shellCalls.at(-1)?.selected)) === "map",
+      "a tap relayed from the native bar switches the web tab and reports it back",
+    );
+    await shot(page, "native-tabbar-map");
+    await context.close();
+  }
+
   const { context, page } = await open(browser, { userAgent: SAFARI_UA, scheme: "light" });
   await openMockWorkspace(page, BASE);
   check(
