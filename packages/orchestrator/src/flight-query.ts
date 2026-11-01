@@ -1,4 +1,11 @@
-import { DATE_TOKEN, isAmbiguous, parseTripDate } from "./dates";
+import {
+  DATE_TOKEN,
+  MONTH_DAY_TOKEN,
+  isAmbiguous,
+  parseMonthDay,
+  parseTripDate,
+  type ParsedDate,
+} from "./dates";
 
 export interface FlightQuery {
   from: string;
@@ -26,7 +33,11 @@ const LEADING =
 const TRAILING =
   /\s+(?:flights?|flying|fly|airfares?|fares?|tickets?|price|prices|one[- ]way|return)$/i;
 
-const TRAILING_CN = /(?:的)?(?:机票|航班|飞机票|票价|价格)$|的$/u;
+const LEADING_CN =
+  /^(?:请|麻烦|帮忙|帮我|给我|我想|我要|想要|想|查询|查一下|查查|查|看一下|看看|看|搜索|搜一下|搜|找一下|找|从)/u;
+const TRAILING_CN = /(?:的)?(?:机票|航班|飞机票|票价|价格|往返|来回|单程)$|的$/u;
+
+const TRIP_DATES = new RegExp(`${DATE_TOKEN}|${MONTH_DAY_TOKEN}`, "gi");
 
 function strip(value: string, pattern: RegExp): string {
   let result = value;
@@ -40,7 +51,10 @@ function strip(value: string, pattern: RegExp): string {
 
 function city(value: string | undefined): string | undefined {
   if (!value) return undefined;
-  const cleaned = strip(strip(strip(value.trim(), LEADING), TRAILING), TRAILING_CN)
+  const cleaned = strip(
+    strip(strip(strip(value.trim(), LEADING), LEADING_CN), TRAILING),
+    TRAILING_CN,
+  )
     .replace(/\s+/g, " ")
     .trim();
 
@@ -48,19 +62,30 @@ function city(value: string | undefined): string | undefined {
   return /[A-Za-z\p{Script=Han}]/u.test(cleaned) ? cleaned : undefined;
 }
 
-export function parseFlightQuery(message: string): FlightQuery | undefined {
+function tripDates(message: string, today: Date): ParsedDate[] {
+  let earliest = today.toISOString().slice(0, 10);
+  return [...message.matchAll(TRIP_DATES)].map((match) => {
+    const parsed = parseTripDate(match[0]) ?? parseMonthDay(match[0], earliest);
+    if (parsed && "iso" in parsed) earliest = parsed.iso;
+    return parsed;
+  });
+}
+
+export function parseFlightQuery(
+  message: string,
+  today: Date = new Date(),
+): FlightQuery | undefined {
   if (!FLIGHT_WORDS.test(message)) return undefined;
 
   if (PLANNING_WORDS.test(message) || EDIT_WORDS.test(message)) return undefined;
 
-  const pair = message.match(PAIR) ?? message.match(PAIR_CN);
+  const undated = message.replace(TRIP_DATES, ",");
+  const pair = undated.match(PAIR) ?? undated.match(PAIR_CN);
   const from = city(pair?.[1]);
   const to = city(pair?.[2]);
   if (!from || !to || from.toLowerCase() === to.toLowerCase()) return undefined;
 
-  const parsedDates = [...message.matchAll(new RegExp(DATE_TOKEN, "gi"))].map((match) =>
-    parseTripDate(match[0]),
-  );
+  const parsedDates = tripDates(message, today);
   if (parsedDates.some(isAmbiguous)) return undefined;
   const found = parsedDates.filter((parsed): parsed is { iso: string } => !!parsed);
   if (!found.length) return undefined;
