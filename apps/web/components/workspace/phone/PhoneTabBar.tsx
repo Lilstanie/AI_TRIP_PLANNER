@@ -1,9 +1,9 @@
 "use client";
 import { useRef, type KeyboardEvent, type ReactNode } from "react";
-import { ChatIcon, MapIcon, RouteIcon, UserIcon } from "../ui/icons";
-import { useLocale } from "../account/LocaleProvider";
+import { ChatIcon, MapIcon, RouteIcon, UserIcon } from "../../ui/icons";
+import { useLocale } from "../../account/LocaleProvider";
 import type { MessageKey } from "@/lib/i18n/locale";
-import { PHONE_VIEWS, type MobileView } from "./workspace-helpers";
+import { PHONE_VIEWS, type MobileView } from "../workspace-helpers";
 
 const TABS: Record<
   Exclude<MobileView, "trajectory">,
