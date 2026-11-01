@@ -70,15 +70,26 @@ export async function answerFlightQuery(
     failure = error instanceof Error ? error.message : "The flight provider was unavailable.";
   }
 
-  const party = passengers === 1 ? "1 traveller" : `${passengers} travellers`;
   const cheapest = options[0];
-  const reply = failure
-    ? `I could not price ${trip}: ${failure}`
-    : cheapest
-      ? `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${moneyIn(cheapest.price, BASE_CURRENCY)}${
-          options.length > 1 ? `, out of ${options.length} fares found` : ""
-        }. Prices are whole-party totals and change without notice; nothing here is booked.`
-      : `No fares came back for ${trip}. Try a nearby date, or a different pair of cities.`;
+  const chinese = query.language ? query.language === "zh" : /\p{Script=Han}/u.test(`${from}${to}`);
+  const reply = chinese ? chineseReply() : englishReply();
+
+  function chineseReply() {
+    const route = `${from} → ${to} ${depart}`;
+    if (failure) return `暂时查不到 ${route} 的票价：${failure}`;
+    if (!cheapest) return `${route} 没有查到票价，可以换个相近的日期或城市试试。`;
+    const count = options.length > 1 ? `，共找到 ${options.length} 个票价` : "";
+    return `${route}，${passengers} 位旅客最便宜的是 ${cheapest.carrier}，${moneyIn(cheapest.price, BASE_CURRENCY)}${count}。价格是全体旅客的总价，随时可能变动，这里不会预订。`;
+  }
+
+  function englishReply() {
+    const party = passengers === 1 ? "1 traveller" : `${passengers} travellers`;
+    if (failure) return `I could not price ${trip}: ${failure}`;
+    if (!cheapest)
+      return `No fares came back for ${trip}. Try a nearby date, or a different pair of cities.`;
+    const count = options.length > 1 ? `, out of ${options.length} fares found` : "";
+    return `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${moneyIn(cheapest.price, BASE_CURRENCY)}${count}. Prices are whole-party totals and change without notice; nothing here is booked.`;
+  }
 
   return FlightAnswerSchema.parse({
     type: "flight_answer",

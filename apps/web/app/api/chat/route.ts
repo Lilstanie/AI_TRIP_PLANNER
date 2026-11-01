@@ -1,6 +1,7 @@
 import { NextResponse, after } from "next/server";
 import {
   AskUserError,
+  FlightAnswerReady,
   IncompleteBriefError,
   answerFlightQuery,
   parseFlightQuery,
@@ -114,6 +115,7 @@ export async function POST(req: Request) {
       const run = () =>
         runTripChat(requestData, {
           onProgress: send,
+          flightSearch: (query) => answerFlightQuery(query, createToolGateway().booking),
           mem: accountMemoryStore(accountId, memoryEnabled),
           accountMemory: Boolean(accountId) && memoryEnabled,
         });
@@ -159,6 +161,8 @@ export async function POST(req: Request) {
         send(error.needsInfo);
       } else if (error instanceof AskUserError) {
         send(error.askUser);
+      } else if (error instanceof FlightAnswerReady) {
+        send(error.answer);
       } else {
         console.error("[chat] planning failed", error);
         const notice: Notice =
