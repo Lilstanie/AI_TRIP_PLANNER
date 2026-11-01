@@ -2,10 +2,10 @@
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { intlLocale } from "@/lib/i18n/locale";
-import { ChevronIcon } from "../ui/icons";
-import { Composer } from "../chat/Composer";
+import { ChevronIcon } from "../../ui/icons";
+import { Composer } from "../../chat/Composer";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
-import { useComposerAttachments } from "./useComposerAttachments";
+import { useComposerAttachments } from "../useComposerAttachments";
 
 export type TripHomeChat = { id: string; title: string; updatedAt: string };
 

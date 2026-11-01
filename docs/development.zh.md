@@ -29,7 +29,7 @@ pnpm dev                     # http://localhost:3000
 
 ## 代码组织
 
-Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`trajectory`、`preferences`、`account`、`agent-lab`、`pwa`，或用于共享基础组件的 `ui`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。
+Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`trajectory`、`preferences`、`account`、`agent-lab`、`pwa`，或用于共享基础组件的 `ui`。在 `workspace` 内，行程主页的组件放在 `workspace/trip-home/`，只在手机上出现的组件放在 `workspace/phone/`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。
 
 功能跨越多个目录时，把公开约定保留在领域模块中，并从那里导入，不另建根级便捷文件。目录边界变化时，同步更新本节和 API 文档。
 
@@ -139,6 +139,8 @@ SERPAPI_KEY=your-serpapi-key
 ## Mock 服务器
 
 `pnpm mock-server` 在 4000 端口启动一个可选的 stub HTTP 服务器。应用从不调用它：mock 工具在进程内运行。该服务器保留用于适配器实验，并由 Docker Compose 启动。
+
+进程内的 mock 地点默认只返回一个 `Mock attraction near <city>`，所有 mock 路线都是 140 分钟火车，Agent Lab 基准和测试依赖这一点。启动应用时加 `MOCK_PLACES=multi`，就改为按类别返回固定列表（9 个景点、2 个博物馆、5 家餐厅，名字都是 `Mock <place>, <city>`）：mock 行程每天有 3 个点，点之间有交通行，5 天的行程不会重复同一个点，两个 mock 地点之间的路线是 20 分钟公共交通。
 
 <a id="docker"></a>
 

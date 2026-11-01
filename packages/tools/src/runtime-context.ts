@@ -14,6 +14,7 @@ export interface ToolRuntimeConfig {
   readonly osrmBaseUrl: string;
   readonly serpApiKey?: string;
   readonly weatherApiKey?: string;
+  readonly mockMultiStop: boolean;
 }
 
 export interface ToolRuntimeDependencies {
@@ -45,6 +46,7 @@ export function snapshotToolRuntime(): ToolRuntimeConfig {
     osrmBaseUrl: process.env.OSRM_BASE_URL || "https://router.project-osrm.org",
     serpApiKey: optional(process.env.SERPAPI_KEY),
     weatherApiKey: optional(process.env.WEATHER_API_KEY) || mapsApiKey,
+    mockMultiStop: process.env.MOCK_PLACES === "multi",
   });
 }
 

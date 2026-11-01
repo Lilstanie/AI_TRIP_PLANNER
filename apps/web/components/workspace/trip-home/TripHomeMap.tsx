@@ -7,9 +7,9 @@ import {
   type DataMode,
   type DataModeProviders,
 } from "@/lib/workspace/data-mode";
-import { TripMapCanvas } from "../map/TripMapCanvas";
-import { useTripPlaces } from "../map/useTripPlaces";
-import { useUserLocation } from "../map/useUserLocation";
+import { TripMapCanvas } from "../../map/TripMapCanvas";
+import { useTripPlaces } from "../../map/useTripPlaces";
+import { useUserLocation } from "../../map/useUserLocation";
 
 export function TripHomeMap({
   plan,

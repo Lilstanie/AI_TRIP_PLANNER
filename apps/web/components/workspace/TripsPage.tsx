@@ -6,7 +6,7 @@ import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-ide
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { PlusIcon } from "../ui/icons";
-import { TripHomeCalendar } from "./TripHomeCalendar";
+import { TripHomeCalendar } from "./trip-home/TripHomeCalendar";
 import { useSegmentIndicator } from "../ui/motion";
 import { TripCover } from "./TripCover";
 import { TripUndo, type DeletedTrip } from "./TripUndo";

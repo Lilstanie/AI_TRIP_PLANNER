@@ -1,7 +1,7 @@
 "use client";
 import type { ReactNode, RefObject } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import { useLocale } from "../account/LocaleProvider";
+import { useLocale } from "../../account/LocaleProvider";
 import { TripHomeActionDrawer } from "./TripHomeActionDrawer";
 import type { Notice } from "@/lib/i18n/notice";
 import type { TripAction } from "@/lib/workspace/layout";
