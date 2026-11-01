@@ -36,3 +36,9 @@ The branch is not meant to be merged. Signing uses Joey's free Apple ID team, se
 - On Joey's Mac the app ran in the iPhone 17e simulator: home and signed-in planner loaded with the top bar and tab bar clear of the status bar and home indicator; the sign-in logo sat under the status bar and focusing a field zoomed the page. Both are fixed in the layer, not yet seen in the simulator because they need a production deploy.
 - Notes: the proposal moved to `implemented/` and the 2026-10-14 no-native-app note is archived; inbound links and the ui-verification skill were repaired.
 - `node apps/web/tests/e2e/ios-app-shell.e2e.mjs` against `pnpm --filter @trip/web dev` (mock data): 5/9 before the change, 9/9 after. `pnpm --filter @trip/web typecheck`, `verify:docs`, `verify:pairs` and `check-ui-copy.mjs` passed.
+
+## Follow-up: native feel
+
+- Joey asked to keep improving the app's interface and features. Added `@capacitor/haptics` and `@capacitor/keyboard` with `components/pwa/ios-app-bridge.tsx` (tab tick, submit tap, no keyboard accessory bar), portrait-only iPhone, a launch screen that follows light or dark appearance, full-row segmented controls, and a glass search field with larger titles on Mine.
+- Not done, for Joey to decide: full-screen map under floating bars, Chat empty-state content (conflicts with the one-sentence empty-screen rule from #738), renaming Mine, moving the data-mode button again, a native SwiftUI tab bar.
+- The native changes need a new Xcode build on Joey's Mac; haptics and the accessory bar are untested on a device.

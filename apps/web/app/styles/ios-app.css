@@ -149,3 +149,39 @@ html[data-shell="ios-app"] .auth-page {
     scale: none;
   }
 }
+
+html[data-shell="ios-app"] .workspace-app[data-phone] .segmented {
+  display: flex;
+  width: 100%;
+  background: rgb(118 118 128 / 12%);
+}
+html[data-shell="ios-app"] .workspace-app[data-phone] .segmented > * {
+  flex: 1 1 0;
+  justify-content: center;
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-mine .sidebar-search {
+  border: 1px solid var(--glass-border) !important;
+  background: var(--glass-tint) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge);
+}
+html[data-shell="ios-app"]
+  .workspace-app[data-phone]
+  .phone-mine
+  :is(.chats-panel__section-head, .trips-page__head) {
+  padding-inline: 0;
+}
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-mine .trips-page__head h1,
+html[data-shell="ios-app"]
+  .workspace-app[data-phone]
+  .phone-mine
+  .chats-panel__section-head
+  .sidebar-history__title {
+  padding-inline-start: 0;
+  font-size: 1.75rem;
+  letter-spacing: -0.025em;
+}

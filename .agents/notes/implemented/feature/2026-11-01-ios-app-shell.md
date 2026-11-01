@@ -18,7 +18,11 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
   web build of its own. Swift Package Manager links Capacitor; CocoaPods is not needed.
 - `apps/ios/www/index.html` is the offline page from `apps/web/public/offline.html`. Capacitor shows it
   when the site cannot load, and its retry button reopens the deployed URL.
-- The app icon and splash are the brand logo on white.
+- The app icon is the brand logo on white; the launch screen shows the logo on light grey or black to
+  match the system appearance. The app runs in portrait only on iPhone.
+- `@capacitor/haptics` and `@capacitor/keyboard` are installed. `components/pwa/ios-app-bridge.tsx`
+  hides the keyboard accessory bar and plays a selection tick when a tab changes and a light tap when
+  a form is submitted. It does nothing outside the app, and a native change needs a new Xcode build.
 - Links to other hosts open in Safari, Capacitor's default outside `server.url`. The exception is the
   Clerk host `more-puma-666.clerk.accounts.dev` in `server.allowNavigation`: production redirects the
   first request there, and without it the app opened Safari on launch.
@@ -28,7 +32,8 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
 - The app layer makes the existing glass tokens clearer (58 % tint, 30 px blur, 190 % saturation,
   stronger rim highlights), puts a soft colour backdrop behind the phone workspace and sign-in page so
   the glass has something to show through, gives the selected tab a raised lens, rounds the composer
-  and bottom sheets to 28 px, adds press feedback and removes the tap highlight and long-press callout
+  and bottom sheets to 28 px, stretches segmented controls to the full row, gives Mine a glass search
+  field and larger section titles, adds press feedback and removes the tap highlight and long-press callout
   on controls. Reduced transparency and higher contrast fall back to solid surfaces.
 - In the app every field is 16 px, because iOS zooms the page when a smaller field takes focus and the
   web view did not zoom back out. The sign-in page adds the top and bottom safe-area insets, which it

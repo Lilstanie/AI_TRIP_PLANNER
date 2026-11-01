@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { IosAppBridge } from "@/components/pwa/ios-app-bridge";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { authEnabled } from "@/lib/auth/config";
 
@@ -31,6 +32,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
       </head>
       <body>
         <ServiceWorkerRegistration />
+        <IosAppBridge />
         {authEnabled ? (
           <ClerkProvider
             signInUrl="/sign-in"
