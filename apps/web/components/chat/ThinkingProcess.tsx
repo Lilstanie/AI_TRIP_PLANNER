@@ -5,7 +5,7 @@ import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
 import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
-import { countActivity, roundGroups, turnSummary } from "./thinking-model";
+import { countActivity, roundGroups, turnSummary } from "../../lib/chat/thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
 import { useTrajectoryFocus } from "./trajectory-focus";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";

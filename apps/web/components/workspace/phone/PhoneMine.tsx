@@ -1,10 +1,10 @@
 "use client";
-import { GearIcon } from "../ui/icons";
-import { useLocale } from "../account/LocaleProvider";
-import { DataModeToggle } from "./DataModeToggle";
-import { ChatsPanel } from "./ChatsPanel";
-import { TripsPage, type Tab as TripsTab } from "./TripsPage";
-import type { WorkspaceModel } from "./useWorkspace";
+import { GearIcon } from "../../ui/icons";
+import { useLocale } from "../../account/LocaleProvider";
+import { DataModeToggle } from "../DataModeToggle";
+import { ChatsPanel } from "../ChatsPanel";
+import { TripsPage, type Tab as TripsTab } from "../TripsPage";
+import type { WorkspaceModel } from "../useWorkspace";
 
 export function PhoneMine({
   model,

@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useState } from "react";
-import { useLocale } from "../account/LocaleProvider";
+import { useLocale } from "../../account/LocaleProvider";
 import { dayCount } from "@/lib/trip/timeline";
-import type { WorkspaceModel } from "./useWorkspace";
+import type { WorkspaceModel } from "../useWorkspace";
 
 type Snap = "handle" | "half" | "full";
 const snaps: Snap[] = ["handle", "half", "full"];

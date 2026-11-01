@@ -1,6 +1,6 @@
 "use client";
 import type { ComponentType } from "react";
-import { RouteIcon, MapPinIcon, SuitcaseIcon, SlidersIcon, CalendarIcon } from "../ui/icons";
+import { RouteIcon, MapPinIcon, SuitcaseIcon, SlidersIcon, CalendarIcon } from "../../ui/icons";
 import { useLocale } from "@/components/account/LocaleProvider";
 import type { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";

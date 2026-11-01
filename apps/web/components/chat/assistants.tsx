@@ -2,7 +2,7 @@
 import type { ComponentType } from "react";
 import type { AssistantId } from "@trip/shared";
 import type { MessageKey } from "@/lib/i18n/locale";
-import { labels } from "./thinking-model";
+import { labels } from "../../lib/chat/thinking-model";
 import {
   FlowAttractionIcon,
   FlowFlightIcon,

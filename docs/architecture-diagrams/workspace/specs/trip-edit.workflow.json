@@ -107,7 +107,7 @@
           "end_line": 202,
           "label": "edit"
         },
-        { "path": "apps/web/components/trip/previewRequest.ts", "line": 16, "end_line": 49 }
+        { "path": "apps/web/lib/trip/preview-request.ts", "line": 16, "end_line": 49 }
       ]
     },
     {

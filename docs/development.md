@@ -26,8 +26,10 @@ lockfile stays consistent.
 The web application is grouped by responsibility instead of keeping every component and helper in
 one flat directory. Put new UI in the closest feature folder under `apps/web/components/`:
 `workspace`, `chat`, `trip`, `map`, `trajectory`, `preferences`, `account`, `agent-lab`, `pwa`, or `ui` for shared
-primitives. Put browser-safe
-domain logic under the matching folder in `apps/web/lib/`; external clients belong in
+primitives. Inside `workspace`, Trip home parts live in `workspace/trip-home/` and phone-only parts in
+`workspace/phone/`. Put browser-safe
+domain logic under the matching folder in `apps/web/lib/`, including view models and request helpers that
+render nothing (for example `lib/chat/team-model.ts`, `lib/trip/preview-request.ts`); external clients belong in
 `apps/web/lib/integrations/`. Put all web tests under `apps/web/tests/`, mirroring the `app`,
 `components`, and `lib` feature groups; shared fixtures belong in `apps/web/tests/fixtures/` and
 setup belongs in `apps/web/tests/setup.ts`. The package folders use the same rule: production code

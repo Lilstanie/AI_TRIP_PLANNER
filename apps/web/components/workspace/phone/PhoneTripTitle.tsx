@@ -1,12 +1,12 @@
 "use client";
 import { useEffect, useRef, type ReactNode } from "react";
 import { factLabels, type FactKey } from "@/lib/workspace/trip-facts";
-import { useLocale } from "../account/LocaleProvider";
-import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../preferences/TripFactsSheet";
-import type { CloseReason } from "../preferences/FactPopover";
-import { ChevronIcon, SlidersIcon } from "../ui/icons";
-import { usePresence } from "../ui/motion";
-import type { WorkspaceModel } from "./useWorkspace";
+import { useLocale } from "../../account/LocaleProvider";
+import { TRIP_FACTS_SHEET_ID, TripFactsSheet } from "../../preferences/TripFactsSheet";
+import type { CloseReason } from "../../preferences/FactPopover";
+import { ChevronIcon, SlidersIcon } from "../../ui/icons";
+import { usePresence } from "../../ui/motion";
+import type { WorkspaceModel } from "../useWorkspace";
 
 export function usePhoneTripTitle(
   { draft, plan }: Pick<WorkspaceModel["session"], "draft" | "plan">,

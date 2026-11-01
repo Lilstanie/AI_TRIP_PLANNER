@@ -3,7 +3,7 @@ import { useEffect, useRef } from "react";
 import type { TripPlan } from "@trip/shared";
 import { buildItinerary } from "@/lib/trip/itinerary";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
-import { useLocale } from "../account/LocaleProvider";
+import { useLocale } from "../../account/LocaleProvider";
 
 export function TripHomeItinerary({
   plan,

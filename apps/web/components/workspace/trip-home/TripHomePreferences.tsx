@@ -1,8 +1,8 @@
 "use client";
 import { useRef, useState, type FormEvent } from "react";
 import type { TripPlan } from "@trip/shared";
-import { useLocale } from "../account/LocaleProvider";
-import { FactFields } from "../preferences/FactFields";
+import { useLocale } from "../../account/LocaleProvider";
+import { FactFields } from "../../preferences/FactFields";
 import { factErrors } from "@/lib/workspace/trip-facts";
 import type { Draft } from "@/lib/workspace/workspace";
 import type { Notice } from "@/lib/i18n/notice";
