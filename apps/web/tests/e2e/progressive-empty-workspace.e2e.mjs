@@ -75,10 +75,9 @@ try {
       (await page.getByRole("button", { name: "Agent Team" }).count()) === 1,
     "desktop blank: Conversation tab and Agent Team top-left",
   );
-  await page.locator(".data-mode:visible").waitFor();
   check(
-    (await page.locator(".data-mode:visible").count()) === 1,
-    "desktop blank: Live/Mock remains",
+    !(await page.getByRole("button", { name: /Mock data|Live data/ }).count()),
+    "desktop blank: data mode lives only in Settings",
   );
   await page.screenshot({ path: `${OUT}/desktop-blank.png` });
 
@@ -301,14 +300,14 @@ try {
   await phonePage.screenshot({ path: `${OUT}/phone-facts.png` });
   await phonePage.keyboard.press("Escape");
   await phonePage.getByRole("tab", { name: "Mine", exact: true }).click();
-  await phonePage.locator(".data-mode:visible").waitFor();
+  await phonePage.locator("#phone-panel-mine:not([hidden])").waitFor();
   check(
     (await phonePage.getByRole("button", { name: /Switch language/i }).count()) === 0,
     "phone Mine: no language shortcut",
   );
   check(
-    (await phonePage.locator(".data-mode:visible").count()) === 1,
-    "phone Mine: data mode remains",
+    !(await phonePage.getByRole("button", { name: /Mock data|Live data/ }).count()),
+    "phone Mine: data mode lives only in Settings",
   );
   await phonePage.screenshot({ path: `${OUT}/phone-mine.png` });
   check(phoneErrors.length === 0, "phone: no page errors", phoneErrors);

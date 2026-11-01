@@ -2,7 +2,6 @@
 import { useCallback, useEffect, useRef, useState } from "react";
 import { COMMUNICATION_STYLES, MAX_ASSISTANT_NAME_LENGTH, type AssistantId } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
-import type { DataMode } from "@/lib/workspace/data-mode";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
@@ -702,7 +701,7 @@ function PersonalizationSection() {
   );
 }
 
-function RegionSection({ onDataMode }: { onDataMode?(mode: DataMode): void }) {
+function RegionSection({ liveAvailable }: { liveAvailable: boolean }) {
   const { settings, update } = useSettings();
   const { locale, t } = useLocale();
   const languageLabel = locale === "zh" ? "简体中文" : "English";
@@ -738,29 +737,23 @@ function RegionSection({ onDataMode }: { onDataMode?(mode: DataMode): void }) {
       </SettingRow>
       <CurrencyNotice currency={settings.displayCurrency} />
       <SettingRow label={t("units")} value={t("metricCKm")} />
-      {onDataMode && (
-        <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
-          {() => (
-            <>
-              <Segmented
-                label={t("defaultTripData")}
-                options={[
-                  ["default", t("thisSiteSDefault")],
-                  ["live", t("livePrices")],
-                  ["mock", t("sampleData")],
-                ]}
-                value={settings.dataMode}
-                onChange={(value) => {
-                  if (!value) return;
-                  update({ dataMode: value });
-                  if (value !== "default") onDataMode(value);
-                }}
-              />
-              <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>
-            </>
-          )}
-        </SettingRow>
-      )}
+      <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
+        {() => (
+          <>
+            <Segmented
+              label={t("defaultTripData")}
+              options={[
+                ["default", t("thisSiteSDefault")],
+                ...(liveAvailable ? [["live", t("livePrices")] as const] : []),
+                ["mock", t("sampleData")],
+              ]}
+              value={settings.dataMode}
+              onChange={(dataMode) => dataMode && update({ dataMode })}
+            />
+            <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>
+          </>
+        )}
+      </SettingRow>
     </div>
   );
 }
@@ -809,11 +802,11 @@ function ConnectedSection({ onAccountModal }: AccountModalProps) {
 
 export function SettingsDialog({
   initial = "personalization",
-  onDataMode,
+  liveAvailable,
   onAccountModal,
 }: {
   initial?: Section;
-  onDataMode?(mode: DataMode): void;
+  liveAvailable: boolean;
 } & AccountModalProps) {
   const [section, setSection] = useState<Section>(initial);
   const { syncState } = useSettings();
@@ -863,7 +856,7 @@ export function SettingsDialog({
         {section === "profile" && <ProfileSection onAccountModal={onAccountModal} />}
         {section === "account" && <AccountSection onAccountModal={onAccountModal} />}
         {section === "personalization" && <PersonalizationSection />}
-        {section === "region" && <RegionSection onDataMode={onDataMode} />}
+        {section === "region" && <RegionSection liveAvailable={liveAvailable} />}
         {section === "connected" && <ConnectedSection onAccountModal={onAccountModal} />}
         <p className="settings-sync" role="status">
           {t(SYNC_TEXT[syncState])}

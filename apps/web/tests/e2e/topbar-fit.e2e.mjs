@@ -36,7 +36,6 @@ const measure = (page) =>
       title: box(".chat-header__heading"),
       team: box(".team-trigger"),
       chips: box(".fact-chips__scroller"),
-      mode: box(".data-mode"),
       trip: box(".trip-trigger"),
       bar: box(),
     };
@@ -79,11 +78,9 @@ try {
     });
     const pairs = [
       ["chips", "team"],
-      ["chips", "mode"],
       ["chips", "trip"],
       ["chips", "title"],
       ["title", "team"],
-      ["team", "mode"],
     ].filter(([a, b]) => overlap(bar[a], bar[b]));
     check(pairs.length === 0, `${width}px: no top bar controls overlap`, pairs);
     check(

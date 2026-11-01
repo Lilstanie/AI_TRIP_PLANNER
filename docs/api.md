@@ -211,8 +211,7 @@ An invalid request body, or `mode: "plan"` without a brief, returns HTTP 400 bef
 with `{ "error": "The request was invalid. Please retry.", "notice": { … } }`.
 
 An optional `x-trip-data-mode` header of `mock` or `live` chooses fixtures or live providers for this
-request only; any other value, or no header, uses the deployment default. A deployed build
-(`NODE_ENV=production` or Vercel) ignores the header unless `DATA_MODE_TOGGLE=true`. The header is a request,
+request only; any other value, or no header, uses the deployment default. The header is a request,
 not a decision: `requestDataMode` in `apps/web/lib/auth/live-data.ts` downgrades `live` to `mock`
 for a caller who may not spend the allowance, so a signed-out visitor still gets a working plan from
 fixtures.
@@ -305,7 +304,6 @@ reported, and the trace never carries a model's own reasoning.
 {
   "configured": "mock",
   "liveAvailable": false,
-  "switchable": false,
   "providers": { "hotelsAndFlights": false, "maps": true }
 }
 ```
@@ -314,10 +312,9 @@ reported, and the trace never carries a model's own reasoning.
 whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
 deployment when Clerk is not configured. `liveBlock` names why it is off: `sign-in-required` for a
 signed-out caller on a configured deployment, `auth-not-configured` on a production server or Vercel deployment without
-Clerk, and `null` when live is available. When it is false the workspace's data-mode chip stays on mock data with `aria-disabled="true"`, remains keyboard-focusable, and its hidden text says to sign in for live hotel and flight prices.
-`switchable` is true under `pnpm dev`, or anywhere `DATA_MODE_TOGGLE=true` (the E2E runners set it).
-When it is false the workspace hides the Mock data / Live data chip and the settings "Trip data" row,
-and uses `configured` (downgraded to mock when `liveAvailable` is false).
+Clerk, and `null` when live is available. The workspace's only data-mode control is Settings → Language & region → Trip data; when
+`liveAvailable` is false it offers only the site default and sample data, and a stored live choice
+runs as mock.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.
 

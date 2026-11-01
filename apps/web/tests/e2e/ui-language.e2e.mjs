@@ -70,7 +70,7 @@ try {
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.goto(baseUrl);
   await dismissLocation(page);
-  await page.locator(".data-mode").waitFor();
+  await page.locator(".workspace-main").waitFor();
   check((await htmlLang(page)) === "en-AU", "en-AU browser opens in English");
   check((await page.locator(".language-toggle").count()) === 0, "language shortcut is absent");
   check(

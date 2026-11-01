@@ -143,7 +143,7 @@ export const enWorkspace = {
   savePreferences: "Save preferences",
   defaultTripData: "Default trip data",
   livePricesSearchRealHotels:
-    "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing. The data switch in the workspace changes it for this browser.",
+    "Live prices search real hotels and flights and spend the shared monthly allowance; sample data spends nothing.",
   accountsYouCanSignIn: "Accounts you can sign in with.",
   noConnectedAccountsYouSign: "No connected accounts. You sign in with email.",
   connectOrDisconnect: "Connect or disconnect",
@@ -319,7 +319,6 @@ export const enWorkspace = {
   stoppedAfterRoundRoundNo: "Stopped after round {round}: no improvement",
   specialistTeam: "Specialist team",
   agentTeam: "Agent Team",
-  dataMode: "Data mode",
   whereAreYouHeaded: "Where are you headed?",
   whenDoYouWantTo: "When do you want to go?",
   howManyTravellers: "How many travellers?",
@@ -447,24 +446,6 @@ export const enWorkspace = {
   chatPercentOfTheWidth: "Chat {percent}% of the width",
   selectedPlaceV0: "Selected place: {v0}",
   actionsForV0: "Actions for {v0}",
-  mockDataBundledFixturesNo:
-    "Mock data: bundled fixtures. No provider requests and no allowance spent.",
-  mockDataBundledFixturesSign:
-    "Mock data: bundled fixtures. Sign in to use the AI model and live hotel and flight prices.",
-  mockDataBundledFixturesLive:
-    "Mock data: bundled fixtures. Live provider data is off on this deployment.",
-  currentlyUsingMockFixturesLive:
-    ". Currently using mock fixtures. Live provider data is off on this deployment.",
-  liveDataRealHotelAnd:
-    "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
-  liveDataSelectedButNo:
-    "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
-  currentlyUsingLiveProviderData:
-    ". Currently using live provider data. Activate to switch to mock fixtures.",
-  currentlyUsingMockFixturesActivate:
-    ". Currently using mock fixtures. Activate to switch to live provider data.",
-  currentlyUsingMockFixturesSign:
-    ". Currently using mock fixtures. Sign in to use the AI model and live hotel and flight prices.",
   day: "day",
   days: "days",
   noMatchingTrips: "No matching trips.",
