@@ -40,6 +40,7 @@ apps/web/next-env.d.ts
 .next-dev/
 /output/
 apps/web/output/
+packages/*/output/
 /tmp/
 /.scratch/
 .next-e2e*/

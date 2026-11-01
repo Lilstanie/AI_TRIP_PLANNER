@@ -19,6 +19,7 @@ The team tracks sprints in Jira project `TP` (https://headmastereggy.atlassian.n
   - **Assignee** (经办人) is the person who completes the story. When Joey completes a story, Joey is the assignee. Set it on creation and again when the PR merges, if it is empty or someone else.
   - Leave stories that other people created and completed as they are.
 - Set the assignee to Joey when you create the story, not only at merge (`editJiraIssue` `fields`, `{"assignee": {"accountId": "<id>"}}`); a story created by `createJiraIssue` starts with no assignee.
+- Use only the key `createJiraIssue` returns (or the existing story's key). Never guess the next number for a branch name: on 2026-11-01 an iOS branch took `TP-242`, already the retro's story.
 - Then prefix the GitHub ticket title with the key.
 - Call shapes that work with the connector: `transitionJiraIssue` takes a top-level `transitionId` (Done is `31`), not a `transition` object. `addOrEditJiraIssueComment` takes `commentBody`, not `body`. `editJiraIssue` takes `fields`, for example `{"assignee": {"accountId": "<id>"}}`.
 - Jira list, search, transition and edit calls return the whole story by default. Pass `responseFields` (for example `summary`, `status`, `labels`), and fetch `description` for one key at a time, or the call can exceed the token limit. Do the same for GitHub: `list_issues` and `issue_read` take `minimal_output`.
@@ -56,6 +57,7 @@ Done: no duplicate PR exists, or you are working on the existing one.
 - Comment policy: commit first, then `pnpm check:comments` (CI's `added-comments` job runs the same check against the merge base; a comment it flags fails the PR).
 - Add a session log (`session-log` skill) and update en + zh docs. A `packages/shared/src` change also needs an Agent Note and `contract-impact: packages/shared`.
 - Start commit messages with the key (`TP-72 docs: ...`).
+- Mechanical refactors from one thread (file moves, folder splits, renames) go in one PR with one CI run, unless the user asks for separate PRs. On 2026-11-01 #900, #901 and #902 were opened separately and then folded into #903 at the user's request.
 - Keep the PR reviewable. Once its CI is green, feedback on a different area (for example Settings when
   the PR is the Trip panel) goes on a new branch from this one as a stacked PR (step 6, Stacked PRs);
   fixes to the PR's own area stay on it. When the PR passes about 60 files or 3,000 changed lines, ask
@@ -96,9 +98,15 @@ A `cli-acceptance-workers` job that times out inside a setup step, or fails with
 
 `dirty` means a conflict with main: merge `origin/main`, resolve, re-run the checks the conflicted files select, push. Never rewrite history on a branch you did not create.
 `blocked` with every check `success` means the required code-owner approval is missing (`main` requires one since TP-159). It is not a failure.
-`behind` above 0 means the head's CI ran against an older main (`main` does not require branches to be up to date). Merge `origin/main` into the branch, push and wait for the fresh run before merging; a run from hours or days ago does not cover what main gained since.
-A Vercel status `failure` with "Deployment rate limited" is not your diff, but it is still red: do not merge past it. Tell the user it clears when the limit resets and let them decide.
+`behind` above 0 means the head's CI ran against an older main (`main` does not require branches to be up to date). Bring main in with GitHub's Update branch: `gh api -X PUT $R/pulls/<n>/update-branch -f expected_head_sha=<head sha>` or MCP `update_pull_request_branch`. It makes the merge commit on GitHub, so no local commit or push is needed, which a local permission check can refuse (it did on 2026-11-01). Merge `origin/main` locally only when the update reports a conflict. Then wait for the fresh run before merging; a run from hours or days ago does not cover what main gained since.
+
+Wait for CI yourself; never ask the user to come back and remind you. In a cloud thread, `subscribe_pr_activity` wakes you on each check. In a session on Joey's Mac, run `gh pr checks <n> --repo Lilstanie/AI_TRIP_PLANNER --watch --fail-fast` as a background command; it re-invokes you when it exits.
+A Vercel status `failure` with "Deployment rate limited" is not your diff. Joey's project instructions allow merging past it when it is the only red item; tell the user the change goes live only after the limit resets. Any other red blocks the merge.
 Done: `bad=[]`, `behind=0`, and `mergeable_state` is `clean`, or `blocked` only by the approval.
+
+### Before a deadline
+
+From three hours before a code deadline (23:59 Sydney time is 12:59 UTC while AEDT applies), `main` takes only PRs that fix a submission blocker; refactors and features wait until after the deadline. Pick one commit, smoke-test it on the deployed site or from a fresh `git archive` unzip (install, build, start), and zip exactly that commit. On 2026-11-01 eight PRs, two of them folder moves, merged in the last 73 minutes while Vercel was rate-limited, so the submitted code never ran live.
 
 ## 6. Merge and clean up
 
