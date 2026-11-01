@@ -76,4 +76,12 @@ describe("answerFlightQuery", () => {
     );
     expect(answer.options.map((o) => o.carrier)).toEqual(["Good Air"]);
   });
+
+  it("answers a Chinese question in Chinese", async () => {
+    const answer = await answerFlightQuery(
+      { ...query, from: "悉尼", to: "上海", depart: "2026-12-15" },
+      booking(async () => [{ carrier: "Jetstar", price: 1832 }]),
+    );
+    expect(answer.reply).toMatch(/^悉尼 → 上海 2026-12-15，2 位旅客最便宜的是 Jetstar/);
+  });
 });

@@ -2,6 +2,7 @@ import { it, expect, vi, afterEach } from "vitest";
 const state = vi.hoisted(() => ({ save: vi.fn(), run: vi.fn() }));
 vi.mock("@trip/orchestrator", () => ({
   AskUserError: class extends Error {},
+  FlightAnswerReady: class extends Error {},
   IncompleteBriefError: class extends Error {},
   answerFlightQuery: vi.fn(),
   parseFlightQuery: () => undefined,

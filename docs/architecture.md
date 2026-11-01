@@ -539,6 +539,11 @@ For a genuine ambiguity with concrete choices, the coordinator can instead call 
 question card in the composer's place and sends the traveller's answers as the next message. See
 [DSH thinking UI §3.2](design/dsh-thinking-ui.md#32-asking-the-traveller).
 
+A flight question is answered without planning. A message with a route, a flight word and a date goes
+straight to `answerFlightQuery` (`parseFlightQuery`); any other wording reaches the coordinator, whose
+`search_flights` tool runs the same search and throws `FlightAnswerReady`. Both stream a `FlightAnswer`
+frame (`type: "flight_answer"`), and the client's plan is unchanged.
+
 When a key is missing, a model call fails or output is off-schema, the step falls back to validated
 deterministic output, so planning requests still complete. Schema, budget, schedule and route checks
 gate every proposal before aggregation.

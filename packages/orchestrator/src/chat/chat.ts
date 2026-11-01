@@ -4,7 +4,6 @@ import {
   effectiveCurrency,
   estimateNote,
   formatMoney,
-  ASK_USER_MAX_OPTIONS,
   ASK_USER_MAX_QUESTIONS,
   ChatTurn,
   Currency,
@@ -24,6 +23,7 @@ import {
   type AssistantSettings,
   type InterfaceLanguage,
   type ChatResponse,
+  type FlightAnswer,
   type AgentProgressEvent,
   type Attachment,
   type AskUserQuestionItem,
@@ -49,6 +49,10 @@ import {
   missingFields,
 } from "../brief/brief-intake";
 export { AskUserError, IncompleteBriefError } from "../brief/brief-intake";
+export { AskUserQuestionInput, toQuestions } from "./chat-ask-user";
+export { FlightAnswerReady } from "./chat-flight-search";
+import { ASK_USER_DESCRIPTION, AskUserQuestionInput, toQuestions } from "./chat-ask-user";
+import { createFlightSearchTool, FlightAnswerReady, type FlightSearch } from "./chat-flight-search";
 import { judgeHandoff } from "./mention-handoff";
 import { stopChanges } from "./stop-changes";
 import { ROLE_NAMES } from "../planning/progress-copy";
@@ -65,6 +69,8 @@ export interface BriefExtractor {
 
 export interface TripChatOptions extends OrchestratorOptions {
   model?: BaseChatModel;
+
+  flightSearch?: FlightSearch;
 
   extractor?: BriefExtractor;
 
@@ -283,75 +289,6 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
   return patch;
 }
 
-export const AskUserQuestionInput = z.object({
-  questions: z
-    .array(
-      z.object({
-        id: z.string().describe("Stable id for this question; echoed in the answer."),
-        question: z.string().describe("The specific question to ask the user."),
-        header: z
-          .string()
-          .nullish()
-          .describe('Optional short heading for the question, such as "Confirm" or "Choose Mode".'),
-        options: z
-          .array(
-            z.object({
-              label: z.string().describe("Short user-facing option label."),
-              description: z
-                .string()
-                .nullish()
-                .describe("One sentence explaining the tradeoff or impact."),
-            }),
-          )
-          .nullish()
-          .describe(
-            'Optional choices to show the user. If you recommend one, put it first and append "(Recommended)" to that label.',
-          ),
-        multi_select: z
-          .boolean()
-          .nullish()
-          .describe("Whether the user may select more than one option. Defaults to false."),
-      }),
-    )
-    .describe("Questions to ask the user before continuing."),
-});
-
-export function toQuestions(input: z.infer<typeof AskUserQuestionInput>): AskUserQuestionItem[] {
-  const ids = new Set<string>();
-  const questions: AskUserQuestionItem[] = [];
-  for (const raw of input.questions ?? []) {
-    if (questions.length >= ASK_USER_MAX_QUESTIONS) break;
-    const question = text(raw.question);
-    if (!question) continue;
-    let id = text(raw.id) ?? `q${questions.length + 1}`;
-    while (ids.has(id)) id = `${id}-${questions.length + 1}`;
-    ids.add(id);
-    const options = (raw.options ?? [])
-      .flatMap((option) => {
-        const label = text(option?.label);
-        if (!label) return [];
-        const description = text(option.description);
-        return [{ label, ...(description ? { description } : {}) }];
-      })
-      .slice(0, ASK_USER_MAX_OPTIONS);
-    const header = text(raw.header);
-    questions.push({
-      id,
-      question,
-      ...(header ? { header } : {}),
-      ...(options.length ? { options } : {}),
-      ...(options.length && typeof raw.multi_select === "boolean"
-        ? { multiSelect: raw.multi_select }
-        : {}),
-    });
-  }
-  return questions;
-}
-
-const ASK_USER_DESCRIPTION =
-  "Ask the user a concise question when you need confirmation, a choice, or missing information before proceeding. " +
-  "Send one or more questions, each with a stable id that will be echoed in the answer.";
-
 const COORDINATOR_PROMPT = `You are the trip coordinator, speaking directly to a traveller.
 
 ${CAPABILITIES}
@@ -370,6 +307,7 @@ Choosing what to do:
 - When they say they need no accommodation, set noAccommodation true and replan. This omits all stay searching, costs and sections. Set false when they want accommodation again. An already booked stay remains bookedStay, not noAccommodation.
 - When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
 - Once knownSoFar.excludeFlights is true, never ask about, price or mention flights, and never tell them the budget is missing a flight fare. Once knownSoFar.bookedStay is set, never suggest, compare or ask about other stays.
+- When the traveller asks about flights, fares or airfares, in any words or language, call search_flights instead of replanning, unless excludeFlights is set. Take the route, dates and party from their words, knownSoFar or currentPlan, and turn relative or yearless dates into dates from today. Decide a vague date yourself and say what you assumed. Ask one short plain sentence only when a city or the month is missing. Never say flight search is unavailable.
 - For a question you can answer from the trip context or from general travel knowledge, just answer. Do not replan.
 - For something this product cannot do, say plainly that it is not built yet. Never imply a booking, a price quote or live data you do not have.
 
@@ -550,6 +488,7 @@ export async function runTripChat(
     extractor,
     clock = () => new Date(),
     accountMemory = true,
+    flightSearch,
     ...orchestrationOptions
   } = options;
   if (request.mode === "plan" && !request.brief) throw new Error("A brief is required to plan.");
@@ -657,6 +596,7 @@ export async function runTripChat(
             orchestrationOptions.onProgress,
             clock,
             accountMemory,
+            flightSearch,
           )
         : await runOffline(request, intake, extractor, orchestrate);
     }
@@ -765,6 +705,7 @@ function turnEndingReply(error: unknown): string | undefined {
     return [reply?.trim(), asked].filter(Boolean).join("\n");
   }
   if (error instanceof IncompleteBriefError) return error.message;
+  if (error instanceof FlightAnswerReady) return error.answer.reply;
   return undefined;
 }
 
@@ -777,8 +718,10 @@ async function runConversationAgent(
   onProgress?: (event: AgentProgressEvent) => void,
   clock: () => Date = () => new Date(),
   accountMemory = true,
+  flightSearch?: FlightSearch,
 ): Promise<ChatResponse> {
   let planned: TripPlan | undefined;
+  let flightAnswer: FlightAnswer | undefined;
   let lasting: LastingPreference[] | undefined;
 
   let asked: AskUserQuestionItem[] = [];
@@ -892,7 +835,23 @@ async function runConversationAgent(
   const agent = createAgent({
     name: "trip_conversation",
     model: streamingModel,
-    tools: [updateTripBrief, replanTrip, changeItinerary, askUserQuestion],
+    tools: [
+      updateTripBrief,
+      replanTrip,
+      changeItinerary,
+      askUserQuestion,
+      ...(flightSearch
+        ? [
+            createFlightSearchTool(flightSearch, {
+              groupSize: () => intake.known.groupSize,
+              language: turnLanguage(request),
+              onAnswer: (answer) => {
+                flightAnswer = answer;
+              },
+            }),
+          ]
+        : []),
+    ],
     systemPrompt:
       COORDINATOR_PROMPT +
       styleRule(request.assistant) +
@@ -930,6 +889,8 @@ async function runConversationAgent(
       reply: plannedReply(request, planned, reply),
       plan: planned,
     });
+
+  if (flightAnswer) throw new FlightAnswerReady(flightAnswer);
 
   if (blockingAsk) throw blockingAsk;
 

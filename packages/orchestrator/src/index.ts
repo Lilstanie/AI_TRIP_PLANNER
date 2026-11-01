@@ -1,6 +1,7 @@
 export { DEMO_BRIEF } from "./demo";
 export {
   AskUserError,
+  FlightAnswerReady,
   IncompleteBriefError,
   runTripChat,
   type BriefExtractor,

@@ -428,6 +428,11 @@ false 时保留原有行为。
 客户端在输入框的位置渲染问题卡片，将旅行者的答案作为下一条消息发送。见
 [DSH 思考 UI §3.2](design/dsh-thinking-ui.zh.md#32-asking-the-traveller)。
 
+航班问题不经过规划即可回答。带路线、航班词和日期的消息直接进入 `answerFlightQuery`
+（`parseFlightQuery`）；其他说法交给协调器，由它的 `search_flights` 工具执行同样的查询并抛出
+`FlightAnswerReady`。两条路径都流式发送 `FlightAnswer` 帧（`type: "flight_answer"`），
+客户端的计划保持不变。
+
 缺少密钥、模型调用失败或输出不符合 schema 时，该步骤会回退到经过验证的确定性输出，
 因此规划请求仍能完成。汇总前，每个提案都必须通过 schema、预算、日程和路线检查。
 
