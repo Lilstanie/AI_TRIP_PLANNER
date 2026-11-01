@@ -46,7 +46,7 @@ real app icon that does not depend on that menu.
 ## Risks
 
 - A free Apple ID signature expires after seven days, and the bundle id must be unique to that team.
-- Production signs in with Clerk. Email sign-in stays in the app, but Google blocks its sign-in inside
+- Production signs in with Clerk. The sign-in page opens in the app; signing in has not been tried. Google blocks its sign-in inside
   embedded web views, so Google sign-in will need to open in Safari; untested so far.
 - The sign-in page puts its logo under the status bar in the app, because the page uses
   `viewportFit: "cover"` without a top safe-area inset. The fix is in `apps/web` and shows only once
