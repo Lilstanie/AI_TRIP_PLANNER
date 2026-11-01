@@ -1,4 +1,5 @@
 import { parsePendingAsk, type PendingAsk } from "./ask-user";
+import { pendingRun } from "./pending-runs";
 import type { TripPlan } from "@trip/shared";
 import {
   CURRENT_KEY,
@@ -539,8 +540,9 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
     const catalog = parseCatalog(storage.getItem(CATALOG_KEY), current);
     const active = catalog.conversations.find((item) => item.id === catalog.activeConversationId);
 
+    const running = active !== undefined && pendingRun(active.id, storage) !== undefined;
     const conversation =
-      active && (isBlankConversation(active) || active.ask)
+      active && (isBlankConversation(active) || active.ask || running)
         ? active
         : reusableBlankConversation(catalog);
     if (conversation) {
@@ -549,7 +551,8 @@ export function restoreWorkspace(storage: Pick<Storage, "getItem">): RestoredWor
       result.messages = conversation.messages;
       result.input = conversation.input;
       result.ask = conversation.ask;
-      const source = conversation.ask ? latestSnapshot(catalog, conversation) : undefined;
+      const source =
+        conversation.ask || running ? latestSnapshot(catalog, conversation) : undefined;
       if (source) {
         result.plan = source.plan;
         result.previousTotal = source.previousTotal;

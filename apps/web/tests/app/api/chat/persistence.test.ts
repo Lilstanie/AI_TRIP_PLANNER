@@ -11,6 +11,10 @@ vi.mock("@trip/services", () => ({
   tripStore: { set: state.save },
   memory: { getShortTerm: vi.fn(), appendShortTerm: vi.fn() },
 }));
+vi.mock("next/server", async (original) => ({
+  ...(await original<typeof import("next/server")>()),
+  after: vi.fn(),
+}));
 vi.mock("@trip/tools", () => ({
   createToolGateway: vi.fn(),
   parseDataMode: () => "mock",

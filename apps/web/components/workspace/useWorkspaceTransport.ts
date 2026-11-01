@@ -1,6 +1,6 @@
 "use client";
 import { resolveMentions } from "../chat/mentions";
-import { useRef, type MutableRefObject } from "react";
+import { useEffect, useRef, type MutableRefObject } from "react";
 import {
   TripPlan,
   type AssistantSettings,
@@ -17,6 +17,13 @@ import {
   type TurnOutcome,
 } from "@/lib/workspace/session";
 import { dataModeHeaders, type DataMode } from "@/lib/workspace/data-mode";
+import { CHAT_RUN_HEADER } from "@/lib/chat/run-header";
+import {
+  forgetPendingRun,
+  pageLeaving,
+  pendingRun,
+  rememberPendingRun,
+} from "@/lib/workspace/pending-runs";
 import { formatAskAnswers, type PendingAsk, type QuestionAnswer } from "@/lib/workspace/ask-user";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import { storedAttachments } from "./useComposerAttachments";
@@ -27,6 +34,9 @@ import type { Message } from "@/lib/workspace";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
+  activeConversation: MutableRefObject<string>;
+  hasTurn(conversationId: string): boolean;
+  shownMessages(): Message[];
 
   dataMode: DataMode | undefined;
   draft: Draft;
@@ -39,7 +49,13 @@ type WorkspaceTransportOptions = {
     change?: { message: Message; brief?: boolean; rewindIndex?: number },
   ): string | undefined;
   progress(id: string, controller: AbortController, event: SessionEvent): void;
-  finish(id: string, controller: AbortController, outcome: TurnOutcome, task: Task): void;
+  finish(
+    id: string,
+    controller: AbortController,
+    outcome: TurnOutcome,
+    task: Task,
+    keepPending?: boolean,
+  ): void;
 
   dispatch(event: SessionEvent): void;
 
@@ -68,6 +84,9 @@ type ChatSendContext = {
 
 export function useWorkspaceTransport({
   plan,
+  activeConversation,
+  hasTurn,
+  shownMessages,
   draft,
   input,
   freshTripId,
@@ -119,27 +138,62 @@ export function useWorkspaceTransport({
     task: Task,
     replacementConfirmed = false,
     change?: { message: Message; brief?: boolean; rewindIndex?: number },
+    resumeRunId?: string,
   ): boolean {
     if (!canStart(task.request.tripId)) return false;
     if (!replacementConfirmed && !confirmReplacingEditedPlan()) return false;
     const controller = new AbortController();
     const id = start(task, controller, change);
     if (!id) return false;
+    const runId = resumeRunId ?? crypto.randomUUID();
+    if (!resumeRunId)
+      rememberPendingRun(id, { runId, task, message: change?.message, startedAt: Date.now() });
+    let interrupted = false;
+    const tracked = async (response: Promise<Response>) => {
+      const sent = await response.catch((error: unknown) => {
+        interrupted = true;
+        throw error;
+      });
+      if (!sent.body) return sent;
+      const reader = sent.body.getReader();
+      const body = new ReadableStream<Uint8Array>({
+        async pull(stream) {
+          try {
+            const { done, value } = await reader.read();
+            if (done) stream.close();
+            else stream.enqueue(value);
+          } catch (error) {
+            interrupted = true;
+            stream.error(error);
+          }
+        },
+        cancel: (reason) => reader.cancel(reason),
+      });
+      return new Response(body, { status: sent.status, headers: sent.headers });
+    };
     void (async () => {
       const outcome = await requestTurn(
         task,
         (signal) =>
-          fetch("/api/chat", {
-            method: "POST",
-            headers: { "content-type": "application/json", ...dataModeHeaders(dataMode) },
-            body: JSON.stringify({
-              ...task.request,
-              ...(assistant ? { assistant } : {}),
-              interfaceLanguage,
-              displayCurrency,
-            }),
-            signal,
-          }),
+          tracked(
+            resumeRunId
+              ? fetch(`/api/chat?run=${runId}`, { signal, cache: "no-store" })
+              : fetch("/api/chat", {
+                  method: "POST",
+                  headers: {
+                    "content-type": "application/json",
+                    [CHAT_RUN_HEADER]: runId,
+                    ...dataModeHeaders(dataMode),
+                  },
+                  body: JSON.stringify({
+                    ...task.request,
+                    ...(assistant ? { assistant } : {}),
+                    interfaceLanguage,
+                    displayCurrency,
+                  }),
+                  signal,
+                }),
+          ),
         {
           signal: controller.signal,
           onProgress: (event) => {
@@ -147,10 +201,36 @@ export function useWorkspaceTransport({
           },
         },
       );
-
-      finish(id, controller, outcome, task);
+      if (pageLeaving()) return;
+      const lostConnection =
+        outcome.kind === "failed" &&
+        (interrupted ||
+          ("key" in outcome.message && outcome.message.key === "connectionEndedBeforeThePlan"));
+      finish(id, controller, outcome, task, lostConnection);
     })();
     return true;
+  }
+
+  function resumePending(conversationId: string) {
+    if (hasTurn(conversationId)) return;
+    const pending = pendingRun(conversationId);
+    if (!pending) return;
+    const shown = shownMessages();
+    const answered = shown.some(
+      (item) => item.role === "agent" && (item.at ?? 0) >= pending.startedAt,
+    );
+    const missing =
+      pending.message !== undefined &&
+      !shown.some((item) => item.role === "user" && item.at === pending.message?.at);
+    const resumed =
+      !answered &&
+      run(
+        pending.task,
+        true,
+        missing && pending.message ? { message: pending.message } : undefined,
+        pending.runId,
+      );
+    if (!resumed) forgetPendingRun(conversationId);
   }
 
   function submit(next: Draft = draft): boolean {
@@ -320,5 +400,10 @@ export function useWorkspaceTransport({
       { message: { role: "user", text: message, at: Date.now() } },
     );
   }
-  return { run, submit, prepareChat, send, answer };
+  const resumeOnLoad = useRef(resumePending);
+  resumeOnLoad.current = resumePending;
+  useEffect(() => {
+    resumeOnLoad.current(activeConversation.current);
+  }, [activeConversation]);
+  return { run, resumePending, submit, prepareChat, send, answer };
 }

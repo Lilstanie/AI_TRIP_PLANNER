@@ -28,7 +28,13 @@ import {
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
 import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
-import { seed, type MobileView } from "./workspace-helpers";
+import {
+  PLAN_CONFLICT,
+  planChanged,
+  seed,
+  type BackgroundTurn,
+  type MobileView,
+} from "./workspace-helpers";
 import type { ChatView } from "../chat/ChatViewTabs";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
 import { isTripAction } from "@/lib/workspace/layout";
@@ -42,6 +48,7 @@ import {
   type TurnOutcome,
 } from "@/lib/workspace/session";
 import { mapProviderOptions, useDataMode } from "@/lib/workspace/data-mode";
+import { forgetPendingRun } from "@/lib/workspace/pending-runs";
 import { defaultSettings, draftDefaults } from "@/lib/account/settings";
 import { useSettings } from "../account/SettingsProvider";
 import { useInterfaceLocale } from "../account/LocaleProvider";
@@ -52,24 +59,7 @@ import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/worksp
 import { translate } from "@/lib/i18n/locale";
 import { moneyDisplay } from "@/lib/money";
 import { destinationCities } from "@/lib/map/place-query";
-import type { Notice } from "@/lib/i18n/notice";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
-
-type BackgroundTurn = {
-  conversationId: string;
-  tripId: string;
-  task: Task;
-  controller: AbortController;
-  state: SessionState;
-  basePlan: TripPlan | undefined;
-};
-
-const PLAN_CONFLICT: Notice = {
-  key: "thePlanChangedWhileThis",
-};
-const editVersion = (plan: TripPlan | undefined) => plan?.editVersion ?? 0;
-const planChanged = (left: TripPlan | undefined, right: TripPlan | undefined) =>
-  editVersion(left) !== editVersion(right);
 
 export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [state, setSession] = useState<SessionState>(() =>
@@ -298,6 +288,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     ]);
 
     composerAttachments.clearAttachments();
+    if (!turn) resumePending(conversationId);
   }
   function openPreferences(fact: FactKey = "preferences") {
     layout({ type: "open-fact", fact });
@@ -366,9 +357,11 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     controller: AbortController,
     outcome: TurnOutcome,
     _task: Task,
+    keepPending = false,
   ) {
     const turn = backgroundTurns.current.get(conversationId);
     if (!turn || turn.controller !== controller || turn.state.status !== "running") return;
+    if (!keepPending) forgetPendingRun(conversationId);
 
     if (tripWriters.current.get(turn.tripId) === conversationId)
       tripWriters.current.delete(turn.tripId);
@@ -434,6 +427,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     for (const [conversationId, turn] of backgroundTurns.current) {
       if (keep(turn)) continue;
       turn.controller.abort();
+      forgetPendingRun(conversationId);
       backgroundTurns.current.delete(conversationId);
       if (tripWriters.current.get(turn.tripId) === conversationId)
         tripWriters.current.delete(turn.tripId);
@@ -442,7 +436,10 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   }
 
   const composerAttachments = useComposerAttachments();
-  const { run, submit, prepareChat, send, answer } = useWorkspaceTransport({
+  const { run, resumePending, submit, prepareChat, send, answer } = useWorkspaceTransport({
+    activeConversation,
+    hasTurn: (id) => backgroundTurns.current.has(id),
+    shownMessages: () => stateRef.current.messages,
     plan,
     dataMode: dataMode.mode,
     assistant: settings.assistant,
