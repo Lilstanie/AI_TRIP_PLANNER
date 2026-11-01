@@ -1,6 +1,6 @@
 # Web map provider checklist
 
-Use the existing `MapProvider` in `apps/web/lib/map-provider/types.ts` and selection in `index.ts`.
+Use the existing `MapProvider` in `apps/web/lib/map/providers/types.ts` and selection in `index.ts`.
 Read `osm-places.ts`, `fallback.ts`, `http.ts`, `osrm.ts`, `transitous.ts` and the relevant thin API
 route before changing an adapter. This checklist records current merged behavior, including PR #278
 and the [review fixes](../../../notes/implemented/architecture/2026-10-10-map-fallback-review-fixes.md).

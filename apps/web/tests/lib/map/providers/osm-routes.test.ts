@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { localInstant } from "@/lib/integrations/google";
-import { osmMapProvider } from "@/lib/map-provider/osm";
+import { osmMapProvider } from "@/lib/map/providers/osm";
 
 type Call = { url: string; headers: Record<string, string> };
 let calls: Call[];

@@ -82,7 +82,7 @@ step.
 
 The web workspace's place search, place details, place photos, leg routes, route from the
 traveller's location and destination time zone go through one `MapProvider` interface in
-`apps/web/lib/map-provider/`. Google Maps Platform answers first. When Google cannot answer, a free
+`apps/web/lib/map/providers/`. Google Maps Platform answers first. When Google cannot answer, a free
 OpenStreetMap-based provider answers instead: Photon/Nominatim supply search and details, Commons
 supplies optional licensed photos, OSRM supplies walking/cycling/driving, Transitous supplies public
 transport, and coordinates resolve time zones offline. The
@@ -141,7 +141,7 @@ records the boundary.
   assumed to be UTC.
 - **Mock data mode:** with `MOCK_GOOGLE_MAPS=unavailable`, edit previews route and time their legs
   through the provider, which answers OSRM from fixtures (straight-line distance at a walking or driving
-  pace, `apps/web/lib/map-provider/mock-osm.ts`) and places from the same file. No OSRM request is sent.
+  pace, `apps/web/lib/map/providers/mock-osm.ts`) and places from the same file. No OSRM request is sent.
 
 ### Free services: limits and terms
 

@@ -14,8 +14,8 @@ import {
   type RouteMode,
   type RouteResult,
 } from "../integrations/google";
-import { mapProvider, mockUsesProvider, routeLeg } from "../map-provider";
-import type { MapProvider, RouteHints } from "../map-provider/types";
+import { mapProvider, mockUsesProvider, routeLeg } from "../map/providers";
+import type { MapProvider, RouteHints } from "../map/providers/types";
 import {
   errorNotice,
   NoticeError,

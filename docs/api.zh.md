@@ -283,7 +283,7 @@ Upstash/Vercel KV 时用它，否则用进程内存），保留一小时，归�
 
 ## `POST /api/places/search`
 
-实现：`apps/web/lib/map-provider/` 中的 `MapProvider.searchPlaces`（默认先 Google，失败时免费回退）。
+实现：`apps/web/lib/map/providers/` 中的 `MapProvider.searchPlaces`（默认先 Google，失败时免费回退）。
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }
