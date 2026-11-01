@@ -203,7 +203,7 @@ async function lookUp(q: PlaceQuery): Promise<Lookup> {
       for (const key of keys) seen.add(key);
       return true;
     })
-    .slice(0, 20)
+    .slice(0, 60)
     .map((place) => {
       const raw = place.datasource?.raw ?? {};
       const osmType = OSM_TYPES[String(raw.osm_type)];

@@ -167,4 +167,17 @@ export const enShell = {
     "Plan {destination}, {dates}, for {count} travellers with a total budget of {amount}.",
   labelColon: "{label}:",
   labelValue: "{label}: {value}",
+  introHeadline: "Plan a whole trip from one message",
+  introLead:
+    "Say where, when and your budget. An AI travel team plans each day's sights, transport, stays and meals, and pins them on the map.",
+  introStart: "Start planning",
+  introTeamLabel: "Your AI travel team",
+  introStepTellTitle: "Tell us the trip",
+  introStepTellBody: "Type it the way you'd say it, in English or Chinese.",
+  introStepTeamTitle: "The team plans it",
+  introStepTeamBody:
+    "The coordinator hands each part to a specialist and you can watch every step.",
+  introStepAdjustTitle: "Change anything",
+  introStepAdjustBody:
+    "Edit days, move stops or ask in chat. Changes apply right away and can be undone.",
 } as const;

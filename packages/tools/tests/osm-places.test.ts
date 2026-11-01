@@ -221,7 +221,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
       {
         body: {
           features: [
-            ...Array.from({ length: 30 }, (_, index) => ({
+            ...Array.from({ length: 70 }, (_, index) => ({
               properties: { name: `Statue ${index}`, lat: 35.681, lon: 139.767 },
             })),
             {
@@ -250,7 +250,7 @@ describe("Geoapify places by category, with Overpass as the fallback", () => {
     const found = await places({ near: "Tokyo", category: "sight" });
 
     expect(found.slice(0, 2).map((place) => place.name)).toEqual(["Senso-ji", "Meiji Jingu"]);
-    expect(found).toHaveLength(20);
+    expect(found).toHaveLength(60);
   });
 
   it("asks for temples and shrines in their own requests, which Geoapify files under religion rather than sights", async () => {

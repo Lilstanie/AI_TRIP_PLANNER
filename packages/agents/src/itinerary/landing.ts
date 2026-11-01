@@ -1,4 +1,10 @@
-import { outboundArrival, type AgentProposal, type TripBrief } from "@trip/shared";
+import {
+  inboundDeparture,
+  outboundArrival,
+  type AgentProposal,
+  type TripBrief,
+} from "@trip/shared";
+import type { TransferWindow } from "./transfer-windows";
 
 export interface Landing {
   day: number;
@@ -9,6 +15,40 @@ export interface Landing {
 const AIRPORT_EXIT_MINUTES = 90;
 const LAST_ARRIVAL_DAY_START = 17 * 60 + 30;
 const ARRIVAL_STOP_MINUTES = 150;
+const AIRPORT_CHECK_IN_MINUTES = 180;
+const FIRST_DEPARTURE_DAY_END = 10 * 60 + 30;
+
+export interface Departure {
+  day: number;
+  time: string;
+  latestEnd?: string;
+}
+
+export function departureFor(
+  brief: TripBrief,
+  proposals: readonly AgentProposal[],
+): Departure | undefined {
+  const flight = inboundDeparture(brief, proposals);
+  if (!flight) return undefined;
+  const latest = minutes(flight.time) - AIRPORT_CHECK_IN_MINUTES;
+  return latest >= FIRST_DEPARTURE_DAY_END ? { ...flight, latestEnd: clock(latest) } : flight;
+}
+
+export function departureWindow(departure: Departure, city: string): TransferWindow {
+  return {
+    day: departure.day,
+    from: city,
+    to: "home",
+    startTime: departure.latestEnd ?? "00:00",
+    endTime: "23:59",
+  };
+}
+
+export function departureNote(departure: Departure): string {
+  return departure.latestEnd
+    ? `The return flight leaves on day ${departure.day} at ${departure.time}; stops that day end by ${departure.latestEnd}, leaving time to reach the airport.`
+    : `The return flight leaves on day ${departure.day} at ${departure.time}; no stop is planned that day.`;
+}
 
 export function landingFor(
   brief: TripBrief,

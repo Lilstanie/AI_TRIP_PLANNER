@@ -331,7 +331,7 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 
 如果在 `pnpm dev` 运行时执行 `pnpm build`，启动开发服务器时应设置 `NEXT_DIST_DIR=.next-dev`，避免二者共用 `.next` 输出目录。
 
-免费地图端点可通过 `PHOTON_BASE_URL`（默认 `https://photon.komoot.io`）、`NOMINATIM_BASE_URL`（默认 `https://nominatim.openstreetmap.org`）、`OVERPASS_BASE_URL`（默认 `https://overpass-api.de/api`）和 `TRANSITOUS_BASE_URL`（默认 `https://api.transitous.org`）配置。设置 `GEOAPIFY_API_KEY`（免费账号）后，景点、博物馆、餐厅和街区先查 Geoapify，失败或无结果时退回 Overpass。Geoapify 的景点和街区最多读三页，跳过艺术品和纪念碑，街区只保留带 Wikipedia 或 Wikidata 链接的。`MAPS_PROVIDER=osm` 时网关不提供 `routeOptions`，路段使用 OSRM 估算。将 `OSM_USER_AGENT` 设为真实项目联系方式。公共服务限制和部署边界见[架构说明](architecture.zh.md#free-services-limits-and-terms)。
+免费地图端点可通过 `PHOTON_BASE_URL`（默认 `https://photon.komoot.io`）、`NOMINATIM_BASE_URL`（默认 `https://nominatim.openstreetmap.org`）、`OVERPASS_BASE_URL`（默认 `https://overpass-api.de/api`）和 `TRANSITOUS_BASE_URL`（默认 `https://api.transitous.org`）配置。设置 `GEOAPIFY_API_KEY`（免费账号）后，景点、博物馆、餐厅和街区先查 Geoapify，失败或无结果时退回 Overpass。Geoapify 的景点和街区最多读三页、每类最多保留 60 个，跳过艺术品和纪念碑，街区只保留带 Wikipedia 或 Wikidata 链接的。`MAPS_PROVIDER=osm` 时网关不提供 `routeOptions`，路段使用 OSRM 估算。将 `OSM_USER_AGENT` 设为真实项目联系方式。公共服务限制和部署边界见[架构说明](architecture.zh.md#free-services-limits-and-terms)。
 
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
 

@@ -5,7 +5,7 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { ChevronIcon } from "@/components/ui/icons";
 import { motionAllowed } from "@/components/ui/motion";
 import { itineraryActivities, visitingOrder } from "@/lib/trip/itinerary";
-import { dayCount, dayLabel } from "@/lib/trip/timeline";
+import { dayCount, dayLabel, dayRows, emptyDayKey } from "@/lib/trip/timeline";
 
 const SHOWN = 2;
 
@@ -59,7 +59,8 @@ export function PlanDays({
         stops.filter((item) => item.day === day).map((item) => item.location ?? item.detail),
       ),
     ];
-    return { day, date: dayLabel(plan, day, locale), names };
+    const empty = names.length ? undefined : emptyDayKey(dayRows(plan, day, [], locale));
+    return { day, date: dayLabel(plan, day, locale), names, empty };
   });
   return (
     <div
@@ -68,7 +69,7 @@ export function PlanDays({
       data-more-end={more.end || undefined}
     >
       <ol ref={strip} className="plan-days" aria-label={t("daysInThisPlan")}>
-        {days.map(({ day, date, names }, index) => (
+        {days.map(({ day, date, names, empty }, index) => (
           <li key={day} className="plan-days__item" style={{ animationDelay: `${index * 50}ms` }}>
             <button
               type="button"
@@ -94,7 +95,7 @@ export function PlanDays({
                   )}
                 </span>
               ) : (
-                <span className="plan-day__free">{t("freeDay")}</span>
+                <span className="plan-day__free">{t(empty ?? "freeDay")}</span>
               )}
             </button>
           </li>

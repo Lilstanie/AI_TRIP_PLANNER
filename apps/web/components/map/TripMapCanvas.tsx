@@ -64,7 +64,10 @@ export function TripMapCanvas({
     retry,
   } = tripPlaces;
 
-  const markers = useMemo(() => itinerary.markersFor(focusedDay), [itinerary, focusedDay]);
+  const markers = useMemo(() => {
+    const day = itinerary.markersFor(focusedDay);
+    return day.length ? day : itinerary.markersFor();
+  }, [itinerary, focusedDay]);
   const dayRoutes = useMemo(() => {
     if (focusedDay === undefined) return routes;
     const ids = new Set(markers.map((marker) => marker.place.id));

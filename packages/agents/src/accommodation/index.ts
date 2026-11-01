@@ -213,9 +213,6 @@ function assembleStayProposal(
   }
   if (revision) {
     assumptions.push(
-      `Revision requested: ${revision.reason}; constraints: ${revision.constraints.join("; ") || "none"}.`,
-    );
-    assumptions.push(
       budgetRevision
         ? `Selected ${allocation ? "the highest-ranked eligible stays that fit the revised share" : "the cheapest eligible stays"}; saved ${formatMoney(savings, currency)} against the initial selection for these inputs. Dates, guest count and confirmed preferences are unchanged.`
         : "No supported price revision was requested; the initial selection is retained. Time/geography changes require an updated brief.",

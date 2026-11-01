@@ -7,7 +7,7 @@ import type {
   StaySelection,
 } from "@trip/shared";
 import type { BookingRow as BookingRowData } from "@/lib/trip/timeline";
-import { formatDuration } from "@/lib/trip/timeline";
+import { arrivalDayOffset, formatDuration } from "@/lib/trip/timeline";
 import { useLocale } from "../../account/LocaleProvider";
 import { FlowFlightIcon, FlowStayIcon } from "../../ui/flow-icons";
 import { SourceBadge } from "../SourceBadge";
@@ -162,6 +162,9 @@ function FlightCard({
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
   if (!selected) return <p>{t("thisFlightNeedsANew")}</p>;
   const others = flight.candidates.filter((candidate) => candidate.id !== flight.selectedId);
+  const leg = out ? selected.inbound : selected.outbound;
+  const duration = out ? leg?.durationMin : (leg?.durationMin ?? selected.durationMin);
+  const stops = leg ? leg.layovers.length : out ? undefined : selected.stops;
   return (
     <article className="proposal-item result-card result-card--flight">
       <div className="result-card__head">
@@ -181,16 +184,16 @@ function FlightCard({
           <dt>{t("travellers")}</dt>
           <dd>{flight.passengers}</dd>
         </div>
-        {selected.stops !== undefined && (
+        {stops !== undefined && (
           <div>
             <dt>{t("flightStops")}</dt>
-            <dd>{selected.stops === 0 ? t("nonstop") : selected.stops}</dd>
+            <dd>{stops === 0 ? t("nonstop") : stops}</dd>
           </div>
         )}
-        {selected.durationMin !== undefined && (
+        {duration !== undefined && (
           <div>
             <dt>{t("flightTime")}</dt>
-            <dd>{formatDuration(selected.durationMin, locale)}</dd>
+            <dd>{formatDuration(duration, locale)}</dd>
           </div>
         )}
       </dl>
@@ -286,8 +289,11 @@ export function BookingRow({
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
   const out = row.role === "out";
   const leg = out ? selected?.inbound : selected?.outbound;
-  const departs = leg?.segments[0]?.departsAt.split(" ")[1];
-  const arrives = leg?.segments[leg.segments.length - 1]?.arrivesAt.split(" ")[1];
+  const first = leg?.segments[0];
+  const last = leg?.segments[leg.segments.length - 1];
+  const departs = first?.departsAt.split(" ")[1];
+  const arrives = last?.arrivesAt.split(" ")[1];
+  const offset = first && last ? arrivalDayOffset(first.departsAt, last.arrivesAt) : "";
   const Icon = FlowFlightIcon;
   return (
     <li
@@ -297,7 +303,10 @@ export function BookingRow({
         {departs && (
           <>
             {departs}
-            <span className="timeline-row__end">{arrives}</span>
+            <span className="timeline-row__end">
+              {arrives}
+              {offset && <sup className="timeline-row__offset">{offset}</sup>}
+            </span>
           </>
         )}
       </span>

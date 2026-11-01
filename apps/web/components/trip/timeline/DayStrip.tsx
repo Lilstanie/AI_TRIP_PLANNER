@@ -10,7 +10,13 @@ export function DayStrip({
   dropDay,
   onSelect,
 }: {
-  days: { day: number; date: string; stops: number; rows: number; attention: boolean }[];
+  days: {
+    day: number;
+    date: string;
+    stops: number;
+    empty: "flight" | "booked" | "freeDay";
+    attention: boolean;
+  }[];
   selected: number;
   today?: number;
   panelId: string;
@@ -35,7 +41,7 @@ export function DayStrip({
   };
   return (
     <div className="day-strip" role="tablist" aria-label={t("tripDays")} ref={strip}>
-      {days.map(({ day, date, stops, rows, attention }) => (
+      {days.map(({ day, date, stops, empty, attention }) => (
         <button
           key={day}
           type="button"
@@ -63,7 +69,7 @@ export function DayStrip({
           {day === today && <span className="day-strip__today">{t("today")}</span>}
           <span className="day-strip__date">{date}</span>
           <span className="day-strip__meta">
-            {stops ? t("dayStopCount", { count: stops }) : rows ? t("booked") : t("freeDay")}
+            {stops ? t("dayStopCount", { count: stops }) : t(empty)}
             {attention && (
               <span className="day-strip__flag">
                 <span aria-hidden="true"> · </span>
