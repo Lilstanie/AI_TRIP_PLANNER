@@ -821,7 +821,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   says "This stay needs a new selection."
 - **Flight card.** Route, dates, round trip or one way and cabin, then each leg the fare covers:
   airline and flight number, airport codes, times with a "+1" day offset, flying time and stops.
-  A round-trip fare whose return leg was not looked up says so; it loads when that fare is chosen.
+  A round-trip fare whose return leg was not looked up says so, also after it is chosen; its price
+  still covers the way home.
   Flying-time comparisons and Fastest use the outbound leg. Fares without legs (mock fares) show
   carrier, stops and flight time. The price is the whole
   party's. A flight whose selection no longer matches says "This flight needs a new selection."
