@@ -1,7 +1,7 @@
 import type { FlightAnswer, InterfaceLanguage } from "@trip/shared";
 import { tool } from "langchain";
 import { z } from "zod/v4";
-import { ISO_DATE } from "./brief";
+import { ISO_DATE } from "../brief/brief";
 import type { FlightQuery } from "./flight-query";
 
 export type FlightSearch = (query: FlightQuery) => Promise<FlightAnswer>;

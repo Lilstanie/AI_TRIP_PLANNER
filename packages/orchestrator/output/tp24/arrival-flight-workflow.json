@@ -1,0 +1,126 @@
+{
+  "transport": {
+    "agent": "transport",
+    "summary": "1 transport option for Sydney ↔ Tokyo · known estimate AUD 1,000.00",
+    "items": [
+      {
+        "kind": "transport",
+        "day": 1,
+        "selectionId": "flight-0",
+        "location": "Sydney → Tokyo",
+        "detail": "MockAir: Sydney to Tokyo, returning 2026-11-04; whole-group fare.",
+        "estCost": 1000
+      }
+    ],
+    "assumptions": [
+      "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
+      "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
+      "Origin comes from the trip brief, else the long-term preference \"transport.origin\", else the first destination, so no long-haul flight is planned; current origin: Sydney.",
+      "Injected booking and maps results are treated as estimates, not reservations or live availability."
+    ],
+    "conflictsWith": [],
+    "floorCost": 1000,
+    "flights": [
+      {
+        "id": "flight-0",
+        "from": "Sydney",
+        "to": "Tokyo",
+        "depart": "2026-11-01",
+        "day": 1,
+        "passengers": 1,
+        "selectedId": "0-0",
+        "candidates": [
+          {
+            "id": "0-0",
+            "carrier": "MockAir",
+            "price": 1000,
+            "outbound": {
+              "segments": [
+                {
+                  "from": {
+                    "code": "SYD",
+                    "name": "Sydney"
+                  },
+                  "to": {
+                    "code": "HND",
+                    "name": "Tokyo"
+                  },
+                  "departsAt": "2026-11-01 22:00",
+                  "arrivesAt": "2026-11-02 07:00",
+                  "durationMin": 600,
+                  "airline": "MockAir",
+                  "flightNumber": "MA1"
+                }
+              ],
+              "layovers": [],
+              "durationMin": 600
+            }
+          }
+        ]
+      }
+    ],
+    "source": {
+      "kind": "mock",
+      "label": "Mock booking and route data",
+      "freshness": "Fares and route details are deterministic fixtures; not live verified."
+    }
+  },
+  "before": [
+    {
+      "tripId": "arrival-test",
+      "targetAgent": "itinerary",
+      "kind": "time",
+      "reason": "activity on day 2 starts before the flight arrives on day 2 at 07:00",
+      "constraints": [
+        "schedule destination activities after arrival on day 2 at 07:00"
+      ]
+    }
+  ],
+  "after": [],
+  "unknown": {
+    "agent": "transport",
+    "summary": "1 transport option for Sydney ↔ Tokyo · known estimate AUD 1,000.00",
+    "items": [
+      {
+        "kind": "transport",
+        "day": 1,
+        "selectionId": "flight-0",
+        "location": "Sydney → Tokyo",
+        "detail": "MockAir: Sydney to Tokyo, returning 2026-11-04; whole-group fare.",
+        "estCost": 1000
+      }
+    ],
+    "assumptions": [
+      "Route arrays are consecutive legs; calculator preserves adapter AUD amounts as group totals, matching the current integration. Per-person providers must normalize fares before returning them.",
+      "Inter-city route dates follow their scheduled day. Unsupported driving-only estimates cannot verify public transport.",
+      "Origin comes from the trip brief, else the long-term preference \"transport.origin\", else the first destination, so no long-haul flight is planned; current origin: Sydney.",
+      "Injected booking and maps results are treated as estimates, not reservations or live availability."
+    ],
+    "conflictsWith": [],
+    "floorCost": 1000,
+    "flights": [
+      {
+        "id": "flight-0",
+        "from": "Sydney",
+        "to": "Tokyo",
+        "depart": "2026-11-01",
+        "day": 1,
+        "passengers": 1,
+        "selectedId": "0-0",
+        "candidates": [
+          {
+            "id": "0-0",
+            "carrier": "MockAir",
+            "price": 1000
+          }
+        ]
+      }
+    ],
+    "source": {
+      "kind": "mock",
+      "label": "Mock booking and route data",
+      "freshness": "Fares and route details are deterministic fixtures; not live verified."
+    }
+  },
+  "unknownConflicts": []
+}

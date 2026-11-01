@@ -4,7 +4,7 @@ import {
   type AskUserQuestionItem,
 } from "@trip/shared";
 import { z } from "zod/v4";
-import { text } from "./brief-update-fields";
+import { text } from "../brief/brief-update-fields";
 
 export const AskUserQuestionInput = z.object({
   questions: z
