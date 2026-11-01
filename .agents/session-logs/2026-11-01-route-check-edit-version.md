@@ -2,7 +2,7 @@
 date: 2026-11-01
 author: Claude Code
 branch: fix/TP-247-route-check-version
-pr: pending
+pr: 896
 area: apps/web
 contract-impact: none
 ---
