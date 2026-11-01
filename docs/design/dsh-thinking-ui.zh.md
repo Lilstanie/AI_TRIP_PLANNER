@@ -179,7 +179,7 @@ DSH 的减少动效支持尚不完整：思考行、运行行、命令行、重�
 
 ## 2. 本项目目前的实现
 
-聊天界面位于 `apps/web/components/chat/ThinkingProcess.tsx`，由 `apps/web/components/chat/ChatPanel.tsx` 在标为「Thinking process」的 `section.agent-activity` 中渲染。`apps/web/components/chat/thinking-model.ts` 从 `activity`（`AgentProgressEvent[]`）派生树结构，不含 React；`Disclosure.tsx` 是从 DSH 移植、树中每行都使用的统一展开控件；`ThinkingRows.tsx` 基于它渲染推理、subagent 和工具行。样式位于 `apps/web/app/styles/thinking.css`；协调者的问题或者通过 assistant 自己的文字消息呈现，或者以结构化问题交给 `QuestionComposer.tsx` 替代输入框（`apps/web/app/styles/question.css`）；普通输入框位于 `apps/web/components/chat/Composer.tsx`。消息本身由 `MessageItem.tsx` 渲染（`apps/web/app/styles/messages.css`）。设计 token 位于 `apps/web/app/styles/tokens.css`，进度帧是 `packages/shared/src/chat.ts` 中的 `AgentProgressEvent` 可辨识联合类型。
+聊天界面位于 `apps/web/components/chat/ThinkingProcess.tsx`，由 `apps/web/components/chat/ChatPanel.tsx` 在标为「Thinking process」的 `section.agent-activity` 中渲染。`apps/web/lib/chat/thinking-model.ts` 从 `activity`（`AgentProgressEvent[]`）派生树结构，不含 React；`Disclosure.tsx` 是从 DSH 移植、树中每行都使用的统一展开控件；`ThinkingRows.tsx` 基于它渲染推理、subagent 和工具行。样式位于 `apps/web/app/styles/thinking.css`；协调者的问题或者通过 assistant 自己的文字消息呈现，或者以结构化问题交给 `QuestionComposer.tsx` 替代输入框（`apps/web/app/styles/question.css`）；普通输入框位于 `apps/web/components/chat/Composer.tsx`。消息本身由 `MessageItem.tsx` 渲染（`apps/web/app/styles/messages.css`）。设计 token 位于 `apps/web/app/styles/tokens.css`，进度帧是 `packages/shared/src/chat.ts` 中的 `AgentProgressEvent` 可辨识联合类型。
 
 该界面逐行对应 DSH：
 

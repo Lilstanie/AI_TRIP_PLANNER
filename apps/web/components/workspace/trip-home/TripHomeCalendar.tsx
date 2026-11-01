@@ -17,8 +17,8 @@ import {
   type CalendarEntry,
 } from "@/lib/trip/calendar";
 import { intlLocale, translate, type AppLocale } from "@/lib/i18n/locale";
-import { useLocale } from "../account/LocaleProvider";
-import { FlowAttractionIcon, FlowFlightIcon, FlowStayIcon } from "../ui/flow-icons";
+import { useLocale } from "../../account/LocaleProvider";
+import { FlowAttractionIcon, FlowFlightIcon, FlowStayIcon } from "../../ui/flow-icons";
 
 type CalendarView = "week" | "month";
 

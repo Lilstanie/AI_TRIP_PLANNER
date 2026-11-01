@@ -1,7 +1,7 @@
 "use client";
 import type { AgentProgressEvent } from "@trip/shared";
 import { ThinkingOrb } from "thinking-orbs";
-import type { SubagentModel } from "./thinking-model";
+import type { SubagentModel } from "../../lib/chat/thinking-model";
 
 type OrbState =
   "working" | "searching" | "solving" | "connecting" | "weaving" | "composing" | "breathing";
