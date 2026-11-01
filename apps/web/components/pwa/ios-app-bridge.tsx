@@ -15,7 +15,6 @@ function nativePlugins(): NativePlugins | undefined {
   return (globalThis as { Capacitor?: { Plugins?: NativePlugins } }).Capacitor?.Plugins;
 }
 
-/** Adds iOS haptics and hides the keyboard accessory bar; does nothing outside the iOS app. */
 export function IosAppBridge() {
   useEffect(() => {
     const plugins = nativePlugins();
