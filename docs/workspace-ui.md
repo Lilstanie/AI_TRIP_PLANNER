@@ -665,7 +665,7 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
 
 ## Trajectory tab
 
-The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Choosing Trajectory from the sidebar, Return to chat from the Chat title menu, or a specialist in Agent Team dispatches `show-chat-view`, which closes any navigation or Trip drawer and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath.
+The chosen chat view lives in the layout surface (`chatView`), not in the chat column. Choosing Trajectory from the sidebar, Return to chat from the Chat title menu, or a specialist in Agent Team dispatches `show-chat-view`, which closes any navigation or Trip drawer and selects that view in one step; the Trip button opens the panel again and the chosen view stays underneath. On desktop the Trip button turns dark while Trip is open; opening or closing it cross-fades the workspace, and the timeline and map enter as two rounded cards with the same gap as the chat map. Reduced motion skips both animations.
 
 The Trajectory chrome uses the glass tokens on floating surfaces only: the Simple and Full view switch, the full view toolbar and the record inspector (`glass-float`, `glass-float--raised`, so reduced transparency and high contrast give the solid surface). Rows, the timeline and the ledger stay solid. Secondary text is the primary text colour mixed 74% into the surface, which keeps 4.5:1 on glass in light and dark. Data, search, jumps and the two views are unchanged. See the [Trajectory glass restyle note](../.agents/notes/implemented/feature/2026-10-28-trajectory-glass-restyle.md).
 

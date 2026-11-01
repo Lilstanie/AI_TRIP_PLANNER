@@ -774,7 +774,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     className="topbar-button trip-trigger"
                     aria-label={t("openYourTrip")}
                     aria-expanded={tripOpen}
-                    onClick={() => (tripOpen ? closeTrip() : openTrip())}
+                    onClick={() => viewTransition(tripOpen ? closeTrip : openTrip, "trip")}
                   >
                     <RouteIcon />
                     <span className="topbar-button__label">{t("trip")}</span>

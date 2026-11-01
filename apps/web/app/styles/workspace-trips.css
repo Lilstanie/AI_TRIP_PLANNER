@@ -566,23 +566,27 @@
 }
 .trips-calendar__trip {
   max-width: 100%;
-  min-height: 32px;
-  padding: 0 var(--space-2) !important;
+  min-height: 34px;
+  padding: 0 var(--space-4) !important;
   border: 0 !important;
-  border-radius: var(--radius-sm) !important;
-  background: transparent !important;
+  border-radius: var(--radius-pill) !important;
+  background: var(--fill-hover) !important;
   color: var(--text-dim);
   font-size: var(--font-size-meta);
   font-weight: 600;
   overflow-wrap: anywhere;
   text-align: start;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out);
 }
-.trips-calendar__trip:hover,
-.trips-calendar__trip[aria-pressed="true"] {
-  background: var(--fill-hover) !important;
-}
-.trips-calendar__trip[aria-pressed="true"] {
+.trips-calendar__trip:hover {
+  background: var(--fill-press) !important;
   color: var(--text);
+}
+.trips-calendar__trip[aria-pressed="true"] {
+  background: var(--text) !important;
+  color: var(--page);
 }
 .trips-calendar__open {
   flex: none;
