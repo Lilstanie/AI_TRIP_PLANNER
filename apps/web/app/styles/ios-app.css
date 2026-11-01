@@ -229,3 +229,10 @@ html[data-native-tabbar] .workspace-app[data-phone] .phone-tabbar:not([data-hidd
   -webkit-backdrop-filter: none;
   backdrop-filter: none;
 }
+
+html[data-native-map-hole],
+html [data-native-map-hole],
+html [data-native-map-hole]::before,
+html [data-native-map-hole]::after {
+  background: transparent !important;
+}

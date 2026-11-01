@@ -82,6 +82,7 @@ function modeBadge(
 ) {
   const content = document.createElement("span");
   content.className = "trip-map-leg-mode";
+  content.dataset.mode = mode;
   content.appendChild(routeModeIcon(mode));
   const marker = new runtime.maps.marker.AdvancedMarkerElement({
     map: runtime.map,
@@ -161,7 +162,7 @@ export function drawItineraryRoutes({
           icons: [{ icon: { ...ARROW, fillColor: color }, offset: "50%" }],
         }),
       );
-      if (runtime.provider !== "osm") {
+      if (runtime.provider === "google") {
         const dashes = new maps.Polyline({
           map,
           path,

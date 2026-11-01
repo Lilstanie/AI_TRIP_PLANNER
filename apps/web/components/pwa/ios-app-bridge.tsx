@@ -1,23 +1,10 @@
 "use client";
 
 import { useEffect } from "react";
+import { nativePlugin, type NativePlugin } from "./native-shell";
 
 type ShellTab = { id: string; label: string; badge: boolean };
 type ShellState = { tabs: ShellTab[]; selected?: string; hidden: boolean };
-
-type NativePlugins = {
-  Haptics?: {
-    selectionChanged?: () => Promise<void>;
-    impact?: (options: { style: "LIGHT" | "MEDIUM" }) => Promise<void>;
-  };
-  Keyboard?: { setAccessoryBarVisible?: (options: { isVisible: boolean }) => Promise<void> };
-  TripShell?: { setTabs?: (state: ShellState) => Promise<{ height: number }> };
-};
-
-function nativePlugins(): NativePlugins | undefined {
-  if (document.documentElement.dataset.shell !== "ios-app") return undefined;
-  return (globalThis as { Capacitor?: { Plugins?: NativePlugins } }).Capacitor?.Plugins;
-}
 
 function readTabs(): ShellState {
   const bar = document.querySelector<HTMLElement>(".workspace-app[data-phone] .phone-tabbar");
@@ -35,7 +22,7 @@ function readTabs(): ShellState {
   };
 }
 
-function mirrorTabBar(setTabs: NonNullable<NonNullable<NativePlugins["TripShell"]>["setTabs"]>) {
+function mirrorTabBar(shell: NativePlugin) {
   const root = document.documentElement;
   let sent = "";
   let frame = 0;
@@ -45,7 +32,8 @@ function mirrorTabBar(setTabs: NonNullable<NonNullable<NativePlugins["TripShell"
     const key = JSON.stringify(state);
     if (key === sent) return;
     sent = key;
-    setTabs(state)
+    shell
+      .call<{ height: number }>("setTabs", state)
       .then(({ height }) => {
         root.dataset.nativeTabbar = "";
         if (height > 0) root.style.setProperty("--native-tabbar-height", `${height}px`);
@@ -73,20 +61,23 @@ function mirrorTabBar(setTabs: NonNullable<NonNullable<NativePlugins["TripShell"
 
 export function IosAppBridge() {
   useEffect(() => {
-    const plugins = nativePlugins();
-    if (!plugins) return;
-    plugins.Keyboard?.setAccessoryBarVisible?.({ isVisible: false }).catch(() => {});
-    const stopMirror = plugins.TripShell?.setTabs
-      ? mirrorTabBar(plugins.TripShell.setTabs.bind(plugins.TripShell))
-      : undefined;
+    if (document.documentElement.dataset.shell !== "ios-app") return;
+    const haptics = nativePlugin("Haptics");
+    haptics?.call("selectionStart").catch(() => {});
+    nativePlugin("Keyboard")
+      ?.call("setAccessoryBarVisible", { isVisible: false })
+      .catch(() => {});
+    const shell = nativePlugin("TripShell");
+    const stopMirror = shell ? mirrorTabBar(shell) : undefined;
 
     const onClick = (event: MouseEvent) => {
+      if (!haptics) return;
       const target = event.target instanceof Element ? event.target : null;
       if (!target) return;
       if (target.closest('[role="tab"]:not([aria-selected="true"])')) {
-        plugins.Haptics?.selectionChanged?.().catch(() => {});
+        haptics.call("selectionChanged").catch(() => {});
       } else if (target.closest('button[type="submit"]:not(:disabled)')) {
-        plugins.Haptics?.impact?.({ style: "LIGHT" }).catch(() => {});
+        haptics.call("impact", { style: "LIGHT" }).catch(() => {});
       }
     };
     document.addEventListener("click", onClick, { capture: true });

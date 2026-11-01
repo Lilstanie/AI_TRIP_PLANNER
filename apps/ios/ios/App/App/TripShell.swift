@@ -12,14 +12,25 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
     private let tabBar = UITabBar()
     private var tabIds: [String] = []
     private let shell = TripShellPlugin()
+    private let maps = TripMapPlugin()
 
     var tabBarHeight: CGFloat {
         tabBar.isHidden ? 0 : tabBar.frame.height
     }
 
+    override func webView(with frame: CGRect, configuration: WKWebViewConfiguration) -> WKWebView {
+        PassthroughWebView(frame: frame, configuration: configuration)
+    }
+
     override func capacitorDidLoad() {
         shell.controller = self
         bridge?.registerPluginInstance(shell)
+        if let webView = webView as? PassthroughWebView {
+            let controller = TripMapController(webView: webView)
+            controller.plugin = maps
+            maps.controller = controller
+            bridge?.registerPluginInstance(maps)
+        }
     }
 
     override func viewDidLoad() {
