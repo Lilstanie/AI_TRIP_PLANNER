@@ -79,11 +79,12 @@ try {
   assert.equal(isAnonymousRefusal({ ...refusedHead, status: 200 }, "HEAD"), false);
   assert.equal(isAnonymousRefusal({ ...refusedHead, headers: {} }, "HEAD"), false);
   assert.equal(
-    isAnonymousRefusal(
-      { ...refusedHead, body: { notice: { key: "Sign in to use your account." } } },
-      "GET",
-    ),
+    isAnonymousRefusal({ ...refusedHead, body: { notice: { key: "signInToUseYour" } } }, "GET"),
     true,
+  );
+  assert.equal(
+    isAnonymousRefusal({ ...refusedHead, body: { notice: { key: "unrelatedNotice" } } }, "GET"),
+    false,
   );
   checks.push({
     name: "body-bearing methods retain the JSON notice and no-store requirements",

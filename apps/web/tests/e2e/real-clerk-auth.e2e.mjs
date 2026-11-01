@@ -5,7 +5,12 @@ import { mkdir, writeFile } from "node:fs/promises";
 import { createRequire } from "node:module";
 import { dirname, resolve } from "node:path";
 import { fileURLToPath } from "node:url";
-import { apiRouteMethods, isAnonymousRefusal } from "./support/api-route-methods.mjs";
+import { setTimeout as delay } from "node:timers/promises";
+import {
+  apiRouteMethods,
+  isAnonymousRefusal,
+  publicApiRoutes,
+} from "./support/api-route-methods.mjs";
 
 const web = resolve(dirname(fileURLToPath(import.meta.url)), "../..");
 if (process.argv.includes("--list-routes")) {
@@ -13,6 +18,17 @@ if (process.argv.includes("--list-routes")) {
   const directory = directoryIndex < 0 ? resolve(web, "app/api") : process.argv[directoryIndex + 1];
   assert(directory, "--api-dir requires a directory");
   console.log(JSON.stringify(await apiRouteMethods(directory), null, 2));
+  process.exit(0);
+}
+if (process.argv.includes("--without-clerk") || process.argv.includes("--deployment")) {
+  const { anonymousAcceptance } = await import("./support/anonymous-auth-acceptance.mjs");
+  await anonymousAcceptance({
+    base: process.env.BASE_URL,
+    directory: resolve(web, "app/api"),
+    localProduction: process.argv.includes("--without-clerk"),
+    output: resolve(web, "output/playwright/real-clerk-auth", process.env.LABEL || "after"),
+    modelStub: process.env.MODEL_STUB_URL,
+  });
   process.exit(0);
 }
 
@@ -68,19 +84,8 @@ try {
   const anonymous = await browser.newContext();
   contexts.push(anonymous);
   const routes = await apiRouteMethods(resolve(web, "app/api"));
-  const publicRoutes = new Set([
-    "/api/agent-lab/benchmark",
-    "/api/agent-lab/runs",
-    "/api/chat",
-    "/api/data-mode",
-    "/api/places/details",
-    "/api/places/photo",
-    "/api/places/search",
-    "/api/routes/from-location",
-    "/api/trip/preview-edit",
-  ]);
   for (const { path, method } of routes) {
-    if (publicRoutes.has(path)) continue;
+    if (publicApiRoutes.has(path)) continue;
     const result = await request(anonymous, path, method);
     check(
       isAnonymousRefusal(result, method),
@@ -143,6 +148,32 @@ try {
     );
   }
   const [, accountA, accountB] = contexts;
+  phase = "genuine token lifetime";
+  const token = await accountA
+    .pages()[0]
+    .evaluate(() => window.Clerk.session.getToken({ skipCache: true }));
+  assert(typeof token === "string", "Real session must issue a token");
+  const { exp } = JSON.parse(Buffer.from(token.split(".")[1], "base64url").toString("utf8"));
+  const remaining = exp * 1000 + 6000 - Date.now();
+  check(
+    Number.isSafeInteger(exp) && remaining > 6000 && remaining <= 90000,
+    "fresh genuine token has a bounded future expiry",
+  );
+  const frozen = await browser.newContext({
+    extraHTTPHeaders: { authorization: `Bearer ${token}` },
+  });
+  contexts.push(frozen);
+  check(
+    (await request(frozen, "/api/account/sync")).status === 200,
+    "frozen genuine bearer token is accepted before expiry",
+  );
+  phase = "natural token expiry";
+  await delay(Math.max(0, exp * 1000 + 6000 - Date.now()));
+  await frozen.clearCookies();
+  check(
+    isAnonymousRefusal(await request(frozen, "/api/account/sync"), "GET"),
+    "the same unmodified bearer token is refused after natural expiry",
+  );
   phase = "account storage isolation";
   const id = `auth-e2e-${run}`;
   const record = {
@@ -233,8 +264,8 @@ try {
         cleanup,
         failure: failure || null,
         limits: [
-          "Daily quota enforcement pending #440",
-          "Expired valid JWT and missing-Clerk production boot not covered",
+          "Daily per-user quotas are deferred by the model-access decision",
+          "Production boot and deployment probes run separately",
           "Public mock policy from PR #443",
           "No production-key execution",
         ],

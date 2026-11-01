@@ -15,7 +15,16 @@
 - Discovery executes route modules and causes application or provider side effects.
 - Route groups become literal URL segments, or private folders are treated as routes.
 - HEAD refusals are incorrectly required to carry a JSON body, or body-bearing methods lose their notice check.
+- The refusal checker rejects the current `signInToUseYour` notice key after an interface-copy migration.
+- An expiry test starts with an already invalid token, modifies its signature, refreshes it, or revokes the session instead of observing natural expiry.
+- A production build without Clerk permits live data or model calls instead of the accepted public mock-only policy.
+- A deployed probe follows redirects, sends credentials, invokes a mutating method or treats a Vercel access wall as application acceptance.
+- A deployment receipt claims protection for untested methods or a different source revision.
 
-Scope: public mock policy from PR #443. Missing-Clerk deployments remain mock-only.
-Daily quota enforcement remains pending #440; this suite must not claim it is implemented.
-Expired valid JWTs and missing-Clerk production boot remain uncovered by this suite.
+Scope: the public mock policy from PR #443 and the implemented model-access decision.
+Missing-Clerk production runs use `--without-clerk` with a local counting model stub;
+`--deployment` sends only anonymous GET requests and does not prove the hosted source revision.
+The genuine-session journey freezes a freshly accepted bearer token, waits beyond its natural expiry
+and clock-skew window, then requires uncached 401 from the same token without renewal or sign-out.
+A prepared journey is not evidence of a successful real-session run. Daily per-user quotas remain
+deferred by the model-access decision; this suite does not claim quota enforcement.
