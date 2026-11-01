@@ -3,6 +3,8 @@ import { useEffect, useState } from "react";
 
 export type DataMode = "mock" | "live";
 
+export type LiveBlock = "sign-in-required" | "auth-not-configured";
+
 export type DataModeProviders = {
   hotelsAndFlights: boolean;
   maps: boolean;
@@ -10,15 +12,18 @@ export type DataModeProviders = {
   mockGoogleUnavailable?: boolean;
 };
 
-export function useDataMode(preferred: DataMode) {
+export function useDataMode(preferred: DataMode, choose: (mode: DataMode) => void) {
   const [providers, setProviders] = useState<DataModeProviders>();
   const [liveAvailable, setLiveAvailable] = useState(true);
+  const [liveBlock, setLiveBlock] = useState<LiveBlock>();
   const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      let body: { liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
+      let body:
+        | { liveAvailable?: boolean; liveBlock?: LiveBlock | null; providers?: DataModeProviders }
+        | undefined;
       try {
         const response = await fetch("/api/data-mode");
         if (response?.ok) body = await response.json();
@@ -26,6 +31,7 @@ export function useDataMode(preferred: DataMode) {
       if (!active) return;
       setProviders(body?.providers);
       setLiveAvailable(body?.liveAvailable !== false);
+      setLiveBlock(body?.liveBlock ?? undefined);
       setLoaded(true);
     })();
     return () => {
@@ -38,7 +44,7 @@ export function useDataMode(preferred: DataMode) {
       ? "live"
       : "mock"
     : undefined;
-  return { mode, providers, liveAvailable };
+  return { mode, providers, liveAvailable, liveBlock, choose };
 }
 
 export function mapProviderOptions(mode: DataMode | undefined, providers?: DataModeProviders) {

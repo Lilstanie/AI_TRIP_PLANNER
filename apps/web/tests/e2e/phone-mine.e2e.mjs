@@ -137,9 +137,20 @@ try {
     const locationPrompt = page.getByRole("button", { name: "Not now", exact: true });
     if (await locationPrompt.isVisible()) await locationPrompt.click();
     const mine = page.locator(".phone-mine");
+    const dataMode = mine.locator(".data-mode");
+    const dataModeLabel = dataMode.locator(".topbar-button__label");
     check(
-      !(await mine.getByRole("button", { name: /Mock data|Live data/ }).count()),
-      `${width}: no data-mode button in Mine`,
+      (await dataModeLabel.innerText()).trim() === "Mock data" &&
+        (await dataModeLabel.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return (
+            style.position !== "absolute" &&
+            style.clip === "auto" &&
+            node.getBoundingClientRect().width > 0
+          );
+        })) &&
+        (await dataMode.evaluate((node) => node.scrollWidth <= node.clientWidth)),
+      `${width}: Mock data label is visible and fits its button`,
     );
     const selectMine = async () => {
       await page
@@ -249,11 +260,27 @@ try {
       `${width}: settings opens`,
     );
     await page.keyboard.press("Escape");
+    check(await mine.locator(".data-mode").isVisible(), `${width}: data toggle reachable`);
     check(
-      !(await page.locator(".workspace-topbar .language-toggle").count()),
-      `${width}: language absent from top bar`,
+      !(await page
+        .locator(".workspace-topbar .data-mode, .workspace-topbar .language-toggle")
+        .count()),
+      `${width}: data/language absent from top bar`,
     );
     await setPhoneLanguage(page, "zh");
+    check(
+      (await dataModeLabel.innerText()).trim() === "示例数据" &&
+        (await dataModeLabel.evaluate((node) => {
+          const style = getComputedStyle(node);
+          return (
+            style.position !== "absolute" &&
+            style.clip === "auto" &&
+            node.getBoundingClientRect().width > 0
+          );
+        })) &&
+        (await dataMode.evaluate((node) => node.scrollWidth <= node.clientWidth)),
+      `${width}: 示例数据 label is visible and fits its button`,
+    );
     check(
       await mine.getByRole("button", { name: "设置与账户", exact: true }).isVisible(),
       `${width}: Chinese settings label`,

@@ -26,6 +26,7 @@ import { distinctTripTitles, tripName } from "@/lib/workspace/trip-identity";
 import { MenuIcon, RouteIcon } from "../ui/icons";
 import type { WorkspaceModel } from "./useWorkspace";
 import { WorkspaceDialogs } from "./WorkspaceDialogs";
+import { DataModeToggle } from "./DataModeToggle";
 import { CurrencyNotice } from "../account/CurrencyNotice";
 import { usePresence, useSegmentIndicator, viewTransition } from "../ui/motion";
 import { useLocale } from "../account/LocaleProvider";
@@ -756,6 +757,16 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {!phone && (
               <div className="topbar-actions">
+                <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
+                  <DataModeToggle
+                    mode={dataMode.mode}
+                    providers={dataMode.providers}
+                    onChange={dataMode.choose}
+                    disabled={busy}
+                    liveAvailable={dataMode.liveAvailable}
+                    liveBlock={dataMode.liveBlock}
+                  />
+                </div>
                 {plan && (
                   <button
                     ref={tripToggle}

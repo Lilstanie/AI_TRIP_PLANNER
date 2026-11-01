@@ -117,7 +117,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const [editPending, setEditPending] = useState(false);
   const [settingsSection, setSettingsSection] = useState<SettingsSection>("personalization");
   const [catalog, setCatalog] = useState<WorkspaceCatalog>(restored.catalog);
-  const { settings } = useSettings();
+  const { settings, update: updateSettings } = useSettings();
   const defaults = useMemo(() => draftDefaults(settings), [settings]);
   const locale = useInterfaceLocale();
   const t = (
@@ -159,7 +159,9 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
-  const dataMode = useDataMode(settings.dataMode === "mock" ? "mock" : "live");
+  const dataMode = useDataMode(settings.dataMode === "mock" ? "mock" : "live", (next) =>
+    updateSettings({ dataMode: next }),
+  );
   const mapProvider = mapProviderOptions(dataMode.mode, dataMode.providers);
   const tripPlaces = useTripPlaces(
     plan,

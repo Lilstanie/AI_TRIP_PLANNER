@@ -75,7 +75,7 @@ pnpm --filter @trip/web start -p 3000
 以及其他模型凭据。浏览器地图瓦片和已配置的登录仍可能需要网络；示例模式不代表整个应用可离线使用。
 
 - **整个部署：** 不设置 `USE_MOCK_TOOLS`，或将其设为 `false` 以外的任何值。
-- **单个浏览器：** Settings → Language & region → Trip data 会随每个请求发送 `x-trip-data-mode`。
+- **单个浏览器：** 顶栏的数据模式按钮（手机上在 Mine）或 Settings → Language & region → Trip data 会随每个请求发送 `x-trip-data-mode`。
   对于无权消耗额度的访客，不提供 Live prices，实时模式会被拒绝。
 - **确认服务端实际会怎么做：** `curl http://localhost:3000/api/data-mode` 会报告 `configured`、
   `liveAvailable` 以及已配置了哪些服务商。
