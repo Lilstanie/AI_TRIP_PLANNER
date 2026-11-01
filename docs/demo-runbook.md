@@ -30,7 +30,8 @@ enter an admin passcode.
 
 **Admin passcode.** `/sign-in` also accepts the passcode `admin`, `test` or `tutor`, in any case. It
 opens the workspace and live data for 12 hours without a Clerk account, with or without Clerk keys.
-The session has no account, so cloud sync and long-term memory stay off. Set `ADMIN_SESSION_SECRET` to
+The session has no account, so cloud sync and long-term memory stay off. **Sign out** in the account
+menu or in Settings → Account ends it and returns to `/sign-in`. Set `ADMIN_SESSION_SECRET` to
 sign the session cookie with your own secret.
 
 The original rehearsal on macOS 14.6.1 with the toolchain above built with no environment variables
