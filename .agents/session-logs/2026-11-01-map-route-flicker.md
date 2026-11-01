@@ -14,6 +14,8 @@ contract-impact: none
 - `apps/web/components/map/maplibre-renderer.ts`: `LibreLine` draws when the style itself has loaded
   (`map.style._loaded`) instead of `map.isStyleLoaded()`, and inserts each line below any route layer
   with a higher `zIndex`.
+- Polish (Joey asked for a nicer look): active day line 7 px on an 11 px casing (was 5/9) in
+  `map-layers.ts`; OSM lines with direction icons get white chevrons along the line.
 - `docs/workspace-ui.md` and `.zh.md`: new "OSM route layers" bullet.
 
 ## Why
@@ -27,7 +29,7 @@ MapLibre also ignored `zIndex`, so a later leg's casing covered an earlier leg's
 ## Validation
 
 - Local browser repro (3 days x 5 stops, mock data, OSM): before, one white leg per day; after, all
-  legs in day colour on casing; Day 1/2/3 tabs switched three rounds gave identical screenshots per day.
+  legs in day colour on casing; Day 1/2/3 tabs switched three rounds gave identical screenshots per day. Also checked dark mode and live OpenFreeMap tiles.
 - `pnpm --filter @trip/web typecheck`, `lint`, Prettier on changed files, `pnpm verify:docs` passed.
 
 ## Notes for the next person

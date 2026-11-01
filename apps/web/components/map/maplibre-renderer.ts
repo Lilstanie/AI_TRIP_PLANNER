@@ -167,6 +167,24 @@ const depthsOf = (map: maplibre.Map) => {
   return depths;
 };
 
+const CHEVRON = "trip-route-chevron";
+function chevronImage() {
+  const size = 24;
+  const canvas = document.createElement("canvas");
+  canvas.width = canvas.height = size;
+  const context = canvas.getContext("2d")!;
+  context.strokeStyle = "#ffffff";
+  context.lineWidth = 4;
+  context.lineCap = "round";
+  context.lineJoin = "round";
+  context.beginPath();
+  context.moveTo(9.5, 7);
+  context.lineTo(14.5, 12);
+  context.lineTo(9.5, 17);
+  context.stroke();
+  return context.getImageData(0, 0, size, size);
+}
+
 class LibreLine {
   id = `trip-route-${++sequence}`;
   map?: LibreMap;
@@ -176,6 +194,7 @@ class LibreLine {
     strokeOpacity?: number;
     strokeWeight?: number;
     zIndex?: number;
+    icons?: unknown[];
   };
   constructor(options: object) {
     this.options = options;
@@ -215,12 +234,31 @@ class LibreLine {
       },
       before,
     );
+    if (!o.icons?.length) return;
+    if (!map.hasImage(CHEVRON)) map.addImage(CHEVRON, chevronImage(), { pixelRatio: 2 });
+    map.addLayer(
+      {
+        id: `${this.id}-direction`,
+        type: "symbol",
+        source: this.id,
+        layout: {
+          "symbol-placement": "line",
+          "symbol-spacing": 56,
+          "icon-image": CHEVRON,
+          "icon-allow-overlap": true,
+          "icon-ignore-placement": true,
+          "icon-rotation-alignment": "map",
+        },
+      },
+      before,
+    );
   };
   setMap(value: unknown) {
     if (value || !this.map) return;
     const map = this.map.native;
     map.off("style.load", this.draw);
     lineDepth.get(map)?.delete(this.id);
+    if (map.getLayer(`${this.id}-direction`)) map.removeLayer(`${this.id}-direction`);
     if (map.getLayer(this.id)) map.removeLayer(this.id);
     if (map.getSource(this.id)) map.removeSource(this.id);
     this.map = undefined;

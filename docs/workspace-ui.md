@@ -913,6 +913,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   map style has loaded, even while other lines' GeoJSON is still being parsed, so every leg of the
   focused day is drawn on every redraw. A line is inserted below any route layer with a higher
   `zIndex`, so other days stay under every casing and every day colour sits on its casing.
+  A line drawn with direction icons also gets a static symbol layer of white chevrons every 56 px,
+  pointing to the next stop.
 - **Place popup.** Pressing a marker or its label, or a place in the Trip timeline, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
   Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my
