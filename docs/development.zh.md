@@ -344,7 +344,26 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 唯一测试账号，使用真实 Clerk 会话验证账号隔离，并仅删除本次创建的账号和数据库记录。
 脚本拒绝正式 Clerk 密钥和远程应用地址。脱敏断言及清理结果保留在
 `apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。
-此测试不覆盖签名有效但已过期的 JWT、未配置 Clerk 的生产环境，以及 #440 尚待确定的每日配额。
+流程还会冻结一个新签发的真实 bearer token，先证明它能通过认证，再等到自然过期且超过 SDK
+允许的时钟偏差后，要求同一个未经修改的 token 返回不缓存的 401。测试不会刷新或撤销该 token。
+过期等待最多 90 秒；若实例配置了更长的有效期，会明确报前置条件失败。
+每日用户配额按[模型访问决策](../.agents/notes/implemented/architecture/2026-10-27-model-access-boundary.md)暂缓实施。
+
+无需凭据的模式共用同一份路由清单和显式公开接口白名单。先启动未配置 Clerk 的生产构建，
+清空所有外部账号及提供方配置、启用模拟工具，并将模型地址只指向本地计数桩，再执行
+`BASE_URL=http://localhost:3197 MODEL_STUB_URL=http://127.0.0.1:3219 node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --without-clerk`。
+计数桩的启动命令为 `MODEL_STUB_PORT=3219 node apps/web/tests/fixtures/model-counting-server.mjs`。
+服务器需配置非空的本地桩模型密钥及对应的模型 base URL；接受生产环境零调用的结果前，
+应先用开发环境对照证明计数器会递增。此模式检查公开模拟规划、受保护接口各方法的 503、
+Agent Lab 实时运行拒绝及模型零调用。公开工作区仍可使用，符合已实施的策略。
+
+`BASE_URL=https://elec5620-ai-trip-planner.vercel.app node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --deployment`
+检查公开工作区、匿名实时访问拒绝、受保护接口的 GET 方法，以及配置 Clerk 时的登录跳转。
+它只发送不携带凭据的 GET，不跟随重定向，不调用模型、创建账号或写账号数据。
+此模式不能独立证明部署的源码版本，也不覆盖已登录用户、非 GET 方法或过期会话。
+每种模式、每次尝试均应使用唯一的 `LABEL`；所有模式都写入上述脱敏结果路径。
+两个匿名参数需直接调用脚本；普通 runner 的必需环境变量标记仍适用于真实会话流程。
+脚本准备完成或执行被跳过，都不等于验收完成。
 
 执行 `node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --list-routes` 可在不提供凭据、
 不创建账号的情况下查看路由方法清单。匿名请求也使用同一份 TypeScript 导出分析结果，

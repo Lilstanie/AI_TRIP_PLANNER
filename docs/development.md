@@ -518,8 +518,30 @@ starts a server without Clerk, so it cannot start this acceptance environment. T
 two unique test users, uses genuine Clerk sessions, checks account isolation and removes only its own
 users and database rows. It refuses live Clerk keys and remote application URLs. Sanitized assertions
 and cleanup results are retained under `apps/web/output/playwright/real-clerk-auth/after/summary.json`;
-no session tokens or storage states are retained. This does not verify expired valid JWTs, production
-configuration without Clerk or the daily quota policy pending #440.
+no session tokens or storage states are retained. The journey also freezes a newly issued genuine
+bearer token, proves it is accepted, waits beyond its natural expiry and the SDK clock-skew window,
+and requires uncached 401 from the same unmodified token. It never refreshes or revokes that token.
+The expiry wait is bounded to 90 seconds; a longer configured token lifetime fails the precondition.
+Daily per-user quotas are deferred by the [model-access decision](../.agents/notes/implemented/architecture/2026-10-27-model-access-boundary.md).
+
+The credential-free profiles use the same route inventory and explicit public allowlist. With an
+already running production server built without Clerk, all external account/provider configuration
+blank, mock tools enabled and the model URL pointed only at a local counting stub, run
+`BASE_URL=http://localhost:3197 MODEL_STUB_URL=http://127.0.0.1:3219 node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --without-clerk`.
+Start the counter with `MODEL_STUB_PORT=3219 node apps/web/tests/fixtures/model-counting-server.mjs`.
+The server needs a nonempty local stub model key and the matching stub model base URL; a development
+control should increment that counter before accepting the production zero-call result. This profile
+checks public fixture planning, protected-method 503 responses, live Agent Lab refusal and zero model
+calls. The public workspace remains available, as the implemented policy requires.
+
+`BASE_URL=https://elec5620-ai-trip-planner.vercel.app node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --deployment`
+checks the public workspace, anonymous live denial, protected GET methods and the sign-in redirect
+when Clerk is configured. It sends only GET requests with no credentials, follows no redirects and
+does not call models, create users or write account data. It does not independently establish the
+hosted source revision or cover signed-in users, non-GET methods or expiry. Use a unique `LABEL`
+for each profile and attempt; all profiles write the sanitized summary path above. The two anonymous
+flags are direct-script modes; the ordinary runner's required-environment annotation still applies
+to the genuine-session journey. A prepared script or a skipped run is not a completed acceptance.
 
 Inspect its route-method inventory without credentials or provisioning with
 `node apps/web/tests/e2e/real-clerk-auth.e2e.mjs --list-routes`. The same TypeScript export analysis
