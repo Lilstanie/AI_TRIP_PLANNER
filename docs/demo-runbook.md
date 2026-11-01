@@ -54,18 +54,9 @@ data replaces the providers; it does not replace the model.
 
 ## Demo account
 
-Signing in needs the Clerk keys from the table above. For the demonstration, use the shared demo account
-`demo+clerk_test@example.com` in the Clerk development instance instead of a personal account.
-
-```bash
-node --env-file=apps/web/.env.local scripts/demo-account.mjs
-```
-
-The command creates the account, or resets its password if it already exists, and prints the new
-password once. Pass the password to the team privately; never write it into this page, a commit or the
-issue tracker. When Clerk asks for an email code on a new device, enter `424242`: Clerk accepts that code
-for `+clerk_test` addresses in a development instance and sends no email. The command refuses a live
-key (`sk_live_`). Its failure inventory is [scripts/demo-account.failures.md](../scripts/demo-account.failures.md).
+Signing in needs the Clerk keys from the table above. For the demonstration, sign in with the shared
+demo account, username `test`, in the Clerk development instance instead of a personal account. Ask
+Joey for the password; never write it into this page, a commit or the issue tracker.
 
 ## Falling back to mock data
 

@@ -59,16 +59,8 @@ pnpm --filter @trip/web start -p 3000
 
 ## 演示账号
 
-登录需要上表中的 Clerk 密钥。演示时请用 Clerk 开发实例里共用的演示账号
-`demo+clerk_test@example.com`，不要用个人账号。
-
-```bash
-node --env-file=apps/web/.env.local scripts/demo-account.mjs
-```
-
-这条命令会创建该账号；账号已存在时则重置密码。新密码只打印一次。请私下把密码交给组员，不要写进本页、提交记录或议题。
-在新设备上 Clerk 要求输入邮箱验证码时，填 `424242`：在开发实例里，Clerk 对 `+clerk_test` 地址接受这个验证码，不会真的发邮件。
-命令会拒绝正式环境的密钥（`sk_live_`）。失败清单见 [scripts/demo-account.failures.md](../scripts/demo-account.failures.md)。
+登录需要上表中的 Clerk 密钥。演示时请用 Clerk 开发实例里共用的演示账号登录，用户名 `test`，不要用个人账号。
+密码向 Joey 要，不要写进本页、提交记录或议题。
 
 <a id="falling-back-to-mock-data"></a>
 

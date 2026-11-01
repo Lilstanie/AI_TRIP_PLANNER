@@ -2,8 +2,8 @@
 date: 2026-11-01
 author: Claude Code (for Joey)
 branch: feature/TP-232-demo-account
-pr: pending
-area: scripts, docs
+pr: 881
+area: docs
 contract-impact: none
 ---
 
@@ -11,24 +11,20 @@ contract-impact: none
 
 ## What changed
 
-- `scripts/demo-account.mjs`: creates `demo+clerk_test@example.com` in the Clerk development instance, or
-  resets its password, and prints the password once. Refuses a missing or live key.
-- `scripts/demo-account.failures.md`: failure inventory written before the script.
-- `docs/demo-runbook.md` and `.zh.md`: new Demo account section.
+- `docs/demo-runbook.md` and `.zh.md`: new Demo account section naming the shared Clerk account
+  (username `test`) and saying the password comes from Joey.
 
 ## Why
 
 The demo needs a signed-in session for the model and live data; a shared account avoids a personal one.
-The `+clerk_test` address lets Clerk accept the fixed code `424242` on a new device without sending email.
-The password stays out of the repository and is passed to the team privately.
+Joey created the account in the Clerk dashboard of the development instance, so a provisioning script
+written first in this PR was removed. The password stays out of the repository.
 
 ## Validation
 
-- Missing key, `sk_live_` key and an invalid `sk_test_` key each exit 1 with the expected message
-  (the last reports `Clerk GET /users: 401 (clerk_key_invalid)`).
-- `pnpm verify:docs`, translation pair check, Prettier, `check-file-length`: pass.
-- The real account was not created from the cloud session; it needs Joey's local key.
+- `pnpm verify:docs`, translation pair check, Prettier: see the PR body.
 
 ## Notes for the next person
 
-Run the script again to rotate the password after the demo.
+The account exists only in Joey's Clerk development instance; a deployment with other Clerk keys
+does not have it.
