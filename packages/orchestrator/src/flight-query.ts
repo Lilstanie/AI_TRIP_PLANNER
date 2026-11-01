@@ -15,6 +15,8 @@ export interface FlightQuery {
   passengers: number;
 
   cheapestFirst: boolean;
+
+  language?: "en" | "zh";
 }
 
 const FLIGHT_WORDS = /\b(?:flights?|flying|fly|airfare|airfares|fares?)\b|机票|航班|航線/i;

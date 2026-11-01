@@ -71,7 +71,8 @@ export async function answerFlightQuery(
   }
 
   const cheapest = options[0];
-  const reply = /\p{Script=Han}/u.test(`${from}${to}`) ? chineseReply() : englishReply();
+  const chinese = query.language ? query.language === "zh" : /\p{Script=Han}/u.test(`${from}${to}`);
+  const reply = chinese ? chineseReply() : englishReply();
 
   function chineseReply() {
     const route = `${from} → ${to} ${depart}`;
