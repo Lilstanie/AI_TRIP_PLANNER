@@ -252,9 +252,6 @@ html:has(.workspace-app[data-phone]) body {
 .workspace-app[data-phone] .phone-mine .history-item--active .history-item__title {
   color: var(--accent);
 }
-.workspace-app[data-phone] .phone-mine__controls {
-  border-top: 0;
-}
 .workspace-app[data-phone] .phone-mine__settings {
   min-height: 52px !important;
   border: 0;

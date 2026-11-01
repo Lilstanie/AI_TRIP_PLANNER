@@ -90,7 +90,7 @@ export function WorkspaceDialogs({ model }: { model: WorkspaceModel }) {
         <Dialog title={t("settings")} onClose={closeDialog} page={!model.layout.narrow}>
           <SettingsDialog
             initial={settingsSection}
-            onDataMode={dataMode.switchable ? dataMode.choose : undefined}
+            liveAvailable={dataMode.liveAvailable}
             onAccountModal={(open) => {
               flushSync(closeDialog);
               open();
