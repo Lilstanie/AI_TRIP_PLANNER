@@ -301,9 +301,6 @@
     transition: none;
   }
 }
-.data-mode--live {
-  color: var(--accent);
-}
 .workspace-topbar .topbar-icon-button {
   width: 40px;
   height: 40px;

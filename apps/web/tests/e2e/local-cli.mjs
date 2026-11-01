@@ -107,7 +107,6 @@ export function fixtureEnv({ port, distDir, evidenceDirectory, mode, tsconfigPat
     NEXT_DIST_DIR: distDir,
     NEXT_TSCONFIG_PATH: tsconfigPath,
     USE_MOCK_TOOLS: "true",
-    DATA_MODE_TOGGLE: "true",
     MAPS_PROVIDER: "osm",
     AGENT_LAB_LIVE_ENABLED: "false",
     AGENT_LAB_LIVE_MAX_CONCURRENT: "0",

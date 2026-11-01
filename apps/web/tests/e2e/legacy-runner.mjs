@@ -221,7 +221,6 @@ async function startServer() {
   dist = claimDist();
   const env = { ...process.env, PORT: String(port), NEXT_DIST_DIR: dist.name };
   env.NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY = "";
-  env.DATA_MODE_TOGGLE ??= "true";
   if (!env.NEXT_TSCONFIG_PATH) env.NEXT_TSCONFIG_PATH = createTsconfig();
   if (prod) {
     console.log(`e2e: building into ${dist.name}`);
