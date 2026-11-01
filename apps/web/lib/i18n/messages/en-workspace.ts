@@ -548,7 +548,7 @@ export const enWorkspace = {
   customsEtiquette: "Customs & etiquette",
   safetyNotes: "Safety notes",
   entryHealth: "Entry & health",
-  weatherPacking: "Weather & packing",
+  weatherPacking: "Packing",
   travelNote: "Travel note",
   transfer: "Transfer",
   stay: "Stay",
@@ -669,18 +669,6 @@ export const enWorkspace = {
   theTripChangedWhileThis: "The trip changed while this was being checked. Make the change again.",
   thoseFilesCouldnTBe: "Those files couldn't be read. Please try again.",
   countStopovers: "{count} stopovers",
-  sydney4Days: "Sydney · 4 days",
-  planA4DayTrip:
-    "Plan a 4-day trip to Sydney for 2 people from {start} to {end}, total budget 4000.",
-  melbourneSydney5Days: "Melbourne → Sydney · 5 days",
-  planA5DayTrip:
-    "Plan a 5-day trip from Melbourne to Sydney for 2 people from {start} to {end}, total budget 5000.",
-  melbourneSydneyBrisbane9Days: "Melbourne → Sydney & Brisbane · 9 days",
-  planA9DayTrip:
-    "Plan a 9-day trip from Melbourne to Sydney & Brisbane for 2 people from {start} to {end}, total budget 9000.",
-  sydneyWollongong5Days: "Sydney & Wollongong · 5 days",
-  planA5DayTripTo:
-    "Plan a 5-day trip to Sydney & Wollongong for 2 people from {start} to {end}, total budget 4500.",
   countStops: "{count, plural, one {# stop} other {# stops}}",
   countTravellers: "{count, plural, one {# traveller} other {# travellers}}",
   fromFromToTo: "From {from} to {to}",

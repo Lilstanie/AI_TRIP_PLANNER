@@ -1,8 +1,7 @@
 "use client";
 import { useEffect, useLayoutEffect, useMemo, useRef, useState, type ReactNode } from "react";
 import { type AgentProgressEvent, type AssistantId, type TripPlan } from "@trip/shared";
-import { quickPrompts } from "@/lib/planning/quick-prompts";
-import { translate } from "@/lib/i18n/locale";
+import { exampleText, quickPrompts, type QuickPrompt } from "@/lib/planning/quick-prompts";
 import { blankDraft, type Message, type Draft } from "@/lib/workspace";
 import { ThinkingProcess } from "./ThinkingProcess";
 import { Composer } from "./Composer";
@@ -161,7 +160,10 @@ export function ChatPanel({
     savedScroll.current = null;
   }, [view, messages, activity]);
 
-  const prompts = useMemo(() => quickPrompts(), []);
+  const [prompts, setPrompts] = useState<QuickPrompt[]>([]);
+  useEffect(() => {
+    if (blankUntouched) setPrompts(quickPrompts());
+  }, [blankUntouched]);
   const [focused, setFocused] = useState(false);
   const keys = useMemo(
     () => composerPlaceholders(draft ?? blankDraft(), Boolean(plan)),
@@ -297,14 +299,14 @@ export function ChatPanel({
             >
               {prompts.slice(0, phone ? 2 : prompts.length).map(({ label, text, params }) => (
                 <button
-                  key={t(label)}
+                  key={label}
                   type="button"
                   className="chat-suggestions__chip"
-                  title={t(label)}
+                  title={exampleText(locale, label)}
                   disabled={busy || locked}
-                  onClick={() => onSend(translate(locale, text, params))}
+                  onClick={() => onSend(exampleText(locale, text, params))}
                 >
-                  {t(label)}
+                  {exampleText(locale, label)}
                 </button>
               ))}
             </div>

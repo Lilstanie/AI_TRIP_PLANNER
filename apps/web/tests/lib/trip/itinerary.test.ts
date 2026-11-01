@@ -47,6 +47,11 @@ describe("Itinerary", () => {
       ["market", 2],
     ]);
     expect(itinerary.stopCount).toBe(3);
+    expect(itinerary.pathFor().map((marker) => [marker.activityId, marker.day])).toEqual([
+      ["temple", 1],
+      ["market", 1],
+      ["again", 2],
+    ]);
   });
 
   it("never lists, counts, numbers or draws an idea between stops", () => {

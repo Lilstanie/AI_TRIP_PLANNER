@@ -16,24 +16,35 @@
   display: inline-flex;
   flex: 0 0 auto;
   padding: 3px;
-  border: 1px solid var(--border);
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background: var(--fill-hover);
 }
 .trip-home-calendar__views button {
-  min-width: 64px;
-  min-height: 38px;
-  padding: 0 var(--space-3);
+  min-width: 72px;
+  min-height: 34px;
+  padding: 0 var(--space-4);
   border: 0;
   border-radius: var(--radius-pill);
   background: transparent;
   color: var(--text-dim);
   font: inherit;
   font-size: var(--font-size-meta);
+  font-weight: 500;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    box-shadow var(--duration-fast) var(--ease-out);
+}
+.trip-home-calendar__views button:hover {
+  color: var(--text);
 }
 .trip-home-calendar__views button[aria-pressed="true"] {
-  background: var(--accent-fill);
-  color: var(--on-accent);
+  background: var(--surface);
+  color: var(--text);
+  font-weight: 600;
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 12%),
+    0 0 0 0.5px var(--glass-edge);
 }
 .trip-home-calendar__views button:focus-visible,
 .trip-home-calendar__period button:focus-visible,
@@ -106,21 +117,27 @@
   height: 44px;
   place-items: center;
   padding: 0;
-  border: 1px solid var(--border);
+  border: 0;
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background: var(--fill-hover);
   color: var(--text);
   font-size: 24px;
+  transition: background-color var(--duration-fast) var(--ease-out);
+}
+@media (hover: hover) {
+  .trip-home-calendar__period button:hover:not(:disabled) {
+    background: var(--fill-press);
+  }
 }
 .trip-home-calendar__period button:disabled {
-  opacity: 0.38;
+  opacity: 0.3;
 }
 .trip-home-calendar__week-scroll {
   --calendar-hour: 44px;
   --calendar-gutter: 44px;
   overflow-x: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   overscroll-behavior-inline: contain;
 }
@@ -128,8 +145,8 @@
 .trip-home-calendar__stays,
 .trip-home-calendar__timeline {
   display: grid;
-  grid-template-columns: var(--calendar-gutter) repeat(7, minmax(132px, 1fr));
-  min-width: calc(var(--calendar-gutter) + 7 * 132px);
+  grid-template-columns: var(--calendar-gutter) repeat(7, minmax(96px, 1fr));
+  min-width: calc(var(--calendar-gutter) + 7 * 96px);
 }
 .trip-home-calendar__week {
   border-bottom: 1px solid var(--border);
@@ -149,9 +166,9 @@
   gap: 6px;
   min-width: 0;
   margin-inline: var(--space-1);
-  padding: 4px 8px;
-  border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--calendar-stay) 12%, transparent);
+  padding: 5px 10px;
+  border-radius: var(--radius-pill);
+  background: color-mix(in srgb, var(--calendar-stay) 12%, var(--surface));
   color: var(--calendar-stay);
   font-size: 12px;
 }
@@ -276,14 +293,16 @@
   width: 100%;
   min-width: 0;
   min-height: 44px;
-  padding: var(--space-1) 3px;
+  padding: 5px 6px;
   overflow: hidden;
   border: 1px solid transparent;
+  border-inline-start: 3px solid currentColor;
   border-radius: var(--radius-sm);
-  background: color-mix(in srgb, var(--text) 4%, transparent);
+  background: color-mix(in srgb, var(--text) 4%, var(--surface));
   color: var(--text-dim);
   font: inherit;
-  font-size: 10px;
+  font-size: 11px;
+  font-weight: 500;
   line-height: 1.25;
   text-align: start;
 }
@@ -292,16 +311,16 @@ button.trip-home-calendar__event:hover {
   background: var(--fill-hover);
 }
 .trip-home-calendar__event[data-category="activity"] {
-  background: color-mix(in srgb, var(--calendar-activity) 12%, transparent);
+  background: color-mix(in srgb, var(--calendar-activity) 12%, var(--surface));
   color: var(--calendar-activity);
 }
 .trip-home-calendar__event[data-category="stay"] {
-  background: color-mix(in srgb, var(--calendar-stay) 12%, transparent);
+  background: color-mix(in srgb, var(--calendar-stay) 12%, var(--surface));
   color: var(--calendar-stay);
 }
 .trip-home-calendar__event[data-category="flight"],
 .trip-home-calendar__event[data-category="transport"] {
-  background: color-mix(in srgb, var(--calendar-transport) 12%, transparent);
+  background: color-mix(in srgb, var(--calendar-transport) 12%, var(--surface));
   color: var(--calendar-transport);
 }
 .trip-home-calendar__event[data-selected="true"] {
@@ -331,7 +350,8 @@ button.trip-home-calendar__event:hover {
   flex-wrap: wrap;
   gap: 2px 5px;
   color: var(--text-dim);
-  font-size: 9px;
+  font-size: 10px;
+  font-weight: 400;
   font-variant-numeric: tabular-nums;
 }
 .trip-home-calendar__event-meta > span:not(:last-child)::after {
@@ -452,7 +472,7 @@ button.trip-home-calendar__event:hover {
   gap: 1px;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--border);
 }
 .trip-home-calendar__month-day,
@@ -471,12 +491,13 @@ button.trip-home-calendar__event:hover {
   text-align: center;
 }
 .trip-home-calendar__month-day {
-  padding: 2px;
+  padding: 4px;
 }
 .trip-home-calendar__month-day .trip-home-calendar__date {
-  width: 24px;
-  height: 24px;
-  margin-bottom: 2px;
+  width: 26px;
+  height: 26px;
+  margin-bottom: 4px;
+  font-weight: 500;
 }
 .trip-home-calendar__month-day .trip-home-calendar__entries,
 .trip-home-calendar__month-day .trip-home-calendar__row {
@@ -492,10 +513,10 @@ button.trip-home-calendar__event:hover {
   display: none;
 }
 .trip-home-calendar__month-day .trip-home-calendar__event {
-  min-height: 18px;
-  padding: 1px 2px;
-  border-inline-start: 2px solid currentColor;
-  border-radius: 3px;
+  min-height: 20px;
+  padding: 2px 6px;
+  border-inline-start-width: 3px;
+  border-radius: 6px;
 }
 .trip-home-calendar__month-day .trip-home-calendar__event-head {
   display: block;

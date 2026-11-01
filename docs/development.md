@@ -84,6 +84,7 @@ Every variable is described in `.env.example`. The important ones:
 | `DEEPSEEK_API_KEY`                                                  | Brief extraction from chat, all five specialists, the supervisor and chat replies. Without it a local rule parser handles extraction and agents use deterministic fallbacks.                                                                                                                                                    |
 | `USE_MOCK_TOOLS=true` (default)                                     | In-process map and booking fixtures; no external calls.                                                                                                                                                                                                                                                                         |
 | `USE_MOCK_TOOLS=false`                                              | Real map adapters chosen by `MAPS_PROVIDER` (`google` or `osm`). If unset, Google is used when `MAPS_API_KEY` is set, otherwise OpenStreetMap; `.env.example` sets `osm`. Booking uses SerpApi when `SERPAPI_KEY` is configured, with a Google Places hotel estimate fallback only when Google Maps and its key are configured. |
+| `DATA_MODE_TOGGLE=true`                                             | Shows the Mock data / Live data switch on a production build. Without it the switch appears only under `pnpm dev`, and deployments use `USE_MOCK_TOOLS`.                                                                                                                                                                        |
 | `OSM_USER_AGENT`                                                    | Required contact string for Nominatim. Replace the `contact@example.com` placeholder before real traffic or you may be rate limited.                                                                                                                                                                                            |
 | `MAPS_API_KEY`                                                      | Server-side Google Places, Routes and Time Zone for the workspace map and edit previews.                                                                                                                                                                                                                                        |
 | `WEB_MAPS_PROVIDER`                                                 | The workspace's map provider: `google-with-fallback` (default; Google first, OpenStreetMap when Google cannot answer), `google` (never falls back) or `osm`. Separate from the agents' `MAPS_PROVIDER`. See [web map providers](architecture.md#web-map-providers).                                                             |
@@ -574,7 +575,13 @@ shard assignments; workers receive that exact plan as an artifact.
 
 - Ordinary documentation can skip CLI acceptance only when every changed path qualifies and the
   inventory is reviewed. Skills and repository instructions are not a general documentation exemption.
-  The reviewed infrastructure inventory includes `ci-integration.e2e.mjs`.
+  The reviewed infrastructure inventory includes `ci-integration.e2e.mjs` and
+  `real-clerk-route-inventory.e2e.mjs`.
+- App source selects only `local-cli-collections.e2e.mjs`, the script that builds the real app and
+  runs its smoke journey: `apps/web/{app,components,lib,public}/`, `apps/web/tests/{app,components,lib,fixtures}/`,
+  `packages/*/{src,tests}/`, and top-level journey scripts or notes under `apps/web/tests/e2e/`
+  other than `agent-lab-*` and `real-clerk-*`. The other scripts test the runner with fixtures
+  ([why](../.agents/notes/implemented/process/2026-11-01-cli-acceptance-app-source.md)).
 - Reviewed dependency rules select the union of their scripts. Shared infrastructure, unknown paths,
   unclassified acceptance scripts or missing expected scripts require full coverage. Missing history,
   invalid revisions and failed comparisons also fall back to full coverage with a reason.
