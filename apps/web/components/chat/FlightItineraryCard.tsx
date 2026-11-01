@@ -1,10 +1,10 @@
 "use client";
 import { arrivalDayOffset, formatDuration } from "@/lib/trip/timeline";
 import { intlLocale, type AppLocale } from "@/lib/i18n/locale";
-import type { FlightAnswerOption, FlightLeg } from "@trip/shared";
+import type { FlightAnswerOption, FlightLeg as FlightLegData } from "@trip/shared";
 import { useLocale } from "../account/LocaleProvider";
 
-function hoursAndMinutes(minutes: number, locale: AppLocale): string {
+export function hoursAndMinutes(minutes: number, locale: AppLocale): string {
   if (locale === "zh") return formatDuration(minutes, locale);
   const hours = Math.floor(minutes / 60);
   const rest = minutes % 60;
@@ -24,7 +24,7 @@ function clock(value: string, locale: AppLocale): string {
 
 const dayOf = (value: string) => value.split(" ")[0] ?? value;
 
-function shortDate(value: string, locale: AppLocale): string {
+export function shortDate(value: string, locale: AppLocale): string {
   const parsed = new Date(`${dayOf(value)}T00:00:00Z`);
   return Number.isNaN(parsed.getTime())
     ? dayOf(value)
@@ -36,7 +36,18 @@ function shortDate(value: string, locale: AppLocale): string {
       });
 }
 
-function Leg({ leg, label }: { leg: FlightLeg; label: string }) {
+export function dayMonth(value: string, locale: AppLocale): string {
+  const parsed = new Date(`${dayOf(value)}T00:00:00Z`);
+  return Number.isNaN(parsed.getTime())
+    ? dayOf(value)
+    : parsed.toLocaleDateString(intlLocale(locale), {
+        day: "numeric",
+        month: "short",
+        timeZone: "UTC",
+      });
+}
+
+export function FlightLeg({ leg, label }: { leg: FlightLegData; label: string }) {
   const { t, locale } = useLocale();
   const first = leg.segments[0]!;
   const last = leg.segments[leg.segments.length - 1]!;
@@ -122,8 +133,8 @@ export function FlightItineraryCard({
         {first.cabin ? ` · ${first.cabin}` : ""}
       </p>
       <div className="itinerary__legs">
-        <Leg leg={outbound} label={t("outbound")} />
-        {option.inbound && <Leg leg={option.inbound} label={t("return")} />}
+        <FlightLeg leg={outbound} label={t("outbound")} />
+        {option.inbound && <FlightLeg leg={option.inbound} label={t("return")} />}
       </div>
       {option.roundTrip && !option.inbound && (
         <p className="itinerary__pending">{t("returnFlightsNotLookedUp")}</p>

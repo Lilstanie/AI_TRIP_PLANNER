@@ -68,7 +68,7 @@
   margin-top: var(--space-2);
   padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   background: var(--surface);
 }
 .flight-results__head {
@@ -133,7 +133,7 @@
   gap: 6px;
   padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-md);
+  border-radius: var(--radius-xl);
   background: var(--surface-2);
   scroll-snap-align: start;
 }
@@ -204,6 +204,7 @@
   gap: 6px;
 }
 .itinerary-leg__code {
+  white-space: nowrap;
   font-size: 18px;
   font-weight: 700;
   letter-spacing: 0.02em;
