@@ -266,6 +266,40 @@
 }
 .topbar-actions .trip-trigger {
   border-color: var(--glass-border) !important;
+  transition:
+    background-color var(--duration-fast) var(--ease-out),
+    color var(--duration-fast) var(--ease-out),
+    scale var(--duration-fast) var(--ease-spring);
+}
+@media (hover: hover) {
+  .topbar-actions .trip-trigger:hover:not(:disabled) {
+    --glass-fill: color-mix(in srgb, var(--glass-tint), var(--text) 6%);
+  }
+}
+.topbar-actions .trip-trigger:active:not(:disabled) {
+  scale: 0.96;
+}
+.topbar-actions .trip-trigger[aria-expanded="true"] {
+  --glass-fill: var(--text);
+  border-color: transparent !important;
+  color: var(--page);
+}
+@media (hover: hover) {
+  .topbar-actions .trip-trigger[aria-expanded="true"]:hover:not(:disabled) {
+    --glass-fill: color-mix(in srgb, var(--text) 86%, var(--page));
+  }
+}
+.topbar-actions .trip-trigger:focus-visible {
+  outline: none;
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge),
+    var(--ring);
+}
+@media (prefers-reduced-motion: reduce) {
+  .topbar-actions .trip-trigger {
+    transition: none;
+  }
 }
 .data-mode--live {
   color: var(--accent);
