@@ -340,7 +340,10 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 `real-clerk-auth.e2e.mjs` 需要先启动配置 Clerk 测试密钥和已迁移账号数据库的本地服务。
 通过环境变量传入 `CLERK_SECRET_KEY`、`DATABASE_URL`，执行
 `BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`。
-普通 E2E runner 启动的服务会清除 Clerk 配置，不能用于启动这项验收环境。脚本创建两个
+普通 E2E runner 启动的服务会清除 Clerk 配置，不能用于启动这项验收环境。
+此本地 Clerk 服务应使用 `next dev -H localhost` 监听，并在 `BASE_URL` 中同样使用 `localhost`；
+否则 Clerk/Next 的开发环境重写可能把请求代理回同一个公开监听端口。
+脚本创建两个
 唯一测试账号，使用真实 Clerk 会话验证账号隔离，并仅删除本次创建的账号和数据库记录。
 脚本拒绝正式 Clerk 密钥和远程应用地址。脱敏断言及清理结果保留在
 `apps/web/output/playwright/real-clerk-auth/after/summary.json`，不保留会话令牌或浏览器存储状态。

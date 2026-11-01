@@ -514,8 +514,10 @@ cache hits, language, bounds and transit parsing in `output/e2e/map-provider-htt
 `real-clerk-auth.e2e.mjs` needs an already running local server with Clerk test keys and a migrated
 account database. Run `BASE_URL=http://localhost:3197 CHANNEL=chrome node apps/web/tests/e2e/real-clerk-auth.e2e.mjs`
 with `CLERK_SECRET_KEY` and `DATABASE_URL` supplied through the environment. The ordinary E2E runner
-starts a server without Clerk, so it cannot start this acceptance environment. The script provisions
-two unique test users, uses genuine Clerk sessions, checks account isolation and removes only its own
+starts a server without Clerk, so it cannot start this acceptance environment.
+Bind this local Clerk server with `next dev -H localhost` and use `localhost` in `BASE_URL` as well;
+the Clerk/Next development rewrite can otherwise proxy the request back to the same public listener.
+The script provisions two unique test users, uses genuine Clerk sessions, checks account isolation and removes only its own
 users and database rows. It refuses live Clerk keys and remote application URLs. Sanitized assertions
 and cleanup results are retained under `apps/web/output/playwright/real-clerk-auth/after/summary.json`;
 no session tokens or storage states are retained. The journey also freezes a newly issued genuine
