@@ -1,4 +1,4 @@
-import { NextResponse } from "next/server";
+import { NextResponse, after } from "next/server";
 import {
   AskUserError,
   IncompleteBriefError,
@@ -25,8 +25,18 @@ import { dbEnabled } from "@/lib/db/client";
 import { accountMemoryStore, rememberAccountPreference } from "@/lib/account/memory";
 import { accountMemoryEnabled } from "@/lib/account/memory-enabled";
 import { recognizeAccountMemory } from "@/lib/account/recognize-memory.mjs";
+import { CHAT_RUN_HEADER, chatRunRecorder, replayChatRun, validRunId } from "@/lib/chat/runs";
 
 const INVALID_REQUEST: Notice = { key: "theRequestWasInvalidPlease" };
+
+async function callerId() {
+  return authEnabled && dbEnabled() ? ((await auth()).userId ?? undefined) : undefined;
+}
+
+export async function GET(req: Request) {
+  const runId = new URL(req.url).searchParams.get("run") ?? "";
+  return replayChatRun(req, runId, (await callerId()) ?? "anonymous");
+}
 
 export async function POST(req: Request) {
   const dataMode = await requestDataMode(req);
@@ -52,7 +62,7 @@ export async function POST(req: Request) {
   }
 
   const encoder = new TextEncoder();
-  const accountId = authEnabled && dbEnabled() ? ((await auth()).userId ?? undefined) : undefined;
+  const accountId = await callerId();
   const memoryEnabled =
     parsed.data.assistant?.memory !== false && (await accountMemoryEnabled(accountId));
   const serverUserId = accountId ?? "anonymous";
@@ -61,108 +71,113 @@ export async function POST(req: Request) {
     ...(parsed.data.brief ? { brief: { ...parsed.data.brief, userId: serverUserId } } : {}),
     ...(parsed.data.known ? { known: { ...parsed.data.known, userId: serverUserId } } : {}),
   };
-  let cancelled = false;
-  const requestAbort = new AbortController();
-  const abortRequest = () => requestAbort.abort(req.signal.reason);
-  if (req.signal.aborted) abortRequest();
-  else req.signal.addEventListener("abort", abortRequest, { once: true });
-  const stream = new ReadableStream({
-    cancel(reason) {
-      cancelled = true;
-      requestAbort.abort(reason);
+  const runId = req.headers.get(CHAT_RUN_HEADER);
+  const recorder = validRunId(runId) ? chatRunRecorder(runId, serverUserId) : undefined;
+  await recorder?.started;
+  let open = true;
+  let controller: ReadableStreamDefaultController<Uint8Array> | undefined;
+  const stream = new ReadableStream<Uint8Array>({
+    start(streamController) {
+      controller = streamController;
     },
-    async start(controller) {
-      const send = (
-        event:
-          | AgentProgressEvent
-          | ChatNeedsInfo
-          | ChatAskUser
-          | FlightAnswer
-          | { type: "complete"; response: ChatResponse }
-          | ({ type: "error" } & ReturnType<typeof noticeBody>),
-      ) => {
-        if (cancelled || requestAbort.signal.aborted) return;
-        controller.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
-      };
-
-      try {
-        if (requestAbort.signal.aborted) return;
-        const flightQuery = parseFlightQuery(parsed.data.message);
-        if (flightQuery) {
-          const answer = await runWithDataMode(dataMode, () =>
-            answerFlightQuery(flightQuery, createToolGateway().booking),
-          );
-          send(answer);
-          return;
-        }
-        const run = () =>
-          runTripChat(requestData, {
-            onProgress: send,
-            mem: accountMemoryStore(accountId, memoryEnabled),
-            accountMemory: Boolean(accountId) && memoryEnabled,
-          });
-        const response = ChatResponse.parse(
-          await runWithDataMode(dataMode, () =>
-            modelsAllowed ? run() : runWithModelsDisabled(run),
-          ),
-        );
-        const recognized = recognizeAccountMemory(parsed.data.message);
-        const lasting =
-          response.lastingPreferences?.map(({ key, value }) => ({
-            key,
-            value: key === "pace" ? `${value} pace` : value,
-          })) ?? (recognized ? [recognized] : []);
-        if (!requestAbort.signal.aborted && accountId && lasting.length && memoryEnabled) {
-          try {
-            for (const { key, value } of lasting)
-              response.memoryChange =
-                (await rememberAccountPreference(accountId, key, value, requestAbort.signal)) ??
-                response.memoryChange;
-          } catch (error) {
-            if (!requestAbort.signal.aborted)
-              console.warn("[chat] account memory write failed", error);
-          }
-        }
-        delete response.lastingPreferences;
-        send({ type: "complete", response });
-        const persistence = new AbortController();
-        let timer: ReturnType<typeof setTimeout> | undefined;
-        try {
-          await Promise.race([
-            tripStore.set(response.plan, { signal: persistence.signal }),
-            new Promise<never>((_, reject) => {
-              timer = setTimeout(() => {
-                persistence.abort();
-                reject(new Error("Trip persistence deadline exceeded."));
-              }, 5000);
-            }),
-          ]);
-        } catch (error) {
-          console.warn("[chat] completed plan was delivered; server persistence failed", error);
-        } finally {
-          clearTimeout(timer);
-        }
-      } catch (error) {
-        if (error instanceof IncompleteBriefError) {
-          send(error.needsInfo);
-        } else if (error instanceof AskUserError) {
-          send(error.askUser);
-        } else {
-          console.error("[chat] planning failed", error);
-          const notice: Notice =
-            error instanceof Error && error.message.startsWith("No valid stays")
-              ? {
-                  key: "noStaysMatchYourAccommodation",
-                }
-              : { key: "unableToUpdateThisTrip" };
-          send({ type: "error", ...noticeBody(notice) });
-        }
-      } finally {
-        req.signal.removeEventListener("abort", abortRequest);
-        if (!cancelled) controller.close();
-      }
+    cancel() {
+      open = false;
     },
   });
+  const send = (
+    event:
+      | AgentProgressEvent
+      | ChatNeedsInfo
+      | ChatAskUser
+      | FlightAnswer
+      | { type: "complete"; response: ChatResponse }
+      | ({ type: "error" } & ReturnType<typeof noticeBody>),
+  ) => {
+    recorder?.push(event);
+    if (!open) return;
+    try {
+      controller?.enqueue(encoder.encode(`${JSON.stringify(event)}\n`));
+    } catch {
+      open = false;
+    }
+  };
+  const turn = (async () => {
+    try {
+      const flightQuery = parseFlightQuery(parsed.data.message);
+      if (flightQuery) {
+        const answer = await runWithDataMode(dataMode, () =>
+          answerFlightQuery(flightQuery, createToolGateway().booking),
+        );
+        send(answer);
+        return;
+      }
+      const run = () =>
+        runTripChat(requestData, {
+          onProgress: send,
+          mem: accountMemoryStore(accountId, memoryEnabled),
+          accountMemory: Boolean(accountId) && memoryEnabled,
+        });
+      const response = ChatResponse.parse(
+        await runWithDataMode(dataMode, () => (modelsAllowed ? run() : runWithModelsDisabled(run))),
+      );
+      const recognized = recognizeAccountMemory(parsed.data.message);
+      const lasting =
+        response.lastingPreferences?.map(({ key, value }) => ({
+          key,
+          value: key === "pace" ? `${value} pace` : value,
+        })) ?? (recognized ? [recognized] : []);
+      if (accountId && lasting.length && memoryEnabled) {
+        try {
+          for (const { key, value } of lasting)
+            response.memoryChange =
+              (await rememberAccountPreference(accountId, key, value)) ?? response.memoryChange;
+        } catch (error) {
+          console.warn("[chat] account memory write failed", error);
+        }
+      }
+      delete response.lastingPreferences;
+      send({ type: "complete", response });
+      const persistence = new AbortController();
+      let timer: ReturnType<typeof setTimeout> | undefined;
+      try {
+        await Promise.race([
+          tripStore.set(response.plan, { signal: persistence.signal }),
+          new Promise<never>((_, reject) => {
+            timer = setTimeout(() => {
+              persistence.abort();
+              reject(new Error("Trip persistence deadline exceeded."));
+            }, 5000);
+          }),
+        ]);
+      } catch (error) {
+        console.warn("[chat] completed plan was delivered; server persistence failed", error);
+      } finally {
+        clearTimeout(timer);
+      }
+    } catch (error) {
+      if (error instanceof IncompleteBriefError) {
+        send(error.needsInfo);
+      } else if (error instanceof AskUserError) {
+        send(error.askUser);
+      } else {
+        console.error("[chat] planning failed", error);
+        const notice: Notice =
+          error instanceof Error && error.message.startsWith("No valid stays")
+            ? {
+                key: "noStaysMatchYourAccommodation",
+              }
+            : { key: "unableToUpdateThisTrip" };
+        send({ type: "error", ...noticeBody(notice) });
+      }
+    } finally {
+      await recorder?.close();
+      if (open) {
+        open = false;
+        controller?.close();
+      }
+    }
+  })();
+  after(() => turn);
 
   return new Response(stream, {
     headers: {

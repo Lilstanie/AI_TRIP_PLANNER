@@ -2,8 +2,21 @@ type StoredValue = unknown;
 
 type RedisResponse = { result?: unknown; error?: string };
 
-const localValues = new Map<string, StoredValue>();
-const localCounters = new Map<string, number>();
+type LocalStore = {
+  values: Map<string, StoredValue>;
+  counters: Map<string, number>;
+  expiry: Map<string, ReturnType<typeof setTimeout>>;
+};
+
+const processStore = globalThis as typeof globalThis & { __tripLocalJsonStore?: LocalStore };
+const local = (processStore.__tripLocalJsonStore ??= {
+  values: new Map(),
+  counters: new Map(),
+  expiry: new Map(),
+});
+const localValues = local.values;
+const localCounters = local.counters;
+const localExpiry = local.expiry;
 
 function redisConfig(): { url: string; token: string } | undefined {
   const url = process.env.KV_REST_API_URL || process.env.UPSTASH_REDIS_REST_URL;
@@ -37,7 +50,12 @@ async function redisCommand(
 
 export interface JsonStore {
   get<T>(key: string): Promise<T | undefined>;
-  set<T>(key: string, value: T, options?: { signal: AbortSignal }): Promise<void>;
+  /** `ttlSeconds` expires the value; without it the value is kept until overwritten. */
+  set<T>(
+    key: string,
+    value: T,
+    options?: { signal?: AbortSignal; ttlSeconds?: number },
+  ): Promise<void>;
   increment(key: string): Promise<number>;
   decrement(key: string): Promise<number>;
 }
@@ -51,12 +69,26 @@ export function createJsonStore(): JsonStore {
       if (typeof result !== "string") return result as T;
       return JSON.parse(result) as T;
     },
-    async set<T>(key: string, value: T, options?: { signal: AbortSignal }) {
+    async set<T>(key: string, value: T, options?: { signal?: AbortSignal; ttlSeconds?: number }) {
+      const ttl = options?.ttlSeconds;
       if (!durableStoreConfigured()) {
         localValues.set(key, value);
+        clearTimeout(localExpiry.get(key));
+        if (ttl) {
+          const timer = setTimeout(() => {
+            localValues.delete(key);
+            localExpiry.delete(key);
+          }, ttl * 1000);
+          timer.unref?.();
+          localExpiry.set(key, timer);
+        }
         return;
       }
-      await redisCommand("set", [key, JSON.stringify(value)], options?.signal);
+      await redisCommand(
+        "set",
+        [key, JSON.stringify(value), ...(ttl ? ["EX", String(ttl)] : [])],
+        options?.signal,
+      );
     },
     async increment(key: string) {
       if (!durableStoreConfigured()) {

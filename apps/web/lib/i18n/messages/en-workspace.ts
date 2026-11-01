@@ -703,6 +703,7 @@ export const enWorkspace = {
   theAssistantSQuestionWas: "The assistant's question was invalid. Please retry.",
   theReturnedFaresWereInvalid: "The returned fares were invalid. Please retry.",
   planningFailedPleaseRetry: "Planning failed. Please retry.",
+  thisReplyCouldNotBeRecovered: "This reply could not be recovered. Please send it again.",
   previewFailedTryTheChange: "Preview failed. Try the change again.",
   searchFailedTryAgain: "Search failed. Try again.",
   enterAPlaceNameTo: "Enter a place name to search.",
