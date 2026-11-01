@@ -19,7 +19,9 @@ real app icon that does not depend on that menu.
 - `apps/ios/www/index.html` is the offline page from `apps/web/public/offline.html`. Capacitor shows it
   when the site cannot load, and its retry button reopens the deployed URL.
 - The app icon is the brand logo rendered at 1024 × 1024 on white.
-- Links to other hosts open in Safari, which is Capacitor's default outside `server.url`.
+- Links to other hosts open in Safari, which is Capacitor's default outside `server.url`. The one
+  exception is the Clerk host `more-puma-666.clerk.accounts.dev` in `server.allowNavigation`: production
+  redirects the first request there, and without it the app opened Safari on launch.
 - The app is built in Xcode on the owner's Mac and installed with a free Apple ID (re-signed every
   seven days). It is not sent to TestFlight or the App Store.
 - The work stays on `feature/TP-241-ios-app` and is not merged into `main`.
@@ -44,6 +46,9 @@ real app icon that does not depend on that menu.
 ## Risks
 
 - A free Apple ID signature expires after seven days, and the bundle id must be unique to that team.
-- Google blocks its sign-in inside embedded web views. Production currently runs without Clerk keys,
-  so nothing asks to sign in; if sign-in is turned on, Google sign-in needs to open in Safari.
+- Production signs in with Clerk. Email sign-in stays in the app, but Google blocks its sign-in inside
+  embedded web views, so Google sign-in will need to open in Safari; untested so far.
+- The sign-in page puts its logo under the status bar in the app, because the page uses
+  `viewportFit: "cover"` without a top safe-area inset. The fix is in `apps/web` and shows only once
+  deployed.
 - The app shows whatever is deployed, so it breaks whenever the production site does.
