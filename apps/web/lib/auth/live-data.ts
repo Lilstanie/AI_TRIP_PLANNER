@@ -13,12 +13,19 @@ export async function liveDataBlock(): Promise<LiveDataBlock | undefined> {
   return userId ? undefined : "sign-in-required";
 }
 
+/** Whether a visitor may switch between mock and live data; off on deployed builds unless `DATA_MODE_TOGGLE=true`. */
+export function dataModeSwitchable(): boolean {
+  if (process.env.DATA_MODE_TOGGLE === "true") return true;
+  return !process.env.VERCEL_ENV && process.env.NODE_ENV !== "production";
+}
+
 export async function liveDataAllowed(): Promise<boolean> {
   return (await liveDataBlock()) === undefined;
 }
 
 export async function requestDataMode(request: Request): Promise<DataMode> {
-  const requested = parseDataMode(request.headers.get("x-trip-data-mode")) ?? configuredDataMode();
+  const header = dataModeSwitchable() ? request.headers.get("x-trip-data-mode") : null;
+  const requested = parseDataMode(header) ?? configuredDataMode();
   if (requested !== "live") return requested;
   return (await liveDataAllowed()) ? "live" : "mock";
 }
