@@ -23,7 +23,7 @@ capability gap that justified leaving it out is closed.
 
 ## Decision
 
-The coordinator gets one additional tool, `ask_user_question` (`packages/orchestrator/src/chat.ts`),
+The coordinator gets one additional tool, `ask_user_question` (`packages/orchestrator/src/chat/chat.ts`),
 modelled on DeepSeek Harness's tool of the same name. Calling it ends the turn: the tool records up
 to `ASK_USER_MAX_QUESTIONS` (4) questions, each with an id, prose, an optional header/detail, and up
 to `ASK_USER_MAX_OPTIONS` (4) options (`label`, optional `description`); `toQuestions` drops blank
@@ -33,7 +33,7 @@ for the tool only when 2–4 concrete choices would help, to put a recommended o
 afterwards; a fact with no useful choices (a destination, a budget) still goes in the plain-sentence
 `needs_info` path, unchanged.
 
-`packages/shared/src/chat.ts` adds `AskUserQuestionItem`, `AskUserQuestionOption` and the response
+`packages/shared/src/chat/chat.ts` adds `AskUserQuestionItem`, `AskUserQuestionOption` and the response
 frame `ChatAskUser = { type: "ask_user", questions, known, plan?, reply? }`, sent instead of a
 completed plan — `known` is the brief understood so far and travels back with the traveller's
 answer like any follow-up; `plan` is the client's own plan returned unchanged (`readPlanStream`
@@ -56,13 +56,13 @@ plain composer; the question text stays visible in the assistant's own message e
 Two related contract changes shipped in the same pull request because they touch the same files:
 
 - **Reasoning block identity.** `agent_reasoning` deltas from one model call now all carry the same
-  `index` (`REASONING_BLOCK_INDEX = 0` in `packages/orchestrator/src/reasoning-sink.ts`), so a client
+  `index` (`REASONING_BLOCK_INDEX = 0` in `packages/orchestrator/src/planning/reasoning-sink.ts`), so a client
   merges them into one growing block keyed by `(agent, round, episode)` instead of rendering each
   160-character flush as its own row. `episode` is still what tells two model-call chains in the same
   round apart.
-- **Result-row icon kind.** `ToolResultRow.kind?: ToolResultKind` (`packages/shared/src/chat.ts`)
+- **Result-row icon kind.** `ToolResultRow.kind?: ToolResultKind` (`packages/shared/src/chat/chat.ts`)
   names a result's category — place categories by keyword (`placeKind` in
-  `packages/orchestrator/src/progress-tools.ts`), travel legs by mode (`travelKind`), stays and
+  `packages/orchestrator/src/planning/progress-tools.ts`), travel legs by mode (`travelKind`), stays and
   flights fixed, weather fixed — so the client can choose a glyph without parsing the label. It is
   optional so an older emitter's rows still validate.
 
@@ -86,7 +86,7 @@ pattern needed no new endpoint, request shape or client wiring.
 - The coordinator can end a turn with no plan and no plain question, only a pending ask; every
   caller of the chat stream must handle `ChatAskUser` alongside `ChatNeedsInfo` and the completed
   response (`apps/web/app/api/chat/route.ts`, `apps/web/lib/workspace/workspace.ts`).
-- `packages/shared/src/chat.ts` is a shared contract; question and option counts are capped
+- `packages/shared/src/chat/chat.ts` is a shared contract; question and option counts are capped
   (`ASK_USER_MAX_QUESTIONS = 4`, `ASK_USER_MAX_OPTIONS = 4`) so the wire shape stays bounded no matter
   what the model sends.
 - Only the coordinator can ask: specialists run inside the orchestration graph and cannot end a turn,

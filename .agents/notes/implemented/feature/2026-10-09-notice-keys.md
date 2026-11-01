@@ -9,7 +9,7 @@ A notice the planner gives about a plan (a travel-buffer warning, an unroutable 
 sentence) reaches the screen three ways, and the drawer can show the wrong one:
 
 - As an English sentence in `proposal.conflictsWith`, which `settlePlan` copies into `plan.conflicts`. The chat
-  reads this copy (`planDigest` in `packages/orchestrator/src/chat.ts`), so it has to stay English.
+  reads this copy (`planDigest` in `packages/orchestrator/src/chat/chat.ts`), so it has to stay English.
 - As a keyed notice in `editIssues[].message` (`storeNotice`, see the
   [edit preview notices](../../implemented/architecture/2026-10-06-edit-preview-notices.md) and
   [keyed notices](../../implemented/architecture/2026-10-06-keyed-notices-everywhere.md) notes). The stop it is about is

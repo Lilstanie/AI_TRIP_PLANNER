@@ -12,15 +12,15 @@ For interactive views of the request, agent, provider, persistence and workspace
 Use this map to find the owner of a change before editing. Package READMEs document their exports and
 configuration; [development](development.md) owns setup, directory and verification rules.
 
-| Change area                                        | Start here                                 | Follow through                                                                                                                                                                                                                                            |
-| -------------------------------------------------- | ------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| Chat requests and streamed replies                 | `apps/web/app/api/chat/route.ts`           | `packages/orchestrator/src/chat.ts`, shared chat contract, and the chat UI                                                                                                                                                                                |
-| Planning state, conflict checks or specialist flow | `packages/orchestrator/src/workflow.ts`    | `packages/agents/src/`, validated plan contract, persistence and workspace consumer                                                                                                                                                                       |
-| Shared request, proposal or plan shape             | `packages/shared/src/`                     | Every producer and consumer; add an Agent Note in the same change                                                                                                                                                                                         |
-| Maps, booking or weather evidence                  | `packages/tools/src/gateway.ts`            | Typed ports, provider adapters, fallback labels and agent consumers; use [add-provider](../.agents/skills/add-provider/SKILL.md) for provider work                                                                                                        |
-| Saved chats, preferences or trips                  | `packages/services/src/`                   | Browser storage, API routes and workspace restore behavior                                                                                                                                                                                                |
-| Accounts, sign-in and cross-device sync            | `apps/web/lib/account/`                    | Account routes in [API](api.md#account-routes), `apps/web/lib/db/schema.ts`, the [revision-based sync decision](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md) and [Workspace UI](workspace-ui.md#accounts-and-settings) |
-| Visible workspace or interaction behavior          | `apps/web/components/` and `apps/web/lib/` | [Workspace UI](workspace-ui.md), design rules and [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                                                                                                                           |
+| Change area                                        | Start here                                       | Follow through                                                                                                                                                                                                                                            |
+| -------------------------------------------------- | ------------------------------------------------ | --------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| Chat requests and streamed replies                 | `apps/web/app/api/chat/route.ts`                 | `packages/orchestrator/src/chat/chat.ts`, shared chat contract, and the chat UI                                                                                                                                                                           |
+| Planning state, conflict checks or specialist flow | `packages/orchestrator/src/planning/workflow.ts` | `packages/agents/src/`, validated plan contract, persistence and workspace consumer                                                                                                                                                                       |
+| Shared request, proposal or plan shape             | `packages/shared/src/`                           | Every producer and consumer; add an Agent Note in the same change                                                                                                                                                                                         |
+| Maps, booking or weather evidence                  | `packages/tools/src/gateway.ts`                  | Typed ports, provider adapters, fallback labels and agent consumers; use [add-provider](../.agents/skills/add-provider/SKILL.md) for provider work                                                                                                        |
+| Saved chats, preferences or trips                  | `packages/services/src/`                         | Browser storage, API routes and workspace restore behavior                                                                                                                                                                                                |
+| Accounts, sign-in and cross-device sync            | `apps/web/lib/account/`                          | Account routes in [API](api.md#account-routes), `apps/web/lib/db/schema.ts`, the [revision-based sync decision](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md) and [Workspace UI](workspace-ui.md#accounts-and-settings) |
+| Visible workspace or interaction behavior          | `apps/web/components/` and `apps/web/lib/`       | [Workspace UI](workspace-ui.md), design rules and [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                                                                                                                           |
 
 For changes that cross these boundaries, trace the value from its producer to the final user-facing
 consumer with [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md).
@@ -57,11 +57,11 @@ dispatch, revise and stop, and the supervisor only chooses which specialist tool
 control path, budget red lines and stopping condition never depend on a model improvising the next
 step.
 
-1. `POST /api/chat` calls `runTripChat` (`packages/orchestrator/src/chat.ts`). It extracts only
+1. `POST /api/chat` calls `runTripChat` (`packages/orchestrator/src/chat/chat.ts`). It extracts only
    explicit `TripBrief` updates from the message. `mode: "plan"` skips extraction and plans the
    submitted brief; `mode: "start"` requires every brief field in the message (see
    [API](api.md)).
-   Every entry uses `BriefIntake` in `packages/orchestrator/src/brief-intake.ts` to merge explicit
+   Every entry uses `BriefIntake` in `packages/orchestrator/src/brief/brief-intake.ts` to merge explicit
    patches and decide readiness: ready, incomplete, ambiguous destination or historical dates needing
    confirmation. A model that completes the brief reaches the same gate even without calling
    `replan_trip`. Historical confirmation uses the latest assistant `ChatTurn.pendingBriefConfirmation`,
@@ -291,7 +291,7 @@ flowchart LR
     B --> E((END))
 ```
 
-The compiled graph lives in `packages/orchestrator/src/workflow.ts`. It carries `brief`, `round`,
+The compiled graph lives in `packages/orchestrator/src/planning/workflow.ts`. It carries `brief`, `round`,
 `proposals`, `conflicts`, `stalled` and the final `plan`. Shared contracts and the internal `StateSchema` both use Zod 4
 (`zod` 4.5); `packages/shared` imports the `zod` entry point and the orchestrator imports `zod/v4`.
 Specialist proposals, the brief and the final plan are re-validated at the graph boundaries with
@@ -299,7 +299,7 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
 
 - `dispatch_specialists` asks the supervisor to delegate to the registered specialists. When no
   model is configured or the supervisor fails, it invokes every specialist directly. Either way each
-  call runs through the planning board (`packages/orchestrator/src/board.ts`): accommodation waits
+  call runs through the planning board (`packages/orchestrator/src/planning/board.ts`): accommodation waits
   for transport, and itinerary and dining wait for both, but only for specialists already started in
   the same turn. Each call receives the others' proposals as `board` and, for accommodation,
   itinerary and dining, an `allocation`: its share (0.4, 0.4, 0.2) of the budget left after the
@@ -352,7 +352,7 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
 - Specialists, tools, memory and the round limit are injectable through `OrchestratorOptions`.
 
 The coordinator's reply reads a digest of the plan that includes every unresolved conflict with its
-fix (`planDigest` in `packages/orchestrator/src/chat.ts`), so an infeasible budget is answered with
+fix (`planDigest` in `packages/orchestrator/src/chat/chat.ts`), so an infeasible budget is answered with
 the estimated total and the minimum budget it needs. Without a model, and in `mode: "plan"`, the
 fallback reply states the same minimum.
 
@@ -482,7 +482,7 @@ A trip length the traveller states in days reaches the brief as the model's `tri
 date becomes the start date plus that count minus one, so N days are N calendar days with no extra
 departure day. With a model, the brief's group size, party and dates come only from the model; the
 local regexes (`extractBriefPatchLocally`, `statedTripDays` and the dietary words in
-`packages/orchestrator/src/brief-intake.ts`) read them only when no model produced the update.
+`packages/orchestrator/src/brief/brief-intake.ts`) read them only when no model produced the update.
 
 The model also returns `lastingPreferences` for wishes the traveller says hold for every trip, and
 the chat route saves them to the account memory; `recognize-memory.mjs` is the fallback when the
@@ -512,7 +512,7 @@ patch makes the dates the same day and `noAccommodation` is unset, `mergeBriefPa
 `true`, so "1 day in Sydney" plans one day with no stay. Setting `noAccommodation: false` on a
 same-day trip is rejected.
 
-`specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends the learned list to the
+`specialistBrief` in `packages/orchestrator/src/planning/supervisor.ts` appends the learned list to the
 traveller's own for the specialists, deduplicated and capped at 12. The stored brief keeps the two
 lists apart.
 
@@ -531,10 +531,10 @@ explains why.
 A message can carry up to four attachments. Images reach the coordinator as content blocks and text
 files are inlined into its message; only the coordinator sees them, the specialists' inputs are
 unchanged, and the offline path ignores images while still reading the inlined text. Sizes and
-accepted media types are enforced in `packages/shared/src/chat.ts` and listed in [API](api.md).
+accepted media types are enforced in `packages/shared/src/chat/chat.ts` and listed in [API](api.md).
 
 For a genuine ambiguity with concrete choices, the coordinator can instead call `ask_user_question`
-(`packages/orchestrator/src/chat.ts`), which throws `AskUserError` and streams a `ChatAskUser` frame
+(`packages/orchestrator/src/chat/chat.ts`), which throws `AskUserError` and streams a `ChatAskUser` frame
 (`type: "ask_user"`, 1–4 questions, `known`, and the client's `plan` unchanged); the client renders a
 question card in the composer's place and sends the traveller's answers as the next message. See
 [DSH thinking UI §3.2](design/dsh-thinking-ui.md#32-asking-the-traveller).

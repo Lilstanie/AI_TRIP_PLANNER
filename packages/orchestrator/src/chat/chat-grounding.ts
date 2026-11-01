@@ -1,5 +1,5 @@
 import type { ChatRequest, TripPlan } from "@trip/shared";
-import { replyLanguage } from "./reply-language";
+import { replyLanguage } from "../reply-language";
 
 function materialPlan(plan: TripPlan): unknown {
   const identityFields = new Set(["tripId", "userId", "editVersion", "round"]);

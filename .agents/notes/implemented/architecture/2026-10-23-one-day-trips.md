@@ -15,7 +15,7 @@ two-day trip instead (#539). A day visit is a normal trip, and `noAccommodation`
 The `TripBrief` date check in `packages/shared/src/contracts.ts` accepts `dates[0] === dates[1]` only
 when the destination is a single city and `noAccommodation` is `true`. Every other trip still needs
 `end > start` with at least one night per destination, and the error message says how a one-day trip
-qualifies. `mergeBriefPatch` in `packages/orchestrator/src/brief.ts` sets `noAccommodation: true`
+qualifies. `mergeBriefPatch` in `packages/orchestrator/src/brief/brief.ts` sets `noAccommodation: true`
 when a patch leaves the dates on the same day and the flag is unset, so "1 day in Sydney" plans
 without another question. An explicit `false` is still rejected. `applyBriefPatch` refuses only
 reversed dates, `statedTripDays` reads "1 day" as a length, and the transport and dining day counters
@@ -42,7 +42,7 @@ This partly replaces the validation-floor sentence in
 ## Sources
 
 - #539 and its decision card (2026-10-23)
-- `packages/shared/src/contracts.ts`, `packages/orchestrator/src/brief.ts`,
-  `packages/orchestrator/src/chat-offline.ts`, `packages/agents/src/transport/validation.ts`,
+- `packages/shared/src/contracts.ts`, `packages/orchestrator/src/brief/brief.ts`,
+  `packages/orchestrator/src/chat/chat-offline.ts`, `packages/agents/src/transport/validation.ts`,
   `packages/agents/src/dining/index.ts`
 - `apps/web/tests/e2e/one-day-trip.e2e.mjs`

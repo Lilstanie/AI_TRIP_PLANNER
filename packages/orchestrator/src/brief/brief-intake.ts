@@ -14,9 +14,9 @@ import {
 } from "@trip/shared";
 import { localCalendarDate } from "@trip/tools";
 import { mergeBriefPatch, type BriefPatch } from "./brief";
-import { extractBriefPatchLocally, statedTripDays } from "./chat-offline";
-import { addDays } from "./dates";
-import { replyLanguage } from "./reply-language";
+import { extractBriefPatchLocally, statedTripDays } from "../chat/chat-offline";
+import { addDays } from "../dates";
+import { replyLanguage } from "../reply-language";
 
 export class IncompleteBriefError extends Error {
   constructor(

@@ -4,8 +4,8 @@ import { accommodationAgent, runWithModelsDisabled } from "@trip/agents";
 import type { AgentProgressEvent, MemoryStore, TripBrief } from "@trip/shared";
 import { createToolGateway } from "@trip/tools";
 import { afterEach, expect, it, vi } from "vitest";
-import { withProgressTools } from "../src/progress-tools";
-import { runOrchestrator } from "../src/workflow";
+import { withProgressTools } from "../src/planning/progress-tools";
+import { runOrchestrator } from "../src/planning/workflow";
 
 const output = resolve(
   process.cwd(),

@@ -7,7 +7,7 @@ import {
   type DestinationGuideGenerator,
 } from "@trip/agents";
 import { type AgentProgressEvent, type TripBrief, TripPlan } from "@trip/shared";
-import { runOrchestrator } from "../src/workflow";
+import { runOrchestrator } from "../src/planning/workflow";
 import { itinerary, memoryStore, scriptedModel } from "./chat-test-fixtures";
 const output = resolve(
   process.cwd(),

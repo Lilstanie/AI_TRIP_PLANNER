@@ -28,7 +28,7 @@ afterEach(() => {
 });
 
 import { createToolGateway } from "@trip/tools";
-import { runTripChat } from "../src/chat";
+import { runTripChat } from "../src/chat/chat";
 describe("TP-43 dietary restaurant search", () => {
   it.each(["google", "osm"])(
     "uses chat diet and allergy in %s search and fallback without writing long-term memory",

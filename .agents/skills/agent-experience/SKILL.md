@@ -28,8 +28,8 @@ do not copy the whole schema into the tool description and system prompt. Omit o
 mechanics, but retain failures or limits that change the model's choice or recovery action.
 
 Trace the actual consumer before editing: specialist tools are defined in
-`packages/agents/src/*/index.ts`, delegation tools in `packages/orchestrator/src/supervisor.ts`, and
-UI progress decorators in `packages/orchestrator/src/progress-tools.ts`. Read the relevant owner
+`packages/agents/src/*/index.ts`, delegation tools in `packages/orchestrator/src/planning/supervisor.ts`, and
+UI progress decorators in `packages/orchestrator/src/planning/progress-tools.ts`. Read the relevant owner
 rather than assuming every wrapper's summary reaches the model. Follow
 [architecture](../../../docs/architecture.md) and
 [end-to-end-feature-wiring](../end-to-end-feature-wiring/SKILL.md) for boundaries.

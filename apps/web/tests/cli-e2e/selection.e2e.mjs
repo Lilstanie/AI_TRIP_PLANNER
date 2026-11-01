@@ -191,7 +191,7 @@ try {
         "apps/web/app/layout.tsx",
         "apps/web/components/workspace/Client.tsx",
         "apps/web/public/sw.js",
-        "packages/orchestrator/src/workflow.ts",
+        "packages/orchestrator/src/planning/workflow.ts",
         "packages/shared/src/index.ts",
       ].map((path) => [path, ["local-cli-collections.e2e.mjs"]]),
       ...[

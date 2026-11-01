@@ -54,7 +54,7 @@ from `stopReason`, `unresolvedConflicts` and `rounds`; the artifact has no new f
 The benchmark shows what each strategy adds: both multi-agent strategies report the infeasibility and
 spend no revision round, while the baseline overruns silently. It also couples the evaluator to two
 production texts: the `infeasible budget` conflict wording and its `AUD` amounts in
-`packages/orchestrator/src/conflicts.ts`, and the `YYYY-MM-DD to YYYY-MM-DD` stay dates in the
+`packages/orchestrator/src/planning/conflicts.ts`, and the `YYYY-MM-DD to YYYY-MM-DD` stay dates in the
 accommodation specialist's hotel detail. A change to either must update the evaluator, and the benchmark
 test fails if the declared minimum drifts from what the workflow reports. Changing a check or a fixture
 needs a new evaluator or fixture version so an old artifact can be told from a current one.

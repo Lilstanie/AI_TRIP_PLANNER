@@ -1,6 +1,6 @@
 # Edit keeps destination failure inventory
 
-Written before the model-free brief parser was changed (#804, TP-162). The "before" run uses `origin/main` source for `packages/orchestrator/src/chat-offline.ts`.
+Written before the model-free brief parser was changed (#804, TP-162). The "before" run uses `origin/main` source for `packages/orchestrator/src/chat/chat-offline.ts`.
 
 | Failure mode                                                           | Evidence the E2E must capture                                                                                      |
 | ---------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------ |

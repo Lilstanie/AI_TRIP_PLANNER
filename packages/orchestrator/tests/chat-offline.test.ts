@@ -1,7 +1,7 @@
 import { describe, expect, it } from "vitest";
 import { toAud, type TripBrief } from "@trip/shared";
-import { extractBriefPatchLocally } from "../src/chat-offline";
-import { applyBriefPatch } from "../src/brief";
+import { extractBriefPatchLocally } from "../src/chat/chat-offline";
+import { applyBriefPatch } from "../src/brief/brief";
 
 const brief: TripBrief = {
   tripId: "chat-test",

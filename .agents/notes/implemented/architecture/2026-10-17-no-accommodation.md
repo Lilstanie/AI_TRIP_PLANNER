@@ -23,7 +23,7 @@ The related [conversation scope decision](../feature/2026-09-27-conversation-sco
 ## Sources
 
 - `packages/shared/src/contracts.ts`
-- `packages/shared/src/chat.ts`
-- `packages/orchestrator/src/workflow.ts`
-- `packages/orchestrator/src/board.ts`
+- `packages/shared/src/chat/chat.ts`
+- `packages/orchestrator/src/planning/workflow.ts`
+- `packages/orchestrator/src/planning/board.ts`
 - `apps/web/components/preferences/PreferenceList.tsx`

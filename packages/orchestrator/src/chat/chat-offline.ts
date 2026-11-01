@@ -1,6 +1,6 @@
 import { detectCurrency, partyPeople, toAud, type TravellerParty } from "@trip/shared";
-import { BriefPatchSchema, type BriefPatch } from "./brief";
-import { DATE_TOKEN, addDays, parseTripDate } from "./dates";
+import { BriefPatchSchema, type BriefPatch } from "../brief/brief";
+import { DATE_TOKEN, addDays, parseTripDate } from "../dates";
 
 function amount(value: string): number | undefined {
   const parsed = Number(value.replaceAll(",", ""));

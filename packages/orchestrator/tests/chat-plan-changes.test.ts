@@ -1,8 +1,8 @@
 import { FakeToolCallingModel } from "langchain";
 import { AIMessage } from "@langchain/core/messages";
 import { describe, expect, it, vi } from "vitest";
-import { AskUserError, IncompleteBriefError, runTripChat } from "../src/chat";
-import { groundedReply } from "../src/chat-grounding";
+import { AskUserError, IncompleteBriefError, runTripChat } from "../src/chat/chat";
+import { groundedReply } from "../src/chat/chat-grounding";
 import {
   brief,
   itinerary,

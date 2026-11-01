@@ -5,19 +5,19 @@ export {
   runTripChat,
   type BriefExtractor,
   type TripChatOptions,
-} from "./chat";
-export { applyBriefPatch, type BriefPatch } from "./brief";
-export { extractBriefPatchLocally } from "./chat-offline";
-export { parseFlightQuery, type FlightQuery } from "./flight-query";
-export { answerFlightQuery } from "./flight-answer";
+} from "./chat/chat";
+export { applyBriefPatch, type BriefPatch } from "./brief/brief";
+export { extractBriefPatchLocally } from "./chat/chat-offline";
+export { parseFlightQuery, type FlightQuery } from "./chat/flight-query";
+export { answerFlightQuery } from "./chat/flight-answer";
 export { parseTripDate, isAmbiguous } from "./dates";
 export {
   createOrchestratorGraph,
   detectConflicts,
   runOrchestrator,
   type OrchestratorOptions,
-} from "./workflow";
-export { rollUpCost } from "./budget";
+} from "./planning/workflow";
+export { rollUpCost } from "./planning/budget";
 export {
   createSupervisorTools,
   createRevisionTools,
@@ -25,7 +25,7 @@ export {
   reviseWithSupervisor,
   type SupervisorDispatchOptions,
   type SupervisorRevisionOptions,
-} from "./supervisor";
+} from "./planning/supervisor";
 export {
   agentLabBenchmark,
   agentLabFaultProfileSummaries,
@@ -41,4 +41,4 @@ export {
   type RunAgentLabOptions,
 } from "./agent-lab";
 
-export type { StopReason, WorkflowDecision } from "./decisions";
+export type { StopReason, WorkflowDecision } from "./planning/decisions";

@@ -33,7 +33,9 @@ render nothing (for example `lib/chat/team-model.ts`, `lib/trip/preview-request.
 `apps/web/lib/integrations/`. Put all web tests under `apps/web/tests/`, mirroring the `app`,
 `components`, and `lib` feature groups; shared fixtures belong in `apps/web/tests/fixtures/` and
 setup belongs in `apps/web/tests/setup.ts`. The package folders use the same rule: production code
-stays under `src/`, while tests belong under each package's `tests/` directory.
+stays under `src/`, while tests belong under each package's `tests/` directory. In `packages/orchestrator/src`,
+brief intake lives in `brief/`, chat turns in `chat/` and the planning graph in `planning/`;
+`index.ts` re-exports the public API.
 
 When a feature crosses folders, keep the public contract in the domain module and import it from
 there rather than creating a new root-level convenience file. Update this section and the API docs

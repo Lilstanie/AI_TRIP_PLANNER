@@ -31,7 +31,7 @@ the graph passes between specialists.
   specialists' proposals), `allocation` (`{ budget, basis }` in AUD) and `previous` (its own last
   proposal). `RevisionRequest` gains optional `targetSaving`; `AgentProposal` gains optional
   `floorCost`, the lowest total the specialist could reach from the options it found.
-- **Staged dispatch** (`packages/orchestrator/src/board.ts`): accommodation waits for transport;
+- **Staged dispatch** (`packages/orchestrator/src/planning/board.ts`): accommodation waits for transport;
   itinerary and dining wait for both. A call waits only for specialists already started in the same
   supervisor turn, so an uncalled specialist cannot deadlock the others. The same board serves the
   supervisor and the deterministic path.

@@ -1,8 +1,8 @@
 import { describe, expect, it } from "vitest";
 import type { AgentProposal, TripSection } from "@trip/shared";
-import { assessBudget, costOf, rollUpCost, ESCALATION_OVERRUN_PCT } from "../src/budget";
+import { assessBudget, costOf, rollUpCost, ESCALATION_OVERRUN_PCT } from "../src/planning/budget";
 import { detectConflicts, runOrchestrator, DEMO_BRIEF } from "../src";
-import { minimumCost } from "../src/conflicts";
+import { minimumCost } from "../src/planning/conflicts";
 
 function proposal(agent: AgentProposal["agent"], cost: number): AgentProposal {
   return {

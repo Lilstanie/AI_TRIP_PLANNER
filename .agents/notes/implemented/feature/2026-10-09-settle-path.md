@@ -49,7 +49,7 @@ no total, so there is nothing to agree with; it is not given one here.
   Keeping the call costs one shared function and makes the rule hold for every browser action.
 - **Count Ideas in the estimate and label them.** Rejected. The traveller asked for the total to match the plan
   (user story 6), and an Idea is not in the plan; a label would still leave the bar and the conflict out of step.
-- **Change `costOf` in `packages/orchestrator/src/budget.ts`.** Rejected for now. It is shared with the chat workflow
+- **Change `costOf` in `packages/orchestrator/src/planning/budget.ts`.** Rejected for now. It is shared with the chat workflow
   and the agent lab, which see no activities without a day; a change there would reach fixtures and unit tests for no
   traveller benefit. The settle applies the rule to the trip's own plan only.
 

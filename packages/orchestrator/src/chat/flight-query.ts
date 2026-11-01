@@ -1,4 +1,4 @@
-import { DATE_TOKEN, isAmbiguous, parseTripDate } from "./dates";
+import { DATE_TOKEN, isAmbiguous, parseTripDate } from "../dates";
 
 export interface FlightQuery {
   from: string;
