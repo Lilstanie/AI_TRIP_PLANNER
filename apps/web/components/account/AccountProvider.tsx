@@ -78,8 +78,14 @@ function ClerkAccount({ children }: { children: ReactNode }) {
   return <AccountContext.Provider value={account}>{children}</AccountContext.Provider>;
 }
 
-export function AccountProvider({ children }: { children: ReactNode }) {
-  return authEnabled ? (
+export function AccountProvider({
+  children,
+  admin = false,
+}: {
+  children: ReactNode;
+  admin?: boolean;
+}) {
+  return authEnabled && !admin ? (
     <ClerkAccount>{children}</ClerkAccount>
   ) : (
     <AccountContext.Provider value={{ status: "local" }}>{children}</AccountContext.Provider>
