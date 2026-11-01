@@ -24,7 +24,7 @@ do not isolate credentials or a reused server.
 
 For manual inspection, start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
-Use mock data unless the change concerns live providers. The top-bar data-mode button (Mine on a phone)
+Use mock data unless the change concerns live providers ([live provider runs](#live-provider-runs)). The top-bar data-mode button (Mine on a phone)
 switches the mode per browser, so you can check both without redeploying.
 
 Accounts are optional. With `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` set, anonymous page navigation is
@@ -47,6 +47,19 @@ real-model run:
 - Before quoting the result, read `GET /api/data-mode` from that server: `liveBlock` must be `null`.
   Search the server log for `using a safe local plan`; any hit means that agent fell back.
 - Label each result as fixture, real model with mock tools, or all live.
+
+### Live provider runs
+
+Live flights, stays, places and weather usually cannot run before merge: the cloud container has no
+provider keys, the local Google key may have expired, and Vercel PR previews sit behind a Vercel
+login. Check the change with mock data before merge, then verify live on the deployed site
+(`https://elec5620-ai-trip-planner.vercel.app`) once it has deployed: open `/sign-in`, enter an admin
+passcode ([demo runbook](../../../docs/demo-runbook.md)), keep live data on and plan one trip that
+reaches the change. Fix what it finds in a follow-up PR. Say in the PR which parts were checked live.
+
+When a Remote Control session copies an `.env.local` into a scratch worktree for a live run, it
+removes that worktree before it ends (`git worktree remove --force <path>`); a worktree holding keys
+is never left behind.
 
 ## 2. Exercise the change
 
