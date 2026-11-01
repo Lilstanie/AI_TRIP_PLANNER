@@ -55,6 +55,13 @@ pnpm --filter @trip/web start -p 3000
 
 `DEEPSEEK_API_KEY` 决定演示使用模型还是确定性的本地方案。示例数据能替代服务商，但替代不了模型。
 
+<a id="demo-account"></a>
+
+## 演示账号
+
+登录需要上表中的 Clerk 密钥。演示时请用 Clerk 开发实例里共用的演示账号登录，用户名 `test`，不要用个人账号。
+密码向 Joey 要，不要写进本页、提交记录或议题。
+
 <a id="falling-back-to-mock-data"></a>
 
 ## 退回示例数据

@@ -52,12 +52,25 @@ function rememberPacked(tripId: string, packed: string[]) {
   }
 }
 
+export function tripWeather(plan: TripPlan): string | undefined {
+  return (
+    plan.sections
+      .find((section) => section.id === "destination-guide")
+      ?.proposal?.items.find((item) => item.kind === "weather-packing")
+      ?.detail.trim() || undefined
+  );
+}
+
 export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: boolean }) {
   const { t } = useLocale();
   const items = (
     plan.sections.find((section) => section.id === "destination-guide")?.proposal?.items ?? []
   )
-    .filter((item) => item.detail.trim() || packingLine(item.packing, ""))
+    .filter((item) =>
+      item.kind === "weather-packing"
+        ? packingLine(item.packing, "")
+        : item.detail.trim() || packingLine(item.packing, ""),
+    )
     .slice(0, MAX_TIPS);
   const [packed, setPacked] = useState(() => savedPacked(plan.tripId));
   const togglePacked = (item: string) => {
@@ -96,8 +109,8 @@ export function TripTips({ plan, onTrip = false }: { plan: TripPlan; onTrip?: bo
             <p className="trip-tips__kind">
               {KIND_LABEL[item.kind] ? t(KIND_LABEL[item.kind]!) : item.kind}
             </p>
-            {item.detail.trim() ? (
-              <p>{item.kind === "weather-packing" ? item.detail : tipSentence(item.detail)}</p>
+            {item.detail.trim() && item.kind !== "weather-packing" ? (
+              <p>{tipSentence(item.detail)}</p>
             ) : null}
             {item.packing?.length ? (
               <ul className="trip-tips__packing">

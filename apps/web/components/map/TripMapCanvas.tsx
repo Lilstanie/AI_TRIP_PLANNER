@@ -68,6 +68,10 @@ export function TripMapCanvas({
     const day = itinerary.markersFor(focusedDay);
     return day.length ? day : itinerary.markersFor();
   }, [itinerary, focusedDay]);
+  const path = useMemo(() => {
+    const day = itinerary.pathFor(focusedDay);
+    return day.length ? day : itinerary.pathFor();
+  }, [itinerary, focusedDay]);
   const dayRoutes = useMemo(() => {
     if (focusedDay === undefined) return routes;
     const ids = new Set(markers.map((marker) => marker.place.id));
@@ -142,6 +146,7 @@ export function TripMapCanvas({
         forceOsmProvider={tripPlaces.forceOsm}
         allowOsmFallback={tripPlaces.allowFallback}
         stops={markers}
+        path={path}
         phone={phone}
         visible={visible}
         focusRequest={focusRequest}

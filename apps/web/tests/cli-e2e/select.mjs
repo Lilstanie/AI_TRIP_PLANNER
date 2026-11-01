@@ -52,6 +52,7 @@ try {
     "selection.e2e.mjs",
     "runner-plan.e2e.mjs",
     "ci-integration.e2e.mjs",
+    "real-clerk-route-inventory.e2e.mjs",
   ]);
   const unclassified = discoveredScripts.filter((script) => !knownScripts.has(script));
   const missing = [...featureScripts].filter((script) => !discoveredScripts.includes(script));
@@ -157,6 +158,13 @@ try {
         rule: "acceptance-script",
         scripts: [path.slice("apps/web/tests/cli-e2e/".length)],
       };
+    if (
+      /^apps\/web\/(?:app|components|lib|public)\//.test(path) ||
+      /^apps\/web\/tests\/(?:app|components|lib|fixtures)\//.test(path) ||
+      /^apps\/web\/tests\/e2e\/(?!agent-lab-|real-clerk-)[^/]+(?:\.e2e\.mjs|\.md)$/.test(path) ||
+      /^packages\/[^/]+\/(?:src|tests)\//.test(path)
+    )
+      return { path, rule: "app-source", scripts: ["local-cli-collections.e2e.mjs"] };
     if (
       !/(^|\/)(AGENTS|CLAUDE)\.md$/i.test(path) &&
       ((path.startsWith("docs/") && path.endsWith(".md")) ||

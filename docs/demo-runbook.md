@@ -52,6 +52,12 @@ Names only. Never paste a key into this page, a commit, a fixture or a chat mess
 `DEEPSEEK_API_KEY` changes whether the demonstration uses a model or deterministic local plans. Mock
 data replaces the providers; it does not replace the model.
 
+## Demo account
+
+Signing in needs the Clerk keys from the table above. For the demonstration, sign in with the shared
+demo account, username `test`, in the Clerk development instance instead of a personal account. Ask
+Joey for the password; never write it into this page, a commit or the issue tracker.
+
 ## Falling back to mock data
 
 Mock data providers use local fixtures. For a deterministic planning rehearsal without model

@@ -183,6 +183,18 @@ try {
       [".agents/skills/translate-docs/scripts/check-pairs.mjs", ["translation-pairs.e2e.mjs"]],
       ...inventory.map((script) => [`apps/web/tests/cli-e2e/${script}`, [script]]),
       ...[
+        "apps/web/tests/e2e/future-journey.e2e.mjs",
+        "apps/web/tests/e2e/future-journey.failures.md",
+        "apps/web/tests/lib/money.test.ts",
+        "apps/web/lib/money.ts",
+        "apps/web/lib/i18n/locale.ts",
+        "apps/web/app/layout.tsx",
+        "apps/web/components/workspace/Client.tsx",
+        "apps/web/public/sw.js",
+        "packages/orchestrator/src/workflow.ts",
+        "packages/shared/src/index.ts",
+      ].map((path) => [path, ["local-cli-collections.e2e.mjs"]]),
+      ...[
         "apps/web/tests/e2e/repeat-cli.mjs",
         "apps/web/tests/e2e/run.mjs",
         "apps/web/tests/e2e/local-cli.mjs",
@@ -193,17 +205,11 @@ try {
         "apps/web/tests/e2e/legacy-new.mjs",
         "apps/web/tests/e2e/agent-lab-single-agent.e2e.mjs",
         "apps/web/tests/e2e/agent-lab-replay.e2e.mjs",
-        "apps/web/tests/e2e/future-journey.e2e.mjs",
+        "apps/web/tests/e2e/real-clerk-auth.e2e.mjs",
+        "apps/web/tests/e2e/support/new-helper.mjs",
         "apps/web/tests/cli-e2e/run.mjs",
         "apps/web/tests/cli-e2e/select.mjs",
         "apps/web/tests/cli-e2e/runner-plan.mjs",
-        "apps/web/lib/money.ts",
-        "apps/web/lib/i18n/locale.ts",
-        "apps/web/app/layout.tsx",
-        "apps/web/components/workspace/Client.tsx",
-        "apps/web/public/sw.js",
-        "packages/orchestrator/src/workflow.ts",
-        "packages/shared/src/index.ts",
         "package.json",
         "apps/web/package.json",
         "pnpm-lock.yaml",
@@ -294,9 +300,10 @@ try {
     const unsafe = fixture();
     const strange = "apps/web/lib/space '$(touch should-never-exist)'\n雪.ts";
     unsafe.write(strange, "Unique whitespace source fixture\n");
-    const full = unsafe.pr(unsafe.commit("Add whitespace source"));
-    assert.equal(full.mode, "full");
-    assert.deepEqual(full.changedFiles, [strange]);
+    const narrowed = unsafe.pr(unsafe.commit("Add whitespace source"));
+    assert.equal(narrowed.mode, "selected");
+    assert.deepEqual(narrowed.selectedScripts, ["local-cli-collections.e2e.mjs"]);
+    assert.deepEqual(narrowed.changedFiles, [strange]);
     assert.equal(existsSync(resolve(output, "should-never-exist")), false);
     for (const action of ["delete", "rename"]) {
       const changed = fixture();
