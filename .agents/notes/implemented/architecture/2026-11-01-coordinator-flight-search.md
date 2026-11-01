@@ -16,7 +16,12 @@ the turn ends in a flight answer with the same frame and cards as the parser's r
 shown come from the search and not from model text. `parseFlightQuery` stays in front of the model: it
 answers without a model call, and it is the only route when models are disabled.
 
-## Rejected
+## Alternatives considered
 
 Widening the parser alone: every new wording would need another pattern, and relative dates such as
 "mid next month" would never fit one.
+
+## Consequences
+
+A flight question that reaches the coordinator costs a model call before the search. A message that
+mixes a flight question with a plan change answers the plan first, and the fares are dropped.
