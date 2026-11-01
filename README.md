@@ -33,6 +33,49 @@ top-bar toggle shows whether a request uses mock fixtures or live providers; pla
 labelled “Mock …” come from mock mode, not a failed live integration. The demo may lag behind the
 branch you are reading.
 
+## ELEC5620 Stage 2 report
+
+The unit marks Stage 2 on four criteria ([rubric](docs/design/stage2/demo-marking-criteria.md)). This
+section says how the prototype meets each one; every figure and its source is in the
+[demo evidence page](docs/design/stage2/demo-evidence.md). Figures are from `main` and Jira project
+TP on 1 November 2026.
+
+**1. Functions and features (7).** Every Stage 1 use case and class model names the code that
+implements it ([Stage 1 design model](docs/design/stage1/README.md)). Six packages carry 137 test
+files with 1,504 tests, and 97 browser end-to-end scripts cover the main journeys. Edge cases are
+tested: an infeasible budget, a stalled revision, a rejected Google key, live data unavailable, a
+refresh during a reply and signed-out access. A fresh copy of `main` installs and builds in about
+1 min 36 s.
+
+**2. AI agent perception, decision-making and interaction (4).** Perception: the brief model turns
+free text into destinations, dates, party, budget and intent (pace, diet, interests), and tools read
+live flights, stays, places, routes and weather. Decision-making: a LangGraph supervisor chooses
+specialists, the graph checks budget and timing conflicts, sends only the agents involved back for
+revision and stops with a named reason. Interaction: five specialist assistants, `@`-mentions, the
+Agent Team panel and the Trajectory record. On the same A$2,300 trip one agent alone reaches
+A$3,960, five specialists without revision A$2,560, and targeted revision A$2,120, within budget
+([Agent Lab runs](submission/stage2/agent-lab-exit-paths.md)). A live trip test on 30 October found
+22 problems; each became a Jira story and was fixed within two days (PRs #837 to #870).
+
+**3. Agile development (4).** Jira project TP holds 238 issues, 230 done, written as user stories
+with acceptance criteria. TP Sprint 1 ran from 21 to 31 October; earlier iterations show in Git as
+795 commits on `main` since 24 August. Every pull request carries its TP key, so story, branch, CI
+run and merge are linked; 403 pull requests were merged after review and CI. Five recorded
+retrospectives changed the team rules, and decisions are kept as
+[Agent Notes](.agents/notes/README.md).
+
+**4. Advanced technologies (5).**
+
+| Technology                                                  | Measured result                                                                   |
+| ----------------------------------------------------------- | --------------------------------------------------------------------------------- |
+| LangGraph and LangChain multi-agent workflow                | Targeted revision A$2,120 against A$3,960 for a single agent on an A$2,300 budget |
+| DeepSeek routing with a deterministic fallback              | About 20 s per page against 37 to 81 s on MiniMax                                 |
+| Next.js 15 and React 19 streaming with durable turns        | A reply in progress survives a page refresh                                       |
+| Installable app with a phone layout                         | 23/23 installability checks pass                                                  |
+| Cloud services: Vercel, Clerk, Neon Postgres, Upstash Redis | 24/24 real sign-in, expiry and account isolation checks pass                      |
+| Maps with fallback: Google Maps, OpenStreetMap, MapLibre    | Maps and routes keep working when Google rejects the key                          |
+| CI/CD: GitHub Actions, Turborepo, Docker                    | Median pull request CI time fell from 7.3 to 5.3 min                              |
+
 ## How it works
 
 ```mermaid
