@@ -9,6 +9,12 @@ Web 应用（`apps/web`）是单用户规划工作区。本文描述其当前行
 Trip home 动作区及其验收标准详见
 [Trip home 动作栏](design/trip-home-actions.zh.md)。
 
+<a id="first-visit-intro"></a>
+
+## 首次访问介绍页
+
+浏览器第一次打开 `/` 时先显示全屏介绍页（`IntroGate`、`FirstVisitIntro`）：标题、一句话说明规划助手能做什么、"开始规划"按钮、AI 旅行团队（协调员和五位专项助手）以及三个使用步骤。页面带语言切换，并跟随浅色和深色模式。点"开始规划"会在 `localStorage` 写入 `trip.intro.seen.v1` 并重新挂载工作区，因此会沿用在介绍页选的语言。之后的访问直接进入工作区。`/?intro` 可再次显示介绍页，方便演示。自动化驱动的浏览器（`navigator.webdriver`）除非 URL 带 `?intro`，否则跳过介绍页，因此 E2E 脚本照常打开工作区。
+
 <a id="layout"></a>
 
 ## 布局

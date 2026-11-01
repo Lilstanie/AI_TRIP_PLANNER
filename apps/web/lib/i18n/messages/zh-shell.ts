@@ -167,4 +167,15 @@ export const zhShell = {
     "帮我重新规划：去{destination}，{dates}，{count} 人，总预算 {amount}。",
   labelColon: "{label}：",
   labelValue: "{label}：{value}",
+  introHeadline: "一句话，规划整趟旅行",
+  introLead:
+    "说出目的地、日期和预算，AI 旅行团队会排好每天的景点、交通、住宿和餐饮，并标在地图上。",
+  introStart: "开始规划",
+  introTeamLabel: "你的 AI 旅行团队",
+  introStepTellTitle: "说出你的想法",
+  introStepTellBody: "像跟朋友聊天一样直接说，中文英文都可以。",
+  introStepTeamTitle: "团队分工规划",
+  introStepTeamBody: "协调员把每部分交给对应的助手，每一步都看得到。",
+  introStepAdjustTitle: "随时调整",
+  introStepAdjustBody: "改日程、挪景点或在聊天里提要求，改动立即生效，也能撤销。",
 } satisfies Record<keyof typeof enShell, string>;

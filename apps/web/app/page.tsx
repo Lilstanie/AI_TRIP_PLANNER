@@ -1,5 +1,10 @@
 import { Workspace } from "@/components/workspace/Workspace";
+import { IntroGate } from "@/components/intro/IntroGate";
 
 export default function Page() {
-  return <Workspace />;
+  return (
+    <IntroGate>
+      <Workspace />
+    </IntroGate>
+  );
 }
