@@ -859,4 +859,23 @@ export const enWorkspace = {
   staySamePrice: "Same price as your stay",
   stayCostsMore: "{amount} more than your stay",
   staySaves: "{amount} less than your stay",
+  dataMode: "Data mode",
+  mockDataBundledFixturesNo:
+    "Mock data: bundled fixtures. No provider requests and no allowance spent.",
+  mockDataBundledFixturesSign:
+    "Mock data: bundled fixtures. Sign in to use the AI model and live hotel and flight prices.",
+  mockDataBundledFixturesLive:
+    "Mock data: bundled fixtures. Live provider data is off on this deployment.",
+  currentlyUsingMockFixturesLive:
+    ". Currently using mock fixtures. Live provider data is off on this deployment.",
+  liveDataRealHotelAnd:
+    "Live data: real hotel and flight prices. Each plan spends the shared monthly search allowance.",
+  liveDataSelectedButNo:
+    "Live data selected, but no SERPAPI_KEY is configured, so results fall back to estimates.",
+  currentlyUsingLiveProviderData:
+    ". Currently using live provider data. Activate to switch to mock fixtures.",
+  currentlyUsingMockFixturesActivate:
+    ". Currently using mock fixtures. Activate to switch to live provider data.",
+  currentlyUsingMockFixturesSign:
+    ". Currently using mock fixtures. Sign in to use the AI model and live hotel and flight prices.",
 } as const;

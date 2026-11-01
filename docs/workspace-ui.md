@@ -27,7 +27,7 @@ workspace as before.
 | Chats panel       | Slides out beside the sidebar: search, then trips and chats                                                                                                                                                                                                                                                                                | `ChatsPanel`, `TripCover`                                                                                                               |
 | Your trips        | Opened by Trips in place of chat and map: trip cards (Upcoming, Past) and a Calendar tab; New trip                                                                                                                                                                                                                                         | `TripsPage`, `TripCover`                                                                                                                |
 | Trip home         | Opened by choosing a trip card, a Calendar View trip action or a trip in the Chats search: trip title, facts, linked chats, new-chat composer, a contextual suggestion, five in-panel actions and the trip map                                                                                                                             | `TripHome`, `TripHomeChats`, `TripHomeCards`, `TripHomeActionHost`, `TripHomeActionDrawer`, `TripHomeMap`, `TripsPage`, `WorkspaceView` |
-| Top bar           | Chat title menu, linked Trip subtitle and Agent Team on the left; Brief chips on desktop from a blank chat, and on a phone once the chat has a message or a Plan (before that they sit above the composer); Trip at the far right with no count, only with a Plan. Language only in Settings.                                              | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatHeaderMenu`, `PhoneTeamButton`                                                    |
+| Top bar           | Chat title menu, linked Trip subtitle and Agent Team on the left; Brief chips on desktop from a blank chat, and on a phone once the chat has a message or a Plan (before that they sit above the composer); data mode on the right; Trip at the far right with no count, only with a Plan. Language only in Settings.                      | `WorkspaceView`, `TripFactChips`, `TeamControl`, `ChatHeaderMenu`, `PhoneTeamButton`                                                    |
 | Trip fact editors | One editor per chip, every one a centred dialog; Preferences holds the traveller's own list                                                                                                                                                                                                                                                | `FactPopover`, `FactFields`, `TripCalendar`, `WhereFields`, `PreferenceList`, `lib/workspace/trip-facts.ts`                             |
 | Chat              | Conversation or Trajectory, the planning transcript, the composer; suggestion chips beside the composer on a blank untouched chat; rotating placeholders while focused and empty                                                                                                                                                           | `ChatPanel`                                                                                                                             |
 | Map               | Only the map, labelled markers, curved day-coloured itinerary lines, the place popup, map status, and the locate / map type / zoom controls                                                                                                                                                                                                | `TripMapCanvas`, `TripMap`                                                                                                              |
@@ -369,8 +369,8 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
   - Mine places search first, then saved Trips as the primary collection and chats below. New trip
     sits with Trips, New chat with chats, and one Settings & account entry follows both collections.
     Search filters chats and trips; opening a saved trip selects Trip, while opening a recent chat or
-    starting either selects Chat. Each chat has a visible Rename/Delete row menu on touch. Data mode
-    and interface language are only in Settings.
+    starting either selects Chat. Each chat has a visible Rename/Delete row menu on touch. The
+    data-mode button lives here with its text label; interface language is only in Settings.
     Opening a trip from Mine moves keyboard focus to the trip-title button, whose accessible name
     identifies the destination and dates.
   - Crossing the phone width keeps the traveller on the same thing: narrowing with Your trips open
@@ -925,6 +925,15 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   the lines are redrawn or the map unmounts. Under `prefers-reduced-motion: reduce` the dashes are
   drawn still and no loop runs. Verified routes that are not an itinerary leg, such as an edit
   preview, stay solid lines. The map follows the system light or dark scheme.
+- **OSM route layers** (`components/map/maplibre-renderer.ts`). Each line is added as soon as the
+  map style has loaded, even while other lines' GeoJSON is still being parsed, so every leg of the
+  focused day is drawn on every redraw. A line is inserted below any route layer with a higher
+  `zIndex`, so other days stay under every casing and every day colour sits on its casing.
+  A line drawn with direction icons also gets a static symbol layer of white chevrons every 56 px,
+  pointing to the next stop.
+- **Long legs** (`dayRoutes`). A leg whose stops are at least `LONG_LEG_KM` (150 km) apart is a
+  flight or intercity transfer, so it is drawn as an arc and never follows a verified ground route,
+  and it has no travel-mode badge.
 - **Place popup.** Pressing a marker or its label, or a place in the Trip timeline, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
   Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my
@@ -932,8 +941,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   in live data mode with a server Maps key, one image per selection. Otherwise, and when Google has
   no photo or the image fails, the fixed 16:9 slot shows a pin. A marker press moves focus into the
   popup; the close button, Escape or a press on the map closes it and returns focus to the marker.
-  A place chosen in the drawer that is off the map is panned into view, which does not count as a
-  user move.
+  Any place chosen in the trip or on the map is centred, and the map zooms in to at least 14 first;
+  this does not count as a user move.
 - **Selection.** Selecting a marker or a drawer place selects the activity in the timeline and jumps
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
@@ -1410,7 +1419,7 @@ the account section explains that everything stays in this browser.
       wrapped rows keep their natural height, and desktop sizing is unchanged. A blank chat that has not started follows changes to these facts, also after a
       reload; a chat with a message or edited facts keeps its own.
   - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (live prices, the default, or sample data)
-    under Advanced. Trip data is the only data-mode control, on every deployment; Live prices appears only when the caller may spend the allowance, otherwise the row shows sample data.
+    under Advanced. Trip data and the workspace data-mode button share one preference, on every deployment; Live prices appears only when the caller may spend the allowance, otherwise the row shows sample data.
     Interface language is changed only under Settings → Language & region (no top-bar or Mine shortcut).
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it, including untitled-chat actions. Traveller

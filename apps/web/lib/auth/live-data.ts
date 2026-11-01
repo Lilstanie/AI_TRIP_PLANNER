@@ -1,10 +1,12 @@
 import { auth } from "@clerk/nextjs/server";
 import { configuredDataMode, parseDataMode, type DataMode } from "@trip/tools";
 import { authEnabled } from "./config";
+import { isAdminRequest } from "./admin";
 
 export type LiveDataBlock = "sign-in-required" | "auth-not-configured";
 
 export async function liveDataBlock(): Promise<LiveDataBlock | undefined> {
+  if (await isAdminRequest()) return undefined;
   if (!authEnabled)
     return process.env.VERCEL_ENV || process.env.NODE_ENV === "production"
       ? "auth-not-configured"

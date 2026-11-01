@@ -309,12 +309,14 @@ reported, and the trace never carries a model's own reasoning.
 ```
 
 `configured` is the deployment default (`live` only when `USE_MOCK_TOOLS=false`). `liveAvailable` is
-whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
+whether this caller may spend the provider allowance: true for a signed-in traveller or an admin
+passcode session ([demo runbook](demo-runbook.md#build-from-a-clean-copy)), and off a
 deployment when Clerk is not configured. `liveBlock` names why it is off: `sign-in-required` for a
 signed-out caller on a configured deployment, `auth-not-configured` on a production server or Vercel deployment without
-Clerk, and `null` when live is available. The workspace's only data-mode control is Settings → Language & region → Trip data; it
-defaults to live prices and ignores `configured`. When `liveAvailable` is false it offers only sample
-data, and a stored live choice runs as mock.
+Clerk, and `null` when live is available. The workspace's data-mode chip (top bar, or Mine on a phone) and Settings → Language & region →
+Trip data set one shared preference; it defaults to live prices and ignores `configured`. When
+`liveAvailable` is false the chip stays on mock data with `aria-disabled="true"`, remains
+keyboard-focusable, and its hidden text says why; Settings then offers only sample data.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.
 

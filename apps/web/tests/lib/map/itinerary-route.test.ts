@@ -12,7 +12,7 @@ import { placeCategory } from "@/lib/map/place-category";
 const stop = (placeId: string, at: number, day?: number): RouteStop => ({
   placeId,
   day,
-  position: { lat: at, lng: at },
+  position: { lat: at / 10, lng: at / 10 },
 });
 
 describe("dayRoutes", () => {
@@ -36,6 +36,8 @@ describe("dayRoutes", () => {
     expect(lines[0]!.legs.map((leg) => leg.polyline)).toEqual(["encoded-ab", undefined]);
     expect(coveredByItinerary(routes[0]!, lines)).toBe(true);
     expect(coveredByItinerary(routes[2]!, lines)).toBe(false);
+    const flight = dayRoutes([stop("a", 1, 1), stop("b", 70, 1)], routes);
+    expect(flight[0]!.legs[0]).not.toHaveProperty("polyline");
   });
 });
 

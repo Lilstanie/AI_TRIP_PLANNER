@@ -261,8 +261,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 ```
 
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
-`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非生产开发环境也为 true。 `liveBlock` 说明为何不可用：已配置部署中未登录调用方为 `sign-in-required`，未配置 Clerk 的生产服务器或 Vercel 部署为 `auth-not-configured`，可用时为 `null`。
-工作区唯一的数据模式控件是 Settings → Language & region → Trip data；默认为实时价格，不看 `configured`。`liveAvailable` 为 false 时只提供示例数据，已保存的实时选择按示例数据运行。
+`liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者或管理员口令会话（[演示运行手册](demo-runbook.zh.md#build-from-a-clean-copy)）为 true，未配置 Clerk 时在非生产开发环境也为 true。 `liveBlock` 说明为何不可用：已配置部署中未登录调用方为 `sign-in-required`，未配置 Clerk 的生产服务器或 Vercel 部署为 `auth-not-configured`，可用时为 `null`。
+工作区的数据模式按钮（顶栏，手机上在 Mine）和 Settings → Language & region → Trip data 共用一个偏好；默认为实时价格，不看 `configured`。`liveAvailable` 为 false 时按钮保持示例数据并带 `aria-disabled="true"`，仍可用键盘聚焦，其隐藏文字说明原因；设置里只提供示例数据。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>

@@ -25,7 +25,13 @@ pnpm --filter @trip/web start -p 3000
 `pnpm build` and `start` run a production server. Without Clerk keys a production server serves mock
 data only and makes no chat model calls, even with `DEEPSEEK_API_KEY` set; `/api/data-mode` then
 reports `liveBlock: "auth-not-configured"`. To show the model and live data, either put the Clerk keys
-in `.env.local` and sign in, or run `pnpm dev` instead of `build` and `start`.
+in `.env.local` and sign in, or run `pnpm dev` instead of `build` and `start`, or open `/sign-in` and
+enter an admin passcode.
+
+**Admin passcode.** `/sign-in` also accepts the passcode `admin`, `test` or `tutor`, in any case. It
+opens the workspace and live data for 12 hours without a Clerk account, with or without Clerk keys.
+The session has no account, so cloud sync and long-term memory stay off. Set `ADMIN_SESSION_SECRET` to
+sign the session cookie with your own secret.
 
 The original rehearsal on macOS 14.6.1 with the toolchain above built with no environment variables
 in about 30 seconds and started in under a second, without build warnings. Rehearse on each demo
@@ -65,8 +71,8 @@ network calls, also unset `DEEPSEEK_API_KEY` and any alternate model credentials
 and configured sign-in can still require network access; mock mode is not a fully offline app.
 
 - **Whole deployment:** leave `USE_MOCK_TOOLS` unset, or set it to anything other than `false`.
-- **One browser:** Settings → Language & region → Trip data sends `x-trip-data-mode` with each
-  request. Live prices is not offered, and live is refused, for a visitor who may not spend the allowance.
+- **One browser:** the top-bar data-mode button (Mine on a phone) or Settings → Language & region →
+  Trip data sends `x-trip-data-mode` with each request. Live prices is not offered, and live is refused, for a visitor who may not spend the allowance.
 - **Check what the server will actually do:** `curl http://localhost:3000/api/data-mode` reports
   `configured`, `liveAvailable` and which providers are configured.
 

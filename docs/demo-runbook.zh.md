@@ -29,7 +29,12 @@ pnpm --filter @trip/web start -p 3000
 
 `pnpm build` 加 `start` 运行的是生产服务器。没有 Clerk 密钥时，生产服务器只用示例数据，也不调用聊天模型，即使设置了
 `DEEPSEEK_API_KEY`（`/api/data-mode` 返回 `liveBlock: "auth-not-configured"`）。要展示模型和真实数据，
-要么把 Clerk 密钥写进 `.env.local` 并登录，要么用 `pnpm dev` 代替 `build` 和 `start`。
+要么把 Clerk 密钥写进 `.env.local` 并登录，要么用 `pnpm dev` 代替 `build` 和 `start`，要么打开
+`/sign-in` 输入管理员口令。
+
+**管理员口令。** `/sign-in` 也接受口令 `admin`、`test` 或 `tutor`，不区分大小写。无论是否配置了 Clerk 密钥，
+它都会在 12 小时内不用 Clerk 账号打开工作台和真实数据。该会话没有账号，所以云同步和长期记忆保持关闭。
+设置 `ADMIN_SESSION_SECRET` 可以用你自己的密钥签名会话 cookie。
 
 原始彩排在 macOS 14.6.1 上使用上述工具链，未设置环境变量，构建约需 30 秒，启动不到 1 秒，构建没有警告。
 请在每台演示机器上彩排；耗时和警告可能不同。
@@ -70,7 +75,7 @@ pnpm --filter @trip/web start -p 3000
 以及其他模型凭据。浏览器地图瓦片和已配置的登录仍可能需要网络；示例模式不代表整个应用可离线使用。
 
 - **整个部署：** 不设置 `USE_MOCK_TOOLS`，或将其设为 `false` 以外的任何值。
-- **单个浏览器：** Settings → Language & region → Trip data 会随每个请求发送 `x-trip-data-mode`。
+- **单个浏览器：** 顶栏的数据模式按钮（手机上在 Mine）或 Settings → Language & region → Trip data 会随每个请求发送 `x-trip-data-mode`。
   对于无权消耗额度的访客，不提供 Live prices，实时模式会被拒绝。
 - **确认服务端实际会怎么做：** `curl http://localhost:3000/api/data-mode` 会报告 `configured`、
   `liveAvailable` 以及已配置了哪些服务商。
