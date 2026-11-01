@@ -2,7 +2,7 @@
 import type { AgentProposalSource, FlightCandidate, FlightSelection } from "@trip/shared";
 import { flightOffers, type FlightOffer, type FlightOfferTag } from "@/lib/trip/flight-offers";
 import { useLocale } from "../../account/LocaleProvider";
-import { FlightLeg, hoursAndMinutes, shortDate } from "../../flight/FlightLeg";
+import { FlightLeg, hoursAndMinutes, shortDate } from "../../chat/FlightItineraryCard";
 import { FlowFlightIcon } from "../../ui/flow-icons";
 import { OfferStrip, OfferTags, priceComparison } from "./OfferStrip";
 
@@ -85,12 +85,7 @@ function OfferCard({
       <OfferTags tags={tags.map((tag) => ({ key: tag, label: t(TAG_KEY[tag]) }))} />
       <div className="offer__trip">
         <span className="offer__mark" aria-hidden="true">
-          {first?.airlineLogo ? (
-            // eslint-disable-next-line @next/next/no-img-element -- provider CDN, no loader configured
-            <img src={first.airlineLogo} alt="" />
-          ) : (
-            <FlowFlightIcon size={16} />
-          )}
+          <FlowFlightIcon size={16} />
         </span>
         <span className="offer__trip-text">
           <strong>

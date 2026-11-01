@@ -2,7 +2,7 @@
 import type { AgentProposalSource, StaySelection } from "@trip/shared";
 import { stayOffers, type StayOffer, type StayOfferTag } from "@/lib/trip/stay-offers";
 import { useLocale } from "../../account/LocaleProvider";
-import { dayMonth } from "../../flight/FlightLeg";
+import { dayMonth } from "../../chat/FlightItineraryCard";
 import { FlowStayIcon } from "../../ui/flow-icons";
 import { OfferStrip, OfferTags, priceComparison } from "./OfferStrip";
 

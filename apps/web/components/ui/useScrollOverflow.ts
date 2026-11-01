@@ -2,7 +2,6 @@
 import { useEffect, useRef, useState } from "react";
 import { motionAllowed } from "./motion";
 
-/** Tracks whether a horizontal strip has hidden content before or after the visible part. */
 export function useScrollOverflow<T extends HTMLElement>() {
   const strip = useRef<T>(null);
   const [more, setMore] = useState({ start: false, end: false });

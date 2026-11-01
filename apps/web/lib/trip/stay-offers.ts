@@ -12,11 +12,6 @@ export type StayOffer = {
 
 export const STAY_OFFER_LIMIT = 6;
 
-/**
- * Drops repeated property names and returns at most `limit` stays: the selected one first, then
- * the cheapest, the best rated, then the stays priced closest to the selected one.
- * Each tag marks the one shown stay that wins it.
- */
 export function stayOffers(stay: StaySelection, limit = STAY_OFFER_LIMIT): StayOffer[] {
   const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
   const seen = new Set<string>();

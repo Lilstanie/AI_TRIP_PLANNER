@@ -13,7 +13,7 @@ contract-impact: none
 
 - `apps/web/components/trip/timeline/FlightOffers.tsx`, `StayOffers.tsx`, `OfferStrip.tsx`: opening a flight or stay row shows a horizontal strip of option cards (tags, legs or stay dates, price, Choose button, comparison line) instead of the stay/flight card and the "Also found" list in `BookingRow.tsx`.
 - `apps/web/lib/trip/flight-offers.ts`, `stay-offers.ts`: collapse options that look the same and keep at most six, chosen first.
-- `components/flight/FlightLeg.tsx` holds the leg view shared with the chat flight answer; `components/ui/useScrollOverflow.ts` is shared with `PlanDays`.
+- `FlightItineraryCard.tsx` exports its leg view for the trip cards; `components/ui/useScrollOverflow.ts` is shared with `PlanDays`.
 - Removed the dead `.alternatives`, `.stay-facts`, `.result-card` styles and unused message keys; added the new en/zh keys.
 - `docs/workspace-ui.md` and `.zh.md` describe the offer cards.
 

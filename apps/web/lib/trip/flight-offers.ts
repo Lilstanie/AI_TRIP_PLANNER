@@ -40,12 +40,6 @@ function lowest(
   return best;
 }
 
-/**
- * Collapses fares that look identical to the traveller (same carrier, price, stops and total
- * flying time) and returns at most `limit` offers: the selected fare first, then the cheapest,
- * the fastest, the cheapest nonstop, the cheapest fare of each other carrier, then by price.
- * `selected` is always included; each tag marks the one shown offer that wins it.
- */
 export function flightOffers(flight: FlightSelection, limit = FLIGHT_OFFER_LIMIT): FlightOffer[] {
   const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
   const seen = new Set<string>();
