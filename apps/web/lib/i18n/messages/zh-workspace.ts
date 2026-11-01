@@ -816,4 +816,17 @@ export const zhWorkspace = {
   overlap: "时间冲突",
   returnFlight: "返程航班",
   nightIndexOfTotal: "第 {index} 晚（共 {total} 晚）",
+  dataMode: "数据模式",
+  mockDataBundledFixturesNo: "示例数据：用的是内置样例，不会请求外部服务，也不花额度。",
+  mockDataBundledFixturesSign:
+    "示例数据：用的是内置样例。登录后可以用 AI 模型，查真实的酒店和航班价格。",
+  mockDataBundledFixturesLive: "示例数据：用的是内置样例。这个部署没有开启实时数据。",
+  currentlyUsingMockFixturesLive: "。现在用的是示例数据，这个部署没有开启实时数据。",
+  liveDataRealHotelAnd:
+    "实时数据：真实的酒店和航班价格。每次规划都会用掉一部分共享的每月搜索额度。",
+  liveDataSelectedButNo: "选了实时数据，但没配置 SERPAPI_KEY，所以结果会退回到估算值。",
+  currentlyUsingLiveProviderData: "。现在用的是实时数据，点一下切换到示例数据。",
+  currentlyUsingMockFixturesActivate: "。现在用的是示例数据，点一下切换到实时数据。",
+  currentlyUsingMockFixturesSign:
+    "。现在用的是示例数据。登录后可以用 AI 模型，查真实的酒店和航班价格。",
 } satisfies Record<keyof typeof enWorkspace, string>;

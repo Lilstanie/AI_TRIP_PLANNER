@@ -24,8 +24,8 @@ do not isolate credentials or a reused server.
 
 For manual inspection, start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
-Use mock data unless the change concerns live providers. Settings → Language & region → Trip data switches
-the mode per browser, so you can check both without redeploying.
+Use mock data unless the change concerns live providers. The top-bar data-mode button (Mine on a phone)
+switches the mode per browser, so you can check both without redeploying.
 
 Accounts are optional. With `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` set, anonymous page navigation is
 redirected to `/sign-in` before the workspace renders, and signing in goes through Clerk's hosted

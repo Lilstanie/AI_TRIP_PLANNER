@@ -71,8 +71,8 @@ network calls, also unset `DEEPSEEK_API_KEY` and any alternate model credentials
 and configured sign-in can still require network access; mock mode is not a fully offline app.
 
 - **Whole deployment:** leave `USE_MOCK_TOOLS` unset, or set it to anything other than `false`.
-- **One browser:** Settings → Language & region → Trip data sends `x-trip-data-mode` with each
-  request. Live prices is not offered, and live is refused, for a visitor who may not spend the allowance.
+- **One browser:** the top-bar data-mode button (Mine on a phone) or Settings → Language & region →
+  Trip data sends `x-trip-data-mode` with each request. Live prices is not offered, and live is refused, for a visitor who may not spend the allowance.
 - **Check what the server will actually do:** `curl http://localhost:3000/api/data-mode` reports
   `configured`, `liveAvailable` and which providers are configured.
 

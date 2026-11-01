@@ -1,4 +1,4 @@
-# Agent Note: Trip data in Settings is the only data-mode control
+# Agent Note: One Trip data preference, default live, shared by the chip and Settings
 
 Status: implemented
 Owner: C (@HeadmasterEggy)
@@ -6,28 +6,33 @@ Owner: C (@HeadmasterEggy)
 ## Problem
 
 The top-bar and phone Mine data-mode chip from
-[request-scoped data mode](2026-09-21-request-scoped-data-mode.md) put a testing control in the main
-workspace. Settings already had a Trip data row, so the same choice lived in two places that could
-disagree: a stored chip choice overrode the Settings preference.
+[request-scoped data mode](2026-09-21-request-scoped-data-mode.md) and the Settings Trip data row
+were two stores for one choice: the chip wrote a `trip.dataMode` browser key that silently overrode
+the Settings preference, and the browser started from the deployment's `configured` mode.
 
 ## Decision
 
-Settings → Language & region → Trip data (live prices, sample data) is the only data-mode control,
-shown on every deployment. It defaults to live prices (Joey, 2026-11-01); a stored legacy "default"
-also means live, and `/api/data-mode` `configured` no longer steers the browser. The workspace runs
-mock when `liveAvailable` is false, and Live prices is not offered then. The chip, its `trip.dataMode` browser key and its tooltips are
-removed. Requests still carry `x-trip-data-mode`, and the server still downgrades live to mock for a
-caller who may not spend the allowance.
+Settings → Language & region → Trip data (live prices, sample data) holds the only data-mode
+preference, on every deployment. The workspace chip (desktop top bar, phone Mine) reads and writes
+that same preference, so the two always agree. It defaults to live prices (Joey, 2026-11-01); a stored
+legacy "default" also means live, and `/api/data-mode` `configured` no longer steers the browser. The
+workspace runs mock when `liveAvailable` is false: the chip is disabled with its sign-in hint and
+Settings offers only sample data. Requests still carry `x-trip-data-mode`, and the server still
+downgrades live to mock for a caller who may not spend the allowance.
 
 ## Alternatives considered
 
 **Hide the control on deployed builds** (PR #874, TP-226). Replaced at Joey's request on 2026-11-01:
-the switch should stay reachable on the live site, just not in the main workspace.
+the switch must stay reachable on the live site.
 
-**Keep the chip and the Settings row.** Rejected: two controls for one setting, with the chip winning.
+**Settings only, no chip** (PR #883, TP-231). Reverted the same day at Joey's request: the chip is
+the quick switch he wants in the workspace.
+
+**Keep the separate `trip.dataMode` key for the chip.** Rejected: the chip won over Settings without
+showing it.
 
 ## Consequences
 
-- Supersedes only the top-bar `DataModeToggle` part of the 2026-09-21 decision; the request-scoped
-  mode, `mockEnabled()` and `/api/data-mode` stand. No `packages/shared` change.
-- A visitor who may spend the allowance can still choose live from Settings.
+- Refines only the chip part of the 2026-09-21 decision; the request-scoped mode, `mockEnabled()` and
+  `/api/data-mode` stand. No `packages/shared` change.
+- A signed-in visitor spends the shared allowance by default unless they switch to sample data.

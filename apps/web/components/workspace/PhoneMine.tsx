@@ -1,6 +1,7 @@
 "use client";
 import { GearIcon } from "../ui/icons";
 import { useLocale } from "../account/LocaleProvider";
+import { DataModeToggle } from "./DataModeToggle";
 import { ChatsPanel } from "./ChatsPanel";
 import { TripsPage, type Tab as TripsTab } from "./TripsPage";
 import type { WorkspaceModel } from "./useWorkspace";
@@ -18,6 +19,7 @@ export function PhoneMine({
 }) {
   const { t } = useLocale();
   const { session, history } = model;
+  const { dataMode, busy } = session;
   const visibleTrips = new Set(history.trips.map((trip) => trip.id));
 
   const { newChat, newTrip } = session;
@@ -61,6 +63,16 @@ export function PhoneMine({
           )
         }
       />
+      <div className="phone-mine__controls" role="group" aria-label={t("dataMode")}>
+        <DataModeToggle
+          mode={dataMode.mode}
+          providers={dataMode.providers}
+          onChange={dataMode.choose}
+          disabled={busy}
+          liveAvailable={dataMode.liveAvailable}
+          liveBlock={dataMode.liveBlock}
+        />
+      </div>
       <button
         type="button"
         className="phone-mine__settings"
