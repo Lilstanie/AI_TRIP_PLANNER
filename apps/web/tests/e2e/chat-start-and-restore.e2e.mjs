@@ -96,11 +96,7 @@ try {
   await page.waitForTimeout(1500);
   await page.reload({ waitUntil: "networkidle" });
   await page.getByRole("button", { name: /^Chats/ }).click();
-  await page
-    .locator(".chats-panel__content")
-    .getByRole("button", { name: / · / })
-    .first()
-    .click();
+  await page.locator(".chats-panel__content").getByRole("button", { name: / · / }).first().click();
   await page.waitForTimeout(1500);
   check(
     (await footer(page).innerText()).includes("Saved"),
