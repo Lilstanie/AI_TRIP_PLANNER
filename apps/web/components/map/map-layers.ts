@@ -162,7 +162,7 @@ export function drawItineraryRoutes({
           icons: [{ icon: { ...ARROW, fillColor: color }, offset: "50%" }],
         }),
       );
-      if (runtime.provider === "google") {
+      if (runtime.provider !== "osm" && runtime.provider !== "apple") {
         const dashes = new maps.Polyline({
           map,
           path,
