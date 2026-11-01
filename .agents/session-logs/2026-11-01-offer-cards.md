@@ -15,6 +15,7 @@ contract-impact: none
 - `apps/web/lib/trip/flight-offers.ts`, `stay-offers.ts`: collapse options that look the same and keep at most six, chosen first.
 - `FlightItineraryCard.tsx` exports its leg view for the trip cards; `components/ui/useScrollOverflow.ts` is shared with `PlanDays`.
 - Removed the dead `.alternatives`, `.stay-facts`, `.result-card` styles and unused message keys; added the new en/zh keys.
+- Offer cards use the glass radius (`--radius-xl`, the old `--radius-md` did not exist); day strip, stop cards, weather row, travel tips, editors and popovers in the trip panel move to `--radius-lg` with the glass highlight on weather and tips.
 - `docs/workspace-ui.md` and `.zh.md` describe the offer cards.
 
 ## Why

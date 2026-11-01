@@ -25,7 +25,7 @@ button.day-strip__day {
   min-width: 96px;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: transparent;
   text-align: start;
   scroll-snap-align: start;
@@ -58,7 +58,7 @@ button.day-strip__day[aria-selected="true"] {
 }
 .timeline-status--error {
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--warn-bg);
   color: var(--warn);
 }
@@ -121,7 +121,7 @@ button.day-strip__day[aria-selected="true"] {
   margin: 0;
   padding: var(--space-4);
   border: 1px dashed var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   color: var(--text-dim);
 }
 
@@ -451,8 +451,11 @@ button.day-strip__day[aria-selected="true"] {
   margin: var(--space-3) 0 0;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius-lg);
   background: var(--surface);
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge);
 }
 .trip-tips > summary {
   cursor: pointer;
@@ -493,7 +496,7 @@ button.timeline-stop__main {
   width: 100%;
   padding: var(--space-2) var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: transparent;
   text-align: start;
   font-weight: 400;
@@ -512,7 +515,7 @@ button.timeline-stop__main:has(.timeline-stop__thumb) > :not(.timeline-stop__thu
   grid-row: 1 / span 4;
   width: 3.5rem;
   height: 3.5rem;
-  border-radius: var(--radius-sm);
+  border-radius: var(--radius);
   object-fit: cover;
 }
 button.timeline-stop__main:hover,
@@ -572,7 +575,7 @@ button.timeline-stop__main:hover,
 .timeline-stop[data-dragging] {
   position: relative;
   z-index: 2;
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface, Canvas);
   box-shadow: 0 8px 24px color-mix(in srgb, CanvasText 18%, transparent);
   opacity: 0.92;
@@ -689,7 +692,7 @@ html.is-reordering * {
   display: grid;
   gap: var(--space-3);
   padding: var(--space-3);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface-2);
 }
 .stop-editor__time {
@@ -794,7 +797,7 @@ html.is-reordering * {
   justify-content: space-between;
   gap: var(--space-2);
   padding: var(--space-2) var(--space-3);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--ok-bg);
   color: var(--ok);
   font-size: var(--font-size-meta);
@@ -983,7 +986,7 @@ html.is-reordering .timeline[data-empty] {
   width: 100%;
   overflow: hidden;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 .stop-place-card .place-preview__close {
@@ -1011,7 +1014,7 @@ html.is-reordering .timeline[data-empty] {
   gap: var(--space-2);
   align-items: start;
   padding: var(--space-2);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
 }
 .stop-place-card__bare h4 {
@@ -1100,7 +1103,7 @@ html.is-reordering .timeline[data-empty] {
   inline-size: min(22rem, calc(100% - 2 * var(--space-2)));
   margin-inline-start: auto;
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface);
   box-shadow: var(--shadow-popover, 0 8px 24px rgb(0 0 0 / 0.18));
   animation: panel-in var(--duration) var(--ease-out);
@@ -1129,7 +1132,7 @@ html.is-reordering .timeline[data-empty] {
   gap: var(--space-2);
   padding: var(--space-3);
   border: 1px solid var(--border);
-  border-radius: var(--radius);
+  border-radius: var(--radius-lg);
   background: var(--surface-2, var(--surface));
 }
 .add-panel__head {
