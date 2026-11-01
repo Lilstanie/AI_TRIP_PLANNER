@@ -1,3 +1,5 @@
+<a id="elec5620-stage-2-demonstration-evidence"></a>
+
 # ELEC5620 Stage 2 演示证据
 
 [English](demo-evidence.md) | 中文
@@ -7,17 +9,21 @@
 [演示评分标准](demo-marking-criteria.zh.md)对应到现场要展示的内容和可核对的数字。数字取自 2026 年 11 月 1 日
 `main` 的 `9149d87` 和 Jira 项目 TP。
 
+<a id="1-comprehensiveness-of-functions-and-features-7"></a>
+
 ## 1. 功能与特性的完整性（7）
 
 | 证据               | 数字                                                                                                                     | 位置                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------------------------------ | -------------------------------------------------------------------------------------------- |
-| Stage 1 设计可追溯 | 每个 Stage 1 用例和类模型都有页面写明实现它的代码                                                                        | [Stage 1 设计模型](../stage1/README.md)、[类图](../class-diagram.zh.md)                      |
+| Stage 1 设计可追溯 | 每个 Stage 1 用例和类模型都有页面写明实现它的代码                                                                        | [Stage 1 设计模型](../stage1/README.zh.md)、[类图](../class-diagram.zh.md)                      |
 | 单元和组件测试     | 六个包共 137 个测试文件、1,504 个测试（`pnpm test`，2026 年 11 月 1 日）                                                 | `packages/*/tests`、`apps/web/tests`                                                         |
 | 浏览器旅程         | 97 个端到端脚本；CI 按改动选脚本，推到 `main` 时全部运行                                                                 | `apps/web/tests/e2e`、`apps/web/tests/cli-e2e`                                               |
 | 边界情况           | 预算不可行、返工停滞和轮数上限的停止；Google key 被拒；真实数据不可用；回复中途刷新；未登录访问（真实会话 24/24 项通过） | [agent-lab-exit-paths.md](../../../submission/stage2/agent-lab-exit-paths.md)、TP-62、TP-238 |
 | 全新安装           | `main` 的全新 `git archive` 安装并构建约 1 分 36 秒                                                                      | [提交说明](../../../submission/stage2/README.md)                                             |
 
 现场展示：在聊天里完整规划一次行程，再在行程页看日程、地图、预算并改一次，桌面和手机宽度各看一遍。
+
+<a id="2-ai-agent-perception-decision-making-and-interaction-4"></a>
 
 ## 2. AI Agent：感知、决策与交互（4）
 
@@ -39,6 +45,8 @@
 基于反馈的改进：10 月 30 日一次完整的真实行程测试发现 22 个问题（航班计价、日程在航班落地前就开始、Google 拒绝
 key 后的地图等）。每个问题建成 Jira 故事，两天内在 TP-194 到 TP-223（PR #837 到 #870）修复。
 
+<a id="3-agile-development-experience-4"></a>
+
 ## 3. 敏捷开发经验（4）
 
 | 实践     | 证据                                                                                                                                                                        |
@@ -51,6 +59,8 @@ key 后的地图等）。每个问题建成 Jira 故事，两天内在 TP-194 �
 | 团队协作 | 五名成员各负责两个核心功能和一个可选功能；现场演示的顺序就按这个分工                                                                                                        |
 
 演示前要补的缺口：Jira 只有一个冲刺，燃尽图只覆盖 10 月 21 日到 31 日。演示时展示这个冲刺的冲刺报告，更早的几周用上面的每周提交数说明。
+
+<a id="4-incorporation-of-advanced-technologies-5"></a>
 
 ## 4. 先进技术的运用（5）
 
