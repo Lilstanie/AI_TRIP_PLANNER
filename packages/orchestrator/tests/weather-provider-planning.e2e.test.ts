@@ -5,7 +5,7 @@ import type { MemoryStore, ToolGateway } from "@trip/shared";
 import { createToolGateway } from "@trip/tools";
 import { afterEach, expect, it, vi } from "vitest";
 import { findAgentLabScenario } from "../src/agent-lab/scenarios";
-import { runOrchestrator } from "../src/workflow";
+import { runOrchestrator } from "../src/planning/workflow";
 
 const output = resolve(
   process.cwd(),

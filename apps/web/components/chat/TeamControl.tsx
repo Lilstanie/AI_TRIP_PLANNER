@@ -3,7 +3,7 @@ import { useCallback, useEffect, useId, useLayoutEffect, useRef, useState } from
 import { useLocale } from "@/components/account/LocaleProvider";
 import { AssistantIcon } from "./assistants";
 import { TeamPanel } from "./TeamPanel";
-import type { TeamModel, TeamTurn } from "./team-model";
+import type { TeamModel, TeamTurn } from "../../lib/chat/team-model";
 import { useTeamSurface } from "./use-team-surface";
 
 const HOVER_CLOSE_MS = 150;

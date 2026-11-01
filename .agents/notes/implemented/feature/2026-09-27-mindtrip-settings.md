@@ -23,7 +23,7 @@ sections.
   - **Language & region:** language, region, currency, units and trip data.
   - **Connected accounts:** the traveller's Clerk external accounts.
 - **Assistant settings.** `AssistantSettings { style, memory }` is added to
-  `packages/shared/src/chat.ts` as `ChatRequest.assistant`. The change is additive, and a request
+  `packages/shared/src/chat/chat.ts` as `ChatRequest.assistant`. The change is additive, and a request
   without the field behaves as before.
   - `style` appends one tone rule to the coordinator prompt.
   - With `memory: false`, `runTripChat` drops `learnedPreferences` from the incoming brief and

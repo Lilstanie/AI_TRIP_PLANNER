@@ -5,7 +5,7 @@ import {
   createSupervisorTools,
   dispatchWithSupervisor,
   reviseWithSupervisor,
-} from "../src/supervisor";
+} from "../src/planning/supervisor";
 
 const brief: TripBrief = {
   tripId: "supervisor-test",

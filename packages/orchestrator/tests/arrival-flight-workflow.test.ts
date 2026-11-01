@@ -2,8 +2,8 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { transportAgent } from "@trip/agents";
 import type { AgentContext, AgentProposal, TripBrief } from "@trip/shared";
-import { detectConflicts } from "../src/conflicts";
-import { runOrchestrator } from "../src/workflow";
+import { detectConflicts } from "../src/planning/conflicts";
+import { runOrchestrator } from "../src/planning/workflow";
 
 const brief: TripBrief = {
   tripId: "arrival-test",

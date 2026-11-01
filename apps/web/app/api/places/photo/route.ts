@@ -1,10 +1,10 @@
 import { z } from "zod";
 import { noticeBody } from "@/lib/i18n/notice";
 import { PHOTO_NAME, PHOTO_WIDTHS, type PhotoWidth } from "@/lib/integrations/google";
-import { COMMONS_NAME } from "@/lib/map-provider/commons";
-import { mapProviderFor } from "@/lib/map-provider";
+import { COMMONS_NAME } from "@/lib/map/providers/commons";
+import { mapProviderFor } from "@/lib/map/providers";
 import { requestDataMode } from "@/lib/auth/live-data";
-import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
+import { placeErrorResponse } from "@/lib/map/providers/place-error-response";
 
 const PhotoRequest = z.object({
   name: z

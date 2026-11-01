@@ -1,7 +1,7 @@
 import { createContext } from "react";
 import type { TripPlan } from "@trip/shared";
 import type { GooglePlace } from "@/lib/integrations/google";
-import { offlineTimeZone } from "@/lib/map-provider/time-zone";
+import { offlineTimeZone } from "@/lib/map/providers/time-zone";
 
 export const OnTripContext = createContext<(onTrip: boolean | undefined) => void>(() => {});
 

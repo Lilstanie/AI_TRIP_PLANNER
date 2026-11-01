@@ -30,7 +30,8 @@ enter an admin passcode.
 
 **Admin passcode.** `/sign-in` also accepts the passcode `admin`, `test` or `tutor`, in any case. It
 opens the workspace and live data for 12 hours without a Clerk account, with or without Clerk keys.
-The session has no account, so cloud sync and long-term memory stay off. Set `ADMIN_SESSION_SECRET` to
+The session has no account, so cloud sync and long-term memory stay off. **Sign out** in the account
+menu or in Settings → Account ends it and returns to `/sign-in`. Set `ADMIN_SESSION_SECRET` to
 sign the session cookie with your own secret.
 
 The original rehearsal on macOS 14.6.1 with the toolchain above built with no environment variables
@@ -60,9 +61,20 @@ data replaces the providers; it does not replace the model.
 
 ## Demo account
 
-Signing in needs the Clerk keys from the table above. For the demonstration, sign in with the shared
-demo account, username `test`, in the Clerk development instance instead of a personal account. Ask
-Joey for the password; never write it into this page, a commit or the issue tracker.
+There are two ways in. They are different things that happen to share the word `test`.
+
+| Way in                                                   | Needs                               | Gives                                                        |
+| -------------------------------------------------------- | ----------------------------------- | ------------------------------------------------------------ |
+| Clerk demo account, username `test`                      | the Clerk keys from the table above | live data, cloud sync and long-term memory for that account  |
+| [Admin passcode](#build-from-a-clean-copy) on `/sign-in` | nothing                             | live data for 12 hours; no account, so no sync and no memory |
+
+Use the Clerk account when the demonstration shows sync or remembered preferences; otherwise the
+passcode is enough, and it is the only way in on a deployment without Joey's Clerk keys. Ask Joey for
+the Clerk password; never write it into this page, a commit or the issue tracker.
+
+The passcodes are public in this repository, so anyone can spend the live-provider allowance on the
+deployed site with them. After the demonstration, set `ADMIN_SESSION_SECRET` and change or remove
+the passcodes.
 
 ## Falling back to mock data
 

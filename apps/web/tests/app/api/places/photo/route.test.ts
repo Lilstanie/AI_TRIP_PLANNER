@@ -1,6 +1,6 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { resetMapProviders } from "@/lib/map-provider";
-import { MapProviderUnavailableError } from "@/lib/map-provider/errors";
+import { resetMapProviders } from "@/lib/map/providers";
+import { MapProviderUnavailableError } from "@/lib/map/providers/errors";
 import { GoogleRequestError } from "@/lib/integrations/google";
 import { GET } from "@/app/api/places/photo/route";
 

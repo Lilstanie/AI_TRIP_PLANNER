@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import { BOUNDED_RESULT_ROWS, type AgentProgressEvent, type ToolGateway } from "@trip/shared";
-import { placeKind, travelKind, withProgressTools } from "../src/progress-tools";
+import { placeKind, travelKind, withProgressTools } from "../src/planning/progress-tools";
 
 const tools: ToolGateway = {
   maps: {

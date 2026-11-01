@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDiningAgent, runWithModelsDisabled } from "@trip/agents";
 import { type TripBrief } from "@trip/shared";
-import { runOrchestrator } from "../src/workflow";
+import { runOrchestrator } from "../src/planning/workflow";
 import { itinerary, memoryStore, scriptedModel } from "./chat-test-fixtures";
 const output = resolve(
   process.cwd(),
@@ -28,7 +28,7 @@ afterEach(() => {
   vi.unstubAllEnvs();
 });
 
-import { runTripChat } from "../src/chat";
+import { runTripChat } from "../src/chat/chat";
 describe("TP-41 dietary needs from chat", () => {
   it("keeps a no-model chat's dietary needs in the final dining fallback", async () => {
     const result = await runWithModelsDisabled(() =>

@@ -41,7 +41,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 ## `POST /api/chat`
 
-约定：`packages/shared/src/chat.ts` 中的 `ChatRequest`、`ChatResponse` 和 `AgentProgressEvent`。
+约定：`packages/shared/src/chat/chat.ts` 中的 `ChatRequest`、`ChatResponse` 和 `AgentProgressEvent`。
 
 ```json
 {
@@ -104,7 +104,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 协调器也会写入。之后的消息若给出新的总数，这份细分会被清除，因为它已不再描述该同行人群。它们细分 `groupSize` 并补充宠物数量；宠物不计入其中。
 所有费用仍以 `groupSize` 为准，specialist 会收到指令：如果 party 中的人数之和与它不符，就忽略 party。
 
-可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory, names }`（`packages/shared/src/chat.ts` 中的
+可选的 `assistant`：来自 Settings → Personalization 的 `{ style, memory, names }`（`packages/shared/src/chat/chat.ts` 中的
 `AssistantSettings`）。
 
 - `names` 是可选的映射，从助手 id 到最长 24 个字符的自定义显示名称。它只改变界面显示的内容以及 `@name` 解析到哪位 specialist；提及始终以 id 发送。
@@ -115,7 +115,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `mentions`：旅客点名的 specialist id（`itinerary`、`transport`、`accommodation`、`destination-guide`、`dining`），最多五个且互不相同。缺省时本轮仍交给协调员。带 `plan` 时，只有这些 specialist 运行并修改自己的部分，随后进行冲突检查和定向修订，响应的 `assistant` 为第一个被提及的 id。没有 `plan` 时，被提及的 specialist 只作答，不创建任何内容，并通过 `needs_info` 帧（同样带可选的 `assistant`）向旅客收集行程信息。
 
-可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat.ts` 中的 `InterfaceLanguage`），
+可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
 只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。
 不传该字段时，协调器没有回退语言，仍像以前一样跟随最新消息的语言。specialist 不会收到该字段。
@@ -138,7 +138,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 对于 `kind: "image"`，`data` 是文件字节的 base64 编码（不带 `data:` 前缀）；
 对于 `kind: "text"`，它是解码后的 UTF-8 文本本身。以下限制以具名常量定义在
-`packages/shared/src/chat.ts` 中：
+`packages/shared/src/chat/chat.ts` 中：
 
 | 常量                          | 限制                                                          |
 | ----------------------------- | ------------------------------------------------------------- |
@@ -283,7 +283,7 @@ Upstash/Vercel KV 时用它，否则用进程内存），保留一小时，归�
 
 ## `POST /api/places/search`
 
-实现：`apps/web/lib/map-provider/` 中的 `MapProvider.searchPlaces`（默认先 Google，失败时免费回退）。
+实现：`apps/web/lib/map/providers/` 中的 `MapProvider.searchPlaces`（默认先 Google，失败时免费回退）。
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }
@@ -432,7 +432,7 @@ JSON 附件包含账号设置、行程、聊天记录和长期偏好记忆。
 
 ## 相关约定
 
-- 聊天请求/响应和进度事件：`packages/shared/src/chat.ts`
+- 聊天请求/响应和进度事件：`packages/shared/src/chat/chat.ts`
 - 行程需求、提案和端口：`packages/shared/src/contracts.ts`、`packages/shared/src/ports.ts`
 - 旅行计划及其未解决冲突：`packages/shared/src/plan.ts`
 - Specialist 约定：`packages/shared/src/agent.ts`

@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { describe, expect, it, afterAll, vi } from "vitest";
 import { ChatTurn, type ChatRequest, type TripBrief } from "@trip/shared";
 import { formatAskAnswers } from "../../../apps/web/lib/workspace/ask-user";
-import { AskUserError, runTripChat } from "../src/chat";
+import { AskUserError, runTripChat } from "../src/chat/chat";
 import { brief, itinerary, memoryStore, scriptedModel, tools } from "./chat-test-fixtures";
 
 type Entry = "plan" | "offline-known" | "offline-submitted" | "model-replan" | "model-finish";

@@ -2,7 +2,7 @@ import { describe, expect, it } from "vitest";
 import { mkdirSync, writeFileSync } from "node:fs";
 import { transportAgent } from "@trip/agents";
 import type { AgentContext, TripBrief } from "@trip/shared";
-import { runOrchestrator } from "../src/workflow";
+import { runOrchestrator } from "../src/planning/workflow";
 
 const brief: TripBrief = {
   tripId: "city-flight-test",

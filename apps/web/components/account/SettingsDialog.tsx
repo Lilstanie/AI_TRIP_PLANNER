@@ -6,7 +6,8 @@ import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
 import { ASSISTANT_ROLE_KEYS } from "../chat/assistants";
-import { ASSISTANT_ORDER, nameTaken } from "../chat/assistant-names";
+import { ASSISTANT_ORDER } from "@/lib/chat/assistant-order";
+import { nameTaken } from "../chat/assistant-names";
 import { useAccount } from "./AccountProvider";
 import { useSettings } from "./SettingsProvider";
 import { useLocale } from "./LocaleProvider";
@@ -220,6 +221,16 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
               </button>
             </div>
           </>
+        ) : account.signOut ? (
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="settings-pill"
+              onClick={() => void account.signOut?.()}
+            >
+              {t("signOut")}
+            </button>
+          </div>
         ) : (
           <p className="settings-lead">{t("accountsAreNotSetUp")}</p>
         )}

@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentProgressEvent, ChatRequest } from "@trip/shared";
-import { IncompleteBriefError } from "../src/chat";
+import { IncompleteBriefError } from "../src/chat/chat";
 import { memoryStore, ReplyOverrideModel, run } from "./chat-test-fixtures";
 
 const request = (message: string): ChatRequest => ({

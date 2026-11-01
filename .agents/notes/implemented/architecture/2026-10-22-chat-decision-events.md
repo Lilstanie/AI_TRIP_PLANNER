@@ -6,13 +6,13 @@ Owner: ticket #557
 ## Problem
 
 The chat stream showed what each specialist did but not why the plan changed between rounds. The
-facts exist as typed `WorkflowDecision` values in `packages/orchestrator/src/decisions.ts`, but only
+facts exist as typed `WorkflowDecision` values in `packages/orchestrator/src/planning/decisions.ts`, but only
 the Agent Lab received them through `OrchestratorOptions.onDecision`. A chat view could show a
 conflict, a revision score or the stop reason only by parsing the `coordinator` event's prose.
 
 ## Decision
 
-- `AgentProgressEvent` in `packages/shared/src/chat.ts` gains a `decision` variant:
+- `AgentProgressEvent` in `packages/shared/src/chat/chat.ts` gains a `decision` variant:
   `{ type: "decision", round, decision }`. `decision` is `ChatWorkflowDecision`, a schema that
   mirrors `WorkflowDecision` one to one. `round` repeats `decision.round` so every progress event
   keeps a top-level `round`.

@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { resetMapProviders } from "@/lib/map-provider";
+import { resetMapProviders } from "@/lib/map/providers";
 import { GoogleNotConfiguredError, GoogleRequestError } from "@/lib/integrations/google";
 import { POST } from "@/app/api/places/search/route";
 

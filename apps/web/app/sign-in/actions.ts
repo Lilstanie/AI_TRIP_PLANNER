@@ -20,3 +20,9 @@ export async function signInWithPasscode(formData: FormData) {
   });
   redirect("/");
 }
+
+export async function signOutAdmin() {
+  const store = await cookies();
+  store.delete(ADMIN_COOKIE);
+  redirect("/sign-in");
+}

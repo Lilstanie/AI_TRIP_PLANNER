@@ -20,6 +20,8 @@ export function AccountButton({
   const trigger = useRef<HTMLButtonElement>(null);
   const menuItems = useRef<Array<HTMLButtonElement | null>>([]);
   const signedIn = account.status === "signed-in";
+  const signOut =
+    account.status === "signed-in" || account.status === "local" ? account.signOut : undefined;
   const name = signedIn
     ? account.name
     : account.status === "signed-out"
@@ -43,7 +45,7 @@ export function AccountButton({
     { kind: "section", id: "account", label: t("accountSettings") },
     { kind: "section", id: "personalization", label: t("personalization") },
     { kind: "section", id: "region", label: t("languageRegion") },
-    ...(signedIn ? [{ kind: "sign-out" as const, label: t("signOut") }] : []),
+    ...(signOut ? [{ kind: "sign-out" as const, label: t("signOut") }] : []),
   ];
 
   useEffect(() => {
@@ -89,7 +91,7 @@ export function AccountButton({
     setOpen(false);
     trigger.current?.focus({ preventScroll: true });
     if (item?.kind === "section") onSettings(item.id);
-    if (item?.kind === "sign-out" && account.status === "signed-in") void account.signOut();
+    if (item?.kind === "sign-out") void signOut?.();
   };
 
   const moveMenuFocus = (event: React.KeyboardEvent<HTMLDivElement>) => {

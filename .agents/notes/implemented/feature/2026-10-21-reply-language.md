@@ -11,7 +11,7 @@ panel, while the model reply guessed its own language from a free-form prompt ru
 ## Decision
 
 - Progress lines are [notices](../../../../GLOSSARY.md): the orchestrator writes them in the
-  interface language through `packages/orchestrator/src/progress-copy.ts`.
+  interface language through `packages/orchestrator/src/planning/progress-copy.ts`.
 - Each chat turn has one **reply language**, resolved in code by
   `packages/orchestrator/src/reply-language.ts`: Han text is Chinese, Latin text is English, and a
   message with neither (numbers, dates, empty) uses the interface language, then English. Two Latin

@@ -14,8 +14,8 @@ import {
   type RouteMode,
   type RouteResult,
 } from "../integrations/google";
-import { mapProvider, mockUsesProvider, routeLeg } from "../map-provider";
-import type { MapProvider, RouteHints } from "../map-provider/types";
+import { mapProvider, mockUsesProvider, routeLeg } from "../map/providers";
+import type { MapProvider, RouteHints } from "../map/providers/types";
 import {
   errorNotice,
   NoticeError,
@@ -701,6 +701,7 @@ export async function previewEdit(
       })),
   ];
   settlePlan(plan, baseVersion, currency);
+  if (operation.kind === "verify") plan.editVersion = baseVersion;
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id);
 

@@ -57,12 +57,32 @@ A$3,960, five specialists without revision A$2,560, and targeted revision A$2,12
 ([Agent Lab runs](submission/stage2/agent-lab-exit-paths.md)). A live trip test on 30 October found
 22 problems; each became a Jira story and was fixed within two days (PRs #837 to #870).
 
-**3. Agile development (4).** Jira project TP holds 238 issues, 230 done, written as user stories
+**3. Agile development (4).** Jira project TP holds 240 issues, 231 done, written as user stories
 with acceptance criteria. TP Sprint 1 ran from 21 to 31 October; earlier iterations show in Git as
 795 commits on `main` since 24 August. Every pull request carries its TP key, so story, branch, CI
 run and merge are linked; 403 pull requests were merged after review and CI. Five recorded
 retrospectives changed the team rules, and decisions are kept as
 [Agent Notes](.agents/notes/README.md).
+
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#d9534f, #9aa0a6"
+---
+xychart-beta
+    title "TP Sprint 1 burn-down (story points)"
+    x-axis ["Start", "21 Oct", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov"]
+    y-axis "Remaining story points" 0 --> 20
+    line [18, 15, 15, 15, 15, 10, 10, 9, 9, 14, 14, 9, 0]
+    line [18, 16.4, 14.7, 13.1, 11.5, 9.8, 8.2, 6.5, 4.9, 3.3, 1.6, 0, 0]
+```
+
+The burn-down is rebuilt from the Jira change history of TP Sprint 1 (end-of-day values; red is
+remaining work, grey the ideal rate). The sprint started with 18 story points. It stepped up when
+stories joined mid-sprint (TP-16 and TP-17 on 21 October, TP-45 and TP-62 on 29 October) and
+reached zero on 1 November, when the sprint was closed.
 
 **4. Advanced technologies (5).**
 
@@ -122,7 +142,7 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 apps/web/                 Next.js workspace UI and API routes
   components/{workspace,chat,trip,trajectory,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,trajectory,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
+  lib/{workspace,chat,trip,trajectory,map,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code

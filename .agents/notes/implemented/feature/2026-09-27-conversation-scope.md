@@ -25,13 +25,14 @@ This note supersedes that one decision in the trip preference list note. Its oth
     (up to 300).
 
   The change is additive, and stored briefs and plans still parse.
+
 - The coordinator's `update_trip_brief` tool sets these fields. `learnedPreferences` replaces the
   whole list each time; the list is trimmed, deduplicated and capped at `MAX_TRIP_PREFERENCES`. The
   traveller's own `preferences` stay out of the model's reach, so what they typed and what was
   learned remain distinct.
 - Once `excludeFlights` or `bookedStay` is set, the coordinator prompt forbids asking about flights
   or other stays.
-- Specialists see one list. `specialistBrief` in `packages/orchestrator/src/supervisor.ts` appends
+- Specialists see one list. `specialistBrief` in `packages/orchestrator/src/planning/supervisor.ts` appends
   the learned entries to the traveller's own, deduplicates them and caps the result. The stored brief
   keeps the two lists apart.
 - **Transport:** with `excludeFlights`, it skips flight search. Each flown hop becomes an unpriced
