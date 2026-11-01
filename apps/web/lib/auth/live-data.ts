@@ -13,7 +13,6 @@ export async function liveDataBlock(): Promise<LiveDataBlock | undefined> {
   return userId ? undefined : "sign-in-required";
 }
 
-/** Whether a visitor may switch between mock and live data; off on deployed builds unless `DATA_MODE_TOGGLE=true`. */
 export function dataModeSwitchable(): boolean {
   if (process.env.DATA_MODE_TOGGLE === "true") return true;
   return !process.env.VERCEL_ENV && process.env.NODE_ENV !== "production";
