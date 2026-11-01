@@ -52,6 +52,28 @@ export function OfferStrip({
       <p className="offer-strip__head">
         <SourceBadge source={source} compact />
         <span>{meta}</span>
+        <span className="offer-strip__nav">
+          <button
+            type="button"
+            tabIndex={-1}
+            className="plan-days__scroll plan-days__scroll--start"
+            aria-label={t("previousOptions")}
+            disabled={!more.start}
+            onClick={() => scroll(-1)}
+          >
+            <ChevronIcon />
+          </button>
+          <button
+            type="button"
+            tabIndex={-1}
+            className="plan-days__scroll plan-days__scroll--end"
+            aria-label={t("moreOptions")}
+            disabled={!more.end}
+            onClick={() => scroll(1)}
+          >
+            <ChevronIcon />
+          </button>
+        </span>
       </p>
       <div
         className="offer-strip__scroller"
@@ -66,28 +88,6 @@ export function OfferStrip({
             </li>
           ))}
         </ol>
-        {more.start && (
-          <button
-            type="button"
-            tabIndex={-1}
-            className="plan-days__scroll plan-days__scroll--start"
-            aria-label={t("previousOptions")}
-            onClick={() => scroll(-1)}
-          >
-            <ChevronIcon />
-          </button>
-        )}
-        {more.end && (
-          <button
-            type="button"
-            tabIndex={-1}
-            className="plan-days__scroll plan-days__scroll--end"
-            aria-label={t("moreOptions")}
-            onClick={() => scroll(1)}
-          >
-            <ChevronIcon />
-          </button>
-        )}
       </div>
     </section>
   );

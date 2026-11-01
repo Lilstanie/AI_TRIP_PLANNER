@@ -807,7 +807,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   row says "time not set", as mock fares do. Timed ground hops
   stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
 - **Offer cards.** Opening a stay or flight row shows its options as a horizontal strip of cards
-  (arrow buttons on hover pointers; the strip scrolls with touch). The chosen option comes first and
+  (arrow buttons beside the source badge on hover pointers; the strip scrolls with touch; it uses the full panel width). The chosen option comes first and
   carries "Your stay" or "Your flight"; one card each may also carry "Cheapest", "Top rated" (stays)
   or "Fastest" and "Nonstop" (flights, when the shown fares mix stops). Options that look the same
   to the traveller are collapsed (stays by name; fares by carrier, price, stops and flying time), and
@@ -821,7 +821,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   says "This stay needs a new selection."
 - **Flight card.** Route, dates, round trip or one way and cabin, then each leg the fare covers:
   airline and flight number, airport codes, times with a "+1" day offset, flying time and stops.
-  Fares without legs (mock fares) show carrier, stops and flight time. The price is the whole
+  A round-trip fare whose return leg was not looked up says so; it loads when that fare is chosen.
+  Flying-time comparisons and Fastest use the outbound leg. Fares without legs (mock fares) show
+  carrier, stops and flight time. The price is the whole
   party's. A flight whose selection no longer matches says "This flight needs a new selection."
 - **Choosing another.** Each card other than the chosen one has a Choose button ("Take … instead, …"). Pressing it applies at once, with no preview: it sends a `choose` edit
   through `POST /api/trip/preview-edit` ([API](api.md#post-apitrippreview-edit)), so the server

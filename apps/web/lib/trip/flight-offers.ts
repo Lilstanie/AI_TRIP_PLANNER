@@ -11,13 +11,11 @@ export type FlightOffer = {
 export const FLIGHT_OFFER_LIMIT = 6;
 
 function minutes(candidate: FlightCandidate): number | undefined {
-  if (!candidate.outbound) return candidate.durationMin;
-  return candidate.outbound.durationMin + (candidate.inbound?.durationMin ?? 0);
+  return candidate.outbound?.durationMin ?? candidate.durationMin;
 }
 
 function stops(candidate: FlightCandidate): number | undefined {
-  if (!candidate.outbound) return candidate.stops;
-  return candidate.outbound.layovers.length + (candidate.inbound?.layovers.length ?? 0);
+  return candidate.outbound ? candidate.outbound.layovers.length : candidate.stops;
 }
 
 function sameFare(candidate: FlightCandidate): string {
@@ -76,8 +74,7 @@ export function flightOffers(flight: FlightSelection, limit = FLIGHT_OFFER_LIMIT
     const tags: FlightOfferTag[] = [];
     if (candidate === selected) tags.push("selected");
     if (shown.length > 1 && candidate === cheapest) tags.push("cheapest");
-    if (candidate === fastestShown && candidate === fastest && candidate !== cheapest)
-      tags.push("fastest");
+    if (candidate === fastestShown && candidate === fastest) tags.push("fastest");
     if (candidate === nonstopShown) tags.push("nonstop");
     const total = minutes(candidate);
     return { candidate, tags, ...(total === undefined ? {} : { minutes: total }) };

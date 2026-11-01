@@ -29,6 +29,8 @@ Live searches returned 20 to 30 rows, many identical (same carrier and price), w
 - `pnpm verify:docs`, `pnpm verify:pairs`, `check-ui-copy.mjs`: pass.
 - Uncommitted Playwright script against `pnpm --filter @trip/web dev` (sample data, injected 27 fares and 19 stays): 6 flight and 6 stay cards at 1440 px (en, zh), 375 px (zh) and 390 px (en), no horizontal page scroll, no page errors; Choose on Rex re-priced the trip to AUD 980.
 
+- Live run on Joey's Mac (real model, live SerpApi; Google Maps key expired so OSM): 6 cards per strip in en/zh at 1440 and 390 px, no page errors, Choose re-priced 2,192 → 2,258 → 2,192. It found unpicked round-trip fares labelled "One way" (only the picked fare gets its return leg) and leg-vs-trip time comparisons; fixed: round trip comes from the selection, comparisons use the outbound leg, arrows moved to the strip head, strip spans the panel width, cabin names translated.
+
 ## Notes for the next person
 
 Sample fares carry no legs, so a plain mock trip shows the summary block instead of airport codes.

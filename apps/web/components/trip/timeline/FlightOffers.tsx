@@ -6,6 +6,18 @@ import { FlightLeg, hoursAndMinutes, shortDate } from "../../chat/FlightItinerar
 import { FlowFlightIcon } from "../../ui/flow-icons";
 import { OfferStrip, OfferTags, priceComparison } from "./OfferStrip";
 
+const CABIN_KEY = {
+  economy: "cabinEconomy",
+  "premium economy": "cabinPremiumEconomy",
+  business: "cabinBusiness",
+  first: "cabinFirst",
+} as const;
+
+function cabinLabel(cabin: string, t: ReturnType<typeof useLocale>["t"]): string {
+  const key = CABIN_KEY[cabin.trim().toLowerCase() as keyof typeof CABIN_KEY];
+  return key ? t(key) : cabin;
+}
+
 const TAG_KEY = {
   selected: "yourFlight",
   cheapest: "cheapest",
@@ -59,10 +71,12 @@ function Summary({ candidate }: { candidate: FlightCandidate }) {
 function OfferCard({
   flight,
   offer,
+  roundTrip,
   onChoose,
 }: {
   flight: FlightSelection;
   offer: FlightOffer;
+  roundTrip: boolean;
   onChoose?: (candidateId: string) => void;
 }) {
   const { t, money, locale } = useLocale();
@@ -72,8 +86,8 @@ function OfferCard({
   const back = candidate.inbound?.segments[candidate.inbound.segments.length - 1];
   const selected = tags.includes("selected");
   const kind = [
-    candidate.roundTrip || candidate.inbound ? t("roundTrip") : t("oneWay"),
-    first?.cabin,
+    roundTrip ? t("roundTrip") : t("oneWay"),
+    first?.cabin ? cabinLabel(first.cabin, t) : undefined,
   ]
     .filter(Boolean)
     .join(" · ");
@@ -102,7 +116,11 @@ function OfferCard({
         {outbound ? (
           <>
             <FlightLeg leg={outbound} label={t("outbound")} />
-            {candidate.inbound && <FlightLeg leg={candidate.inbound} label={t("return")} />}
+            {candidate.inbound ? (
+              <FlightLeg leg={candidate.inbound} label={t("return")} />
+            ) : (
+              roundTrip && <p className="offer__pending">{t("returnLegOnChoose")}</p>
+            )}
           </>
         ) : (
           <Summary candidate={candidate} />
@@ -139,6 +157,7 @@ export function FlightOffers({
 }) {
   const locale = useLocale();
   const offers = flightOffers(flight);
+  const roundTrip = flight.candidates.some((candidate) => candidate.roundTrip || candidate.inbound);
   const current = offers.find((offer) => offer.tags.includes("selected"));
   if (!current) return <p>{locale.t("thisFlightNeedsANew")}</p>;
   return (
@@ -150,7 +169,14 @@ export function FlightOffers({
         const note = comparison(offer, current, locale);
         return {
           key: offer.candidate.id,
-          card: <OfferCard flight={flight} offer={offer} {...(onChoose ? { onChoose } : {})} />,
+          card: (
+            <OfferCard
+              flight={flight}
+              offer={offer}
+              roundTrip={roundTrip}
+              {...(onChoose ? { onChoose } : {})}
+            />
+          ),
           ...(note ? { note } : {}),
         };
       })}
