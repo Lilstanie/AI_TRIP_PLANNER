@@ -111,6 +111,14 @@ Create the tables with `pnpm --filter @trip/web db:migrate` (it loads `.env.loca
 commit it under `apps/web/drizzle/`. On Vercel, the Clerk and Neon Marketplace integrations inject
 the same names.
 
+A Vercel production build applies pending migrations before `next build` (`vercel-build` in
+`apps/web/package.json`), so a merged migration reaches the production database with the deploy. It
+runs only when `VERCEL_ENV` is `production` and `DATABASE_URL` is set; preview builds and builds
+without a database skip it, and a failed migration fails the deploy. Vercel uses that script only when
+the project's Root Directory is `apps/web`. Any other database, such as a local or demo one, still
+needs `db:migrate` by hand; settings shows "Could not load remembered preferences" when it is
+missing the `account_memories` table from `0002_adorable_namor.sql`.
+
 Agent Lab live runs are off unless the deployment enables them (these names are not in `.env.example`):
 
 | Setting                            | Purpose                                                                                                                                                                         |

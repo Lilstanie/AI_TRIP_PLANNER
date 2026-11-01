@@ -7,6 +7,7 @@
   "scripts": {
     "dev": "next dev",
     "build": "next build",
+    "vercel-build": "if [ \"$VERCEL_ENV\" = production ] && [ -n \"$DATABASE_URL\" ]; then drizzle-kit migrate; fi && next build",
     "start": "next start",
     "lint": "next lint",
     "typecheck": "tsc --noEmit",
