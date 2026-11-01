@@ -1190,7 +1190,8 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   no thinking row or stop button: a pending edit is not a chat request.
 
 - Activities receive stable IDs once, retained on reorder and restore. `editVersion` is independent of
-  the orchestrator round, and an edit applies only if its base version still matches.
+  the orchestrator round, and an edit applies only if its base version still matches. The background
+  route check keeps the version, so only a traveller's edit makes a new plan ask before replacing it.
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.
