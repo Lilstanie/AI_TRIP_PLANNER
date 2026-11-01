@@ -46,16 +46,27 @@ became a Jira story and was fixed in TP-194 to TP-223 (PRs #837 to #870) within 
 
 | Practice           | Evidence                                                                                                                                                                                                    |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User stories       | Jira project TP: 238 issues, 230 done. Stories are written as "As a traveller, I …" with acceptance criteria                                                                                                |
+| User stories       | Jira project TP: 239 issues, 231 done. Stories are written as "As a traveller, I …" with acceptance criteria                                                                                                |
 | Iterations         | TP Sprint 1 (21 to 31 October, 19 issues, closed 1 November). Before Jira, weekly iterations are visible in Git: 795 commits on `main` from 24 August, with weekly peaks of 133 (week 41) and 243 (week 43) |
 | Traceability       | Every pull request title carries its TP key, so Jira links story, branch, commits and PR; 403 pull requests merged                                                                                          |
 | Feedback loops     | Code review and CI on every pull request; five recorded retrospectives (two on 8 October, then 24, 28 and 30 October) whose actions changed the team rules; the live trip test above                        |
 | Decisions recorded | Agent Notes under [`.agents/notes/`](../../../.agents/notes/README.md) and 700+ dated session logs                                                                                                          |
 | Collaboration      | Five members, each owning two core features and one optional feature; the order of the live demo follows that split                                                                                         |
 
-Gap to fix before the demo: Jira holds one sprint only, so its burn-down chart covers 21 to 31
-October. Show the Jira sprint report for that sprint, and the weekly commit counts above for the
-earlier weeks.
+![TP Sprint 1 burn-down chart and scope change log](images/jira-sprint1-burndown.jpg)
+
+The TP Sprint 1 burn-down starts at about 18 story points on 21 October. It steps back up when
+stories join mid-sprint (TP-45 and TP-62 on 29 October, four more on 1 November, all listed in the
+scope change log) and reaches zero on 1 November.
+
+![Jira project and team overview](images/jira-project-overview.jpg)
+
+The project overview counts 239 work items, nearly all done and assigned across the team. The
+creation and completion trends show stories being added and closed through the whole sprint, not
+only at its end.
+
+Jira holds this one sprint, so the burn-down covers 21 October to 1 November; the weekly commit
+counts above show the earlier iterations.
 
 ## 4. Incorporation of advanced technologies (5)
 
