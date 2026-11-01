@@ -4,10 +4,22 @@ import ts from "typescript";
 
 const methods = new Set(["GET", "POST", "PUT", "DELETE", "PATCH", "HEAD", "OPTIONS"]);
 
+export const publicApiRoutes = new Set([
+  "/api/agent-lab/benchmark",
+  "/api/agent-lab/runs",
+  "/api/chat",
+  "/api/data-mode",
+  "/api/places/details",
+  "/api/places/photo",
+  "/api/places/search",
+  "/api/routes/from-location",
+  "/api/trip/preview-edit",
+]);
+
 export function isAnonymousRefusal(result, method) {
   return (
     result.status === 401 &&
-    (method === "HEAD" || result.body?.notice?.key === "Sign in to use your account.") &&
+    (method === "HEAD" || result.body?.notice?.key === "signInToUseYour") &&
     result.headers["cache-control"] === "no-store"
   );
 }
