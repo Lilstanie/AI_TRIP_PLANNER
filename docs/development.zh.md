@@ -189,6 +189,9 @@ pnpm --filter @trip/ios open
 在 Xcode 里选中 App target，在 Signing & Capabilities 里选你的 Apple ID 团队，选择 iPhone 后点 Run。
 然后在 iPhone 的 设置 → 通用 → VPN 与设备管理 里信任这个开发者。
 
+App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地图；见
+[原生标签栏与 Apple 地图说明](../.agents/notes/proposed/feature/2026-11-01-ios-native-tabs-and-maps.md)。
+
 <a id="licence-and-third-party-code"></a>
 
 ## 许可与第三方代码
