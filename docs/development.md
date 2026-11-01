@@ -228,6 +228,24 @@ It writes screenshots and `summary.json` to `output/playwright/installable-app/`
 installability check runs in full Chromium (`CHANNEL=chrome` uses Chrome instead) with a throwaway
 persistent profile, and also confirms it reports a page whose manifest link is removed.
 
+### iOS app
+
+`apps/ios/` is a Capacitor shell that opens the deployed site and adds `TripPlannerIOSApp` to its
+user agent. The web app then sets `data-shell="ios-app"` on `<html>`, and `app/styles/ios-app.css`
+gives the app its liquid-glass look; Safari and the PWA are unchanged. See the
+[Agent Note](../.agents/notes/implemented/feature/2026-11-01-ios-app-shell.md). Check the app layer in
+a browser with `node apps/web/tests/e2e/ios-app-shell.e2e.mjs` against a running server. On a Mac with
+Xcode:
+
+```bash
+pnpm install
+pnpm --filter @trip/ios sync
+pnpm --filter @trip/ios open
+```
+
+In Xcode, choose the App target, set Signing & Capabilities to your Apple ID team, pick the iPhone and
+press Run. On the iPhone, trust the developer under Settings → General → VPN & Device Management.
+
 ## Licence and third-party code
 
 The repository is MIT licensed (see [LICENSE](../LICENSE)), and every `package.json` declares
