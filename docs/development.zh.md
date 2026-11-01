@@ -170,6 +170,22 @@ pnpm --filter @trip/web e2e installable-app --prod
 Chromium（`CHANNEL=chrome` 时改用 Chrome）和一个用完即删的持久化配置文件中运行，并确认它能报告移除了
 manifest 链接的页面。
 
+<a id="ios-app-branch-only"></a>
+
+### iOS 应用（仅在分支上）
+
+`feature/TP-241-ios-app` 分支上的 `apps/ios/` 是一个打开线上网站的 Capacitor 壳，不在 `main` 里。原因见
+[提案](../.agents/notes/proposed/feature/2026-11-01-ios-app-shell.md)。在装有 Xcode 的 Mac 上：
+
+```bash
+pnpm install
+pnpm --filter @trip/ios sync
+pnpm --filter @trip/ios open
+```
+
+在 Xcode 里选中 App target，在 Signing & Capabilities 里选你的 Apple ID 团队，选择 iPhone 后点 Run。
+然后在 iPhone 的 设置 → 通用 → VPN 与设备管理 里信任这个开发者。
+
 <a id="licence-and-third-party-code"></a>
 
 ## 许可与第三方代码
