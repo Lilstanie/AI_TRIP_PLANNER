@@ -54,7 +54,6 @@ const EXAMPLES: readonly Example[] = [
   { name: "LondonEdinburgh", shape: "multi", startIn: 48, days: 7 },
 ];
 
-/** Every example trip, dated relative to `today`, in catalogue order. */
 export function allQuickPrompts(today: Date = new Date()): QuickPrompt[] {
   const inDays = (days: number) => {
     const date = new Date(today);
@@ -78,11 +77,6 @@ function shuffled<T>(items: readonly T[], random: () => number): T[] {
   return copy;
 }
 
-/**
- * A fresh random draw of `count` example trips that always includes one single-city trip, one
- * trip with a stated origin and one multi-city trip, in random order. Call it only on the client:
- * a server render would draw a different set and break hydration.
- */
 export function quickPrompts(
   today: Date = new Date(),
   random: () => number = Math.random,
