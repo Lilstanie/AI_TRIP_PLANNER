@@ -50,7 +50,6 @@ async function redisCommand(
 
 export interface JsonStore {
   get<T>(key: string): Promise<T | undefined>;
-  /** `ttlSeconds` expires the value; without it the value is kept until overwritten. */
   set<T>(
     key: string,
     value: T,

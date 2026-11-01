@@ -24,11 +24,6 @@ export function readChatRun(id: string): Promise<ChatRun | undefined> {
   return jsonStore.get<ChatRun>(runKey(id));
 }
 
-/**
- * Records every frame of one chat turn under its run id so a reloaded page can replay it.
- * Writes are serialised and coalesced; `close()` resolves once the finished run is stored.
- * Store failures are logged and never interrupt the turn itself.
- */
 export function chatRunRecorder(id: string, owner: string) {
   const run: ChatRun = { owner, status: "running", frames: [], updatedAt: Date.now() };
   let writing: Promise<void> = Promise.resolve();
@@ -64,10 +59,6 @@ const POLL_MS = 500;
 const STALE_MS = 5 * 60 * 1000;
 const REPLAY_LIMIT_MS = 4 * 60 * 1000;
 
-/**
- * Streams a recorded chat turn as NDJSON: every stored frame, then new frames until the run is done.
- * Returns 404 with a notice when the run is unknown, expired or owned by someone else.
- */
 export async function replayChatRun(req: Request, runId: string, owner: string): Promise<Response> {
   const first = validRunId(runId) ? await readChatRun(runId) : undefined;
   if (!first || first.owner !== owner) return Response.json(LOST, { status: 404 });

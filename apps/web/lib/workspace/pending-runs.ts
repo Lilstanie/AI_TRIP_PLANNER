@@ -21,7 +21,6 @@ if (typeof window !== "undefined") {
   });
 }
 
-/** True once the page is being unloaded; a turn interrupted then must stay pending. */
 export function pageLeaving() {
   return leaving;
 }
@@ -65,7 +64,6 @@ export function rememberPendingRun(conversationId: string, run: PendingRun) {
   });
 }
 
-/** Forgets the conversation's pending run; with `runId`, only when it is still that run. */
 export function forgetPendingRun(conversationId: string, runId?: string) {
   const runs = readAll();
   if (!runs[conversationId] || (runId && runs[conversationId].runId !== runId)) return;

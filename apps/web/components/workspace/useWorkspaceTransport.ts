@@ -34,7 +34,6 @@ import type { Message } from "@/lib/workspace";
 
 type WorkspaceTransportOptions = {
   plan: TripPlan | undefined;
-  /** The conversation open on load; its pending run is resumed once after mount. */
   activeConversation: MutableRefObject<string>;
   hasTurn(conversationId: string): boolean;
   shownMessages(): Message[];
@@ -50,7 +49,6 @@ type WorkspaceTransportOptions = {
     change?: { message: Message; brief?: boolean; rewindIndex?: number },
   ): string | undefined;
   progress(id: string, controller: AbortController, event: SessionEvent): void;
-  /** `keepPending` leaves the server run resumable because only the connection was lost. */
   finish(
     id: string,
     controller: AbortController,
