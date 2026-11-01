@@ -12,6 +12,7 @@ contract-impact: none
 ## What changed
 
 - `apps/web/app/styles/` now has `chat/` (7 files), `trip/` (3), `workspace/` (13 incl. `index.css`), `phone/` (9 incl. `index.css`) and `agent-lab/` (6 incl. `index.css`); tokens, base, forms, settings, auth, map, glass, motion and intro stay at the top level.
+- `trip/timeline.css` (1,237 lines) is split at `.stop-editor` into `timeline.css` and `stop-editor.css`, imported back to back, so it stays under the 1,000-line limit.
 - The aggregators `agent-lab.css`, `phone.css` and `workspace.css` became each folder's `index.css`; `globals.css` and the aggregators point at the new paths. No rule changed.
 - `docs/development.md` (+ `.zh.md`) describes the folders and the import-order rule; design docs and one implemented note updated to the new paths.
 
