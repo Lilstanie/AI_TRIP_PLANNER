@@ -42,6 +42,24 @@
 ::view-transition-new(workspace-main) {
   animation: vt-rise-in var(--duration-slow) var(--ease-out) both;
 }
+:root[data-transition="trip"] .workspace-main {
+  view-transition-name: none;
+}
+:root[data-transition="trip"] .workspace-shell {
+  view-transition-name: trip-shell;
+}
+::view-transition-old(trip-shell) {
+  animation: vt-fade-out var(--duration-fast) var(--ease-out) both;
+}
+::view-transition-new(trip-shell) {
+  animation: trip-shell-in var(--duration) var(--ease-out) both;
+}
+@keyframes trip-shell-in {
+  from {
+    opacity: 0;
+  }
+}
+
 ::view-transition-old(chats-panel),
 ::view-transition-new(chats-panel) {
   animation-duration: var(--duration);

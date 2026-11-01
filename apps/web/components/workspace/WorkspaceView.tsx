@@ -757,16 +757,18 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {!phone && (
               <div className="topbar-actions">
-                <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
-                  <DataModeToggle
-                    mode={dataMode.mode}
-                    providers={dataMode.providers}
-                    onChange={dataMode.choose}
-                    disabled={busy}
-                    liveAvailable={dataMode.liveAvailable}
-                    liveBlock={dataMode.liveBlock}
-                  />
-                </div>
+                {dataMode.switchable && (
+                  <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
+                    <DataModeToggle
+                      mode={dataMode.mode}
+                      providers={dataMode.providers}
+                      onChange={dataMode.choose}
+                      disabled={busy}
+                      liveAvailable={dataMode.liveAvailable}
+                      liveBlock={dataMode.liveBlock}
+                    />
+                  </div>
+                )}
                 {plan && (
                   <button
                     ref={tripToggle}
@@ -774,7 +776,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     className="topbar-button trip-trigger"
                     aria-label={t("openYourTrip")}
                     aria-expanded={tripOpen}
-                    onClick={() => (tripOpen ? closeTrip() : openTrip())}
+                    onClick={() => viewTransition(tripOpen ? closeTrip : openTrip, "trip")}
                   >
                     <RouteIcon />
                     <span className="topbar-button__label">{t("trip")}</span>
