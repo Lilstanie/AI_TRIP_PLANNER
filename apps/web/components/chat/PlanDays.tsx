@@ -1,46 +1,12 @@
 "use client";
-import { useEffect, useRef, useState } from "react";
 import type { TripPlan } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { ChevronIcon } from "@/components/ui/icons";
-import { motionAllowed } from "@/components/ui/motion";
+import { useScrollOverflow } from "@/components/ui/useScrollOverflow";
 import { itineraryActivities, visitingOrder } from "@/lib/trip/itinerary";
 import { dayCount, dayLabel, dayRows, emptyDayKey } from "@/lib/trip/timeline";
 
 const SHOWN = 2;
-
-function useOverflow() {
-  const strip = useRef<HTMLOListElement>(null);
-  const [more, setMore] = useState({ start: false, end: false });
-  useEffect(() => {
-    const node = strip.current;
-    if (!node) return;
-    const measure = () => {
-      const start = node.scrollLeft > 1;
-      const end = node.scrollLeft + node.clientWidth < node.scrollWidth - 1;
-      setMore((current) =>
-        current.start === start && current.end === end ? current : { start, end },
-      );
-    };
-    measure();
-    node.addEventListener("scroll", measure, { passive: true });
-    const observer = new ResizeObserver(measure);
-    observer.observe(node);
-    return () => {
-      node.removeEventListener("scroll", measure);
-      observer.disconnect();
-    };
-  }, []);
-  const scroll = (direction: 1 | -1) => {
-    const node = strip.current;
-    if (!node) return;
-    node.scrollBy({
-      left: direction * node.clientWidth * 0.8,
-      behavior: motionAllowed() ? "smooth" : "auto",
-    });
-  };
-  return { strip, more, scroll };
-}
 
 export function PlanDays({
   plan,
@@ -50,7 +16,7 @@ export function PlanDays({
   onOpenDay: (day: number) => void;
 }) {
   const { t, locale } = useLocale();
-  const { strip, more, scroll } = useOverflow();
+  const { strip, more, scroll } = useScrollOverflow<HTMLOListElement>();
   const stops = visitingOrder(itineraryActivities(plan).filter((item) => item.day !== undefined));
   const days = Array.from({ length: dayCount(plan) }, (_, index) => {
     const day = index + 1;

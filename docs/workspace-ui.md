@@ -806,20 +806,27 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   superscript day offset such as "+1" when the leg lands on a later date; otherwise the
   row says "time not set", as mock fares do. Timed ground hops
   stay as fixed rows. A trip with no flight, no stay or no guide shows no empty row or block.
-- **Stay card.** Rating, check-in and check-out, rooms and nights, nightly price, cancellation terms,
-  the source note, and a link to the property's details when the planner has one. A stay whose
-  selection no longer matches says "This stay needs a new selection."
-- **Flight card.** Each flight shows its carrier, departure (or return), travellers, stops ("Nonstop"
-  when none) and the flight time and stops of the leg it shows, so the return card shows the return leg's.
-  A flight whose selection no longer matches says "This flight needs a new
-  selection."
-- **Also found.** Each card lists the alternatives the chosen flight or stay beat, each with its price and
-  its difference from the chosen one; a cheaper difference is green and also carries a minus sign.
-- **Choosing another.** In a stay or flight card, each Also found row is a button ("Take … instead, …", at least 44 px tall
-  under a coarse pointer). Pressing it applies at once, with no preview: it sends a `choose` edit
+- **Offer cards.** Opening a stay or flight row shows its options as a horizontal strip of cards
+  (arrow buttons on hover pointers; the strip scrolls with touch). The chosen option comes first and
+  carries "Your stay" or "Your flight"; one card each may also carry "Cheapest", "Top rated" (stays)
+  or "Fastest" and "Nonstop" (flights, when the shown fares mix stops). Options that look the same
+  to the traveller are collapsed (stays by name; fares by carrier, price, stops and flying time), and
+  the strip keeps at most six: the chosen one, the winners above, then for stays the ones priced
+  closest to the choice and for fares the cheapest of each other carrier, then by price
+  (`apps/web/lib/trip/stay-offers.ts`, `flight-offers.ts`). Under each other card a short line
+  compares it with the chosen one ("AUD 64 more than your flight · 40m less flying").
+- **Stay card.** Name, area and rating, check-in and check-out with the nights between, the nightly
+  rate and rooms, cancellation terms, the total for the stay, and a link to the property's details
+  when the planner has one (otherwise the source note). A stay whose selection no longer matches
+  says "This stay needs a new selection."
+- **Flight card.** Route, dates, round trip or one way and cabin, then each leg the fare covers:
+  airline and flight number, airport codes, times with a "+1" day offset, flying time and stops.
+  Fares without legs (mock fares) show carrier, stops and flight time. The price is the whole
+  party's. A flight whose selection no longer matches says "This flight needs a new selection."
+- **Choosing another.** Each card other than the chosen one has a Choose button ("Take … instead, …"). Pressing it applies at once, with no preview: it sends a `choose` edit
   through `POST /api/trip/preview-edit` ([API](api.md#post-apitrippreview-edit)), so the server
   rewrites the item's sentence, the section cost and the plan total. Taking the earlier option back
-  is another choice from the same list. While another change is in flight the rows are plain text. A failed swap shows a notice
+  is another choice from the same strip. While another change is in flight the cards have no Choose button. A failed swap shows a notice
   in the Trip panel, and a response that arrives after the traveller opened another plan is
   dropped. Plans saved before items carried a `selectionId` cannot be re-priced and must be
   replanned. See the

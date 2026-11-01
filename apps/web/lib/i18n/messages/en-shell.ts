@@ -154,7 +154,6 @@ export const enShell = {
   dayStopCount: "{count, plural, one {# stop} other {# stops}}",
   guestRating: "{rating}/5 guest rating",
   googleRatingValue: "Google rating {rating} / 5",
-  flightStops: "Stops",
   stopNumber: "Stop {number}",
   stopNumberOnDay: "Stop {number} · Day {day}",
   routeSourceGoogle: "Google Routes verified",
