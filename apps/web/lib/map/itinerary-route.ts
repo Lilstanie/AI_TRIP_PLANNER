@@ -25,7 +25,6 @@ export function distanceKm(from: Coordinate, to: Coordinate) {
   return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
 }
 
-/** Legs of {@link LONG_LEG_KM} or more are flights or intercity transfers: they never take a ground route, so they draw as an arc. */
 export function dayRoutes(
   stops: readonly RouteStop[],
   routes: readonly VerifiedRoute[] = [],
