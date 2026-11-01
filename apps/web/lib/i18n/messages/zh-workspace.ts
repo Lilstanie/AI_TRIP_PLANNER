@@ -143,7 +143,7 @@ export const zhWorkspace = {
   savePreferences: "保存偏好",
   defaultTripData: "默认数据来源",
   livePricesSearchRealHotels:
-    "实时价格会去查真实的酒店和航班，会用掉大家共享的每月额度；示例数据不花额度。工作区里的数据开关只改这个浏览器的设置。",
+    "实时价格会去查真实的酒店和航班，会用掉大家共享的每月额度；示例数据不花额度。",
   accountsYouCanSignIn: "可以用来登录的账户。",
   noConnectedAccountsYouSign: "还没有绑定其他账户，目前用邮箱登录。",
   connectOrDisconnect: "绑定或解绑",
@@ -314,7 +314,6 @@ export const zhWorkspace = {
   stoppedAfterRoundRoundNo: "第 {round} 轮后结束：没有更好的方案了",
   specialistTeam: "专家团队",
   agentTeam: "智能体团队",
-  dataMode: "数据模式",
   whereAreYouHeaded: "你想去哪里？",
   whenDoYouWantTo: "打算什么时候去？",
   howManyTravellers: "几个人去？",
@@ -434,18 +433,6 @@ export const zhWorkspace = {
   chatPercentOfTheWidth: "聊天区占 {percent}% 宽度",
   selectedPlaceV0: "已选：{v0}",
   actionsForV0: "{v0}的操作",
-  mockDataBundledFixturesNo: "示例数据：用的是内置样例，不会请求外部服务，也不花额度。",
-  mockDataBundledFixturesSign:
-    "示例数据：用的是内置样例。登录后可以用 AI 模型，查真实的酒店和航班价格。",
-  mockDataBundledFixturesLive: "示例数据：用的是内置样例。这个部署没有开启实时数据。",
-  currentlyUsingMockFixturesLive: "。现在用的是示例数据，这个部署没有开启实时数据。",
-  liveDataRealHotelAnd:
-    "实时数据：真实的酒店和航班价格。每次规划都会用掉一部分共享的每月搜索额度。",
-  liveDataSelectedButNo: "选了实时数据，但没配置 SERPAPI_KEY，所以结果会退回到估算值。",
-  currentlyUsingLiveProviderData: "。现在用的是实时数据，点一下切换到示例数据。",
-  currentlyUsingMockFixturesActivate: "。现在用的是示例数据，点一下切换到实时数据。",
-  currentlyUsingMockFixturesSign:
-    "。现在用的是示例数据。登录后可以用 AI 模型，查真实的酒店和航班价格。",
   day: "天",
   days: "天",
   noMatchingTrips: "没找到相关行程。",
@@ -489,7 +476,6 @@ export const zhWorkspace = {
   system: "系统",
   light: "浅色",
   dark: "深色",
-  thisSiteSDefault: "跟随网站默认",
   livePrices: "实时价格",
   sampleData: "示例数据",
   cultureHistory: "文化与历史",

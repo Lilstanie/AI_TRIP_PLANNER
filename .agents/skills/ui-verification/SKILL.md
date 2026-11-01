@@ -24,8 +24,8 @@ do not isolate credentials or a reused server.
 
 For manual inspection, start the `web` configuration from `.claude/launch.json` (`pnpm --filter @trip/web dev`, port 3000).
 If a production build is running at the same time, start dev with `NEXT_DIST_DIR=.next-dev`.
-Use mock data unless the change concerns live providers. The data-mode toggle switches per request:
-use the top bar, or Mine on a phone, to check both without redeploying.
+Use mock data unless the change concerns live providers. Settings → Language & region → Trip data switches
+the mode per browser, so you can check both without redeploying.
 
 Accounts are optional. With `NEXT_PUBLIC_CLERK_PUBLISHABLE_KEY` set, anonymous page navigation is
 redirected to `/sign-in` before the workspace renders, and signing in goes through Clerk's hosted
@@ -38,7 +38,7 @@ workspace in a script, run the dev server without the Clerk keys, which is the s
 Fixture evidence is not model evidence. `pnpm --filter @trip/web e2e run` blanks the model keys, and
 the chat route disables model calls whenever `liveDataAllowed()` is false: on a production build or
 Vercel deployment without Clerk, and for a signed-out visitor where Clerk is configured
-([api.md](../../../docs/api.md)). The data-mode toggle only chooses provider fixtures. To claim a
+([api.md](../../../docs/api.md)). The Trip data setting only chooses provider fixtures. To claim a
 real-model run:
 
 - Run the dev server (`pnpm --filter @trip/web dev`) with the model key set and the Clerk keys unset,

@@ -245,11 +245,6 @@ async function run(browser, { width, height, tag }) {
     await page.getByRole("tab", { name: "Mine", exact: true }).click();
     await page.locator("#phone-panel-mine:not([hidden])").waitFor();
   }
-  await page.locator(".data-mode:visible").waitFor();
-  check(
-    (await page.getByRole("button", { name: /^Mock data/ }).count()) === 1,
-    `${tag}: default data mode applies after a reload`,
-  );
   check(
     !(await page.evaluate(() => document.documentElement.scrollWidth > window.innerWidth)),
     `${tag}: no sideways scroll`,

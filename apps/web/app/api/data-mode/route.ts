@@ -1,6 +1,6 @@
 import { mapProviderSetting } from "@/lib/map-provider";
 import { configuredDataMode } from "@trip/tools";
-import { dataModeSwitchable, liveDataBlock } from "@/lib/auth/live-data";
+import { liveDataBlock } from "@/lib/auth/live-data";
 
 export async function GET() {
   const block = await liveDataBlock();
@@ -9,7 +9,6 @@ export async function GET() {
       configured: configuredDataMode(),
       liveAvailable: block === undefined,
       liveBlock: block ?? null,
-      switchable: dataModeSwitchable(),
       providers: {
         hotelsAndFlights: Boolean(process.env.SERPAPI_KEY),
         maps: Boolean(process.env.MAPS_API_KEY) || mapProviderSetting() !== "google",

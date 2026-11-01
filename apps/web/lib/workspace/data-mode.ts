@@ -1,9 +1,7 @@
 "use client";
-import { useCallback, useEffect, useState } from "react";
+import { useEffect, useState } from "react";
 
 export type DataMode = "mock" | "live";
-
-export type LiveBlock = "sign-in-required" | "auth-not-configured";
 
 export type DataModeProviders = {
   hotelsAndFlights: boolean;
@@ -12,70 +10,35 @@ export type DataModeProviders = {
   mockGoogleUnavailable?: boolean;
 };
 
-const STORAGE_KEY = "trip.dataMode";
-
-function stored(): DataMode | undefined {
-  try {
-    const value = localStorage.getItem(STORAGE_KEY);
-    return value === "mock" || value === "live" ? value : undefined;
-  } catch {
-    return undefined;
-  }
-}
-
-export function useDataMode(preferred?: DataMode) {
-  const [mode, setMode] = useState<DataMode>();
+export function useDataMode(preferred: DataMode) {
   const [providers, setProviders] = useState<DataModeProviders>();
   const [liveAvailable, setLiveAvailable] = useState(true);
-  const [liveBlock, setLiveBlock] = useState<LiveBlock>();
-  const [switchable, setSwitchable] = useState(false);
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      let body:
-        | {
-            configured?: string;
-            liveAvailable?: boolean;
-            liveBlock?: LiveBlock | null;
-            switchable?: boolean;
-            providers?: DataModeProviders;
-          }
-        | undefined;
+      let body: { liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
       try {
         const response = await fetch("/api/data-mode");
         if (response?.ok) body = await response.json();
       } catch {}
       if (!active) return;
       setProviders(body?.providers);
-      const allowed = body?.liveAvailable !== false;
-      setLiveAvailable(allowed);
-      setLiveBlock(body?.liveBlock ?? undefined);
-      const canSwitch = body?.switchable === true;
-      setSwitchable(canSwitch);
-      const configured = body?.configured === "live" ? "live" : "mock";
-      const wanted = canSwitch ? (stored() ?? preferred ?? configured) : configured;
-      setMode(allowed ? wanted : "mock");
+      setLiveAvailable(body?.liveAvailable !== false);
+      setLoaded(true);
     })();
     return () => {
       active = false;
     };
-
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
-  const choose = useCallback(
-    (next: DataMode) => {
-      if (!switchable || (next === "live" && !liveAvailable)) return;
-      setMode(next);
-      try {
-        localStorage.setItem(STORAGE_KEY, next);
-      } catch {}
-    },
-    [liveAvailable, switchable],
-  );
-
-  return { mode, providers, choose, liveAvailable, liveBlock, switchable };
+  const mode: DataMode | undefined = loaded
+    ? preferred === "live" && liveAvailable
+      ? "live"
+      : "mock"
+    : undefined;
+  return { mode, providers, liveAvailable };
 }
 
 export function mapProviderOptions(mode: DataMode | undefined, providers?: DataModeProviders) {

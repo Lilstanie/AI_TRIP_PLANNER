@@ -90,7 +90,7 @@ export const defaultSettings = (): UserSettings => ({
   travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
   memberships: [],
   assistant: { style: "neutral", memory: true },
-  dataMode: "default",
+  dataMode: "live",
   appearance: "system",
   displayCurrency: "AUD",
 

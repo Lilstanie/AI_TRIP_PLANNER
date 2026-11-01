@@ -57,35 +57,9 @@
   .phone-mine .trip-cards {
     grid-template-columns: minmax(0, 1fr);
   }
-  .phone-mine__controls {
-    display: flex;
-    flex-wrap: wrap;
-    align-items: center;
-    gap: 8px;
-    margin-top: 24px;
-    padding-top: 16px;
-    border-top: 1px solid var(--border);
-  }
-  .phone-mine__controls button,
   .phone-mine__settings {
     min-width: 44px;
     min-height: 44px !important;
-  }
-  .phone-mine__controls .topbar-button__label {
-    position: static;
-    width: auto;
-    height: auto;
-    overflow: visible;
-    clip: auto;
-    display: inline;
-    white-space: nowrap;
-  }
-  .phone-mine__controls .data-mode {
-    width: auto;
-    min-width: 44px;
-    padding-inline: 12px !important;
-    justify-content: flex-start;
-    gap: 8px;
   }
   .phone-mine__settings {
     display: flex;
