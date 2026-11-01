@@ -138,6 +138,8 @@ SERPAPI_KEY=your-serpapi-key
 
 `pnpm mock-server` 在 4000 端口启动一个可选的 stub HTTP 服务器。应用从不调用它：mock 工具在进程内运行。该服务器保留用于适配器实验，并由 Docker Compose 启动。
 
+进程内的 mock 地点默认只返回一个 `Mock attraction near <city>`，所有 mock 路线都是 140 分钟火车，Agent Lab 基准和测试依赖这一点。启动应用时加 `MOCK_PLACES=multi`，就改为按类别返回固定列表（9 个景点、2 个博物馆、5 家餐厅，名字都是 `Mock <place>, <city>`）：mock 行程每天有 3 个点，点之间有交通行，5 天的行程不会重复同一个点，两个 mock 地点之间的路线是 20 分钟公共交通。
+
 <a id="docker"></a>
 
 ## Docker
