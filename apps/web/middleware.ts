@@ -2,12 +2,15 @@ import { clerkMiddleware } from "@clerk/nextjs/server";
 import { NextResponse } from "next/server";
 import { authEnabled } from "./lib/auth/config";
 import { isPublicRoute } from "./lib/auth/public-routes";
+import { ADMIN_COOKIE, isAdminToken } from "./lib/auth/admin-token";
 import { noticeBody } from "./lib/i18n/notice";
 
 export default authEnabled
   ? clerkMiddleware(async (auth, request) => {
       const { userId } = await auth();
       if (!userId && !isPublicRoute(request)) {
+        if (await isAdminToken(request.cookies.get(ADMIN_COOKIE)?.value))
+          return NextResponse.next();
         if (/^\/(?:api|trpc)(?:\/|$)/.test(request.nextUrl.pathname)) {
           return NextResponse.json(noticeBody({ key: "signInToUseYour" }), {
             status: 401,

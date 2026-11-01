@@ -1,10 +1,12 @@
 import { Workspace } from "@/components/workspace/Workspace";
 import { IntroGate } from "@/components/intro/IntroGate";
+import { isAdminRequest } from "@/lib/auth/admin";
 
-export default function Page() {
+export default async function Page() {
+  const admin = await isAdminRequest();
   return (
     <IntroGate>
-      <Workspace />
+      <Workspace admin={admin} />
     </IntroGate>
   );
 }
