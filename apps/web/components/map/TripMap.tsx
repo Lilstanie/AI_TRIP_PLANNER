@@ -61,6 +61,7 @@ export function TripMap({
   forceOsmProvider = false,
   allowOsmFallback = true,
   stops,
+  path,
   selected,
   onSelect,
   routes,
@@ -82,6 +83,7 @@ export function TripMap({
   allowOsmFallback?: boolean;
 
   stops: MapStop[];
+  path?: MapStop[];
   phone?: boolean;
   visible?: boolean;
 
@@ -505,14 +507,13 @@ export function TripMap({
   const lines = useMemo(
     () =>
       dayRoutes(
-        mapped.map((stop): RouteStop => ({
-          placeId: stop.place.id,
-          day: stop.day,
-          position: coordinate(stop.place)!,
-        })),
+        (path ?? mapped).flatMap((stop): RouteStop[] => {
+          const position = coordinate(stop.place);
+          return position ? [{ placeId: stop.place.id, day: stop.day, position }] : [];
+        }),
         routes,
       ),
-    [mapped, routes],
+    [path, mapped, routes],
   );
   useEffect(() => {
     if (!runtime || !root.current) return;

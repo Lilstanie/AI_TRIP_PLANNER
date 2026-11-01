@@ -896,7 +896,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   and when the map settles a label that would overlap one already shown is hidden (the selected stop
   wins, then visiting order). Markers never load place photos.
 - **Itinerary lines** (`lib/map/itinerary-route.ts`, `components/map/map-layers.ts`). Each day's
-  stops are joined in visiting order. A leg follows a verified Google Routes polyline when one exists
+  stops are joined in visiting order. A place visited on several days has one marker but stays in
+  every day's line (`Itinerary.pathFor`), so a repeat visit never drops a day's route. A leg follows a verified Google Routes polyline when one exists
   for that exact pair of places; otherwise it is a gentle arc (`curvedPath`, a quadratic curve in
   Web Mercator bending to the left of travel), so a day reads as one flowing path rather than a
   zig-zag. No route is requested just to draw a line. The focused day (the selected stop's day, or
