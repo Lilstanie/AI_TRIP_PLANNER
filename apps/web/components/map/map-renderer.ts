@@ -8,7 +8,7 @@ import {
   type MapProvider,
   type MapRuntime,
 } from "./google-maps-sdk";
-import { appleMapsRenderer, nativeAppleMapsAvailable } from "./apple-maps-renderer";
+import { nativePlugin } from "@/components/pwa/native-shell";
 
 function runtime(
   element: HTMLElement,
@@ -115,7 +115,11 @@ export async function loadRenderer(
   settings: { forceOsm?: boolean; allowFallback?: boolean; signal?: AbortSignal } = {},
 ): Promise<MapRuntime> {
   const { forceOsm = false, allowFallback = true, signal } = settings;
-  if (nativeAppleMapsAvailable(root)) return create(root, appleMapsRenderer(), options, "apple");
+  if (root.closest(".workspace-app[data-phone] .trip-map-canvas") && nativePlugin("TripMap")) {
+    const { appleMapsRenderer } = await import("./apple-maps-renderer");
+    signal?.throwIfAborted();
+    return create(root, appleMapsRenderer(), options, "apple");
+  }
   if (!forceOsm && googleAuthRejected() && !allowFallback)
     throw new NoticeError({ key: "theMapCouldNotLoad" });
   if (!forceOsm && !googleAuthRejected()) {

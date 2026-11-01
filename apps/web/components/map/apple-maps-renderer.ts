@@ -380,12 +380,6 @@ class AppleLine {
   setOptions() {}
 }
 
-export function nativeAppleMapsAvailable(root: HTMLElement) {
-  return Boolean(
-    root.closest(".workspace-app[data-phone] .trip-map-canvas") && nativePlugin("TripMap"),
-  );
-}
-
 export function appleMapsRenderer(): MapsSDK {
   if (!customElements.get("trip-apple-marker"))
     customElements.define("trip-apple-marker", AppleMarker);
