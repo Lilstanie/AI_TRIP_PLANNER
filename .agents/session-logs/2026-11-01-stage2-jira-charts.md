@@ -7,20 +7,27 @@ area: docs
 contract-impact: none
 ---
 
-# Jira burn-down and project overview in the Stage 2 report
+# Jira burn-down and flow charts in the Stage 2 report, built from Jira data
 
 ## What changed
 
-- Add Joey's Jira screenshots as `docs/design/stage2/images/jira-sprint1-burndown.jpg` and
-  `jira-project-overview.jpg`.
-- Show both, with a short reading, in the agile part of the README Stage 2 report (both languages)
-  and in `docs/design/stage2/demo-evidence(.zh).md`, replacing the "gap to fix" note.
-- Update the Jira counts to 239 issues, 231 done.
+- README Stage 2 report (both languages): a Mermaid burn-down of TP Sprint 1 with a short reading.
+- `docs/design/stage2/demo-evidence(.zh).md`: the burn-down, a scope change table, a created and
+  resolved per day chart, status, type and assignee counts and lead times; replaces the "gap" note.
+
+## Why
+
+Joey asked for the burn-down and project overview figures, built from Jira rather than his
+screenshots, so the charts are text in the repository and can be checked against Jira.
 
 ## Validation
 
-- `pnpm verify:pairs`: Checked 35 documentation pairs. `pnpm verify:docs`: links valid.
+- Data: JQL `project = TP` (240 issues, three pages) and the change history of all 19 TP Sprint 1
+  issues (sprint added, story points, resolution). The rebuilt line matches Jira's sprint report:
+  18 points at start, up on 21 and 29 October, zero on 1 November.
+- Both charts rendered with Mermaid 11.4.0 in Chromium: no syntax errors.
+- `pnpm verify:pairs`, `pnpm verify:docs`, `pnpm verify:protected`: pass.
 
 ## Notes for the next person
 
-- The screenshots are dated 1 November 2026; retake them if the sprint data changes.
+- Figures are a snapshot from 1 November 2026, 22:20 AEDT.

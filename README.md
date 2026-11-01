@@ -57,24 +57,32 @@ A$3,960, five specialists without revision A$2,560, and targeted revision A$2,12
 ([Agent Lab runs](submission/stage2/agent-lab-exit-paths.md)). A live trip test on 30 October found
 22 problems; each became a Jira story and was fixed within two days (PRs #837 to #870).
 
-**3. Agile development (4).** Jira project TP holds 239 issues, 231 done, written as user stories
+**3. Agile development (4).** Jira project TP holds 240 issues, 231 done, written as user stories
 with acceptance criteria. TP Sprint 1 ran from 21 to 31 October; earlier iterations show in Git as
 795 commits on `main` since 24 August. Every pull request carries its TP key, so story, branch, CI
 run and merge are linked; 403 pull requests were merged after review and CI. Five recorded
 retrospectives changed the team rules, and decisions are kept as
 [Agent Notes](.agents/notes/README.md).
 
-![TP Sprint 1 burn-down chart and scope change log](docs/design/stage2/images/jira-sprint1-burndown.jpg)
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#d9534f, #9aa0a6"
+---
+xychart-beta
+    title "TP Sprint 1 burn-down (story points)"
+    x-axis ["Start", "21 Oct", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov"]
+    y-axis "Remaining story points" 0 --> 20
+    line [18, 15, 15, 15, 15, 10, 10, 9, 9, 14, 14, 9, 0]
+    line [18, 16.4, 14.7, 13.1, 11.5, 9.8, 8.2, 6.5, 4.9, 3.3, 1.6, 0, 0]
+```
 
-The TP Sprint 1 burn-down starts at about 18 story points on 21 October. It steps back up when
-stories join mid-sprint (TP-45 and TP-62 on 29 October, four more on 1 November, all listed in the
-scope change log) and reaches zero on 1 November.
-
-![Jira project and team overview](docs/design/stage2/images/jira-project-overview.jpg)
-
-The project overview counts 239 work items, nearly all done and assigned across the team. The
-creation and completion trends show stories being added and closed through the whole sprint, not
-only at its end.
+The burn-down is rebuilt from the Jira change history of TP Sprint 1 (end-of-day values; red is
+remaining work, grey the ideal rate). The sprint started with 18 story points. It stepped up when
+stories joined mid-sprint (TP-16 and TP-17 on 21 October, TP-45 and TP-62 on 29 October) and
+reached zero on 1 November, when the sprint was closed.
 
 **4. Advanced technologies (5).**
 
