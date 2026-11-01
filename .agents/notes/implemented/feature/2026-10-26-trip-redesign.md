@@ -99,8 +99,8 @@ Accepted behaviour:
 
 Sources: [TeamControl](../../../../apps/web/components/chat/TeamControl.tsx),
 [header composition](../../../../apps/web/components/workspace/WorkspaceView.tsx),
-[team styles](../../../../apps/web/app/styles/thinking.css),
-[header styles](../../../../apps/web/app/styles/workspace-layout.css).
+[team styles](../../../../apps/web/app/styles/chat/thinking.css),
+[header styles](../../../../apps/web/app/styles/workspace/layout.css).
 
 ### Resulting experience
 

@@ -1,5 +1,5 @@
 import { errorNotice, noticeBody } from "@/lib/i18n/notice";
-import { mapProviderFor, mockUsesProvider } from "@/lib/map-provider";
+import { mapProviderFor, mockUsesProvider } from "@/lib/map/providers";
 import { requestDataMode } from "@/lib/auth/live-data";
 import { liveEditDeps, previewEdit, SIMULATED_EDIT_DEPS } from "@/lib/trip/trip-edit";
 

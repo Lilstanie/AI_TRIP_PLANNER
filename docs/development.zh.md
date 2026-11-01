@@ -29,11 +29,11 @@ pnpm dev                     # http://localhost:3000
 
 ## 代码组织
 
-Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`trajectory`、`preferences`、`account`、`agent-lab`、`pwa`，或用于共享基础组件的 `ui`。在 `workspace` 内，行程主页的组件放在 `workspace/trip-home/`，只在手机上出现的组件放在 `workspace/phone/`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录，不渲染界面的视图模型和请求辅助函数也放在这里（例如 `lib/chat/team-model.ts`、`lib/trip/preview-request.ts`）；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。
+Web 应用按职责分组，不把所有组件和辅助函数放在一个平铺目录中。新增 UI 应放到 `apps/web/components/` 下最接近的功能目录：`workspace`、`chat`、`trip`、`map`、`trajectory`、`preferences`、`account`、`agent-lab`、`pwa`，或用于共享基础组件的 `ui`。在 `workspace` 内，行程主页的组件放在 `workspace/trip-home/`，只在手机上出现的组件放在 `workspace/phone/`。可在浏览器中安全运行的领域逻辑放在 `apps/web/lib/` 下对应的目录，不渲染界面的视图模型和请求辅助函数也放在这里（例如 `lib/chat/team-model.ts`、`lib/trip/preview-request.ts`）；外部客户端放在 `apps/web/lib/integrations/`。所有 Web 测试放在 `apps/web/tests/` 下，镜像 `app`、`components` 和 `lib` 的功能分组；共享 fixture（测试前置数据）放在 `apps/web/tests/fixtures/`，初始化配置放在 `apps/web/tests/setup.ts`。各包目录遵循同样的规则：生产代码放在 `src/` 下，测试放在各包的 `tests/` 目录下。在 `packages/orchestrator/src` 中，需求整理放在 `brief/`，聊天轮次放在 `chat/`，规划图放在 `planning/`；`index.ts` 重新导出公开接口。
 
 功能跨越多个目录时，把公开约定保留在领域模块中，并从那里导入，不另建根级便捷文件。目录边界变化时，同步更新本节和 API 文档。
 
-Web UI 使用 Tailwind CSS v4 和由项目源码维护的 shadcn 基础组件。Tailwind 通过 `apps/web/postcss.config.mjs` 配置，由 `apps/web/app/globals.css` 导入；本项目中的 v4 不使用传统的 `tailwind.config.js`。`apps/web/components.json` 配置 shadcn CLI（命令行界面），生成的基础组件位于 `apps/web/components/ui/`，并从 `@/lib/utils` 使用 `cn()`。保留现有语义 token，逐步将领域 CSS 迁移到 `apps/web/app/styles/` 下；替换自定义焦点管理的 Dialog 或 Drawer 时，必须保留其键盘和焦点行为。
+Web UI 使用 Tailwind CSS v4 和由项目源码维护的 shadcn 基础组件。Tailwind 通过 `apps/web/postcss.config.mjs` 配置，由 `apps/web/app/globals.css` 导入；本项目中的 v4 不使用传统的 `tailwind.config.js`。`apps/web/components.json` 配置 shadcn CLI（命令行界面），生成的基础组件位于 `apps/web/components/ui/`，并从 `@/lib/utils` 使用 `cn()`。保留现有语义 token，逐步将领域 CSS 迁移到 `apps/web/app/styles/` 下；替换自定义焦点管理的 Dialog 或 Drawer 时，必须保留其键盘和焦点行为。样式表按区域放在 `app/styles/chat/`、`trip/`、`workspace/`、`phone/` 和 `agent-lab/`；共用的样式（tokens、base、forms、glass、motion）留在顶层。`globals.css` 按层叠顺序导入它们，各区域目录的 `index.css` 也保持自己的顺序，所以新文件放在相邻文件旁边，并在顺序中对应的位置导入。
 
 <a id="file-size-and-style-boundaries"></a>
 

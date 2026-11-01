@@ -10,7 +10,7 @@ description: Add, replace or change a planning data provider or Web map provider
 - **Planning evidence** (agent maps, booking, weather): use the tools gateway workflow below.
   `MAPS_PROVIDER` chooses the planning maps adapter.
 - **Web workspace maps** (search, details, photos, edit-preview legs, location routes, time zones):
-  use `apps/web/lib/map-provider/` and its existing `MapProvider` seam, then the thin route handlers
+  use `apps/web/lib/map/providers/` and its existing `MapProvider` seam, then the thin route handlers
   under `apps/web/app/api/`. `WEB_MAPS_PROVIDER` chooses `google-with-fallback` (default), `google`
   or `osm`; it does not change the planning setting. Browser rendering belongs to
   `apps/web/components/map/` (Google SDK or MapLibre/OpenFreeMap).

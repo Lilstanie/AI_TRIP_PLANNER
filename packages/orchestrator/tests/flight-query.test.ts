@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseFlightQuery } from "../src/flight-query";
+import { parseFlightQuery } from "../src/chat/flight-query";
 
 describe("parseFlightQuery", () => {
   it("reads the question this feature exists for", () => {

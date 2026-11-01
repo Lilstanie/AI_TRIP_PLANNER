@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { FlightAnswer } from "@trip/shared";
-import { FlightAnswerReady, runTripChat } from "../src/chat";
+import { FlightAnswerReady, runTripChat } from "../src/chat/chat";
 import { brief, itinerary, memoryStore, scriptedModel, tools } from "./chat-test-fixtures";
 
 const answer: FlightAnswer = {

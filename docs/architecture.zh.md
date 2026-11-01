@@ -15,15 +15,15 @@ AI Trip Planner 是一个由工作区包支撑的 Next.js 可部署单元。确�
 编辑前，使用这张表找到更改所属的模块。各包 README 说明其导出和配置；
 [开发指南](development.zh.md)负责环境设置、目录和验证规则。
 
-| 更改领域                             | 从这里开始                                | 继续追踪                                                                                                                                                                                                                                  |
-| ------------------------------------ | ----------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 聊天请求与流式回复                   | `apps/web/app/api/chat/route.ts`          | `packages/orchestrator/src/chat.ts`、共享聊天约定和聊天 UI                                                                                                                                                                                |
-| 规划状态、冲突检查或 specialist 流程 | `packages/orchestrator/src/workflow.ts`   | `packages/agents/src/`、经过验证的计划约定、持久化和工作区消费方                                                                                                                                                                          |
-| 共享请求、提案或计划的数据结构       | `packages/shared/src/`                    | 每个生产方和消费方；在同一更改中新增 Agent Note                                                                                                                                                                                           |
-| 地图、预订或天气依据                 | `packages/tools/src/gateway.ts`           | 带类型的端口、提供方适配器、回退标签和 agent 消费方；提供方工作使用 [add-provider](../.agents/skills/add-provider/SKILL.md)                                                                                                               |
-| 保存的聊天、偏好或旅行               | `packages/services/src/`                  | 浏览器存储、API 路由和工作区恢复行为                                                                                                                                                                                                      |
-| 账号、登录与跨设备同步               | `apps/web/lib/account/`                   | [API](api.zh.md#account-routes) 中的账号路由、`apps/web/lib/db/schema.ts`、[基于修订号的同步决策](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)和[工作区界面](workspace-ui.zh.md#accounts-and-settings) |
-| 可见工作区或交互行为                 | `apps/web/components/` 和 `apps/web/lib/` | [工作区 UI](workspace-ui.zh.md)、设计规则和 [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                                                                                                                 |
+| 更改领域                             | 从这里开始                                       | 继续追踪                                                                                                                                                                                                                                  |
+| ------------------------------------ | ------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 聊天请求与流式回复                   | `apps/web/app/api/chat/route.ts`                 | `packages/orchestrator/src/chat/chat.ts`、共享聊天约定和聊天 UI                                                                                                                                                                           |
+| 规划状态、冲突检查或 specialist 流程 | `packages/orchestrator/src/planning/workflow.ts` | `packages/agents/src/`、经过验证的计划约定、持久化和工作区消费方                                                                                                                                                                          |
+| 共享请求、提案或计划的数据结构       | `packages/shared/src/`                           | 每个生产方和消费方；在同一更改中新增 Agent Note                                                                                                                                                                                           |
+| 地图、预订或天气依据                 | `packages/tools/src/gateway.ts`                  | 带类型的端口、提供方适配器、回退标签和 agent 消费方；提供方工作使用 [add-provider](../.agents/skills/add-provider/SKILL.md)                                                                                                               |
+| 保存的聊天、偏好或旅行               | `packages/services/src/`                         | 浏览器存储、API 路由和工作区恢复行为                                                                                                                                                                                                      |
+| 账号、登录与跨设备同步               | `apps/web/lib/account/`                          | [API](api.zh.md#account-routes) 中的账号路由、`apps/web/lib/db/schema.ts`、[基于修订号的同步决策](../.agents/notes/implemented/bug-fix/2026-10-14-revision-based-account-sync.md)和[工作区界面](workspace-ui.zh.md#accounts-and-settings) |
+| 可见工作区或交互行为                 | `apps/web/components/` 和 `apps/web/lib/`        | [工作区 UI](workspace-ui.zh.md)、设计规则和 [ui-verification](../.agents/skills/ui-verification/SKILL.md)                                                                                                                                 |
 
 跨越这些边界的更改，使用
 [end-to-end-feature-wiring](../.agents/skills/end-to-end-feature-wiring/SKILL.md)
@@ -62,10 +62,10 @@ LangGraph 工作流驱动 supervisor，而不是反过来：图决定何时分�
 supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、预算红线和停止条件
 从不依赖模型临时决定下一步。
 
-1. `POST /api/chat` 调用 `runTripChat`（`packages/orchestrator/src/chat.ts`），只从消息中
+1. `POST /api/chat` 调用 `runTripChat`（`packages/orchestrator/src/chat/chat.ts`），只从消息中
    提取明确的 `TripBrief` 更新。`mode: "plan"` 跳过提取，规划提交的行程需求；
    `mode: "start"` 要求消息中包含所有行程需求字段（见 [API](api.zh.md)）。
-   所有入口都通过 `packages/orchestrator/src/brief-intake.ts` 中的 `BriefIntake` 合并明确的修订，
+   所有入口都通过 `packages/orchestrator/src/brief/brief-intake.ts` 中的 `BriefIntake` 合并明确的修订，
    并统一判断是否就绪：可规划、信息不全、目的地有歧义，或历史日期需要确认。
    模型补齐行程需求后，即使没有调用 `replan_trip`，也会经过同一个检查入口。
    历史日期确认由最近一条助手 `ChatTurn.pendingBriefConfirmation` 绑定具体起止日期，
@@ -86,7 +86,7 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 ## Web 地图提供方
 
 Web 工作区的地点搜索、地点详情、地点照片、行程段路线、从旅行者当前位置出发的路线以及目的地时区，
-都通过 `apps/web/lib/map-provider/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
+都通过 `apps/web/lib/map/providers/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
 Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：Photon/Nominatim 提供搜索和详情，Commons
 提供可选的许可照片，OSRM 提供步行、骑行及驾车，Transitous 提供公共交通，坐标在离线状态下解析时区。
 [完成决策](../.agents/notes/implemented/architecture/2026-10-10-complete-map-fallback.md)记录了边界。
@@ -130,7 +130,7 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：P
 - **时区**在 Google 时区调用失败时，通过 `@photostructure/tz-lookup`（CC0 数据，不发起网络请求）离线计算。
   其边界经过简化，距离边界几公里内的地点可能得到相邻时区。没有坐标的地点没有时区，会被拒绝，绝不假定为 UTC。
 - **模拟数据模式：**在 `MOCK_GOOGLE_MAPS=unavailable` 下，编辑预览通过提供方为路段规划路线和时间；提供方以 fixture
-  应答 OSRM（按直线距离、步行或驾车速度计算，见 `apps/web/lib/map-provider/mock-osm.ts`），地点也取自同一文件。
+  应答 OSRM（按直线距离、步行或驾车速度计算，见 `apps/web/lib/map/providers/mock-osm.ts`），地点也取自同一文件。
   不发出任何 OSRM 请求。
 
 <a id="free-services-limits-and-terms"></a>
@@ -241,7 +241,7 @@ flowchart LR
     B --> E((END))
 ```
 
-编译后的图位于 `packages/orchestrator/src/workflow.ts`，携带 `brief`、`round`、
+编译后的图位于 `packages/orchestrator/src/planning/workflow.ts`，携带 `brief`、`round`、
 `proposals`、`conflicts`、`stalled` 和最终 `plan`。共享约定和内部 `StateSchema` 都使用
 Zod 4（`zod` 4.5）；`packages/shared` 导入 `zod` 入口，编排器导入 `zod/v4`。
 Specialist 提案、行程需求和最终计划在图边界上分别通过 `AgentProposalSchema.parse`、
@@ -249,7 +249,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 
 - `dispatch_specialists` 要求 supervisor 将工作委派给已注册的 specialist。
   没有配置模型或 supervisor 失败时，它直接调用所有 specialist。无论哪种路径，每次调用都经过
-  规划协作板（`packages/orchestrator/src/board.ts`）：住宿等待交通，行程和餐饮等待两者，
+  规划协作板（`packages/orchestrator/src/planning/board.ts`）：住宿等待交通，行程和餐饮等待两者，
   但只等待在同一轮次中已经启动的 specialist。每次调用都收到其他 specialist 的提案，字段为 `board`；
   住宿、行程和餐饮还会收到 `allocation`，分别占它们所等待阶段结束后剩余预算的 0.4、0.4、0.2。
   多城市旅行中，行程按已安排的城际移动（`citiesByDay`）确定每天所在的城市。移动日必须有带时间的转场，
@@ -288,7 +288,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 - Specialist、工具、记忆和轮数限制都可通过 `OrchestratorOptions` 注入。
 
 协调器的回复读取计划摘要，其中包含每个未解决冲突及其解决方法
-（`packages/orchestrator/src/chat.ts` 中的 `planDigest`），因此面对不可行预算时，
+（`packages/orchestrator/src/chat/chat.ts` 中的 `planDigest`），因此面对不可行预算时，
 回复会说明估算总额及所需的最低预算。没有模型时，以及在 `mode: "plan"` 下，回退回复也说明相同的最低预算。
 
 `packages/orchestrator/tests/budget.test.ts` 展示了分阶段规划的运行情况：
@@ -396,7 +396,7 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 
 旅行者以天数说明的行程长度由模型的 `tripDays` 传入，结束日期为开始日期加上天数再减一，因此 N 天就是 N 个日历日，
 不额外加一个离开日。有模型时，人数、同行人和日期只来自模型；本地正则（`extractBriefPatchLocally`、`statedTripDays`
-以及 `packages/orchestrator/src/brief-intake.ts` 中的饮食关键词）只在没有模型产出更新时使用。
+以及 `packages/orchestrator/src/brief/brief-intake.ts` 中的饮食关键词）只在没有模型产出更新时使用。
 
 模型还会返回 `lastingPreferences`，即旅行者说每次旅行都适用的偏好，聊天路由把它们存入账户记忆；模型没有返回时，
 `recognize-memory.mjs` 作为兜底。只适用于这次旅行的愿望不会保存。路由没有已登录且开启记忆的账户时，会向 `runTripChat`
@@ -406,7 +406,7 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 
 当天往返的行程（`dates[0] === dates[1]`）只在只有一个目的地且 `noAccommodation: true` 时有效；其余行程每个目的地至少一晚。brief patch 让开始和结束成为同一天、且 `noAccommodation` 未设置时，`mergeBriefPatch` 会把它设为 `true`，所以“1 day in Sydney”会规划一天且不住宿。当天往返的行程设置 `noAccommodation: false` 会被拒绝。
 
-`packages/orchestrator/src/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
+`packages/orchestrator/src/planning/supervisor.ts` 中的 `specialistBrief` 把学到的列表追加到旅行者自己的
 列表之后交给 specialist，去重并限制为 12 条。存储的行程需求仍把两个列表分开保存。
 
 没有出发城市、或从唯一目的地出发的行程没有抵达交通：`journeyLegs` 只返回目的地之间的交通，第一天从第一个活动开始。
@@ -420,10 +420,10 @@ false 时保留原有行为。
 
 一条消息最多携带四个附件。图片以内容块传给协调器，文本文件内联到消息中；
 只有协调器能看到附件，specialist 的输入不变，离线路径忽略图片但仍读取内联文本。
-大小和允许的媒体类型在 `packages/shared/src/chat.ts` 中强制执行，并列于 [API](api.zh.md)。
+大小和允许的媒体类型在 `packages/shared/src/chat/chat.ts` 中强制执行，并列于 [API](api.zh.md)。
 
 对于存在具体选项的真实歧义，协调器也可以调用 `ask_user_question`
-（`packages/orchestrator/src/chat.ts`）；该调用抛出 `AskUserError`，并流式发送
+（`packages/orchestrator/src/chat/chat.ts`）；该调用抛出 `AskUserError`，并流式发送
 `ChatAskUser` 帧（`type: "ask_user"`、1–4 个问题、`known`，且客户端的 `plan` 保持不变）。
 客户端在输入框的位置渲染问题卡片，将旅行者的答案作为下一条消息发送。见
 [DSH 思考 UI §3.2](design/dsh-thinking-ui.zh.md#32-asking-the-traveller)。

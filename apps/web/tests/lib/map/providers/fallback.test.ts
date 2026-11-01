@@ -1,7 +1,7 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { GoogleNotConfiguredError, GoogleRequestError } from "@/lib/integrations/google";
-import { createMapProvider, routeLeg } from "@/lib/map-provider";
-import type { MapProvider } from "@/lib/map-provider/types";
+import { createMapProvider, routeLeg } from "@/lib/map/providers";
+import type { MapProvider } from "@/lib/map/providers/types";
 
 const place = { id: "osm:node/1", displayName: { text: "Fushimi Inari" } };
 

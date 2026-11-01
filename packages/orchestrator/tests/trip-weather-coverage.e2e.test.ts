@@ -3,7 +3,7 @@ import { resolve } from "node:path";
 import { afterEach, describe, expect, it, vi } from "vitest";
 import { createDestinationGuideAgent, runWithModelsDisabled } from "@trip/agents";
 import { type TripBrief } from "@trip/shared";
-import { runOrchestrator } from "../src/workflow";
+import { runOrchestrator } from "../src/planning/workflow";
 import { itinerary, memoryStore } from "./chat-test-fixtures";
 const output = resolve(
   process.cwd(),

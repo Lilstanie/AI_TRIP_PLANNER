@@ -33,7 +33,9 @@ render nothing (for example `lib/chat/team-model.ts`, `lib/trip/preview-request.
 `apps/web/lib/integrations/`. Put all web tests under `apps/web/tests/`, mirroring the `app`,
 `components`, and `lib` feature groups; shared fixtures belong in `apps/web/tests/fixtures/` and
 setup belongs in `apps/web/tests/setup.ts`. The package folders use the same rule: production code
-stays under `src/`, while tests belong under each package's `tests/` directory.
+stays under `src/`, while tests belong under each package's `tests/` directory. In `packages/orchestrator/src`,
+brief intake lives in `brief/`, chat turns in `chat/` and the planning graph in `planning/`;
+`index.ts` re-exports the public API.
 
 When a feature crosses folders, keep the public contract in the domain module and import it from
 there rather than creating a new root-level convenience file. Update this section and the API docs
@@ -45,7 +47,10 @@ traditional `tailwind.config.js` in this project. `apps/web/components.json` con
 CLI, while generated primitives live under `apps/web/components/ui/` and use `@/lib/utils` for
 `cn()`. Keep the existing semantic tokens and migrate domain CSS incrementally under
 `apps/web/app/styles/`; do not replace the custom focus-managed Dialog or Drawer without preserving
-their keyboard and focus behavior.
+their keyboard and focus behavior. Stylesheets are grouped by area in `app/styles/chat/`, `trip/`, `workspace/`, `phone/` and
+`agent-lab/`; shared ones (tokens, base, forms, glass, motion) stay at the top level. `globals.css`
+imports them in cascade order, and each area folder's `index.css` keeps its own order, so add a new
+file next to its neighbours and import it where it belongs in that order.
 
 ### File size and style boundaries
 

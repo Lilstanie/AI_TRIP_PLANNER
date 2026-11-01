@@ -2,7 +2,7 @@ import { FakeToolCallingModel } from "langchain";
 import { AIMessage } from "@langchain/core/messages";
 import { vi } from "vitest";
 import type { ChatTurn, MemoryStore, Specialist, ToolGateway, TripBrief } from "@trip/shared";
-import { runTripChat } from "../src/chat";
+import { runTripChat } from "../src/chat/chat";
 
 export const brief: TripBrief = {
   tripId: "chat-test",

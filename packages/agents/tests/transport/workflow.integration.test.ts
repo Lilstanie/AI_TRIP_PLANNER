@@ -1,6 +1,6 @@
 import { describe, expect, it, vi } from "vitest";
 import type { Specialist, TripBrief, ToolGateway, MemoryStore } from "@trip/shared";
-import { runOrchestrator } from "../../../orchestrator/src/workflow";
+import { runOrchestrator } from "../../../orchestrator/src/planning/workflow";
 import { createItineraryAgent } from "../../src/itinerary";
 
 const brief: TripBrief = {

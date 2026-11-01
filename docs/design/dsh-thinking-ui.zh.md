@@ -179,7 +179,7 @@ DSH 的减少动效支持尚不完整：思考行、运行行、命令行、重�
 
 ## 2. 本项目目前的实现
 
-聊天界面位于 `apps/web/components/chat/ThinkingProcess.tsx`，由 `apps/web/components/chat/ChatPanel.tsx` 在标为「Thinking process」的 `section.agent-activity` 中渲染。`apps/web/lib/chat/thinking-model.ts` 从 `activity`（`AgentProgressEvent[]`）派生树结构，不含 React；`Disclosure.tsx` 是从 DSH 移植、树中每行都使用的统一展开控件；`ThinkingRows.tsx` 基于它渲染推理、subagent 和工具行。样式位于 `apps/web/app/styles/thinking.css`；协调者的问题或者通过 assistant 自己的文字消息呈现，或者以结构化问题交给 `QuestionComposer.tsx` 替代输入框（`apps/web/app/styles/question.css`）；普通输入框位于 `apps/web/components/chat/Composer.tsx`。消息本身由 `MessageItem.tsx` 渲染（`apps/web/app/styles/messages.css`）。设计 token 位于 `apps/web/app/styles/tokens.css`，进度帧是 `packages/shared/src/chat.ts` 中的 `AgentProgressEvent` 可辨识联合类型。
+聊天界面位于 `apps/web/components/chat/ThinkingProcess.tsx`，由 `apps/web/components/chat/ChatPanel.tsx` 在标为「Thinking process」的 `section.agent-activity` 中渲染。`apps/web/lib/chat/thinking-model.ts` 从 `activity`（`AgentProgressEvent[]`）派生树结构，不含 React；`Disclosure.tsx` 是从 DSH 移植、树中每行都使用的统一展开控件；`ThinkingRows.tsx` 基于它渲染推理、subagent 和工具行。样式位于 `apps/web/app/styles/chat/thinking.css`；协调者的问题或者通过 assistant 自己的文字消息呈现，或者以结构化问题交给 `QuestionComposer.tsx` 替代输入框（`apps/web/app/styles/chat/question.css`）；普通输入框位于 `apps/web/components/chat/Composer.tsx`。消息本身由 `MessageItem.tsx` 渲染（`apps/web/app/styles/chat/messages.css`）。设计 token 位于 `apps/web/app/styles/tokens.css`，进度帧是 `packages/shared/src/chat/chat.ts` 中的 `AgentProgressEvent` 可辨识联合类型。
 
 该界面逐行对应 DSH：
 
@@ -244,7 +244,7 @@ The Rocks · 2026-11-10`，其他参数显示为 `key value` 标签——而非�
 ### 3.2 询问旅行者
 
 - **计划自行决定能决定的事项。** 住宿专职 agent 已比较每个合格候选，其提案指定一个选项。transcript 通过 `agent_completed.choice` 报告选中住宿、专职 agent 自己的理由及比较过的备选项，而非每轮都展示「Choose your stay」卡片等待旅行者。只有协调者可以询问旅行者：专职 agent 在编排图内部运行，不能结束轮次。
-- **真正的歧义使用结构化问题。** 协调者拥有 `ask_user_question` 工具（`packages/orchestrator/src/chat.ts`，对应 DSH 同名工具）：1–4 个问题，每个包含稳定 id、可选 header/detail，以及最多 4 个选项（`label`、可选 `description`）。调用即结束轮次：提示词要求协调者不再调用工具，之后最多说一句简短文字，因为问题卡片已展示问题。推荐选项排在首位，并在标签后附加 `" (Recommended)"`；每个选项都包含一句权衡说明。对应帧为 `ChatAskUser`（`packages/shared/src/chat.ts`）：`type:
+- **真正的歧义使用结构化问题。** 协调者拥有 `ask_user_question` 工具（`packages/orchestrator/src/chat/chat.ts`，对应 DSH 同名工具）：1–4 个问题，每个包含稳定 id、可选 header/detail，以及最多 4 个选项（`label`、可选 `description`）。调用即结束轮次：提示词要求协调者不再调用工具，之后最多说一句简短文字，因为问题卡片已展示问题。推荐选项排在首位，并在标签后附加 `" (Recommended)"`；每个选项都包含一句权衡说明。对应帧为 `ChatAskUser`（`packages/shared/src/chat/chat.ts`）：`type:
 "ask_user"`、有上限的 `questions`、`known`（当前理解的 brief）、已有时原样返回的客户端 `plan`，以及任何 `reply` 文字。它与 `needs_info` 一样以错误信号传递：`runConversationAgent` 抛出 `AskUserError`，`apps/web/app/api/chat/route.ts` 捕获并作为轮次最终帧发送；`apps/web/lib/workspace/workspace.ts` 从 `readPlanStream` 重新抛出自己的 `AskUserError`。
 - **没有有用选项的信息仍用一句普通文字询问。** 缺少目的地、预算或日期范围时，没有值得提供的选项菜单，因此协调者仍在回答中直接询问，保持原有方式；`needs_info` 路径（`ChatNeedsInfo`）不携带选项列表，以后也不会。
 - **答案成为下一轮。** 打开 `PendingAsk`（`apps/web/lib/workspace/ask-user.ts`）时，`QuestionComposer.tsx` 替代输入框。提交时调用 `formatAskAnswers`，将答案转为每题一行（`Header: choice, choice`，跳过时为 `"no preference"`），连同 `known` 作为旅行者的下一条聊天消息发送；请求形状与已有输入的后续消息相同，因此下游不需要适配新的答案格式。关闭卡片会将其移除并恢复普通输入框；无论哪种情况，问题文字都保留在 assistant 消息中。参见 [`2026-09-23-ask-user-question`](../../.agents/notes/implemented/feature/2026-09-23-ask-user-question.md)，了解为什么它只取代删除 `ask_the_traveller` 的说明中关于提问的部分。
@@ -294,7 +294,7 @@ The Rocks · 2026-11-10`，其他参数显示为 `key value` 标签——而非�
 
 ### 4.5a 每次模型调用一个推理块，树按 DSH 方式嵌套
 
-推理 sink 曾将同一次模型调用每个 160 字符刷新各自编号为一个 `index`，导致长思考拆成多个 Think 行，每行显示自己的第一行，形成一列半句话片段。`packages/orchestrator/src/reasoning-sink.ts` 现在为同一 sink 的每次刷新设置相同 `REASONING_BLOCK_INDEX`（0）；sink 仍控制传输节奏，但同一调用链的增量构成同一个块。`thinking-model.ts` 中的 `mergeReasoning` 在客户端按 `(agent, round,
+推理 sink 曾将同一次模型调用每个 160 字符刷新各自编号为一个 `index`，导致长思考拆成多个 Think 行，每行显示自己的第一行，形成一列半句话片段。`packages/orchestrator/src/planning/reasoning-sink.ts` 现在为同一 sink 的每次刷新设置相同 `REASONING_BLOCK_INDEX`（0）；sink 仍控制传输节奏，但同一调用链的增量构成同一个块。`thinking-model.ts` 中的 `mergeReasoning` 在客户端按 `(agent, round,
 episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧。
 
 推理行在任何状态下收起时都显示本地化的 `Thinking` 标签。只有明确展开该推理行时，才会显示完整推理流。Think 行的实时摘要始终使用 `liveSummary` 提供面向旅行者的进度；推理增量不会替换它。若 subagent 正在流式输出推理，其收起摘要也会使用本地化的工具或 agent 进度。即使父级行已展开，原始协调文本仍只会出现在明确展开的推理行中。
@@ -323,7 +323,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 ### 4.8 实时推理、工具结果与选择
 
-所需约定新增于 `packages/shared/src/chat.ts`：
+所需约定新增于 `packages/shared/src/chat/chat.ts`：
 
 | 事件                                            | 携带内容                                                                     |
 | ----------------------------------------------- | ---------------------------------------------------------------------------- |
@@ -335,9 +335,9 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 | `agent_completed.outcome` / `choice`            | 本轮改变了什么，以及专职 agent 最终选择的选项                                |
 | `needs_info.asked`                              | agent 提出的问题、上下文与建议                                               |
 
-`packages/agents/src/reasoning.ts` 将 `invoke` 转换为流，才能读取 `reasoning_content`：LangChain 的 OpenAI 适配器把该字段放到每个分片的 `additional_kwargs` 中，但从合成消息中丢弃，因此没有其他读取方式。`bindTools`、`bind` 和 `withStructuredOutput` 重新包装，因为 LangChain 实际调用的是绑定后的模型；仅替换 `invoke` 的代理永远看不到 token。`packages/orchestrator/src/reasoning-sink.ts` 将增量按节奏转换为 transcript 事件，标明其所属模型调用链（episode），并在模型调用结束时刷新尾部。
+`packages/agents/src/reasoning.ts` 将 `invoke` 转换为流，才能读取 `reasoning_content`：LangChain 的 OpenAI 适配器把该字段放到每个分片的 `additional_kwargs` 中，但从合成消息中丢弃，因此没有其他读取方式。`bindTools`、`bind` 和 `withStructuredOutput` 重新包装，因为 LangChain 实际调用的是绑定后的模型；仅替换 `invoke` 的代理永远看不到 token。`packages/orchestrator/src/planning/reasoning-sink.ts` 将增量按节奏转换为 transcript 事件，标明其所属模型调用链（episode），并在模型调用结束时刷新尾部。
 
-`packages/orchestrator/src/progress-tools.ts` 使工具调用变得可读：每个网关方法现在报告参数，以及对自身结果的有界结构化摘要——住宿候选的区域、总价、评分与取消规则；地点的类别与评分；路线段的方式、时长与价格；航班的承运方、价格与经停。它仍绝不发布提供方载荷或凭据。
+`packages/orchestrator/src/planning/progress-tools.ts` 使工具调用变得可读：每个网关方法现在报告参数，以及对自身结果的有界结构化摘要——住宿候选的区域、总价、评分与取消规则；地点的类别与评分；路线段的方式、时长与价格；航班的承运方、价格与经停。它仍绝不发布提供方载荷或凭据。
 
 <a id="49-removed-the-todo-panel"></a>
 
@@ -349,7 +349,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 ### 4.10 输入框是一张卡片，而非表单行
 
-`apps/web/components/chat/Composer.tsx` 与 `apps/web/app/styles/composer.css` 替代旧的输入框加两个按钮的行。它遵循 DSH `InputBar` 的形状：一个胶囊表面容纳文字与控件，28px 圆形控件位于左下，主要操作位于右下，草稿随内容增长，之后在卡片内滚动，卡片为整个控件承载焦点环。圆角采用 DSH 的原始 22px，而非本应用的 14px 面板圆角，因为卡片是输入胶囊，14px 会让它变成另一个平板面板。
+`apps/web/components/chat/Composer.tsx` 与 `apps/web/app/styles/chat/composer.css` 替代旧的输入框加两个按钮的行。它遵循 DSH `InputBar` 的形状：一个胶囊表面容纳文字与控件，28px 圆形控件位于左下，主要操作位于右下，草稿随内容增长，之后在卡片内滚动，卡片为整个控件承载焦点环。圆角采用 DSH 的原始 22px，而非本应用的 14px 面板圆角，因为卡片是输入胶囊，14px 会让它变成另一个平板面板。
 
 有意省略 DSH 的三个控件：模型选择器、权限 / 访问标签、上下文窗口计量器。本应用只有一个模型、一个用户，没有需要显示的 token 预算，因此它们会成为三个无效标签。左下控件是附件按钮，打开多文件选择器。
 
@@ -441,22 +441,22 @@ DSH，位于 `deepseek-harness` 仓库：
 
 本项目：
 
-| 主题                 | 路径                                                                                                                                                                    |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| 思考过程界面         | `apps/web/components/chat/ThinkingProcess.tsx`, `ThinkingRows.tsx`, `thinking-model.ts`                                                                                 |
-| 展开控件             | `apps/web/components/chat/Disclosure.tsx`                                                                                                                               |
-| 图标                 | `apps/web/components/ui/flow-icons.tsx`（移植的 DSH 图标与类别图标）、`icons.tsx`（无关的应用控件）                                                                     |
-| 聊天渲染             | `apps/web/components/chat/ChatPanel.tsx`                                                                                                                                |
-| 消息                 | `apps/web/components/chat/MessageItem.tsx`, `apps/web/components/chat/RevealedText.tsx`, `apps/web/lib/workspace/message-chrome.ts`, `apps/web/app/styles/messages.css` |
-| 输入框               | `apps/web/components/chat/Composer.tsx`, `apps/web/app/styles/composer.css`                                                                                             |
-| 提问卡片             | `apps/web/components/chat/QuestionComposer.tsx`, `apps/web/lib/workspace/ask-user.ts`, `apps/web/app/styles/question.css`                                               |
-| 住宿选择             | `apps/web/components/chat/ThinkingRows.tsx` 中的 `ChoiceBlock`                                                                                                          |
-| 思考过程样式         | `apps/web/app/styles/thinking.css`                                                                                                                                      |
-| 设计 token           | `apps/web/app/styles/tokens.css`                                                                                                                                        |
-| 进度与 ask-user 约定 | `packages/shared/src/chat.ts`                                                                                                                                           |
-| 推理流               | `packages/agents/src/reasoning.ts`, `packages/orchestrator/src/reasoning-sink.ts`                                                                                       |
-| 思考模型路由         | `packages/agents/src/models.ts`（`RoutedModelOptions`）                                                                                                                 |
-| 工具结果详情与类型   | `packages/orchestrator/src/progress-tools.ts`                                                                                                                           |
-| Ask-user 工具        | `packages/orchestrator/src/chat.ts`（`askUserQuestion`, `toQuestions`, `AskUserError`）                                                                                 |
-| 轮次与选择事件       | `packages/orchestrator/src/supervisor.ts`, `workflow.ts`, `chat.ts`                                                                                                     |
-| 开发 fixture 页面    | `apps/web/app/debug/thinking/page.tsx`, `apps/web/lib/dev/thinking-fixtures.ts`, `apps/web/app/debug/question/page.tsx`                                                 |
+| 主题                 | 路径                                                                                                                                                                         |
+| -------------------- | ---------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| 思考过程界面         | `apps/web/components/chat/ThinkingProcess.tsx`, `ThinkingRows.tsx`, `thinking-model.ts`                                                                                      |
+| 展开控件             | `apps/web/components/chat/Disclosure.tsx`                                                                                                                                    |
+| 图标                 | `apps/web/components/ui/flow-icons.tsx`（移植的 DSH 图标与类别图标）、`icons.tsx`（无关的应用控件）                                                                          |
+| 聊天渲染             | `apps/web/components/chat/ChatPanel.tsx`                                                                                                                                     |
+| 消息                 | `apps/web/components/chat/MessageItem.tsx`, `apps/web/components/chat/RevealedText.tsx`, `apps/web/lib/workspace/message-chrome.ts`, `apps/web/app/styles/chat/messages.css` |
+| 输入框               | `apps/web/components/chat/Composer.tsx`, `apps/web/app/styles/chat/composer.css`                                                                                             |
+| 提问卡片             | `apps/web/components/chat/QuestionComposer.tsx`, `apps/web/lib/workspace/ask-user.ts`, `apps/web/app/styles/chat/question.css`                                               |
+| 住宿选择             | `apps/web/components/chat/ThinkingRows.tsx` 中的 `ChoiceBlock`                                                                                                               |
+| 思考过程样式         | `apps/web/app/styles/chat/thinking.css`                                                                                                                                      |
+| 设计 token           | `apps/web/app/styles/tokens.css`                                                                                                                                             |
+| 进度与 ask-user 约定 | `packages/shared/src/chat/chat.ts`                                                                                                                                           |
+| 推理流               | `packages/agents/src/reasoning.ts`, `packages/orchestrator/src/planning/reasoning-sink.ts`                                                                                   |
+| 思考模型路由         | `packages/agents/src/models.ts`（`RoutedModelOptions`）                                                                                                                      |
+| 工具结果详情与类型   | `packages/orchestrator/src/planning/progress-tools.ts`                                                                                                                       |
+| Ask-user 工具        | `packages/orchestrator/src/chat/chat.ts`（`askUserQuestion`, `toQuestions`, `AskUserError`）                                                                                 |
+| 轮次与选择事件       | `packages/orchestrator/src/planning/supervisor.ts`, `workflow.ts`, `chat.ts`                                                                                                 |
+| 开发 fixture 页面    | `apps/web/app/debug/thinking/page.tsx`, `apps/web/lib/dev/thinking-fixtures.ts`, `apps/web/app/debug/question/page.tsx`                                                      |

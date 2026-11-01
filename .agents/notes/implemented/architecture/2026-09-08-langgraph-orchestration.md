@@ -11,7 +11,7 @@ implicit in that loop, so every new conflict rule or HITL step meant editing con
 
 ## Decision
 
-The orchestrator is a compiled LangGraph `StateGraph` in `packages/orchestrator/src/workflow.ts`
+The orchestrator is a compiled LangGraph `StateGraph` in `packages/orchestrator/src/planning/workflow.ts`
 with explicit nodes: `dispatch_specialists`, `detect_conflicts`, `revise_conflicts` and
 `build_plan`, plus a conditional edge that repeats revision up to `maxRounds` (default 3).
 LangGraph owns deterministic workflow control; model calls stay inside bounded extraction and

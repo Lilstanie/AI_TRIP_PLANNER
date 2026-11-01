@@ -5,7 +5,7 @@ import {
   parseMonthDay,
   parseTripDate,
   type ParsedDate,
-} from "./dates";
+} from "../dates";
 
 export interface FlightQuery {
   from: string;

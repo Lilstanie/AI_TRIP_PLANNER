@@ -10,7 +10,7 @@ import {
   IncompleteBriefError,
   runTripChat,
   toQuestions,
-} from "../src/chat";
+} from "../src/chat/chat";
 import { brief, itinerary, memoryStore, run, scriptedModel, tools } from "./chat-test-fixtures";
 
 describe("the reply language", () => {

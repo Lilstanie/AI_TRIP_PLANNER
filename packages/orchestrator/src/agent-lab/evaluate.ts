@@ -1,5 +1,5 @@
 import type { AgentLabCheck, AgentLabMetrics, ProposalItem, TripPlan } from "@trip/shared";
-import { INFEASIBLE_BUDGET } from "../conflicts";
+import { INFEASIBLE_BUDGET } from "../planning/conflicts";
 import { cityNames, normal } from "./cities";
 import type { AgentLabScenario } from "./scenarios";
 

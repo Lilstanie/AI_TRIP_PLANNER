@@ -142,7 +142,7 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 apps/web/                 Next.js workspace UI and API routes
   components/{workspace,chat,trip,trajectory,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,trajectory,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
+  lib/{workspace,chat,trip,trajectory,map,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code

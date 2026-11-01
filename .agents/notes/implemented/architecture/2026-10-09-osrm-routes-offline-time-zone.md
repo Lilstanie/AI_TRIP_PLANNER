@@ -47,7 +47,7 @@ and an independent bike instance. The profile separation and offline time-zone d
 - The public OSRM servers are for non-commercial fair use with no uptime guarantee. The web fallback
   caches answered legs for 10 minutes and does not throttle to one request a second, so a busy
   deployment needs a self-hosted OSRM through the base URL settings.
-- Fallback routes in mock data mode come from fixtures in `apps/web/lib/map-provider/mock-osm.ts`, so
+- Fallback routes in mock data mode come from fixtures in `apps/web/lib/map/providers/mock-osm.ts`, so
   E2E never reaches OSRM.
 
 ## Sources

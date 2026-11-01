@@ -1,5 +1,5 @@
 import { describe, it, expect, vi } from "vitest";
-import { answerFlightQuery } from "../src/flight-answer";
+import { answerFlightQuery } from "../src/chat/flight-answer";
 import type { BookingPort } from "@trip/shared";
 
 const query = {

@@ -37,9 +37,9 @@ import { HumanMessage } from "@langchain/core/messages";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
 import { localCalendarDate } from "@trip/tools";
-import { BriefPatchSchema, ISO_DATE, type BriefPatch } from "./brief";
-import { count, intentFrom, lastingPreferencesFrom, text } from "./brief-update-fields";
-import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "./reasoning-sink";
+import { BriefPatchSchema, ISO_DATE, type BriefPatch } from "../brief/brief";
+import { count, intentFrom, lastingPreferencesFrom, text } from "../brief/brief-update-fields";
+import { COORDINATOR_REASONING_EPISODE, createReasoningSink } from "../planning/reasoning-sink";
 import { extractBriefPatchLocally } from "./chat-offline";
 import {
   BriefIntake,
@@ -47,21 +47,21 @@ import {
   IncompleteBriefError,
   locationForBrief,
   missingFields,
-} from "./brief-intake";
-export { AskUserError, IncompleteBriefError } from "./brief-intake";
+} from "../brief/brief-intake";
+export { AskUserError, IncompleteBriefError } from "../brief/brief-intake";
 export { AskUserQuestionInput, toQuestions } from "./chat-ask-user";
 export { FlightAnswerReady } from "./chat-flight-search";
 import { ASK_USER_DESCRIPTION, AskUserQuestionInput, toQuestions } from "./chat-ask-user";
 import { createFlightSearchTool, FlightAnswerReady, type FlightSearch } from "./chat-flight-search";
 import { judgeHandoff } from "./mention-handoff";
 import { stopChanges } from "./stop-changes";
-import { ROLE_NAMES } from "./progress-copy";
+import { ROLE_NAMES } from "../planning/progress-copy";
 import { groundedReply, unchangedPlanReply } from "./chat-grounding";
-import { isInfeasible } from "./conflicts";
+import { isInfeasible } from "../planning/conflicts";
 import { budgetText, costLine } from "./cost-line";
-import type { WorkflowDecision } from "./decisions";
-import { runOrchestrator, type OrchestratorOptions } from "./workflow";
-import { replyLanguage } from "./reply-language";
+import type { WorkflowDecision } from "../planning/decisions";
+import { runOrchestrator, type OrchestratorOptions } from "../planning/workflow";
+import { replyLanguage } from "../reply-language";
 
 export interface BriefExtractor {
   extract(message: string, current: TripBrief | undefined): Promise<BriefPatch>;

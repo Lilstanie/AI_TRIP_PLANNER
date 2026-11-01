@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { noticeBody } from "@/lib/i18n/notice";
-import { mapProviderFor } from "@/lib/map-provider";
+import { mapProviderFor } from "@/lib/map/providers";
 import { requestDataMode } from "@/lib/auth/live-data";
-import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
+import { placeErrorResponse } from "@/lib/map/providers/place-error-response";
 
 const DetailsRequest = z.object({
   placeId: z.string().min(1).max(300),

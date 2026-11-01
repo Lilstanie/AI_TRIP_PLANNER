@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
 import { parseTripDate, isAmbiguous } from "../src/dates";
-import { extractBriefPatchLocally } from "../src/chat-offline";
+import { extractBriefPatchLocally } from "../src/chat/chat-offline";
 
 describe("parseTripDate", () => {
   it("reads the shapes that cannot mean two things", () => {

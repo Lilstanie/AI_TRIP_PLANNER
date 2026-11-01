@@ -1,6 +1,6 @@
 import { BASE_CURRENCY, RATES_AS_OF, estimateNote, formatMoney, fromAud } from "@trip/shared";
 import type { Currency, InterfaceLanguage, TripPlan } from "@trip/shared";
-import { isInfeasible, minimumCost } from "./conflicts";
+import { isInfeasible, minimumCost } from "../planning/conflicts";
 
 const CATEGORIES = [
   { id: "accommodation", en: "accommodation", zh: "住宿" },

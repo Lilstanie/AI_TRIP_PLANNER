@@ -1,6 +1,6 @@
 import { describe, expect, it } from "vitest";
 import type { AgentProposal, TripBrief } from "@trip/shared";
-import { detectConflicts, isInfeasible } from "../src/conflicts";
+import { detectConflicts, isInfeasible } from "../src/planning/conflicts";
 
 const brief: TripBrief = {
   tripId: "kind-test",
