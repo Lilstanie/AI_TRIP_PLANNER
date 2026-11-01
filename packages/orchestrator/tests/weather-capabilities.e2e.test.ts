@@ -2,7 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { resolve } from "node:path";
 import { expect, it, vi } from "vitest";
 import { runWithModelsDisabled } from "@trip/agents";
-import { runTripChat } from "../src/chat";
+import { runTripChat } from "../src/chat/chat";
 import { memoryStore, ReplyOverrideModel, tools, itinerary } from "./chat-test-fixtures";
 
 it("TP-39: the coordinator receives truthful weather capability and horizon limits", async () => {

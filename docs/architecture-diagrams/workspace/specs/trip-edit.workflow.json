@@ -90,7 +90,7 @@
       "label": "地图提供方",
       "sublabel": "Google 优先 · OSM 兜底",
       "width": 184,
-      "sources": [{ "path": "apps/web/lib/map-provider/index.ts", "line": 14, "end_line": 50 }]
+      "sources": [{ "path": "apps/web/lib/map/providers/index.ts", "line": 14, "end_line": 50 }]
     },
     {
       "id": "revision",
@@ -107,7 +107,7 @@
           "end_line": 202,
           "label": "edit"
         },
-        { "path": "apps/web/components/trip/previewRequest.ts", "line": 16, "end_line": 49 }
+        { "path": "apps/web/lib/trip/preview-request.ts", "line": 16, "end_line": 49 }
       ]
     },
     {

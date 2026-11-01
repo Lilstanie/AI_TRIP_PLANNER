@@ -21,7 +21,7 @@ out a specialist view in the Trip drawer.
   `coordinator` event and each `agent_started.objective`, and a specialist's result from
   `agent_completed`. A step is marked as decided by AI when the stream carried reasoning for that
   assistant in that round, and as decided by code otherwise.
-- `packages/shared/src/chat.ts` gains, all optional: `AssistantId` (`coordinator` plus the specialist
+- `packages/shared/src/chat/chat.ts` gains, all optional: `AssistantId` (`coordinator` plus the specialist
   ids), `ChatResponse.assistant`, `agent_reasoning.assistant` and `agent_completed.source`. A missing
   assistant id reads as the Coordinator, so older clients and stored conversations still render.
 - A message can mention specialists (ticket #563). `ChatRequest.mentions` carries specialist ids, and

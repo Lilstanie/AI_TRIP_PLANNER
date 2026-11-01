@@ -5,7 +5,7 @@ import type { AgentProgressEvent } from "@trip/shared";
 import { FlowThinkIcon } from "../ui/flow-icons";
 import { ThinkingOrbIcon } from "./ThinkingOrbIcon";
 import { Disclosure, RowSeparator, RowSummary } from "./Disclosure";
-import { countActivity, roundGroups, turnSummary } from "./thinking-model";
+import { countActivity, roundGroups, turnSummary } from "../../lib/chat/thinking-model";
 import type { Notice } from "@/lib/i18n/notice";
 import { useTrajectoryFocus } from "./trajectory-focus";
 import { Children, RoundHeading, RunningLine, SubagentRow, type OpenRows } from "./ThinkingRows";
@@ -64,12 +64,13 @@ export function ThinkingProcess({
   const elapsed = useElapsedMs(busy);
   const counts = useMemo(() => countActivity(activity), [activity]);
   const groups = useMemo(() => roundGroups(activity, busy, locale), [activity, busy, locale]);
+  const hasError = Boolean(error);
   const summary = useMemo(
-    () => turnSummary(activity, counts, busy, Boolean(error), locale, outcome),
-    [activity, counts, busy, error, locale, outcome],
+    () => turnSummary(activity, counts, busy, hasError, locale, outcome),
+    [activity, counts, busy, hasError, locale, outcome],
   );
   const multiRound = groups.length > 1;
-  const failed = !busy && Boolean(error);
+  const failed = !busy && hasError;
 
   return (
     <div className="thinking-process">

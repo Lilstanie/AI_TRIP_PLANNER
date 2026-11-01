@@ -28,7 +28,24 @@ Agent Lab 基准版本为 1.0.7。汇总结果尚未测量，计划质量也尚�
 
 **2. AI Agent 的感知、决策与交互（4）。** 感知：需求模型把自由文本转成目的地、日期、出行人、预算和意图（节奏、饮食、兴趣），工具读取实时航班、住宿、地点、路线和天气。决策：LangGraph 的 supervisor 选择专家，图检查预算和时间冲突，只让相关 agent 返工，并以明确的原因停止。交互：五个专家助手、`@`-mentions、专家团队面板和执行轨迹。同一个 A$2,300 的行程，单个 agent 报价 A$3,960，五个专家不返工 A$2,560，定向返工 A$2,120，在预算内（[Agent Lab 运行记录](submission/stage2/agent-lab-exit-paths.md)）。10 月 30 日一次真实行程测试发现 22 个问题，每个都建成 Jira 故事，两天内修复（PR #837 到 #870）。
 
-**3. 敏捷开发（4）。** Jira 项目 TP 共 238 个条目，230 个已完成，均按带验收标准的用户故事书写。TP Sprint 1 从 10 月 21 日持续到 31 日；更早的迭代体现在 Git 中：8 月 24 日以来 `main` 共 795 个提交。每个 PR 都带 TP 编号，故事、分支、CI 运行和合并都连在一起；403 个 PR 经评审和 CI 后合并。五次有记录的回顾改了团队规则，决策记录为 [Agent Notes](.agents/notes/README.md)。
+**3. 敏捷开发（4）。** Jira 项目 TP 共 240 个条目，231 个已完成，均按带验收标准的用户故事书写。TP Sprint 1 从 10 月 21 日持续到 31 日；更早的迭代体现在 Git 中：8 月 24 日以来 `main` 共 795 个提交。每个 PR 都带 TP 编号，故事、分支、CI 运行和合并都连在一起；403 个 PR 经评审和 CI 后合并。五次有记录的回顾改了团队规则，决策记录为 [Agent Notes](.agents/notes/README.md)。
+
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#d9534f, #9aa0a6"
+---
+xychart-beta
+    title "TP Sprint 1 burn-down (story points)"
+    x-axis ["Start", "21 Oct", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov"]
+    y-axis "Remaining story points" 0 --> 20
+    line [18, 15, 15, 15, 15, 10, 10, 9, 9, 14, 14, 9, 0]
+    line [18, 16.4, 14.7, 13.1, 11.5, 9.8, 8.2, 6.5, 4.9, 3.3, 1.6, 0, 0]
+```
+
+燃尽图由 Jira 中 TP Sprint 1 的变更历史重建（取每天结束时的值，红线是剩余工作量，灰线是理想速率）。冲刺开始时有 18 个故事点；冲刺中途加入故事时曲线回升（10 月 21 日加入 TP-16 和 TP-17，10 月 29 日加入 TP-45 和 TP-62），11 月 1 日关闭冲刺时降到零。
 
 **4. 先进技术（5）。**
 
@@ -79,7 +96,7 @@ pnpm dev                     # http://localhost:3000
 apps/web/                 Next.js workspace UI and API routes
   components/{workspace,chat,trip,trajectory,map,preferences,account,agent-lab,pwa,ui}
                           UI grouped by feature and shared primitives
-  lib/{workspace,chat,trip,trajectory,map,map-provider,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
+  lib/{workspace,chat,trip,trajectory,map,planning,i18n,account,agent-lab,auth,db,dev,integrations}, money.ts
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code

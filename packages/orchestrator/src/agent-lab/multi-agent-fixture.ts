@@ -7,9 +7,9 @@ import type {
   TripPlan,
   UserPreference,
 } from "@trip/shared";
-import { withProgressTools } from "../progress-tools";
-import type { WorkflowDecision } from "../decisions";
-import { runOrchestrator } from "../workflow";
+import { withProgressTools } from "../planning/progress-tools";
+import type { WorkflowDecision } from "../planning/decisions";
+import { runOrchestrator } from "../planning/workflow";
 import { agentLabSupervisorFaultModel, applyAgentLabFault } from "./faults";
 import type { AgentLabScenario } from "./scenarios";
 import type { AgentLabStrategy } from "./strategy";

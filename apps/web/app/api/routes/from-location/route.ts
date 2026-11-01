@@ -1,6 +1,6 @@
 import { z, ZodError } from "zod";
 import { errorNotice, noticeBody } from "@/lib/i18n/notice";
-import { mapProviderFor, routeFromLocation } from "@/lib/map-provider";
+import { mapProviderFor, routeFromLocation } from "@/lib/map/providers";
 import { requestDataMode } from "@/lib/auth/live-data";
 
 const Input = z.object({

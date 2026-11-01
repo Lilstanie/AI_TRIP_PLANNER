@@ -1,8 +1,8 @@
 import { z } from "zod";
 import { noticeBody } from "@/lib/i18n/notice";
-import { mapProviderFor } from "@/lib/map-provider";
+import { mapProviderFor } from "@/lib/map/providers";
 import { requestDataMode } from "@/lib/auth/live-data";
-import { placeErrorResponse } from "@/lib/map-provider/place-error-response";
+import { placeErrorResponse } from "@/lib/map/providers/place-error-response";
 import { KIND_QUERY_WORD } from "@/lib/trip/add-filters";
 
 const MAX_QUERY = 200;

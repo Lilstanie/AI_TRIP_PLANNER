@@ -46,16 +46,77 @@ became a Jira story and was fixed in TP-194 to TP-223 (PRs #837 to #870) within 
 
 | Practice           | Evidence                                                                                                                                                                                                    |
 | ------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| User stories       | Jira project TP: 238 issues, 230 done. Stories are written as "As a traveller, I …" with acceptance criteria                                                                                                |
+| User stories       | Jira project TP: 240 issues, 231 done. Stories are written as "As a traveller, I …" with acceptance criteria                                                                                                |
 | Iterations         | TP Sprint 1 (21 to 31 October, 19 issues, closed 1 November). Before Jira, weekly iterations are visible in Git: 795 commits on `main` from 24 August, with weekly peaks of 133 (week 41) and 243 (week 43) |
 | Traceability       | Every pull request title carries its TP key, so Jira links story, branch, commits and PR; 403 pull requests merged                                                                                          |
 | Feedback loops     | Code review and CI on every pull request; five recorded retrospectives (two on 8 October, then 24, 28 and 30 October) whose actions changed the team rules; the live trip test above                        |
 | Decisions recorded | Agent Notes under [`.agents/notes/`](../../../.agents/notes/README.md) and 700+ dated session logs                                                                                                          |
 | Collaboration      | Five members, each owning two core features and one optional feature; the order of the live demo follows that split                                                                                         |
 
-Gap to fix before the demo: Jira holds one sprint only, so its burn-down chart covers 21 to 31
-October. Show the Jira sprint report for that sprint, and the weekly commit counts above for the
-earlier weeks.
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#d9534f, #9aa0a6"
+---
+xychart-beta
+    title "TP Sprint 1 burn-down (story points)"
+    x-axis ["Start", "21 Oct", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov"]
+    y-axis "Remaining story points" 0 --> 20
+    line [18, 15, 15, 15, 15, 10, 10, 9, 9, 14, 14, 9, 0]
+    line [18, 16.4, 14.7, 13.1, 11.5, 9.8, 8.2, 6.5, 4.9, 3.3, 1.6, 0, 0]
+```
+
+The burn-down is rebuilt from the Jira change history of each TP Sprint 1 issue: when it joined the
+sprint, its story points and when it was resolved. Values are at the end of each day (AEDT); the
+red line is remaining work and the grey line the ideal rate from 18 points on 21 October to zero on 31 October.
+
+| Date       | Scope change                                                      | Story points |
+| ---------- | ----------------------------------------------------------------- | ------------ |
+| 21 October | Sprint starts with 11 stories                                     | 18           |
+| 21 October | TP-16 and TP-17 added and done the same day                       | +5           |
+| 29 October | TP-45 (edit review step) and TP-62 (signed-out access test) added | +7           |
+| 1 November | TP-225, TP-226, TP-231 and TP-233 added and done, not estimated   | 0            |
+
+Remaining work rose on 29 October and fell to zero on 1 November, when the sprint was closed, one
+day after its planned end.
+
+```mermaid
+---
+config:
+  themeVariables:
+    xyChart:
+      plotColorPalette: "#4c78a8, #e45756"
+---
+xychart-beta
+    title "Jira work items created and resolved per day"
+    x-axis ["21 Oct", "22", "23", "24", "25", "26", "27", "28", "29", "30", "31", "1 Nov"]
+    y-axis "Work items" 0 --> 80
+    bar [69, 2, 0, 0, 26, 8, 12, 26, 16, 6, 51, 24]
+    line [17, 6, 0, 0, 33, 5, 20, 18, 12, 6, 79, 35]
+```
+
+Blue bars are work items created each day and the red line is work items resolved each day, from 240 Jira
+issues read on 1 November. The 69 items on 21 October are the backlog moved into Jira from GitHub
+Issues when the team adopted it. After that, new stories and finished stories track each other day
+by day, and the two peaks on 31 October and 1 November are the live trip test fixes and the Stage 2
+submission work.
+
+| Status | Items |     | Type  | Items |     | Assignee     | Items |
+| ------ | ----- | --- | ----- | ----- | --- | ------------ | ----- |
+| Done   | 231   |     | Story | 224   |     | Joey         | 201   |
+| To Do  | 9     |     | Epic  | 13    |     | Stan He      | 12    |
+|        |       |     | Bug   | 2     |     | Jiahang Bian | 9     |
+|        |       |     | Task  | 1     |     | Tingsong Jin | 8     |
+|        |       |     |       |       |     | Weihao Wang  | 4     |
+|        |       |     |       |       |     | Unassigned   | 6     |
+
+Lead time from creation to resolution: the median story took 2.6 hours (mean 34.7 hours), 68% of
+all resolved items were closed within a day of being created, and the median epic stayed open for
+9.7 days while its stories were delivered.
+
+Jira was adopted on 21 October; the weekly commit counts above show the earlier iterations.
 
 ## 4. Incorporation of advanced technologies (5)
 

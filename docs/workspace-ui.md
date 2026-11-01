@@ -467,11 +467,11 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     not move focus. The panel never opens by itself and
     updates live. It shows the latest turn: the live stream while one runs, otherwise the newest saved
     agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a `TeamModel`
-    as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
+    as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/lib/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: the same capsule (three stacked avatars, working first, and a compact count while planning), at least 44 px tall, sits right of the
     trip title, which truncates. It opens a full-screen Trajectory
-    ([`PhoneTeamButton`](../apps/web/components/workspace/PhoneTeamButton.tsx)). The ledger fills the
+    ([`PhoneTeamButton`](../apps/web/components/workspace/phone/PhoneTeamButton.tsx)). The ledger fills the
     viewport, and a Specialist team fold keeps the same team cards, filters and focus navigation
     reachable above it. The modal owns focus while open; Close, Escape or Browser Back restores the
     originating Chat, Map, Trip or Mine view and returns focus to the button. It shares the layout
@@ -676,7 +676,7 @@ search and filter bar without the timeline overview, and the record inspector op
 ledger and closes back to it. Close, Escape or Browser Back restores the originating view. With no
 turns yet, the modal shows an empty-state card in place of the toolbar and ledger, with a **Plan in
 Chat** button that closes the modal and selects Chat. The surface is
-[`PhoneTrajectory`](../apps/web/components/workspace/PhoneTrajectory.tsx).
+[`PhoneTrajectory`](../apps/web/components/workspace/phone/PhoneTrajectory.tsx).
 On the phone each record is a fixed 56 px card: its kind icon sits on the left, the request on the first line
 and its result on the second, and text beyond two lines is clipped (the inspector shows the whole text).
 The toolbar's Turns, Calls and search controls are 44 px high, the search text is 16 px so iOS Safari does not
@@ -1190,7 +1190,8 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
   no thinking row or stop button: a pending edit is not a chat request.
 
 - Activities receive stable IDs once, retained on reorder and restore. `editVersion` is independent of
-  the orchestrator round, and an edit applies only if its base version still matches.
+  the orchestrator round, and an edit applies only if its base version still matches. The background
+  route check keeps the version, so only a traveller's edit makes a new plan ask before replacing it.
 - Moves, time changes and place replacements preserve activity duration. Following activities start
   at the later of their original start or previous end + route duration + 15 minutes. Empty target
   days start at 09:00 local, and moves stay within the same lodging destination segment.

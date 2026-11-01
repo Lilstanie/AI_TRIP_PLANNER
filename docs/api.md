@@ -39,7 +39,7 @@ passed on exactly as raised (`apps/web/lib/i18n/notice.ts`). Agent Lab keeps its
 
 ## `POST /api/chat`
 
-Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/shared/src/chat.ts`.
+Contract: `ChatRequest`, `ChatResponse` and `AgentProgressEvent` in `packages/shared/src/chat/chat.ts`.
 
 ```json
 {
@@ -116,7 +116,7 @@ stays authoritative for every cost, and specialists are told to ignore a party w
 add up to it.
 
 Optional `assistant`: `{ style, memory, names }` from Settings → Personalization (`AssistantSettings` in
-`packages/shared/src/chat.ts`).
+`packages/shared/src/chat/chat.ts`).
 
 - `names` is an optional map from assistant id to a custom display name of at most 24 characters. It only changes what the interface shows and which `@name` resolves to a specialist; mentions are always sent as ids.
 - `style` is one of `neutral`, `friendly`, `concise` or `detailed` and sets the coordinator's tone.
@@ -133,7 +133,7 @@ check and targeted revision run, and the response's `assistant` is the first men
 `plan`, the mentioned specialist answers, nothing is created, and a `needs_info` frame (with the same
 optional `assistant`) asks for the brief.
 
-Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat.ts`),
+Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
 chat request. The coordinator always replies in the language of the traveller's latest message; this
 field only chooses the language when that message does not show one, such as a message that is only
@@ -158,7 +158,7 @@ Optional `attachments`: up to 4 files the traveller attached to this message.
 ```
 
 `data` is base64 of the file's bytes for `kind: "image"` (no `data:` prefix) and the decoded UTF-8
-text itself for `kind: "text"`. Limits, as the named constants in `packages/shared/src/chat.ts`:
+text itself for `kind: "text"`. Limits, as the named constants in `packages/shared/src/chat/chat.ts`:
 
 | Constant                      | Limit                                                         |
 | ----------------------------- | ------------------------------------------------------------- |
@@ -336,7 +336,7 @@ response is not cached.
 
 ## `POST /api/places/search`
 
-Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map-provider/` (Google first, free fallback by default).
+Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map/providers/` (Google first, free fallback by default).
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }
@@ -528,7 +528,7 @@ Clerk user. If Clerk fails after the rows are gone it answers 502 and says so.
 
 ## Related contracts
 
-- Chat request/response and progress events: `packages/shared/src/chat.ts`
+- Chat request/response and progress events: `packages/shared/src/chat/chat.ts`
 - Trip brief, proposals and ports: `packages/shared/src/contracts.ts`, `packages/shared/src/ports.ts`
 - Trip plan and its unresolved conflicts: `packages/shared/src/plan.ts`
 - Specialist contract: `packages/shared/src/agent.ts`

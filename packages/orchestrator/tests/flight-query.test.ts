@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { parseFlightQuery } from "../src/flight-query";
+import { parseFlightQuery } from "../src/chat/flight-query";
 
 describe("parseFlightQuery", () => {
   it("reads the question this feature exists for", () => {
@@ -68,6 +68,55 @@ describe("parseFlightQuery", () => {
       "把 2026-11-25 悉尼到东京的机票换成更便宜的",
     ])
       expect(parseFlightQuery(message), message).toBeUndefined();
+  });
+
+  const today = new Date("2026-11-01T12:00:00.000Z");
+
+  it("reads a Chinese round trip that crosses New Year", () => {
+    expect(parseFlightQuery("看一下 12 月 15 ， 悉尼到上海，1 月 5往返的航班", today)).toEqual({
+      from: "悉尼",
+      to: "上海",
+      depart: "2026-12-15",
+      return: "2027-01-05",
+      passengers: 1,
+      cheapestFirst: false,
+    });
+  });
+
+  it("keeps lead-ins, dates and trip words out of Chinese city names", () => {
+    expect(
+      parseFlightQuery("帮我查一下悉尼到上海往返的机票，12月15日去，1月5日回", today),
+    ).toMatchObject({
+      from: "悉尼",
+      to: "上海",
+      depart: "2026-12-15",
+      return: "2027-01-05",
+    });
+    expect(parseFlightQuery("2027年3月2号从北京飞东京的航班 2人", today)).toMatchObject({
+      from: "北京",
+      to: "东京",
+      depart: "2027-03-02",
+      passengers: 2,
+    });
+  });
+
+  it("reads English dates without a year", () => {
+    expect(parseFlightQuery("flights Sydney to Tokyo on Dec 15th back Jan 5", today)).toMatchObject(
+      {
+        from: "Sydney",
+        to: "Tokyo",
+        depart: "2026-12-15",
+        return: "2027-01-05",
+      },
+    );
+    expect(
+      parseFlightQuery("cheapest flight from Sydney to Tokyo on 15 December", today),
+    ).toMatchObject({ depart: "2026-12-15", cheapestFirst: true });
+  });
+
+  it("moves a passed date to next year and keeps an impossible one out", () => {
+    expect(parseFlightQuery("悉尼到上海的航班 3月1日", today)?.depart).toBe("2027-03-01");
+    expect(parseFlightQuery("悉尼到上海的航班 13月40日", today)).toBeUndefined();
   });
 
   it("declines anything it cannot answer outright", () => {

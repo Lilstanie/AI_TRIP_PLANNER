@@ -1,4 +1,4 @@
-import { mapProviderSetting } from "@/lib/map-provider";
+import { mapProviderSetting } from "@/lib/map/providers";
 import { configuredDataMode } from "@trip/tools";
 import { liveDataBlock } from "@/lib/auth/live-data";
 

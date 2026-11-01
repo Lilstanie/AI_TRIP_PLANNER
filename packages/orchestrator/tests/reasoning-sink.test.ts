@@ -8,7 +8,7 @@ import {
   REASONING_BLOCK_INDEX,
   REASONING_FLUSH_CHARS,
   REASONING_OWNER,
-} from "../src/reasoning-sink";
+} from "../src/planning/reasoning-sink";
 
 function streamingModel(deltas: Array<{ content?: string; reasoning?: string }>) {
   return {

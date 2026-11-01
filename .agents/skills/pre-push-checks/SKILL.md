@@ -102,6 +102,10 @@ NODE_OPTIONS=--no-experimental-webstorage pnpm --filter @trip/web exec vitest ru
 
 On Windows use WSL or Git Bash. Prefer package scripts so their runtime flags remain in effect.
 
+### A typecheck error only you see
+
+Before reporting that `main` is broken, delete the incremental caches (`find . -name '*.tsbuildinfo' -not -path '*/node_modules/*' -delete`), run the typecheck again, and read `main`'s latest CI run. Call `main` broken only when both are red. On 2026-11-01 a TS2590 error from a stale cache sent three threads after a fix `main` did not need.
+
 ### Generated Next types and check ordering
 
 `apps/web/tsconfig.json` includes generated Next type directories. When a build and web typecheck

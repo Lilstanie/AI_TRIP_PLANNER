@@ -9,7 +9,11 @@ import type {
   ToolGateway,
   TripBrief,
 } from "@trip/shared";
-import { createOrchestratorGraph, detectConflicts, runOrchestrator } from "../src/workflow";
+import {
+  createOrchestratorGraph,
+  detectConflicts,
+  runOrchestrator,
+} from "../src/planning/workflow";
 
 const brief: TripBrief = {
   tripId: "graph-test",

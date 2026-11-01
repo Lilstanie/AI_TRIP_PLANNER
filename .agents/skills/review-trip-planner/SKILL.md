@@ -67,6 +67,11 @@ Each item below is a defect this project has hit; the source is in brackets.
   [notice.ts](../../../apps/web/lib/i18n/notice.ts), not dictionary membership alone.
   [keyed notices](../../notes/implemented/architecture/2026-10-06-keyed-notices-everywhere.md),
   [reply language](../../notes/implemented/feature/2026-10-04-assistant-reply-language.md)
+- **Copy promises only what the code does.** A new interface string that promises a behaviour
+  ("checks the return leg once you choose", "updates when…") needs code in the diff or on main that
+  does it. Find that code; if none exists, the string is a finding. #886 shipped "选这班后再查返程航段"
+  with no return lookup, caught only on the deployed site and fixed in
+  [PR #889](https://github.com/Lilstanie/AI_TRIP_PLANNER/pull/889).
 - **Data provenance tells the truth.** Each specialist sets `source.kind` in the branch that actually
   ran, including its fallback `catch`. A label derived from configuration is wrong exactly when a call
   degrades. [source kind](../../notes/implemented/bug-fix/2026-09-21-proposal-source-kind.md)
@@ -141,7 +146,7 @@ Each item below is a defect this project has hit; the source is in brackets.
   Exclude `GoogleRequestError` from the generic Notice branch so its upstream status is retained:
   resource 400/404 becomes 404, 429 stays 429, other upstream failures become 502. Search has no
   missing-resource branch. Inspect status and keyed failure body together through
-  [placeErrorResponse](../../../apps/web/lib/map-provider/place-error-response.ts), not only the
+  [placeErrorResponse](../../../apps/web/lib/map/providers/place-error-response.ts), not only the
   displayed sentence. When changing this boundary, enumerate failures first and verify the affected
   API responses; a successful place lookup cannot prove error classification.
   [accepted error mapping](../../notes/implemented/simplification/2026-10-10-repository-surface-reduction.md),

@@ -12,7 +12,7 @@ wording did not stop the next variant.
 
 ## Decision
 
-`costLine` in `packages/orchestrator/src/cost-line.ts` writes the cost sentence from the plan. It
+`costLine` in `packages/orchestrator/src/chat/cost-line.ts` writes the cost sentence from the plan. It
 gives the estimated total, the categories with an amount, what is not included (transport without a
 price, and activity stops without `estCost`, not counting dining picks), and the exact headroom or
 overrun against the budget. An infeasible plan also gets the minimum budget. The figures and their

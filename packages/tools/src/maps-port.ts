@@ -191,7 +191,11 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
   return localInstant(q.date, localTime, zone);
 }
 
+const isMockPlace = (name: string) => name.startsWith("Mock ");
+
 async function mockRoute(q: RouteQuery): Promise<RouteLeg[]> {
+  if (toolRuntimeConfig().mockMultiStop && isMockPlace(q.from) && isMockPlace(q.to))
+    return [{ mode: "transit", durationMin: 20, price: 4, note: `mock ${q.from} -> ${q.to}` }];
   return [{ mode: "train", durationMin: 140, price: 90, note: `mock ${q.from} -> ${q.to}` }];
 }
 
@@ -311,8 +315,39 @@ function googleLeg(
   };
 }
 
+const MOCK_PLACE_NAMES: Record<string, readonly string[]> = {
+  sight: [
+    "Harbour Lookout",
+    "Old Town Walk",
+    "Botanic Garden",
+    "Riverside Market",
+    "Hilltop Park",
+    "Cathedral Square",
+    "Waterfront Promenade",
+    "Street Art Lane",
+    "Lighthouse Point",
+  ],
+  museum: ["City Museum", "Art Gallery"],
+  restaurant: [
+    "Corner Bistro",
+    "Noodle Bar",
+    "Garden Cafe",
+    "Night Market Stalls",
+    "Seafood Grill",
+  ],
+};
+
 async function mockPlaces(q: PlaceQuery): Promise<Place[]> {
-  return [{ name: `Mock attraction near ${q.near}`, category: q.category ?? "sight", rating: 4.5 }];
+  const category = q.category ?? "sight";
+  const names = toolRuntimeConfig().mockMultiStop ? (MOCK_PLACE_NAMES[category] ?? []) : [];
+  return [
+    { name: `Mock attraction near ${q.near}`, category, rating: 4.5 },
+    ...names.map((name, index) => ({
+      name: `Mock ${name}, ${q.near}`,
+      category,
+      rating: Math.round((4.4 - index * 0.05) * 10) / 10,
+    })),
+  ];
 }
 
 const message = (error: unknown) => (error instanceof Error ? error.message : "unknown error");

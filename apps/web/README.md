@@ -11,7 +11,7 @@ OpenStreetMap fallback), saved trips with optional account sync, the installable
 | `app/api/`    | Thin route handlers; formats are in [api.md](../../docs/api.md)                                                          |
 | `app/styles/` | Domain stylesheets imported by `app/globals.css`                                                                         |
 | `components/` | UI by feature: `workspace`, `chat`, `trip`, `trajectory`, `map`, `preferences`, `account`, `agent-lab`, `pwa`, `ui`      |
-| `lib/`        | Domain logic; external clients in `lib/integrations/`, Web map providers in `lib/map-provider/`                          |
+| `lib/`        | Domain logic; external clients in `lib/integrations/`, Web map providers in `lib/map/providers/`                         |
 | `tests/`      | Tests mirroring `app`, `components` and `lib`; browser journeys in `e2e/`, CLI and CI acceptance in `cli-e2e/` and `ci/` |
 
 Placement rules, Tailwind v4 and shadcn usage, and the 1000-line file limit are in

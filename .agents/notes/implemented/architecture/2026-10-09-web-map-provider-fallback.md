@@ -18,7 +18,7 @@ automatically whenever Google cannot.
 ## Decision
 
 Every web-side map call goes through one `MapProvider` interface in
-`apps/web/lib/map-provider/` (`types.ts`). It has six operations: `searchPlaces`, `placeDetails`,
+`apps/web/lib/map/providers/` (`types.ts`). It has six operations: `searchPlaces`, `placeDetails`,
 `placePhoto`, `route`, `routeFromLocation` and `timeZone`. Each answer names the provider that gave
 it (`Answered<T>.source`, or `RouteResult.source` for routes), as `"google"` or `"osm"`.
 

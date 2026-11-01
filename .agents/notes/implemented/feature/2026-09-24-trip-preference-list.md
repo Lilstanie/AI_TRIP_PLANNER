@@ -22,7 +22,7 @@ specialist ever saw it.
 - The web draft keeps the list in `Draft.preferences` (optional, so drafts stored before it load).
   `parseDraft` sends it on the brief and clears the brief's list when it is emptied; `knownFromDraft`
   sends it as `known` before a plan exists. The catalog version is unchanged.
-- `BriefPatchSchema` in `packages/orchestrator/src/brief.ts` carries the list from `known` into the
+- `BriefPatchSchema` in `packages/orchestrator/src/brief/brief.ts` carries the list from `known` into the
   planned brief. The coordinator's `update_trip_brief` tool has no field for it, so a model cannot
   rewrite what the traveller wrote.
 - The supervisor sees the whole brief and is told to carry each preference into the objectives it

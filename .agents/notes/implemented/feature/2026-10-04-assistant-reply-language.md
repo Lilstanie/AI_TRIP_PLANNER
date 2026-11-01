@@ -12,7 +12,7 @@ guess, and it usually guesses English even when the traveller is using the Chine
 ## Decision
 
 `ChatRequest` gains an optional `interfaceLanguage` (`en` | `zh`, `InterfaceLanguage` in
-`packages/shared/src/chat.ts`). The web app sends its current interface locale with every chat request
+`packages/shared/src/chat/chat.ts`). The web app sends its current interface locale with every chat request
 (`useWorkspaceTransport`, from `useInterfaceLocale` in the workspace controller). When the field is
 present, `runTripChat` appends one `Reply language:` rule after the communication-style text in the
 coordinator's system prompt: the latest message's language, else the interface language. Without the
@@ -36,7 +36,7 @@ rather than translated afterwards.
 
 The fallback only matters for messages without words; ordinary messages still follow their own
 language. Adding a third interface language means adding it to `INTERFACE_LANGUAGES` and to the
-language names in `packages/orchestrator/src/chat.ts`. Without a provider key the turn runs
+language names in `packages/orchestrator/src/chat/chat.ts`. Without a provider key the turn runs
 `runOffline`, which does not use the coordinator prompt, so it ignores the field.
 
 ## Sources

@@ -2,7 +2,7 @@
 import { useEffect, useRef } from "react";
 import type { AssistantId } from "@trip/shared";
 import { AssistantIcon } from "@/components/chat/assistants";
-import { ASSISTANT_ORDER } from "@/components/chat/assistant-names";
+import { ASSISTANT_ORDER } from "@/lib/chat/assistant-order";
 import type { TrajectoryGroupModel, TrajectoryTurnModel } from "./layout";
 import type { TrajectoryTranslate } from "./locales";
 import { IconChevronRightOutlineRegular, StateDot } from "./shim";

@@ -1,5 +1,5 @@
 import { describe, it, expect } from "vitest";
-import { extractBriefPatchLocally } from "../src/chat-offline";
+import { extractBriefPatchLocally } from "../src/chat/chat-offline";
 
 describe("offline extraction of origin and destination", () => {
   const cases: [string, string, string | undefined][] = [

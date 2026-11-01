@@ -6,18 +6,18 @@ Owner: A (@Lilstanie); budget roll-up and thresholds: C.
 
 ## Exports
 
-| Export                                                                    | Purpose                                                        |
-| ------------------------------------------------------------------------- | -------------------------------------------------------------- |
-| `runTripChat()`                                                           | Chat entry used by `/api/chat`: extract, plan, reply, stream   |
-| `runAgentLab()`, `agentLabScenarioSummaries`, `agentLabStrategySummaries` | Run or enumerate registered Agent Lab fixture experiments      |
-| `IncompleteBriefError`                                                    | Thrown when a new conversation lacks what planning needs       |
-| `runOrchestrator()`, `createOrchestratorGraph()`                          | Run or build the LangGraph workflow                            |
-| `detectConflicts()`, `rollUpCost()`                                       | Conflict detection and AUD cost roll-up                        |
-| `applyBriefPatch()`, `extractBriefPatchLocally()`                         | Apply extracted updates; the no-key rule parser                |
-| `parseFlightQuery()`, `answerFlightQuery()`                               | Answer a direct fare question without planning a trip          |
-| `parseTripDate()`, `isAmbiguous()`                                        | Date reading for the offline parser                            |
-| supervisor helpers                                                        | `dispatchWithSupervisor()`, `reviseWithSupervisor()` and tools |
-| `DEMO_BRIEF`                                                              | Baseline brief for clients that send none                      |
+| Export                                                                    | Purpose                                                                                                           |
+| ------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
+| `runTripChat()`                                                           | Chat entry used by `/api/chat`: extract, plan, reply, stream                                                      |
+| `runAgentLab()`, `agentLabScenarioSummaries`, `agentLabStrategySummaries` | Run or enumerate registered Agent Lab fixture experiments                                                         |
+| `IncompleteBriefError`                                                    | Thrown when a new conversation lacks what planning needs                                                          |
+| `runOrchestrator()`, `createOrchestratorGraph()`                          | Run or build the LangGraph workflow                                                                               |
+| `detectConflicts()`, `rollUpCost()`                                       | Conflict detection and AUD cost roll-up                                                                           |
+| `applyBriefPatch()`, `extractBriefPatchLocally()`                         | Apply extracted updates; the no-key rule parser                                                                   |
+| `parseFlightQuery()`, `answerFlightQuery()`                               | Answer a direct fare question without planning a trip, in English or Chinese, with or without a year in its dates |
+| `parseTripDate()`, `isAmbiguous()`                                        | Date reading for the offline parser                                                                               |
+| supervisor helpers                                                        | `dispatchWithSupervisor()`, `reviseWithSupervisor()` and tools                                                    |
+| `DEMO_BRIEF`                                                              | Baseline brief for clients that send none                                                                         |
 
 ## Behaviour
 

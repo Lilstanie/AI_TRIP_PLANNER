@@ -26,12 +26,16 @@ lockfile stays consistent.
 The web application is grouped by responsibility instead of keeping every component and helper in
 one flat directory. Put new UI in the closest feature folder under `apps/web/components/`:
 `workspace`, `chat`, `trip`, `map`, `trajectory`, `preferences`, `account`, `agent-lab`, `pwa`, or `ui` for shared
-primitives. Put browser-safe
-domain logic under the matching folder in `apps/web/lib/`; external clients belong in
+primitives. Inside `workspace`, Trip home parts live in `workspace/trip-home/` and phone-only parts in
+`workspace/phone/`. Put browser-safe
+domain logic under the matching folder in `apps/web/lib/`, including view models and request helpers that
+render nothing (for example `lib/chat/team-model.ts`, `lib/trip/preview-request.ts`); external clients belong in
 `apps/web/lib/integrations/`. Put all web tests under `apps/web/tests/`, mirroring the `app`,
 `components`, and `lib` feature groups; shared fixtures belong in `apps/web/tests/fixtures/` and
 setup belongs in `apps/web/tests/setup.ts`. The package folders use the same rule: production code
-stays under `src/`, while tests belong under each package's `tests/` directory.
+stays under `src/`, while tests belong under each package's `tests/` directory. In `packages/orchestrator/src`,
+brief intake lives in `brief/`, chat turns in `chat/` and the planning graph in `planning/`;
+`index.ts` re-exports the public API.
 
 When a feature crosses folders, keep the public contract in the domain module and import it from
 there rather than creating a new root-level convenience file. Update this section and the API docs
@@ -43,7 +47,10 @@ traditional `tailwind.config.js` in this project. `apps/web/components.json` con
 CLI, while generated primitives live under `apps/web/components/ui/` and use `@/lib/utils` for
 `cn()`. Keep the existing semantic tokens and migrate domain CSS incrementally under
 `apps/web/app/styles/`; do not replace the custom focus-managed Dialog or Drawer without preserving
-their keyboard and focus behavior.
+their keyboard and focus behavior. Stylesheets are grouped by area in `app/styles/chat/`, `trip/`, `workspace/`, `phone/` and
+`agent-lab/`; shared ones (tokens, base, forms, glass, motion) stay at the top level. `globals.css`
+imports them in cascade order, and each area folder's `index.css` keeps its own order, so add a new
+file next to its neighbours and import it where it belongs in that order.
 
 ### File size and style boundaries
 
@@ -108,6 +115,14 @@ Create the tables with `pnpm --filter @trip/web db:migrate` (it loads `.env.loca
 `apps/web/lib/db/schema.ts`, generate a migration with `pnpm --filter @trip/web db:generate` and
 commit it under `apps/web/drizzle/`. On Vercel, the Clerk and Neon Marketplace integrations inject
 the same names.
+
+A Vercel production build applies pending migrations before `next build` (`vercel-build` in
+`apps/web/package.json`), so a merged migration reaches the production database with the deploy. It
+runs only when `VERCEL_ENV` is `production` and `DATABASE_URL` is set; preview builds and builds
+without a database skip it, and a failed migration fails the deploy. Vercel uses that script only when
+the project's Root Directory is `apps/web`. Any other database, such as a local or demo one, still
+needs `db:migrate` by hand; settings shows "Could not load remembered preferences" when it is
+missing the `account_memories` table from `0002_adorable_namor.sql`.
 
 Agent Lab live runs are off unless the deployment enables them (these names are not in `.env.example`):
 
@@ -176,6 +191,12 @@ as a production deployment check. Redis commands are POST JSON arrays in the req
 `pnpm mock-server` starts an optional stub HTTP server on port 4000. The app never calls it: mock
 tools run in process. It is kept for adapter
 experiments and is started by Docker Compose.
+
+In-process mock places return one `Mock attraction near <city>` and every mock route is a 140-minute
+train; Agent Lab benchmarks and tests depend on that. Start the app with `MOCK_PLACES=multi` to get a
+fixed list per category instead (nine sights, two museums, five restaurants, each named
+`Mock <place>, <city>`): a mock plan then has three stops a day with transport rows between them, a
+five-day trip repeats no stop, and a route between two mock places is a 20-minute transit leg.
 
 ## Docker
 
