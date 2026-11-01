@@ -64,12 +64,13 @@ export function ThinkingProcess({
   const elapsed = useElapsedMs(busy);
   const counts = useMemo(() => countActivity(activity), [activity]);
   const groups = useMemo(() => roundGroups(activity, busy, locale), [activity, busy, locale]);
+  const hasError = Boolean(error);
   const summary = useMemo(
-    () => turnSummary(activity, counts, busy, Boolean(error), locale, outcome),
-    [activity, counts, busy, error, locale, outcome],
+    () => turnSummary(activity, counts, busy, hasError, locale, outcome),
+    [activity, counts, busy, hasError, locale, outcome],
   );
   const multiRound = groups.length > 1;
-  const failed = !busy && Boolean(error);
+  const failed = !busy && hasError;
 
   return (
     <div className="thinking-process">
