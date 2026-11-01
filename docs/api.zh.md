@@ -182,7 +182,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `{ "error": "The request was invalid. Please retry.", "notice": { … } }`。
 
 可选的 `x-trip-data-mode` 请求头值为 `mock` 或 `live`，仅为本次请求选择 fixture（测试前置数据）
-或实时提供方；其他值或未提供请求头时，使用部署默认值。该请求头只是诉求，不是决定：
+或实时提供方；其他值或未提供请求头时，使用部署默认值。已部署的构建（`NODE_ENV=production` 或 Vercel）
+会忽略该请求头，除非设置了 `DATA_MODE_TOGGLE=true`。该请求头只是诉求，不是决定：
 `apps/web/lib/auth/live-data.ts` 中的 `requestDataMode` 会把无权消耗额度的调用方从 `live` 降级为 `mock`，
 因此未登录的访客仍能基于 fixture 得到可用的行程。
 
@@ -256,6 +257,7 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 {
   "configured": "mock",
   "liveAvailable": false,
+  "switchable": false,
   "providers": { "hotelsAndFlights": false, "maps": true }
 }
 ```
@@ -263,6 +265,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 `configured` 是部署默认值（只有 `USE_MOCK_TOOLS=false` 时才为 `live`）。
 `liveAvailable` 表示该调用方是否可以消耗服务商额度：已登录的旅行者为 true，未配置 Clerk 时在非生产开发环境也为 true。 `liveBlock` 说明为何不可用：已配置部署中未登录调用方为 `sign-in-required`，未配置 Clerk 的生产服务器或 Vercel 部署为 `auth-not-configured`，可用时为 `null`。
 为 false 时工作区的数据模式按钮保持示例数据并带 `aria-disabled="true"`，仍可用键盘聚焦，其隐藏文字提示登录后才能使用真实的酒店和航班价格。
+`switchable` 在 `pnpm dev` 下，或任何设置了 `DATA_MODE_TOGGLE=true` 的环境（E2E 运行器会设置）为 true。
+为 false 时工作区隐藏“示例数据 / 真实数据”按钮和设置里的“数据来源”一行，直接使用 `configured`（`liveAvailable` 为 false 时降为示例数据）。
 `providers` 报告是否设置了 `SERPAPI_KEY` 和 `MAPS_API_KEY`，绝不返回它们的值。响应不缓存。
 
 <a id="post-apiplacessearch"></a>
