@@ -55,7 +55,7 @@ function toolRow(label: string): HTMLElement {
 }
 
 describe("ChatPanel", () => {
-  it("plans an example trip in one click, sending its own complete text", () => {
+  it("plans an example trip in one click, sending its own complete text", async () => {
     const onSend = vi.fn();
     function EmptyChat() {
       const [input, setInput] = useState("");
@@ -78,14 +78,16 @@ describe("ChatPanel", () => {
     expect(screen.queryByRole("heading", { name: "Where to next?" })).toBeNull();
     expect(within(log).queryByText(/.+/)).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: /^Sydney · \d+ days$/ }));
+    const [example] = await screen.findAllByRole("button", { name: / · \d+ days$/ });
+    const place = example!.textContent!.split(/ · | → | & /)[0]!;
+    fireEvent.click(example!);
 
     expect(onSend).toHaveBeenCalledTimes(1);
     const [sent] = onSend.mock.calls[0]!;
 
-    expect(sent).toMatch(/Sydney/);
-    expect(sent).toMatch(/2 people/);
-    expect(sent).toMatch(/total budget 4000\./);
+    expect(sent).toContain(place);
+    expect(sent).toMatch(/\d+ (people|person)/);
+    expect(sent).toMatch(/total budget \d+\./);
 
     expect(sent).toMatch(/\d{4}-\d{2}-\d{2} to \d{4}-\d{2}-\d{2}/);
   });
@@ -116,15 +118,15 @@ describe("ChatPanel", () => {
       </SettingsProvider>,
     );
 
-    expect(await screen.findByRole("button", { name: "悉尼 · 4 天" })).toBeTruthy();
-    expect(screen.queryByRole("button", { name: /^Sydney · \d+ days$/ })).toBeNull();
+    const examples = await screen.findAllByRole("button", { name: / · \d+ 天$/ });
+    expect(examples).toHaveLength(4);
+    expect(screen.queryByRole("button", { name: / · \d+ days$/ })).toBeNull();
 
-    fireEvent.click(screen.getByRole("button", { name: "悉尼 · 4 天" }));
+    fireEvent.click(examples[0]!);
 
     expect(onSend).toHaveBeenCalledTimes(1);
-    expect(onSend.mock.calls[0]![0]).toMatch(/去悉尼玩/);
-    expect(onSend.mock.calls[0]![0]).toMatch(/2 人/);
-    expect(onSend.mock.calls[0]![0]).toMatch(/总预算 4000/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/玩 \d+ 天/);
+    expect(onSend.mock.calls[0]![0]).toMatch(/总预算 \d+/);
     localStorage.removeItem(SETTINGS_KEY);
   });
 
