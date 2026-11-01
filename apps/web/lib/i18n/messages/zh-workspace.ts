@@ -678,6 +678,7 @@ export const zhWorkspace = {
   theAssistantSQuestionWas: "助手的问题出错了，再试一次吧。",
   theReturnedFaresWereInvalid: "返回的票价有问题，再试一次吧。",
   planningFailedPleaseRetry: "规划没成功，再试一次吧。",
+  thisReplyCouldNotBeRecovered: "这条回复没能找回来，请再发一次。",
   previewFailedTryTheChange: "预览失败了，请再改一次。",
   searchFailedTryAgain: "搜索失败了，再试一次吧。",
   enterAPlaceNameTo: "输入地点名称再搜索。",

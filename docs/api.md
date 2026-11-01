@@ -218,6 +218,20 @@ fixtures.
 
 Anonymous chat on a deployment runs without model calls, using the local fallback. A signed-in traveller may use the real model even when provider data is set to mock. Local development without authentication retains model access.
 
+### Durable turns and `GET /api/chat?run=<id>`
+
+The workspace sends an `x-chat-run` header with a fresh UUID on every turn. The turn then runs to
+the end even if the browser disconnects: the server keeps it alive with Next.js `after()` and
+records every frame under `chat:run:<id>` in the durable store (Upstash/Vercel KV when configured,
+otherwise process memory) for one hour, owned by the caller's account id or `anonymous`.
+
+`GET /api/chat?run=<id>` replays that run as the same NDJSON stream: every recorded frame, then new
+frames as they arrive (polled every 500 ms) until the final frame. An unknown, expired or foreign run
+returns HTTP 404 with the `thisReplyCouldNotBeRecovered` notice; a run whose record stops updating
+for five minutes, or a replay longer than four minutes, ends with that notice as an `error` frame.
+A request without the header streams exactly as before but is not recorded. See
+[the durable chat turns note](../.agents/notes/implemented/bug-fix/2026-11-01-durable-chat-turns.md).
+
 ## `GET /api/agent-lab/benchmark`
 
 Returns the versioned Agent Lab benchmark registry: benchmark and artifact schema versions, fixture

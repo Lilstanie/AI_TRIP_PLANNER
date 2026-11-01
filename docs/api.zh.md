@@ -190,6 +190,20 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 部署环境中的匿名聊天不调用模型，而使用本地回退。已登录用户即使选择模拟提供方数据，也可使用真实模型。本地未配置认证时保留模型访问。
 
+<a id="durable-turns-and-get-apichatrunid"></a>
+
+### 持久的对话轮次与 `GET /api/chat?run=<id>`
+
+工作区每一轮都会带上 `x-chat-run` 请求头，值是新的 UUID。之后即使浏览器断开，这一轮也会跑完：
+服务器用 Next.js `after()` 保持它运行，并把每一帧记录在持久存储的 `chat:run:<id>` 下（配置了
+Upstash/Vercel KV 时用它，否则用进程内存），保留一小时，归属于调用方的账户 id 或 `anonymous`。
+
+`GET /api/chat?run=<id>` 以同样的 NDJSON 流回放这一轮：先给出已记录的每一帧，再每 500 ms 轮询，
+推送新到的帧，直到最终帧。未知、过期或属于他人的 run 返回 HTTP 404 和 `thisReplyCouldNotBeRecovered`
+提示；记录五分钟不再更新，或回放超过四分钟时，以该提示作为 `error` 帧结束。不带该请求头的请求照旧
+流式返回，但不会被记录。参见
+[持久对话轮次说明](../.agents/notes/implemented/bug-fix/2026-11-01-durable-chat-turns.md)。
+
 ## `GET /api/agent-lab/benchmark`
 
 返回版本化 Agent Lab 基准注册表，其中包含基准和产物 schema 版本、fixture 场景及其预期结果和检查、已注册策略与故障档案，以及受上限约束的实时场景、策略和重复次数子集。该响应只读，并使用 `Cache-Control: no-store`。
