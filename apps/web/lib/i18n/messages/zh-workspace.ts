@@ -528,7 +528,7 @@ export const zhWorkspace = {
   customsEtiquette: "风俗礼仪",
   safetyNotes: "安全须知",
   entryHealth: "入境与健康",
-  weatherPacking: "天气与行李",
+  weatherPacking: "行李",
   travelNote: "出行提醒",
   transfer: "换乘",
   stay: "住宿",

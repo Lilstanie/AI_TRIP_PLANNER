@@ -194,6 +194,14 @@ try {
     await page.locator(".workspace-app").waitFor();
 
     let tips = await openTrip(page, "Packing first", phone, zh);
+    const weather = page.locator(".timeline-day__weather").filter({ visible: true });
+    check(
+      (await weather.innerText()).trim() === "Mild days, cool evenings." &&
+        (await weather.locator(".weather-icon").count()) === 1 &&
+        !(await tips.innerText()).includes("Mild days"),
+      `${tag}: weather shows once, with an icon, above the day`,
+      await weather.innerText(),
+    );
     const boxes = tips.getByRole("checkbox");
     check(
       (await boxes.count()) === items.length,
