@@ -234,7 +234,7 @@ try {
       }
 
       if (!phone) {
-        await page.getByRole("button", { name: /Sydney · 4 days/ }).click();
+        await page.locator(".chat-suggestions__chip").first().click();
         await page.locator(".fact-chip").nth(1).waitFor();
         await shot(page, `${tag}-planning`);
       } else {
