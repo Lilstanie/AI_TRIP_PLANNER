@@ -33,7 +33,9 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
   stronger rim highlights), puts a soft colour backdrop behind the phone workspace and sign-in page so
   the glass has something to show through, gives the selected tab a raised lens, rounds the composer
   and bottom sheets to 28 px, stretches segmented controls to the full row, gives Mine a glass search
-  field and larger section titles, adds press feedback and removes the tap highlight and long-press callout
+  field and larger section titles, extends the phone Map tab's map under the floating top bar and tab
+  bar (not under the tab bar for Google Maps, whose logo must stay visible; MapLibre's attribution moves
+  down with it), adds press feedback and removes the tap highlight and long-press callout
   on controls. Reduced transparency and higher contrast fall back to solid surfaces.
 - In the app every field is 16 px, because iOS zooms the page when a smaller field takes focus and the
   web view did not zoom back out. The sign-in page adds the top and bottom safe-area insets, which it

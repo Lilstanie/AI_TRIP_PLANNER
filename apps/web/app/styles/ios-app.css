@@ -185,3 +185,35 @@ html[data-shell="ios-app"]
   font-size: 1.75rem;
   letter-spacing: -0.025em;
 }
+
+html[data-shell="ios-app"] .workspace-main:has(> .workspace-shell[data-mobile-view="map"]) {
+  --ios-map-bleed: 110px;
+  --ios-map-bleed-bottom: 100px;
+}
+html[data-shell="ios-app"]
+  .workspace-main:has(> .workspace-shell[data-mobile-view="map"])
+  > :is(.workspace-topbar, .phone-tabbar) {
+  z-index: 5;
+}
+html[data-shell="ios-app"]
+  .workspace-main:has(> .workspace-shell[data-mobile-view="map"])
+  :is(.workspace-shell, .workspace-panel--map, .trip-map-canvas) {
+  overflow: visible;
+}
+html[data-shell="ios-app"] .workspace-shell[data-mobile-view="map"] .trip-map-canvas > .trip-map {
+  position: absolute;
+  inset: calc(-1 * var(--ios-map-bleed)) 0 calc(-1 * var(--ios-map-bleed-bottom));
+  height: auto;
+}
+html[data-shell="ios-app"]
+  .workspace-shell[data-mobile-view="map"]
+  .trip-map-canvas
+  > .trip-map:has(.gm-style) {
+  bottom: 0;
+}
+html[data-shell="ios-app"]
+  .workspace-shell[data-mobile-view="map"]
+  .trip-map
+  .maplibregl-ctrl-top-left {
+  top: var(--ios-map-bleed);
+}
