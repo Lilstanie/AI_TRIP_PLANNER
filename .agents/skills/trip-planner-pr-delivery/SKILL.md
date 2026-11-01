@@ -42,6 +42,12 @@ Done: no duplicate PR exists, or you are working on the existing one.
 
 ## 3. Change and prove it
 
+- A change to a setting, switch or mode is settled in one question before code: put its entry points
+  (top bar, Phone Mine, Settings), its default, and whether the deployed site offers it on one
+  decision card as two or three complete options. When the user changes a setting that merged
+  earlier the same day, restate the whole final shape in one sentence and wait for a yes before the
+  next PR. The data-mode switch shipped three times on 2026-11-01 (#874, #883, #887) because each
+  round asked one of these alone.
 - Write the failure modes first (a `*.failures.md` next to the E2E), then the E2E.
 - Prove red then green with `DATA_MODE=mock node scripts/redgreen.mjs <e2e> -- <source paths>`; quote its before/after counts.
 - A behaviour change under `packages/*/src` or `apps/web/lib` with only Vitest tests needs either a redgreen record or a stated reason no E2E can cover it, in the PR Evidence section. The repository's CLAUDE.md prefers E2E tests as the sole mechanism.
@@ -117,6 +123,11 @@ PRs that touch the same files conflict with each other, not only with main.
 1. Before opening a batch, list the files each PR touches. Order the PRs so each shared file is changed by one PR first.
 2. After each merge, re-read `mergeable_state` for the rest. Any that turn `dirty`: merge `origin/main` into their branch and push, then wait for a fresh green run.
 3. When a conflict is two added test blocks, keep both blocks. Do not pick one side.
+4. Parallel threads also queue on `behind`. Before merging `origin/main` into a green branch, list the
+   open PRs (`gh api "$R/pulls?state=open" --jq '.[]|"\(.number) \(.head.ref)"'`). If an older one
+   is green and about to merge, wait for that merge, then merge main once. Merge in PR-number order.
+   On 2026-11-01 about seven green runs were redone because each thread merged main as soon as
+   another PR landed.
 
 ### Stacked PRs
 
