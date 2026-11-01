@@ -3,6 +3,7 @@
 import { ClerkFailed, ClerkLoading, SignIn, SignUp } from "@clerk/nextjs";
 import { BrandMark } from "../workspace/BrandMark";
 import { useAuthPointerFeedback } from "./useAuthPointerFeedback";
+import { PasscodeForm } from "./PasscodeForm";
 
 const appearance = {
   variables: {
@@ -27,7 +28,13 @@ const appearance = {
   },
 };
 
-export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
+export function AuthScreen({
+  mode,
+  passcodeError = false,
+}: {
+  mode: "sign-in" | "sign-up";
+  passcodeError?: boolean;
+}) {
   const { pageRef, formRef } = useAuthPointerFeedback();
   return (
     <main className="auth-page" ref={pageRef}>
@@ -87,6 +94,7 @@ export function AuthScreen({ mode }: { mode: "sign-in" | "sign-up" }) {
               appearance={appearance}
             />
           )}
+          {mode === "sign-in" ? <PasscodeForm error={passcodeError} /> : null}
         </section>
       </div>
     </main>

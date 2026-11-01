@@ -19,7 +19,13 @@ function readableStorage(): Pick<Storage, "getItem"> {
   }
 }
 
-export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
+export function Workspace({
+  initialPlan,
+  admin = false,
+}: {
+  initialPlan?: TripPlan;
+  admin?: boolean;
+}) {
   const [restored, setRestored] = useState<RestoredWorkspace>();
 
   useEffect(() => {
@@ -40,7 +46,7 @@ export function Workspace({ initialPlan }: { initialPlan?: TripPlan }) {
   }, [initialPlan]);
 
   return (
-    <AccountProvider>
+    <AccountProvider admin={admin}>
       <SettingsProvider>
         {restored ? <WorkspaceContent restored={restored} /> : <WorkspaceSkeleton />}
       </SettingsProvider>
