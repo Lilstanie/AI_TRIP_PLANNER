@@ -94,9 +94,9 @@ change touches:
 `phone-shell.e2e.mjs` combines `phone-mine.e2e.mjs`, `phone-map.e2e.mjs` and `phone-state.e2e.mjs`.
 Run the walk for a focused change, or the combined script for a shell change, with
 `pnpm --filter @trip/web e2e phone-shell --prod`. Browser viewport simulation does not verify
-installed-app safe areas or the real on-screen keyboard. Physical-device checks are not planned since
-the [Android wrapper removal](../../notes/implemented/feature/2026-10-14-drop-android-wrapper.md)
-closed #182, so report those behaviours as not verified unless you checked a real device.
+installed-app safe areas or the real on-screen keyboard. Check those in the
+[iOS app](../../notes/implemented/feature/2026-11-01-ios-app-shell.md) on the iOS Simulator or an
+iPhone, and report them as not verified unless you did.
 For drawer changes, follow [better-layout](../better-layout/SKILL.md): measure default and extreme
 split positions and the narrow content container, then cross 1000/1001 px as well as 520/521 px.
 

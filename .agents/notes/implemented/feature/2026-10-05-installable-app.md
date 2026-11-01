@@ -52,4 +52,4 @@ One PWA serves every platform, and only Android gets a native wrapper:
 
 ## Later change
 
-The Android wrapper described here was removed; see [no native phone app](2026-10-14-drop-android-wrapper.md). The PWA parts stay in force.
+The Android wrapper described here was removed; see [no native phone app](../../archived/feature/2026-10-14-drop-android-wrapper.md). The PWA parts stay in force.

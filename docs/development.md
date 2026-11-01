@@ -207,11 +207,14 @@ It writes screenshots and `summary.json` to `output/playwright/installable-app/`
 installability check runs in full Chromium (`CHANNEL=chrome` uses Chrome instead) with a throwaway
 persistent profile, and also confirms it reports a page whose manifest link is removed.
 
-### iOS app (branch only)
+### iOS app
 
-`apps/ios/` on the `feature/TP-241-ios-app` branch is a Capacitor shell that opens the deployed site; it is
-not part of `main`. See the [proposal](../.agents/notes/proposed/feature/2026-11-01-ios-app-shell.md).
-On a Mac with Xcode:
+`apps/ios/` is a Capacitor shell that opens the deployed site and adds `TripPlannerIOSApp` to its
+user agent. The web app then sets `data-shell="ios-app"` on `<html>`, and `app/styles/ios-app.css`
+gives the app its liquid-glass look; Safari and the PWA are unchanged. See the
+[Agent Note](../.agents/notes/implemented/feature/2026-11-01-ios-app-shell.md). Check the app layer in
+a browser with `node apps/web/tests/e2e/ios-app-shell.e2e.mjs` against a running server. On a Mac with
+Xcode:
 
 ```bash
 pnpm install

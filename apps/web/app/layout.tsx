@@ -21,9 +21,14 @@ export const viewport: Viewport = {
   ],
 };
 
+const IOS_APP_MARKER = `if (/TripPlannerIOSApp/.test(navigator.userAgent)) document.documentElement.dataset.shell = "ios-app";`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: IOS_APP_MARKER }} />
+      </head>
       <body>
         <ServiceWorkerRegistration />
         {authEnabled ? (

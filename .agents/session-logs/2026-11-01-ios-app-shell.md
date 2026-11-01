@@ -28,3 +28,11 @@ Joey asked for an iOS app on 2026-11-01 and said it stays on a branch, outside t
 ## Notes for the next person
 
 The branch is not meant to be merged. Signing uses Joey's free Apple ID team, set in Xcode, so `DEVELOPMENT_TEAM` is not committed.
+
+## Follow-up: app-only liquid-glass layer
+
+- Joey asked for the iOS app to look like an iOS app with liquid glass, then chose to merge the app-only layer into `main` after the Stage 2 deadline, because the app loads production and Vercel previews sit behind Vercel sign-in.
+- `capacitor.config.json` appends `TripPlannerIOSApp` to the user agent and allows the Clerk host; `app/layout.tsx` marks `<html data-shell="ios-app">` before paint; `app/styles/ios-app.css` holds the whole layer (clearer glass, colour backdrop, lens tab, 16 px fields, sign-in safe areas, press feedback).
+- On Joey's Mac the app ran in the iPhone 17e simulator: home and signed-in planner loaded with the top bar and tab bar clear of the status bar and home indicator; the sign-in logo sat under the status bar and focusing a field zoomed the page. Both are fixed in the layer, not yet seen in the simulator because they need a production deploy.
+- Notes: the proposal moved to `implemented/` and the 2026-10-14 no-native-app note is archived; inbound links and the ui-verification skill were repaired.
+- `node apps/web/tests/e2e/ios-app-shell.e2e.mjs` against `pnpm --filter @trip/web dev` (mock data): 5/9 before the change, 9/9 after. `pnpm --filter @trip/web typecheck`, `verify:docs`, `verify:pairs` and `check-ui-copy.mjs` passed.

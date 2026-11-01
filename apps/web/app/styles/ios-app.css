@@ -1,0 +1,151 @@
+html[data-shell="ios-app"] {
+  --ios-safe-top: env(safe-area-inset-top);
+  --glass-tint: rgb(255 255 255 / 58%);
+  --glass-border: rgb(255 255 255 / 70%);
+  --glass-edge: rgb(0 0 0 / 6%);
+  --glass-highlight:
+    inset 0 1px 0.5px rgb(255 255 255 / 95%), inset 0 -1px 1px rgb(255 255 255 / 35%),
+    inset 0 0 12px rgb(255 255 255 / 30%);
+  --glass-shadow: 0 12px 32px -12px rgb(0 0 0 / 22%), 0 2px 6px rgb(0 0 0 / 6%);
+  --glass-blur: 30px;
+  --glass-saturate: 190%;
+  --ios-lens: rgb(255 255 255 / 72%);
+  --ios-lens-shadow: inset 0 1px 0 rgb(255 255 255 / 100%), 0 1px 4px rgb(0 0 0 / 10%);
+  --ios-backdrop:
+    radial-gradient(90% 45% at 0% 0%, rgb(0 122 255 / 16%), transparent 70%),
+    radial-gradient(70% 40% at 100% 8%, rgb(255 149 0 / 13%), transparent 70%),
+    radial-gradient(80% 45% at 70% 100%, rgb(175 82 222 / 14%), transparent 70%),
+    radial-gradient(60% 40% at 0% 85%, rgb(52 199 89 / 11%), transparent 70%);
+  -webkit-tap-highlight-color: transparent;
+  -webkit-text-size-adjust: 100%;
+}
+
+@media (prefers-color-scheme: dark) {
+  html[data-shell="ios-app"]:not([data-theme="light"]) {
+    --glass-tint: rgb(36 36 40 / 52%);
+    --glass-border: rgb(255 255 255 / 14%);
+    --glass-edge: rgb(0 0 0 / 50%);
+    --glass-highlight:
+      inset 0 1px 0.5px rgb(255 255 255 / 24%), inset 0 -1px 1px rgb(255 255 255 / 6%),
+      inset 0 0 12px rgb(255 255 255 / 4%);
+    --glass-shadow: 0 14px 34px -12px rgb(0 0 0 / 70%), 0 2px 6px rgb(0 0 0 / 30%);
+    --ios-lens: rgb(255 255 255 / 14%);
+    --ios-lens-shadow: inset 0 1px 0 rgb(255 255 255 / 18%), 0 1px 4px rgb(0 0 0 / 40%);
+    --ios-backdrop:
+      radial-gradient(90% 45% at 0% 0%, rgb(10 132 255 / 22%), transparent 70%),
+      radial-gradient(70% 40% at 100% 8%, rgb(255 159 10 / 12%), transparent 70%),
+      radial-gradient(80% 45% at 70% 100%, rgb(191 90 242 / 18%), transparent 70%),
+      radial-gradient(60% 40% at 0% 85%, rgb(48 209 88 / 10%), transparent 70%);
+  }
+}
+html[data-shell="ios-app"][data-theme="dark"] {
+  --glass-tint: rgb(36 36 40 / 52%);
+  --glass-border: rgb(255 255 255 / 14%);
+  --glass-edge: rgb(0 0 0 / 50%);
+  --glass-highlight:
+    inset 0 1px 0.5px rgb(255 255 255 / 24%), inset 0 -1px 1px rgb(255 255 255 / 6%),
+    inset 0 0 12px rgb(255 255 255 / 4%);
+  --glass-shadow: 0 14px 34px -12px rgb(0 0 0 / 70%), 0 2px 6px rgb(0 0 0 / 30%);
+  --ios-lens: rgb(255 255 255 / 14%);
+  --ios-lens-shadow: inset 0 1px 0 rgb(255 255 255 / 18%), 0 1px 4px rgb(0 0 0 / 40%);
+  --ios-backdrop:
+    radial-gradient(90% 45% at 0% 0%, rgb(10 132 255 / 22%), transparent 70%),
+    radial-gradient(70% 40% at 100% 8%, rgb(255 159 10 / 12%), transparent 70%),
+    radial-gradient(80% 45% at 70% 100%, rgb(191 90 242 / 18%), transparent 70%),
+    radial-gradient(60% 40% at 0% 85%, rgb(48 209 88 / 10%), transparent 70%);
+}
+
+html[data-shell="ios-app"] :is(input, textarea, select) {
+  font-size: 16px !important;
+}
+
+html[data-shell="ios-app"] :is(button, a, [role="tab"], [role="button"]) {
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  user-select: none;
+  touch-action: manipulation;
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] {
+  background: var(--ios-backdrop), var(--page);
+  background-attachment: fixed;
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] .workspace-topbar::before {
+  border-width: 0 !important;
+  box-shadow: 0 0.5px 0 var(--glass-edge);
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-tabbar {
+  padding: 4px;
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge),
+    var(--glass-shadow);
+}
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-tabbar__tab {
+  min-height: 54px;
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.01em;
+  transition:
+    background-color var(--duration) var(--ease-out),
+    color var(--duration) var(--ease-out),
+    scale var(--duration-fast) var(--ease-spring);
+}
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-tabbar__tab[aria-selected="true"] {
+  background: var(--ios-lens) !important;
+  box-shadow: var(--ios-lens-shadow);
+  color: var(--accent);
+}
+html[data-shell="ios-app"] .workspace-app[data-phone] .phone-tabbar__tab:active {
+  scale: 0.94;
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] .composer {
+  border-radius: 28px !important;
+}
+
+html[data-shell="ios-app"]
+  .workspace-app[data-phone]
+  :is(.chat__facts .fact-chip, .chat-empty__suggestions button) {
+  border-color: var(--glass-border) !important;
+  background: var(--glass-tint) !important;
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  box-shadow:
+    var(--glass-highlight),
+    0 0 0 0.5px var(--glass-edge);
+}
+
+html[data-shell="ios-app"] :is(.phone-map-sheet, .drawer, .fact-popover.fact-popover--modal) {
+  border-top-left-radius: 28px !important;
+  border-top-right-radius: 28px !important;
+}
+
+html[data-shell="ios-app"] .workspace-app[data-phone] button:not(:disabled):active {
+  scale: 0.97;
+}
+
+html[data-shell="ios-app"] .auth-page {
+  padding-top: calc(var(--ios-safe-top) + var(--space-5));
+  padding-bottom: calc(env(safe-area-inset-bottom) + var(--space-5));
+  background: var(--ios-backdrop), var(--page);
+}
+
+@media (prefers-reduced-transparency: reduce), (prefers-contrast: more) {
+  html[data-shell="ios-app"] {
+    --glass-tint: var(--surface);
+    --ios-lens: var(--accent-bg);
+  }
+  html[data-shell="ios-app"] .workspace-app[data-phone],
+  html[data-shell="ios-app"] .auth-page {
+    background: var(--page);
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  html[data-shell="ios-app"] .workspace-app[data-phone] :is(button, .phone-tabbar__tab):active {
+    scale: none;
+  }
+}
