@@ -31,7 +31,6 @@ export type Itinerary = {
 
   markersFor(day?: number): Marker[];
 
-  /** Every located stop in visiting order, keeping a place each day it is visited; one place twice in a row on a day counts once. */
   pathFor(day?: number): Marker[];
 
   stop(activityId: string): Stop | undefined;
