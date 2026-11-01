@@ -147,7 +147,7 @@ export function drawItineraryRoutes({
           clickable: false,
           strokeColor: colors.casing,
           strokeOpacity: 1,
-          strokeWeight: 9,
+          strokeWeight: 11,
           zIndex: 2,
         }),
         new maps.Polyline({
@@ -156,7 +156,7 @@ export function drawItineraryRoutes({
           clickable: false,
           strokeColor: color,
           strokeOpacity: 1,
-          strokeWeight: 5,
+          strokeWeight: 7,
           zIndex: 3,
           icons: [{ icon: { ...ARROW, fillColor: color }, offset: "50%" }],
         }),
