@@ -932,8 +932,8 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   in live data mode with a server Maps key, one image per selection. Otherwise, and when Google has
   no photo or the image fails, the fixed 16:9 slot shows a pin. A marker press moves focus into the
   popup; the close button, Escape or a press on the map closes it and returns focus to the marker.
-  A place chosen in the drawer that is off the map is panned into view, which does not count as a
-  user move.
+  Any place chosen in the trip or on the map is centred, and the map zooms in to at least 14 first;
+  this does not count as a user move.
 - **Selection.** Selecting a marker or a drawer place selects the activity in the timeline and jumps
   to its day, and the reverse also works. The selected marker has a larger outlined badge and a
   bordered label, and its drawer row adds a leading inset line and weight alongside `aria-pressed`;
