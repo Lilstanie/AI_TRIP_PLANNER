@@ -45,7 +45,10 @@ traditional `tailwind.config.js` in this project. `apps/web/components.json` con
 CLI, while generated primitives live under `apps/web/components/ui/` and use `@/lib/utils` for
 `cn()`. Keep the existing semantic tokens and migrate domain CSS incrementally under
 `apps/web/app/styles/`; do not replace the custom focus-managed Dialog or Drawer without preserving
-their keyboard and focus behavior.
+their keyboard and focus behavior. Stylesheets are grouped by area in `app/styles/chat/`, `trip/`, `workspace/`, `phone/` and
+`agent-lab/`; shared ones (tokens, base, forms, glass, motion) stay at the top level. `globals.css`
+imports them in cascade order, and each area folder's `index.css` keeps its own order, so add a new
+file next to its neighbours and import it where it belongs in that order.
 
 ### File size and style boundaries
 

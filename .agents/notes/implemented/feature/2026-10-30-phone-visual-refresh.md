@@ -22,7 +22,7 @@ left hidden until the traveller started.
   as before.
 - No greeting heading is added: the composer prompt already asks where to go, and the empty-screen
   rule allows the question once.
-- All visual changes live in `apps/web/app/styles/phone-polish.css`, imported last by `phone.css` and
+- All visual changes live in `apps/web/app/styles/phone/polish.css`, imported last by `phone/index.css` and
   scoped to `.workspace-app[data-phone]`, so desktop and tablet stay unchanged:
   - the tab bar is a floating glass capsule with a filled pill under the selected tab;
   - budget, day strip, stops, travel tips and reply day cards become soft shadowed cards without
