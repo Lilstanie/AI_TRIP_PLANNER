@@ -28,6 +28,7 @@ export function useDataMode(preferred?: DataMode) {
   const [providers, setProviders] = useState<DataModeProviders>();
   const [liveAvailable, setLiveAvailable] = useState(true);
   const [liveBlock, setLiveBlock] = useState<LiveBlock>();
+  const [switchable, setSwitchable] = useState(false);
 
   useEffect(() => {
     let active = true;
@@ -37,6 +38,7 @@ export function useDataMode(preferred?: DataMode) {
             configured?: string;
             liveAvailable?: boolean;
             liveBlock?: LiveBlock | null;
+            switchable?: boolean;
             providers?: DataModeProviders;
           }
         | undefined;
@@ -49,7 +51,10 @@ export function useDataMode(preferred?: DataMode) {
       const allowed = body?.liveAvailable !== false;
       setLiveAvailable(allowed);
       setLiveBlock(body?.liveBlock ?? undefined);
-      const wanted = stored() ?? preferred ?? (body?.configured === "live" ? "live" : "mock");
+      const canSwitch = body?.switchable === true;
+      setSwitchable(canSwitch);
+      const configured = body?.configured === "live" ? "live" : "mock";
+      const wanted = canSwitch ? (stored() ?? preferred ?? configured) : configured;
       setMode(allowed ? wanted : "mock");
     })();
     return () => {
@@ -61,16 +66,16 @@ export function useDataMode(preferred?: DataMode) {
 
   const choose = useCallback(
     (next: DataMode) => {
-      if (next === "live" && !liveAvailable) return;
+      if (!switchable || (next === "live" && !liveAvailable)) return;
       setMode(next);
       try {
         localStorage.setItem(STORAGE_KEY, next);
       } catch {}
     },
-    [liveAvailable],
+    [liveAvailable, switchable],
   );
 
-  return { mode, providers, choose, liveAvailable, liveBlock };
+  return { mode, providers, choose, liveAvailable, liveBlock, switchable };
 }
 
 export function mapProviderOptions(mode: DataMode | undefined, providers?: DataModeProviders) {
