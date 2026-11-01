@@ -922,6 +922,9 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   `zIndex`, so other days stay under every casing and every day colour sits on its casing.
   A line drawn with direction icons also gets a static symbol layer of white chevrons every 56 px,
   pointing to the next stop.
+- **Long legs** (`dayRoutes`). A leg whose stops are at least `LONG_LEG_KM` (150 km) apart is a
+  flight or intercity transfer, so it is drawn as an arc and never follows a verified ground route,
+  and it has no travel-mode badge.
 - **Place popup.** Pressing a marker or its label, or a place in the Trip timeline, opens the place's
   details over the bottom-left of the map: stop number and day, first Google photo, name, address,
   Google rating, the photo's author attribution and an Open in Google Maps link, plus Route from my

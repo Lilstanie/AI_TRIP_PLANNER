@@ -16,6 +16,9 @@ contract-impact: none
   with a higher `zIndex`.
 - Polish (Joey asked for a nicer look): active day line 7 px on an 11 px casing (was 5/9) in
   `map-layers.ts`; OSM lines with direction icons get white chevrons along the line.
+- Joey: a Sydney to Brisbane flight leg followed the road. `dayRoutes` now draws legs of 150 km or
+  more as arcs without a ground polyline or mode badge; existing map test fixtures moved closer
+  together (they were 157 km apart) and one assertion covers the long leg.
 - `docs/workspace-ui.md` and `.zh.md`: new "OSM route layers" bullet.
 
 ## Why

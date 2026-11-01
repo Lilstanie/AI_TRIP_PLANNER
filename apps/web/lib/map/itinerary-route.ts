@@ -13,6 +13,19 @@ type VerifiedRoute = {
   mode?: RouteMode;
 };
 
+export const LONG_LEG_KM = 150;
+
+export function distanceKm(from: Coordinate, to: Coordinate) {
+  const rad = Math.PI / 180;
+  const dLat = (to.lat - from.lat) * rad;
+  const dLng = (to.lng - from.lng) * rad;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos(from.lat * rad) * Math.cos(to.lat * rad) * Math.sin(dLng / 2) ** 2;
+  return 12742 * Math.asin(Math.min(1, Math.sqrt(a)));
+}
+
+/** Legs of {@link LONG_LEG_KM} or more are flights or intercity transfers: they never take a ground route, so they draw as an arc. */
 export function dayRoutes(
   stops: readonly RouteStop[],
   routes: readonly VerifiedRoute[] = [],
@@ -32,7 +45,7 @@ export function dayRoutes(
     const legs = list.slice(1).map((to, index) => {
       const from = list[index]!;
       const route = verified.get(`${from.placeId}>${to.placeId}`);
-      if (!route) return { from, to };
+      if (!route || distanceKm(from.position, to.position) >= LONG_LEG_KM) return { from, to };
       return route.mode
         ? { from, to, polyline: route.polyline!, mode: route.mode }
         : { from, to, polyline: route.polyline! };

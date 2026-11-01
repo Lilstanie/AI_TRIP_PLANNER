@@ -6,7 +6,7 @@ import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 const stop = (placeId: string, at: number, day: number): RouteStop => ({
   placeId,
   day,
-  position: { lat: at, lng: at },
+  position: { lat: at / 10, lng: at / 10 },
 });
 
 function fakeRuntime() {
@@ -125,7 +125,7 @@ describe("drawItineraryRoutes", () => {
     expect(lines).toHaveLength(4);
     expect(markers).toHaveLength(1);
     expect(markers[0]!.options.title).toBe("Walk");
-    expect((markers[0]!.options.position as { lat: number }).lat).toBe(1.5);
+    expect((markers[0]!.options.position as { lat: number }).lat).toBeCloseTo(0.15);
     expect(
       (markers[0]!.options.content as HTMLElement).classList.contains("trip-map-leg-mode"),
     ).toBe(true);
@@ -142,11 +142,11 @@ describe("drawItineraryRoutes", () => {
     });
     const path = lines[0]!.options.path as { lat: number; lng: number }[];
     expect(path.length).toBeGreaterThan(2);
-    expect(path[0]).toEqual({ lat: 1, lng: 1 });
-    expect(path.at(-1)).toEqual({ lat: 2, lng: 2 });
+    expect(path[0]).toEqual({ lat: 0.1, lng: 0.1 });
+    expect(path.at(-1)).toEqual({ lat: 0.2, lng: 0.2 });
 
     const middle = path[Math.floor(path.length / 2)]!;
-    expect(Math.abs(middle.lat - middle.lng)).toBeGreaterThan(0.05);
+    expect(Math.abs(middle.lat - middle.lng)).toBeGreaterThan(0.005);
     expect(markers).toHaveLength(0);
   });
 });
