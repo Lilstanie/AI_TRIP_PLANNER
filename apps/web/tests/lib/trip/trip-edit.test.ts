@@ -257,6 +257,11 @@ describe("edit preview notices", () => {
   const verify = (p = plan(), deps = dependencies()) =>
     previewEdit({ plan: p, baseVersion: 0, operation: { kind: "verify", day: 1 } }, deps);
 
+  it("leaves the edit version alone when only checking routes", async () => {
+    const result = await verify();
+    expect(result.plan?.editVersion ?? 0).toBe(0);
+  });
+
   it("names the day when a stop has no confirmed place", async () => {
     const p = plan();
     delete p.sections[0]!.proposal!.items[1]!.placeId;

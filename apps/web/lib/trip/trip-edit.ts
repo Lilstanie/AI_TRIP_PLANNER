@@ -701,6 +701,7 @@ export async function previewEdit(
       })),
   ];
   settlePlan(plan, baseVersion, currency);
+  if (operation.kind === "verify") plan.editVersion = baseVersion;
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id);
 
