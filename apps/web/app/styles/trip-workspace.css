@@ -4,9 +4,11 @@
   grid-column: 1 / -1;
   grid-template-columns: minmax(360px, 0.92fr) minmax(0, 1.08fr);
   min-width: 0;
+  gap: var(--float-gap);
   min-height: 0;
+  padding: 0 var(--float-gap) var(--float-gap);
   overflow: hidden;
-  background: var(--surface);
+  background: transparent;
 }
 
 .trip-workspace__timeline,
@@ -14,11 +16,38 @@
   min-width: 0;
   min-height: 0;
   overflow: auto;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow:
+    0 0 0 0.5px var(--glass-edge),
+    var(--glass-shadow);
+  isolation: isolate;
 }
 
 .trip-workspace__timeline {
   position: relative;
-  border-inline-end: 1px solid var(--border);
+}
+
+.trip-workspace__map {
+  background: var(--surface-2);
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .workspace-app:not([data-phone]) .trip-workspace__timeline,
+  .workspace-app:not([data-phone]) .trip-workspace__map {
+    animation: trip-card-in var(--duration-slow) var(--ease-out) both;
+  }
+  .workspace-app:not([data-phone]) .trip-workspace__map {
+    animation-delay: 60ms;
+  }
+}
+
+@keyframes trip-card-in {
+  from {
+    opacity: 0;
+    translate: 0 12px;
+    scale: 0.99;
+  }
 }
 
 .trip-workspace__timeline > .trip-panel {
@@ -56,7 +85,7 @@
   .workspace-app:not([data-phone]) .trip-workspace {
     display: block;
     height: 100%;
-    overflow: auto;
+    overflow: hidden;
   }
 
   .workspace-app:not([data-phone]) .trip-workspace__timeline,
