@@ -28,6 +28,12 @@ const MONTHS: Record<string, number> = {
 export const DATE_TOKEN =
   "(\\d{4}-\\d{2}-\\d{2}|\\d{1,2}[/.-]\\d{1,2}[/.-]\\d{4}|\\d{1,2}\\s+[A-Za-z]{3,9},?\\s+\\d{4}|[A-Za-z]{3,9}\\s+\\d{1,2},?\\s+\\d{4})";
 
+const MONTH_NAME = `(?:${Object.keys(MONTHS)
+  .sort((left, right) => right.length - left.length)
+  .join("|")})`;
+
+export const MONTH_DAY_TOKEN = `(?:\\d{4}\\s*年\\s*)?\\d{1,2}\\s*月\\s*\\d{1,2}\\s*[日号]?|\\b\\d{1,2}(?:st|nd|rd|th)?\\s+${MONTH_NAME}\\b|\\b${MONTH_NAME}\\s+\\d{1,2}(?:st|nd|rd|th)?\\b`;
+
 export function addDays(iso: string, days: number): string {
   return new Date(Date.parse(`${iso}T00:00:00.000Z`) + days * 86_400_000)
     .toISOString()
@@ -85,6 +91,26 @@ export function parseTripDate(token: string): ParsedDate {
   }
 
   return undefined;
+}
+
+export function parseMonthDay(token: string, earliest: string): ParsedDate {
+  const text = token.trim().toLowerCase();
+  const chinese = text.match(/^(?:(\d{4})\s*年\s*)?(\d{1,2})\s*月\s*(\d{1,2})/);
+  const dayFirst = text.match(/^(\d{1,2})(?:st|nd|rd|th)?\s+([a-z]+)$/);
+  const monthFirst = text.match(/^([a-z]+)\s+(\d{1,2})(?:st|nd|rd|th)?$/);
+  const month = chinese ? +chinese[2]! : MONTHS[dayFirst?.[2] ?? monthFirst?.[1] ?? ""];
+  const day = +(chinese?.[3] ?? dayFirst?.[1] ?? monthFirst?.[2] ?? 0);
+  if (!month) return undefined;
+  if (chinese?.[1]) {
+    const value = iso(+chinese[1], month, day);
+    return value ? { iso: value } : undefined;
+  }
+  const year = +earliest.slice(0, 4);
+  const value = iso(year, month, day);
+  if (!value) return undefined;
+  if (value >= earliest) return { iso: value };
+  const next = iso(year + 1, month, day);
+  return next ? { iso: next } : undefined;
 }
 
 export const isAmbiguous = (parsed: ParsedDate): boolean => !!parsed && "ambiguous" in parsed;
