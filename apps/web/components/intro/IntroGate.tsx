@@ -20,10 +20,6 @@ function rememberIntroSeen() {
   }
 }
 
-/**
- * Shows the intro instead of `children` on a browser's first visit, or whenever the URL carries
- * `?intro`. Automated browsers (`navigator.webdriver`) skip it unless `?intro` asks for it.
- */
 export function IntroGate({ children }: { children: ReactNode }) {
   const [showIntro, setShowIntro] = useState(false);
 
