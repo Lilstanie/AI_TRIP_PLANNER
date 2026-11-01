@@ -476,7 +476,6 @@ export const zhWorkspace = {
   system: "系统",
   light: "浅色",
   dark: "深色",
-  thisSiteSDefault: "跟随网站默认",
   livePrices: "实时价格",
   sampleData: "示例数据",
   cultureHistory: "文化与历史",

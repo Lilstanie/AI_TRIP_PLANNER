@@ -12,10 +12,10 @@ disagree: a stored chip choice overrode the Settings preference.
 
 ## Decision
 
-Settings → Language & region → Trip data (site default, live prices, sample data) is the only
-data-mode control, shown on every deployment. The workspace derives the mode from that preference,
-falling back to `/api/data-mode` `configured` for "site default" and to mock when `liveAvailable` is
-false; Live prices is not offered then. The chip, its `trip.dataMode` browser key and its tooltips are
+Settings → Language & region → Trip data (live prices, sample data) is the only data-mode control,
+shown on every deployment. It defaults to live prices (Joey, 2026-11-01); a stored legacy "default"
+also means live, and `/api/data-mode` `configured` no longer steers the browser. The workspace runs
+mock when `liveAvailable` is false, and Live prices is not offered then. The chip, its `trip.dataMode` browser key and its tooltips are
 removed. Requests still carry `x-trip-data-mode`, and the server still downgrades live to mock for a
 caller who may not spend the allowance.
 

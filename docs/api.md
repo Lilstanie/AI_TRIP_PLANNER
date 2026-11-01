@@ -312,9 +312,9 @@ reported, and the trace never carries a model's own reasoning.
 whether this caller may spend the provider allowance: true for a signed-in traveller, and off a
 deployment when Clerk is not configured. `liveBlock` names why it is off: `sign-in-required` for a
 signed-out caller on a configured deployment, `auth-not-configured` on a production server or Vercel deployment without
-Clerk, and `null` when live is available. The workspace's only data-mode control is Settings → Language & region → Trip data; when
-`liveAvailable` is false it offers only the site default and sample data, and a stored live choice
-runs as mock.
+Clerk, and `null` when live is available. The workspace's only data-mode control is Settings → Language & region → Trip data; it
+defaults to live prices and ignores `configured`. When `liveAvailable` is false it offers only sample
+data, and a stored live choice runs as mock.
 `providers` reports whether `SERPAPI_KEY` and `MAPS_API_KEY` are set, never their values. The
 response is not cached.
 

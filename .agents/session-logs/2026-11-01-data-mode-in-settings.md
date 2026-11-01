@@ -12,7 +12,7 @@ contract-impact: api
 ## What changed
 
 - Removed `DataModeToggle` from the desktop top bar and phone Mine, with its CSS and tooltip strings.
-- `useDataMode` derives the mode from the Settings Trip data preference (`/api/data-mode` `configured` for site default, mock when live is not allowed); the `trip.dataMode` browser key is gone.
+- `useDataMode` derives the mode from the Settings Trip data preference, which now defaults to live (mock when live is not allowed); the "site default" option and the `trip.dataMode` browser key are gone.
 - Settings → Language & region → Trip data shows on every deployment; Live prices only when `liveAvailable`.
 - Reverted #874's `DATA_MODE_TOGGLE` / `switchable` gating; the server honours `x-trip-data-mode` again.
 - E2E scripts that used `.data-mode` now assert the chip is absent; docs, ui-verification skill and an Agent Note updated.
@@ -28,4 +28,4 @@ See the PR body.
 
 ## Notes for the next person
 
-A signed-out visitor on a Clerk deployment sees only site default and sample data.
+A signed-out visitor on a Clerk deployment sees only sample data. Vercel's `USE_MOCK_TOOLS` still sets the server default for requests without the header (API callers).

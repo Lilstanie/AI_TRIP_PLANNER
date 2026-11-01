@@ -41,11 +41,6 @@ const STYLE_LABEL: Record<(typeof COMMUNICATION_STYLES)[number], MessageKey> = {
 };
 const PACE_LABEL = { relaxed: "relaxed", balanced: "balanced", packed: "packed" } as const;
 const THEME_LABEL = { system: "systemPreference", light: "light", dark: "dark" } as const;
-const DATA_LABEL = {
-  default: "thisSiteSDefault",
-  live: "livePrices",
-  mock: "sampleData",
-} as const;
 const MEMORY_CATEGORY_LABEL: Record<string, MessageKey> = {
   dietary: "dietaryNeeds",
   pace: "pace",
@@ -705,6 +700,7 @@ function RegionSection({ liveAvailable }: { liveAvailable: boolean }) {
   const { settings, update } = useSettings();
   const { locale, t } = useLocale();
   const languageLabel = locale === "zh" ? "简体中文" : "English";
+  const tripData = settings.dataMode !== "mock" && liveAvailable ? "live" : "mock";
   return (
     <div className="settings-form">
       <SettingRow label={t("language")} value={languageLabel}>
@@ -737,17 +733,19 @@ function RegionSection({ liveAvailable }: { liveAvailable: boolean }) {
       </SettingRow>
       <CurrencyNotice currency={settings.displayCurrency} />
       <SettingRow label={t("units")} value={t("metricCKm")} />
-      <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
+      <SettingRow
+        label={t("tripData")}
+        value={t(tripData === "live" ? "livePrices" : "sampleData")}
+      >
         {() => (
           <>
             <Segmented
               label={t("defaultTripData")}
               options={[
-                ["default", t("thisSiteSDefault")],
                 ...(liveAvailable ? [["live", t("livePrices")] as const] : []),
                 ["mock", t("sampleData")],
               ]}
-              value={settings.dataMode}
+              value={tripData}
               onChange={(dataMode) => dataMode && update({ dataMode })}
             />
             <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>

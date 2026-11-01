@@ -10,16 +10,15 @@ export type DataModeProviders = {
   mockGoogleUnavailable?: boolean;
 };
 
-export function useDataMode(preferred?: DataMode) {
+export function useDataMode(preferred: DataMode) {
   const [providers, setProviders] = useState<DataModeProviders>();
   const [liveAvailable, setLiveAvailable] = useState(true);
-  const [configured, setConfigured] = useState<DataMode>();
+  const [loaded, setLoaded] = useState(false);
 
   useEffect(() => {
     let active = true;
     void (async () => {
-      let body:
-        { configured?: string; liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
+      let body: { liveAvailable?: boolean; providers?: DataModeProviders } | undefined;
       try {
         const response = await fetch("/api/data-mode");
         if (response?.ok) body = await response.json();
@@ -27,15 +26,18 @@ export function useDataMode(preferred?: DataMode) {
       if (!active) return;
       setProviders(body?.providers);
       setLiveAvailable(body?.liveAvailable !== false);
-      setConfigured(body?.configured === "live" ? "live" : "mock");
+      setLoaded(true);
     })();
     return () => {
       active = false;
     };
   }, []);
 
-  const wanted = configured && (preferred ?? configured);
-  const mode = wanted === "live" && !liveAvailable ? "mock" : wanted;
+  const mode: DataMode | undefined = loaded
+    ? preferred === "live" && liveAvailable
+      ? "live"
+      : "mock"
+    : undefined;
   return { mode, providers, liveAvailable };
 }
 

@@ -490,7 +490,6 @@ export const enWorkspace = {
   system: "System",
   light: "Light",
   dark: "Dark",
-  thisSiteSDefault: "This site's default",
   livePrices: "Live prices",
   sampleData: "Sample data",
   cultureHistory: "Culture & history",

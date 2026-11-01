@@ -1393,8 +1393,8 @@ the account section explains that everything stays in this browser.
       defaults. At phone widths (520 px and below), each edit-row button, and every field, Save button, choice, chip and select in an opened row's editor, has at least a 44 px target (a checkbox through its label);
       wrapped rows keep their natural height, and desktop sizing is unchanged. A blank chat that has not started follows changes to these facts, also after a
       reload; a chat with a message or edited facts keeps its own.
-  - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (the site's default, live prices or sample data)
-    under Advanced. Trip data is the only data-mode control, on every deployment; Live prices appears only when the caller may spend the allowance.
+  - **Language & region:** interface language (English or Simplified Chinese; chat in any language), region, display currency (AUD, CNY, USD or JPY; default AUD), units (metric), and Trip data (live prices, the default, or sample data)
+    under Advanced. Trip data is the only data-mode control, on every deployment; Live prices appears only when the caller may spend the allowance, otherwise the row shows sample data.
     Interface language is changed only under Settings → Language & region (no top-bar or Mine shortcut).
     Authored chat controls, timeline and proposal labels, settings, notices, dialogs, accessible
     names and dates follow it, including untitled-chat actions. Traveller

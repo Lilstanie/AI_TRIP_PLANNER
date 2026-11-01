@@ -159,7 +159,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   const preferencesToggle = useRef<HTMLButtonElement>(null);
   const tripToggle = useRef<HTMLButtonElement>(null);
   const navToggle = useRef<HTMLButtonElement>(null);
-  const dataMode = useDataMode(settings.dataMode === "default" ? undefined : settings.dataMode);
+  const dataMode = useDataMode(settings.dataMode === "mock" ? "mock" : "live");
   const mapProvider = mapProviderOptions(dataMode.mode, dataMode.providers);
   const tripPlaces = useTripPlaces(
     plan,
