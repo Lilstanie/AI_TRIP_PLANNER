@@ -18,6 +18,30 @@ Agent Lab 基准版本为 1.0.7。汇总结果尚未测量，计划质量也尚�
 
 在线演示：[elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app)。顶部栏的切换开关会显示请求使用模拟数据还是实时数据提供方；地点和酒店名称中带有“Mock …”的内容来自模拟模式，并不表示实时集成失败。演示站点的版本可能落后于你正在查看的分支。
 
+<a id="elec5620-stage-2-report"></a>
+
+## ELEC5620 Stage 2 报告
+
+课程按四项标准给 Stage 2 打分（[评分标准](docs/design/stage2/demo-marking-criteria.zh.md)）。本节说明原型如何满足每一项；所有数字及其来源见[演示证据页](docs/design/stage2/demo-evidence.zh.md)。数字取自 2026 年 11 月 1 日的 `main` 和 Jira 项目 TP。
+
+**1. 功能与特性（7）。** 每个 Stage 1 用例和类模型都写明了实现它的代码（[Stage 1 设计模型](docs/design/stage1/README.zh.md)）。六个包共有 137 个测试文件、1,504 个测试，97 个浏览器端到端脚本覆盖主要流程。边界情况都有测试：预算不可行、返工停滞、Google key 被拒、真实数据不可用、回复中途刷新和未登录访问。`main` 的全新副本安装并构建约 1 分 36 秒。
+
+**2. AI Agent 的感知、决策与交互（4）。** 感知：需求模型把自由文本转成目的地、日期、出行人、预算和意图（节奏、饮食、兴趣），工具读取实时航班、住宿、地点、路线和天气。决策：LangGraph 的 supervisor 选择专家，图检查预算和时间冲突，只让相关 agent 返工，并以明确的原因停止。交互：五个专家助手、`@`-mentions、专家团队面板和执行轨迹。同一个 A$2,300 的行程，单个 agent 报价 A$3,960，五个专家不返工 A$2,560，定向返工 A$2,120，在预算内（[Agent Lab 运行记录](submission/stage2/agent-lab-exit-paths.md)）。10 月 30 日一次真实行程测试发现 22 个问题，每个都建成 Jira 故事，两天内修复（PR #837 到 #870）。
+
+**3. 敏捷开发（4）。** Jira 项目 TP 共 238 个条目，230 个已完成，均按带验收标准的用户故事书写。TP Sprint 1 从 10 月 21 日持续到 31 日；更早的迭代体现在 Git 中：8 月 24 日以来 `main` 共 795 个提交。每个 PR 都带 TP 编号，故事、分支、CI 运行和合并都连在一起；403 个 PR 经评审和 CI 后合并。五次有记录的回顾改了团队规则，决策记录为 [Agent Notes](.agents/notes/README.md)。
+
+**4. 先进技术（5）。**
+
+| 技术                                                | 实测结果                                         |
+| --------------------------------------------------- | ------------------------------------------------ |
+| LangGraph 和 LangChain 多 agent 工作流              | A$2,300 预算下定向返工 A$2,120，单 agent A$3,960 |
+| DeepSeek 路由加确定性回退                           | 每页约 20 秒，MiniMax 为 37 到 81 秒             |
+| Next.js 15 和 React 19 流式输出与持久回合           | 进行中的回复在页面刷新后不会丢                   |
+| 可安装应用和手机布局                                | 可安装性检查 23/23 通过                          |
+| 云服务：Vercel、Clerk、Neon Postgres、Upstash Redis | 真实登录、过期和账号隔离检查 24/24 通过          |
+| 地图回退：Google Maps、OpenStreetMap、MapLibre      | Google 拒绝 key 时地图和路线仍可用               |
+| CI/CD：GitHub Actions、Turborepo、Docker            | PR 的 CI 中位时长从 7.3 分钟降到 5.3 分钟        |
+
 ## 工作原理
 
 ```mermaid

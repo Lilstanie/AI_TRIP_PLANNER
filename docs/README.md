@@ -5,31 +5,32 @@ English | [中文](README.zh.md)
 Read the current system in either English or Chinese. Each linked page has the same technical
 content in both languages; commands, examples and identifiers stay unchanged.
 
-| Page                                                                             | What it covers                                                        |
-| -------------------------------------------------------------------------------- | --------------------------------------------------------------------- |
-| [Architecture](architecture.md)                                                  | Runtime, package boundaries, agents and models                        |
-| [Architecture diagrams](architecture-diagrams.md)                                | Interactive runtime, storage and workspace diagrams                   |
-| [Development](development.md)                                                    | Setup, providers and verification                                     |
-| [Demo runbook](demo-runbook.md)                                                  | Clean build, demo environment variables and the mock-mode fallback    |
-| [API](api.md)                                                                    | Requests, responses, streaming and errors                             |
-| [Agent Lab release record](agent-lab-release-record-template.md)                 | Controlled deployment smoke record template                           |
-| [Workspace UI](workspace-ui.md)                                                  | Chat, map, editing and storage behavior                               |
-| [Map renderer lifecycle](map-renderer-lifecycle.md)                              | Map renderer disposal, fallback and its browser fixture               |
-| [Local E2E CLI](local-test-cli.md)                                               | Isolated local browser journeys and their reports                     |
-| [Known E2E failures](e2e-known-failures.md)                                      | Dated failures with their reproduction recipes                        |
-| [Roadmap](roadmap.md)                                                            | Current product direction and scope                                   |
-| [Team workflow](team-workflow.md)                                                | Ownership, branches and reviews                                       |
-| [Design rules](design/ui-guidelines.md)                                          | Layout, tokens, glass, motion and accessibility                       |
-| [Trip home action rail](design/trip-home-actions.md)                             | Trip home actions, linked Chats and drawer behavior                   |
-| [Mindtrip interaction reference](design/mindtrip-interactions.md)                | Observed Mindtrip behaviour the Trip home and Chat follow             |
-| [Phone workspace redesign](design/mobile-workspace-redesign.md)                  | Phone tab bar, sheets and their confirmed scope                       |
-| [Thinking UI](design/dsh-thinking-ui.md)                                         | Planning transcript reference and behavior                            |
-| [Class diagrams](design/class-diagram.md)                                        | Domain and runtime relationships                                      |
-| [Stage 1 design model](design/stage1/README.md)                                  | ELEC5620 Stage 1 report models and where each marking item is covered |
-| [Stage 2 demonstration marking criteria](design/stage2/demo-marking-criteria.md) | ELEC5620 Stage 2 demonstration marking criteria, verbatim             |
-| [Stage 2 prototype brief](design/stage2/prototype-brief.md)                      | ELEC5620 Stage 2 task sheet and contribution statement form, verbatim |
-| [Translation maintenance](i18n.md)                                               | Pair scope, terminology and synchronization checks                    |
-| [Agent setup](agents/issue-tracker.md)                                           | Issue tracker, triage labels and domain docs for AI tools             |
+| Page                                                                             | What it covers                                                          |
+| -------------------------------------------------------------------------------- | ----------------------------------------------------------------------- |
+| [Architecture](architecture.md)                                                  | Runtime, package boundaries, agents and models                          |
+| [Architecture diagrams](architecture-diagrams.md)                                | Interactive runtime, storage and workspace diagrams                     |
+| [Development](development.md)                                                    | Setup, providers and verification                                       |
+| [Demo runbook](demo-runbook.md)                                                  | Clean build, demo environment variables and the mock-mode fallback      |
+| [API](api.md)                                                                    | Requests, responses, streaming and errors                               |
+| [Agent Lab release record](agent-lab-release-record-template.md)                 | Controlled deployment smoke record template                             |
+| [Workspace UI](workspace-ui.md)                                                  | Chat, map, editing and storage behavior                                 |
+| [Map renderer lifecycle](map-renderer-lifecycle.md)                              | Map renderer disposal, fallback and its browser fixture                 |
+| [Local E2E CLI](local-test-cli.md)                                               | Isolated local browser journeys and their reports                       |
+| [Known E2E failures](e2e-known-failures.md)                                      | Dated failures with their reproduction recipes                          |
+| [Roadmap](roadmap.md)                                                            | Current product direction and scope                                     |
+| [Team workflow](team-workflow.md)                                                | Ownership, branches and reviews                                         |
+| [Design rules](design/ui-guidelines.md)                                          | Layout, tokens, glass, motion and accessibility                         |
+| [Trip home action rail](design/trip-home-actions.md)                             | Trip home actions, linked Chats and drawer behavior                     |
+| [Mindtrip interaction reference](design/mindtrip-interactions.md)                | Observed Mindtrip behaviour the Trip home and Chat follow               |
+| [Phone workspace redesign](design/mobile-workspace-redesign.md)                  | Phone tab bar, sheets and their confirmed scope                         |
+| [Thinking UI](design/dsh-thinking-ui.md)                                         | Planning transcript reference and behavior                              |
+| [Class diagrams](design/class-diagram.md)                                        | Domain and runtime relationships                                        |
+| [Stage 1 design model](design/stage1/README.md)                                  | ELEC5620 Stage 1 report models and where each marking item is covered   |
+| [Stage 2 demonstration marking criteria](design/stage2/demo-marking-criteria.md) | ELEC5620 Stage 2 demonstration marking criteria, verbatim               |
+| [Stage 2 prototype brief](design/stage2/prototype-brief.md)                      | ELEC5620 Stage 2 task sheet and contribution statement form, verbatim   |
+| [Stage 2 demonstration evidence](design/stage2/demo-evidence.md)                 | Each Stage 2 criterion mapped to what to show live and measured figures |
+| [Translation maintenance](i18n.md)                                               | Pair scope, terminology and synchronization checks                      |
+| [Agent setup](agents/issue-tracker.md)                                           | Issue tracker, triage labels and domain docs for AI tools               |
 
 Package READMEs describe their own exports and configuration. [Agent Notes](../.agents/notes/README.md)
 record decisions; dated session logs record individual work and remain frozen history.

@@ -3,7 +3,8 @@
 Source code due **Sunday 1 November 2026, 23:59**. At the Week 13 demonstration the group downloads
 this copy from Canvas and deploys it on site. The task sheet and the contribution statement form are
 in [prototype-brief.md](../../docs/design/stage2/prototype-brief.md); the rubric is in
-[demo-marking-criteria.md](../../docs/design/stage2/demo-marking-criteria.md).
+[demo-marking-criteria.md](../../docs/design/stage2/demo-marking-criteria.md), and the figures behind each
+criterion are in [demo-evidence.md](../../docs/design/stage2/demo-evidence.md).
 
 ## Run it from the Canvas copy
 

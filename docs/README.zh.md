@@ -29,6 +29,7 @@
 | [Stage 1 设计模型](design/stage1/README.zh.md)                    | ELEC5620 Stage 1 报告模型，以及每个评分项的位置         |
 | [Stage 2 演示评分标准](design/stage2/demo-marking-criteria.zh.md) | ELEC5620 Stage 2 演示评分标准，原文照录并译为中文       |
 | [Stage 2 原型任务书](design/stage2/prototype-brief.zh.md)         | ELEC5620 Stage 2 任务书与贡献声明表，原文照录并译为中文 |
+| [Stage 2 演示证据](design/stage2/demo-evidence.zh.md)             | 每项 Stage 2 评分标准对应的现场展示内容和实测数字       |
 | [翻译维护](i18n.zh.md)                                            | 配对范围、术语与同步检查                                |
 | [AI 工具配置](agents/issue-tracker.zh.md)                         | 供 AI 工具使用的 issue 跟踪、分诊标签与领域文档         |
 
