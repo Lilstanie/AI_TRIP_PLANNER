@@ -148,13 +148,13 @@
       "width": 176,
       "sources": [
         {
-          "path": "apps/web/lib/map-provider/index.ts",
+          "path": "apps/web/lib/map/providers/index.ts",
           "line": 14,
           "end_line": 50,
           "label": "设置与组合"
         },
         {
-          "path": "apps/web/lib/map-provider/fallback.ts",
+          "path": "apps/web/lib/map/providers/fallback.ts",
           "line": 35,
           "end_line": 108,
           "label": "冷却与转交"
@@ -171,7 +171,7 @@
       "width": 176,
       "sources": [
         {
-          "path": "apps/web/lib/map-provider/google.ts",
+          "path": "apps/web/lib/map/providers/google.ts",
           "line": 19,
           "end_line": 52
         }
@@ -187,7 +187,7 @@
       "width": 184,
       "sources": [
         {
-          "path": "apps/web/lib/map-provider/osm.ts",
+          "path": "apps/web/lib/map/providers/osm.ts",
           "line": 27,
           "end_line": 99
         }

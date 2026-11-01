@@ -1,5 +1,5 @@
 import { beforeEach, afterEach, describe, expect, it, vi } from "vitest";
-import { resetMapProviders } from "@/lib/map-provider";
+import { resetMapProviders } from "@/lib/map/providers";
 import { POST } from "@/app/api/routes/from-location/route";
 
 vi.mock("@/lib/integrations/google", async () => {

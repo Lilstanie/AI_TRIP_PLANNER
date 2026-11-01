@@ -1,5 +1,5 @@
 import { describe, expect, it, vi } from "vitest";
-import { osmPlaces } from "@/lib/map-provider/osm-places";
+import { osmPlaces } from "@/lib/map/providers/osm-places";
 
 const tokyo = {
   osm_type: "relation",

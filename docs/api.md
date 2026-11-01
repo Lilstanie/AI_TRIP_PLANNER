@@ -336,7 +336,7 @@ response is not cached.
 
 ## `POST /api/places/search`
 
-Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map-provider/` (Google first, free fallback by default).
+Implementation: `MapProvider.searchPlaces` in `apps/web/lib/map/providers/` (Google first, free fallback by default).
 
 ```json
 { "text": "To-ji Temple", "destination": "Kyoto" }

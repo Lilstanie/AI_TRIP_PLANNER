@@ -146,7 +146,7 @@ Each item below is a defect this project has hit; the source is in brackets.
   Exclude `GoogleRequestError` from the generic Notice branch so its upstream status is retained:
   resource 400/404 becomes 404, 429 stays 429, other upstream failures become 502. Search has no
   missing-resource branch. Inspect status and keyed failure body together through
-  [placeErrorResponse](../../../apps/web/lib/map-provider/place-error-response.ts), not only the
+  [placeErrorResponse](../../../apps/web/lib/map/providers/place-error-response.ts), not only the
   displayed sentence. When changing this boundary, enumerate failures first and verify the affected
   API responses; a successful place lookup cannot prove error classification.
   [accepted error mapping](../../notes/implemented/simplification/2026-10-10-repository-surface-reduction.md),

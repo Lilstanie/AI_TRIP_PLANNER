@@ -86,7 +86,7 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 ## Web 地图提供方
 
 Web 工作区的地点搜索、地点详情、地点照片、行程段路线、从旅行者当前位置出发的路线以及目的地时区，
-都通过 `apps/web/lib/map-provider/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
+都通过 `apps/web/lib/map/providers/` 中的同一个 `MapProvider` 接口完成。Google Maps Platform 优先应答。
 Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：Photon/Nominatim 提供搜索和详情，Commons
 提供可选的许可照片，OSRM 提供步行、骑行及驾车，Transitous 提供公共交通，坐标在离线状态下解析时区。
 [完成决策](../.agents/notes/implemented/architecture/2026-10-10-complete-map-fallback.md)记录了边界。
@@ -130,7 +130,7 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：P
 - **时区**在 Google 时区调用失败时，通过 `@photostructure/tz-lookup`（CC0 数据，不发起网络请求）离线计算。
   其边界经过简化，距离边界几公里内的地点可能得到相邻时区。没有坐标的地点没有时区，会被拒绝，绝不假定为 UTC。
 - **模拟数据模式：**在 `MOCK_GOOGLE_MAPS=unavailable` 下，编辑预览通过提供方为路段规划路线和时间；提供方以 fixture
-  应答 OSRM（按直线距离、步行或驾车速度计算，见 `apps/web/lib/map-provider/mock-osm.ts`），地点也取自同一文件。
+  应答 OSRM（按直线距离、步行或驾车速度计算，见 `apps/web/lib/map/providers/mock-osm.ts`），地点也取自同一文件。
   不发出任何 OSRM 请求。
 
 <a id="free-services-limits-and-terms"></a>
