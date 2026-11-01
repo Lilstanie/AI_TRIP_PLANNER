@@ -63,14 +63,16 @@ export function PhoneMine({
           )
         }
       />
-      <div className="phone-mine__controls" role="group" aria-label={t("dataMode")}>
-        <DataModeToggle
-          mode={dataMode.mode}
-          providers={dataMode.providers}
-          onChange={dataMode.choose}
-          disabled={busy}
-        />
-      </div>
+      {dataMode.switchable && (
+        <div className="phone-mine__controls" role="group" aria-label={t("dataMode")}>
+          <DataModeToggle
+            mode={dataMode.mode}
+            providers={dataMode.providers}
+            onChange={dataMode.choose}
+            disabled={busy}
+          />
+        </div>
+      )}
       <button
         type="button"
         className="phone-mine__settings"

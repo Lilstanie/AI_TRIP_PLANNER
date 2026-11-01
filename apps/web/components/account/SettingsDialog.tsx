@@ -702,7 +702,7 @@ function PersonalizationSection() {
   );
 }
 
-function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
+function RegionSection({ onDataMode }: { onDataMode?(mode: DataMode): void }) {
   const { settings, update } = useSettings();
   const { locale, t } = useLocale();
   const languageLabel = locale === "zh" ? "简体中文" : "English";
@@ -738,27 +738,29 @@ function RegionSection({ onDataMode }: { onDataMode(mode: DataMode): void }) {
       </SettingRow>
       <CurrencyNotice currency={settings.displayCurrency} />
       <SettingRow label={t("units")} value={t("metricCKm")} />
-      <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
-        {() => (
-          <>
-            <Segmented
-              label={t("defaultTripData")}
-              options={[
-                ["default", t("thisSiteSDefault")],
-                ["live", t("livePrices")],
-                ["mock", t("sampleData")],
-              ]}
-              value={settings.dataMode}
-              onChange={(value) => {
-                if (!value) return;
-                update({ dataMode: value });
-                if (value !== "default") onDataMode(value);
-              }}
-            />
-            <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>
-          </>
-        )}
-      </SettingRow>
+      {onDataMode && (
+        <SettingRow label={t("tripData")} value={t(DATA_LABEL[settings.dataMode])}>
+          {() => (
+            <>
+              <Segmented
+                label={t("defaultTripData")}
+                options={[
+                  ["default", t("thisSiteSDefault")],
+                  ["live", t("livePrices")],
+                  ["mock", t("sampleData")],
+                ]}
+                value={settings.dataMode}
+                onChange={(value) => {
+                  if (!value) return;
+                  update({ dataMode: value });
+                  if (value !== "default") onDataMode(value);
+                }}
+              />
+              <small className="settings-hint">{t("livePricesSearchRealHotels")}</small>
+            </>
+          )}
+        </SettingRow>
+      )}
     </div>
   );
 }
@@ -811,7 +813,7 @@ export function SettingsDialog({
   onAccountModal,
 }: {
   initial?: Section;
-  onDataMode(mode: DataMode): void;
+  onDataMode?(mode: DataMode): void;
 } & AccountModalProps) {
   const [section, setSection] = useState<Section>(initial);
   const { syncState } = useSettings();

@@ -757,16 +757,18 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
             )}
             {!phone && (
               <div className="topbar-actions">
-                <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
-                  <DataModeToggle
-                    mode={dataMode.mode}
-                    providers={dataMode.providers}
-                    onChange={dataMode.choose}
-                    disabled={busy}
-                    liveAvailable={dataMode.liveAvailable}
-                    liveBlock={dataMode.liveBlock}
-                  />
-                </div>
+                {dataMode.switchable && (
+                  <div className="topbar-control-cluster" role="group" aria-label={t("dataMode")}>
+                    <DataModeToggle
+                      mode={dataMode.mode}
+                      providers={dataMode.providers}
+                      onChange={dataMode.choose}
+                      disabled={busy}
+                      liveAvailable={dataMode.liveAvailable}
+                      liveBlock={dataMode.liveBlock}
+                    />
+                  </div>
+                )}
                 {plan && (
                   <button
                     ref={tripToggle}
