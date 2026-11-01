@@ -221,6 +221,16 @@ function AccountSection({ onAccountModal }: AccountModalProps) {
               </button>
             </div>
           </>
+        ) : account.signOut ? (
+          <div className="settings-actions">
+            <button
+              type="button"
+              className="settings-pill"
+              onClick={() => void account.signOut?.()}
+            >
+              {t("signOut")}
+            </button>
+          </div>
         ) : (
           <p className="settings-lead">{t("accountsAreNotSetUp")}</p>
         )}

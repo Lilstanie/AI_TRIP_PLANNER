@@ -3,9 +3,10 @@ import { useAuth, useClerk, useUser } from "@clerk/nextjs";
 import { createContext, useContext, useEffect, useMemo, type ReactNode } from "react";
 import { useRouter } from "next/navigation";
 import { authEnabled } from "@/lib/auth/config";
+import { signOutAdmin } from "@/app/sign-in/actions";
 
 export type Account =
-  | { status: "local" }
+  | { status: "local"; signOut?(): Promise<void> }
   | { status: "loading" }
   | { status: "signed-out"; signIn(): void; signUp(): void }
   | {
@@ -85,9 +86,12 @@ export function AccountProvider({
   children: ReactNode;
   admin?: boolean;
 }) {
-  return authEnabled && !admin ? (
-    <ClerkAccount>{children}</ClerkAccount>
-  ) : (
-    <AccountContext.Provider value={{ status: "local" }}>{children}</AccountContext.Provider>
+  if (authEnabled && !admin) return <ClerkAccount>{children}</ClerkAccount>;
+  return (
+    <AccountContext.Provider
+      value={admin ? { status: "local", signOut: signOutAdmin } : { status: "local" }}
+    >
+      {children}
+    </AccountContext.Provider>
   );
 }
