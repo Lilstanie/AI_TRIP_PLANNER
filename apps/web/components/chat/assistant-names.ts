@@ -1,10 +1,9 @@
-import { AGENT_NAMES, type AssistantId, type AssistantNames } from "@trip/shared";
+import type { AssistantId, AssistantNames } from "@trip/shared";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
+import { ASSISTANT_ORDER } from "@/lib/chat/assistant-order";
 import { translate, type AppLocale } from "@/lib/i18n/locale";
 import { ASSISTANT_ROLE_KEYS } from "./assistants";
-
-export const ASSISTANT_ORDER: AssistantId[] = ["coordinator", ...AGENT_NAMES];
 
 export function assistantName(
   id: AssistantId,

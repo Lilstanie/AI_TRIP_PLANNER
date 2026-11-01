@@ -17,7 +17,8 @@ import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
 import { useSettings } from "../account/SettingsProvider";
-import { ASSISTANT_ORDER, assistantName } from "./assistant-names";
+import { ASSISTANT_ORDER } from "@/lib/chat/assistant-order";
+import { assistantName } from "./assistant-names";
 import { MentionMenu, type MentionEntry } from "./MentionMenu";
 import { activeMention, matchesMention, mentionBefore, mentionToken, roleNames } from "./mentions";
 

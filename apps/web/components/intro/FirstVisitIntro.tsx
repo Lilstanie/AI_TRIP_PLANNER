@@ -4,7 +4,7 @@ import { LocaleProvider, useLocale } from "../account/LocaleProvider";
 import { BrandMark } from "../workspace/BrandMark";
 import { LanguageToggle } from "../workspace/LanguageToggle";
 import { AssistantIcon, ASSISTANT_ROLE_KEYS } from "../chat/assistants";
-import { ASSISTANT_ORDER } from "../chat/assistant-names";
+import { ASSISTANT_ORDER } from "@/lib/chat/assistant-order";
 import type { MessageKey } from "@/lib/i18n/locale";
 
 const STEPS: [MessageKey, MessageKey][] = [

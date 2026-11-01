@@ -11,7 +11,7 @@ import { IconChevronDownOutlineRegular, StateDot, Tag } from "../trajectory/shim
 import type { StateDotState } from "../trajectory/shim";
 import { AssistantIcon } from "./assistants";
 import { useAssistantName } from "./assistant-names";
-import { checkText } from "./team-check";
+import { checkText } from "../../lib/chat/team-check";
 import {
   assignmentStatusLabels,
   rowStatusLabels,
@@ -21,7 +21,7 @@ import {
   type DecidedBy,
   type RowStatus,
   type TeamModel,
-} from "./team-model";
+} from "../../lib/chat/team-model";
 import css from "./TeamPanel.module.css";
 
 const ROW_DOTS: Record<RowStatus, StateDotState> = {

@@ -28,7 +28,7 @@ import {
   type ReasoningBlock,
   type SubagentModel,
   type ToolRowModel,
-} from "./thinking-model";
+} from "../../lib/chat/thinking-model";
 
 export interface OpenRows {
   isOpen: (id: string) => boolean;

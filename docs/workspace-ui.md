@@ -467,7 +467,7 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     not move focus. The panel never opens by itself and
     updates live. It shows the latest turn: the live stream while one runs, otherwise the newest saved
     agent reply's activity. [`TeamPanel`](../apps/web/components/chat/TeamPanel.tsx) takes a `TeamModel`
-    as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/components/chat/team-model.ts) derives everything from the
+    as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/lib/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: the same capsule (three stacked avatars, working first, and a compact count while planning), at least 44 px tall, sits right of the
     trip title, which truncates. It opens a full-screen Trajectory

@@ -1,7 +1,7 @@
 import type { AgentName, AssistantId, AssistantNames } from "@trip/shared";
 import { translate } from "@/lib/i18n/locale";
 import { ASSISTANT_ROLE_KEYS } from "./assistants";
-import { labels } from "./thinking-model";
+import { labels } from "../../lib/chat/thinking-model";
 
 const SPECIALISTS = Object.keys(labels) as AgentName[];
 

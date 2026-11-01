@@ -4,7 +4,7 @@ import { useEffect, useRef } from "react";
 import { useLocale } from "../../account/LocaleProvider";
 import { TeamAvatars } from "../../chat/TeamControl";
 import { TeamPanel } from "../../chat/TeamPanel";
-import type { TeamTurn } from "../../chat/team-model";
+import type { TeamTurn } from "../../../lib/chat/team-model";
 import { useTeamSurface } from "../../chat/use-team-surface";
 import { PhoneTrajectory } from "./PhoneTrajectory";
 import type { WorkspaceModel } from "../useWorkspace";
