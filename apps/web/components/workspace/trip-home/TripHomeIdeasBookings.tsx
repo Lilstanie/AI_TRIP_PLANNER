@@ -2,14 +2,14 @@
 
 import { useState } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import { useLocale } from "../account/LocaleProvider";
-import { CurrencyNotice } from "../account/CurrencyNotice";
+import { useLocale } from "../../account/LocaleProvider";
+import { CurrencyNotice } from "../../account/CurrencyNotice";
 import {
   FlowAttractionIcon,
   FlowFlightIcon,
   FlowRestaurantIcon,
   FlowStayIcon,
-} from "../ui/flow-icons";
+} from "../../ui/flow-icons";
 import { tripIdeas } from "@/lib/trip/ideas";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";

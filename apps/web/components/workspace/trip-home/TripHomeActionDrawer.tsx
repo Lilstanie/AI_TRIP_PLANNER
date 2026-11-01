@@ -9,8 +9,8 @@ import {
   type RefObject,
 } from "react";
 import type { ProposalItem, TripPlan } from "@trip/shared";
-import { Drawer } from "../ui/Drawer";
-import { useLocale } from "../account/LocaleProvider";
+import { Drawer } from "../../ui/Drawer";
+import { useLocale } from "../../account/LocaleProvider";
 import { TripHomeBookings, TripHomeIdeas } from "./TripHomeIdeasBookings";
 import { TripHomePreferences } from "./TripHomePreferences";
 import { TripHomeCalendar } from "./TripHomeCalendar";

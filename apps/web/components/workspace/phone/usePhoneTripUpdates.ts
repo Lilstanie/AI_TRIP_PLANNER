@@ -1,6 +1,6 @@
 "use client";
 import { useEffect, useMemo, useRef, useState } from "react";
-import type { WorkspaceModel } from "./useWorkspace";
+import type { WorkspaceModel } from "../useWorkspace";
 
 const fingerprint = (value: unknown) =>
   JSON.stringify(value, (_key, item: unknown) =>

@@ -1,9 +1,9 @@
 "use client";
 import type { ComponentProps, ReactNode, RefObject } from "react";
-import { TripFactChips } from "../preferences/TripFactChips";
+import { TripFactChips } from "../../preferences/TripFactChips";
 import { LocaleProvider, useLocale } from "@/components/account/LocaleProvider";
-import { ChevronIcon } from "../ui/icons";
-import { HistoryMenu } from "./WorkspaceSidebar";
+import { ChevronIcon } from "../../ui/icons";
+import { HistoryMenu } from "../WorkspaceSidebar";
 
 export function TripHome({
   title,

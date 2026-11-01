@@ -2,8 +2,8 @@
 import { useEffect, useRef, useState } from "react";
 import type { AgentProgressEvent, AssistantId } from "@trip/shared";
 import type { Message } from "@/lib/workspace";
-import { useTrajectoryFocus } from "../chat/trajectory-focus";
-import { TrajectoryTab, type TurnJump } from "../trajectory/TrajectoryTab";
+import { useTrajectoryFocus } from "../../chat/trajectory-focus";
+import { TrajectoryTab, type TurnJump } from "../../trajectory/TrajectoryTab";
 
 export function PhoneTrajectory({
   messages,
