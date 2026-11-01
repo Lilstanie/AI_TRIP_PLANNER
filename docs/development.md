@@ -177,6 +177,12 @@ as a production deployment check. Redis commands are POST JSON arrays in the req
 tools run in process. It is kept for adapter
 experiments and is started by Docker Compose.
 
+In-process mock places return one `Mock attraction near <city>` and every mock route is a 140-minute
+train; Agent Lab benchmarks and tests depend on that. Start the app with `MOCK_PLACES=multi` to get a
+fixed list per category instead (nine sights, two museums, five restaurants, each named
+`Mock <place>, <city>`): a mock plan then has three stops a day with transport rows between them, a
+five-day trip repeats no stop, and a route between two mock places is a 20-minute transit leg.
+
 ## Docker
 
 ```bash
