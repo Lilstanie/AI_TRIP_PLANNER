@@ -185,8 +185,8 @@ export function TripEditorView({
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
   const staying = stayingAt(plan, day);
-  const tripText = tripWeather(plan);
-  const weather = tripText && weatherForDay(tripText, plan.brief.dates[0], day, days);
+  const guideWeather = tripWeather(plan);
+  const weather = guideWeather && weatherForDay(guideWeather, plan.brief.dates[0], day, days);
   const locked = disabled || edits.busy;
   const strip = useMemo(
     () =>
