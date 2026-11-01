@@ -548,7 +548,7 @@ export const enWorkspace = {
   customsEtiquette: "Customs & etiquette",
   safetyNotes: "Safety notes",
   entryHealth: "Entry & health",
-  weatherPacking: "Weather & packing",
+  weatherPacking: "Packing",
   travelNote: "Travel note",
   transfer: "Transfer",
   stay: "Stay",

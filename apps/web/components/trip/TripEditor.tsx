@@ -48,7 +48,8 @@ import type { TripUndo } from "./useTripUndo";
 import { useTimelineEdits, type TimelineEdits } from "./timeline/useTimelineEdits";
 import { AddToTripPanel, type AddTarget } from "./timeline/AddToTripPanel";
 import { DayNoteForm } from "./timeline/DayNoteForm";
-import { TripTips } from "./TripTips";
+import { TripTips, tripWeather } from "./TripTips";
+import { TripWeather, weatherForDay } from "./TripWeather";
 import { useTripDay } from "./useTripDay";
 import { useItineraryDrag } from "./useItineraryDrag";
 import { END_OF_DAY, zoneKey, type DragSource, type DropTarget } from "@/lib/trip/drag-target";
@@ -184,6 +185,8 @@ export function TripEditorView({
   const sourceOf = (sectionId: "accommodation" | "transport") =>
     plan.sections.find((section) => section.id === sectionId)?.proposal?.source;
   const staying = stayingAt(plan, day);
+  const guideWeather = tripWeather(plan);
+  const weather = guideWeather && weatherForDay(guideWeather, plan.brief.dates[0], day, days);
   const locked = disabled || edits.busy;
   const strip = useMemo(
     () =>
@@ -639,6 +642,7 @@ export function TripEditorView({
           />
         )}
         {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
+        {weather && <TripWeather text={weather} />}
         {staying && (
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("stayingAtPlace", { place: staying })}
