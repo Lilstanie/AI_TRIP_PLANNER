@@ -64,5 +64,7 @@
 	</array>
 	<key>UIViewControllerBasedStatusBarAppearance</key>
 	<true/>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>Your location is shown on the trip map and used for routes from where you are.</string>
 </dict>
 </plist>

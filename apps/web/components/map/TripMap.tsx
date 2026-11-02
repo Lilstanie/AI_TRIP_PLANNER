@@ -8,7 +8,7 @@ import { errorNotice, failureNotice, NoticeError, type Notice } from "@/lib/i18n
 import { MapViewController } from "@/lib/map/map-view";
 import { dayRoutes, type RouteStop } from "@/lib/map/itinerary-route";
 import { PlacePreview } from "./PlacePreview";
-import { framable, type MapMarker, type MapRuntime } from "./google-maps-sdk";
+import { framable, type MapMarker, type MapProvider, type MapRuntime } from "./google-maps-sdk";
 import { hoveredStop, hoverStop, subscribeStopHover } from "@/lib/trip/stop-hover";
 import {
   declutterLabels,
@@ -256,7 +256,7 @@ export function TripMap({
       delete element.dataset.mapDegraded;
       delete element.dataset.labels;
     };
-    const fail = (cause: unknown, provider?: "google" | "osm") => {
+    const fail = (cause: unknown, provider?: MapProvider) => {
       if (disposed) return;
       removeRenderer();
       setRuntime(undefined);
@@ -313,7 +313,7 @@ export function TripMap({
           });
           next.listen("center_changed", userMoved);
           next.listen("idle", () => {
-            if (next.provider === "osm") element.dataset.mapReady = "true";
+            if (next.provider !== "google") element.dataset.mapReady = "true";
             declutterRef.current();
           });
           next.listen("click", () => closeRef.current());
@@ -338,7 +338,7 @@ export function TripMap({
   }, [retry, forceOsm, forceOsmProvider, mockData, allowOsmFallback]);
 
   useEffect(() => {
-    if (runtime?.provider === "osm") runtime.map.setOptions({ dark });
+    if (runtime && runtime.provider !== "google") runtime.map.setOptions({ dark });
   }, [runtime, dark]);
 
   const unfocused = !destinations.length && !mappedPlaces.length;

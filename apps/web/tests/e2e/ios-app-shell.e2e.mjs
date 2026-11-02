@@ -2,6 +2,7 @@ import { mkdirSync, writeFileSync } from "node:fs";
 import { createRequire } from "node:module";
 import { resolve } from "node:path";
 
+import { seedTrip } from "./phone-map-seed.mjs";
 import { openMockWorkspace, planSuggestedTrip, settle } from "./trip-setup.mjs";
 
 const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
@@ -115,6 +116,146 @@ try {
       authTop,
     );
     await shot(page, `${scheme}-6-sign-in`);
+    await context.close();
+  }
+
+  {
+    const { context, page } = await open(browser, { userAgent: IOS_UA, scheme: "light" });
+    const seed = seedTrip();
+    seed.snapshot.plan.sections[0].proposal.items[0].detail = "Harbour Bridge";
+    seed.snapshot.plan.sections[0].proposal.items.push({
+      ...seed.snapshot.plan.sections[0].proposal.items[0],
+      id: "empty-day-trip-stop-2",
+      detail: "Opera House",
+      startTime: "11:00",
+      endTime: "12:00",
+    });
+    seed.catalog.conversations[0].snapshot = seed.snapshot;
+    seed.catalog.trips[0].snapshot = seed.snapshot;
+    await context.addInitScript((seed) => {
+      localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
+      localStorage.setItem("trip.dataMode", "mock");
+      window.__shellCalls = [];
+      window.__mapCalls = [];
+      window.__mapListeners = {};
+      window.Capacitor = {
+        PluginHeaders: [{ name: "TripShell" }, { name: "TripMap" }, { name: "Haptics" }],
+        nativePromise: async (plugin, method, options) => {
+          if (plugin === "TripShell" && method === "setTabs") {
+            window.__shellCalls.push(options);
+            return { height: 83 };
+          }
+          if (plugin === "TripMap") window.__mapCalls.push({ method, ...options });
+          return {};
+        },
+        addListener: (plugin, event, callback) => {
+          window.__mapListeners[`${plugin}:${event}`] = callback;
+          return { remove() {} };
+        },
+      };
+    }, seed);
+    const fixturePlace = (text) => {
+      const hash = [...text].reduce((n, c) => n + c.charCodeAt(0), 0);
+      return {
+        id: `fixture-${hash}`,
+        displayName: { text },
+        formattedAddress: text,
+        location: { latitude: 35 + (hash % 97) / 1000, longitude: 135.75 + (hash % 89) / 1000 },
+      };
+    };
+    await page.route("**/api/places/search", (route) =>
+      route.fulfill({ json: { places: [fixturePlace(route.request().postDataJSON().text)] } }),
+    );
+    await page.route("**/api/places/details", (route) =>
+      route.fulfill({ json: { place: fixturePlace(route.request().postDataJSON().placeId) } }),
+    );
+    await page.goto(BASE, { waitUntil: "domcontentloaded" });
+    await page.locator(".phone-tabbar").waitFor({ state: "attached" });
+    await page.evaluate(() => document.getElementById("phone-tab-mine")?.click());
+    await page
+      .locator(".phone-mine button", { hasText: /^SydneyTrip to Sydney/ })
+      .first()
+      .click();
+    await settle(page, 1200);
+    const first = await page.evaluate(() => window.__shellCalls.at(-1));
+    check(
+      first?.tabs.map((tab) => tab.id).join() === "chat,map,trip,mine" && first.selected === "chat",
+      "native tab bar receives the web tabs and the selected one",
+      first,
+    );
+    const webBar = await page.evaluate(() => {
+      const bar = document.querySelector(".phone-tabbar");
+      return {
+        visibility: getComputedStyle(bar).visibility,
+        height: bar.getBoundingClientRect().height,
+      };
+    });
+    check(
+      webBar.visibility === "hidden" && Math.round(webBar.height) === 83,
+      "web tab bar becomes a spacer the native bar covers",
+      webBar,
+    );
+    await page.evaluate(() => document.getElementById("phone-tab-map")?.click());
+    await settle(page, 1500);
+    check(
+      (await page.evaluate(() => window.__shellCalls.at(-1)?.selected)) === "map",
+      "a tap relayed from the native bar switches the web tab and reports it back",
+    );
+    const native = await page.evaluate(() => {
+      const calls = window.__mapCalls;
+      const layout = calls.filter((call) => call.method === "layout").at(-1);
+      const markers = new Map();
+      for (const call of calls) {
+        if (call.method === "setMarker") markers.set(call.id, call);
+        if (call.method === "removeMarker") markers.delete(call.id);
+      }
+      const stops = [...markers.values()].filter((marker) => marker.kind === "stop");
+      const map = document.querySelector(".trip-map-canvas .google-map");
+      return {
+        provider: map?.dataset.provider,
+        visible: layout?.visible,
+        frame: layout?.frame,
+        occluders: layout?.occluders.length,
+        stops: stops.map((stop) => `${stop.glyph}:${stop.color}:${stop.title}`),
+        sheet: [...document.querySelectorAll(".phone-map-sheet__body li")].map((li) =>
+          li.textContent.trim(),
+        ),
+        lines: calls.filter((call) => call.method === "setLine").length,
+        transparent: getComputedStyle(document.querySelector(".workspace-app")).backgroundImage,
+      };
+    });
+    check(
+      native.provider === "apple" &&
+        native.visible &&
+        native.frame?.width === 390 &&
+        native.occluders >= 2 &&
+        native.stops.length > 1 &&
+        native.stops.every((stop) => /^\d+:#[0-9a-f]{8}:./.test(stop)) &&
+        native.lines > 0 &&
+        native.transparent === "none",
+      "Map tab hands stops, routes and its frame to native Apple Maps and clears the web backdrop",
+      native,
+    );
+    const stopId = await page.evaluate(() => {
+      const stop = window.__mapCalls.find(
+        (call) => call.method === "setMarker" && call.kind === "stop",
+      );
+      window.__mapListeners["TripMap:markerTap"]?.({ id: stop.id });
+      return stop.id;
+    });
+    await settle(page, 800);
+    const picked = await page.evaluate(
+      (id) =>
+        window.__mapCalls.filter((call) => call.method === "setMarker" && call.id === id).at(-1)
+          ?.selected,
+      stopId,
+    );
+    check(
+      picked === true && (await page.locator(".phone-map-details").count()) > 0,
+      "tapping an Apple Maps pin opens the stop and marks the pin selected",
+    );
+    await shot(page, "native-tabbar-map");
     await context.close();
   }
 

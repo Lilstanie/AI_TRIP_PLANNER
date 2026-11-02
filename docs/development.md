@@ -246,6 +246,9 @@ pnpm --filter @trip/ios open
 In Xcode, choose the App target, set Signing & Capabilities to your Apple ID team, pick the iPhone and
 press Run. On the iPhone, trust the developer under Settings → General → VPN & Device Management.
 
+The app also replaces the web tab bar with the system tab bar and shows the phone Map tab on Apple
+Maps; see the [native tab bar and Apple Maps note](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md).
+
 ## Licence and third-party code
 
 The repository is MIT licensed (see [LICENSE](../LICENSE)), and every `package.json` declares
