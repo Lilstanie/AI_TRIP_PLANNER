@@ -1,7 +1,7 @@
 import {
   BASE_CURRENCY,
   FlightAnswer as FlightAnswerSchema,
-  moneyIn,
+  formatMoney,
   type BookingPort,
   type FlightAnswer,
   type FlightPriceInsight,
@@ -75,7 +75,9 @@ export async function answerFlightQuery(
 
   const cheapest = options[0];
   const chinese = query.language ? query.language === "zh" : /\p{Script=Han}/u.test(`${from}${to}`);
-  const range = priceInsight?.typicalRange?.map((price) => moneyIn(price, BASE_CURRENCY)).join("–");
+  const range = priceInsight?.typicalRange
+    ?.map((price) => formatMoney(price, BASE_CURRENCY))
+    .join("–");
 
   const reply = chinese ? chineseReply() : englishReply();
 
@@ -105,7 +107,9 @@ export async function answerFlightQuery(
     if (failure) return `暂时查不到 ${route} 的票价：${failure}`;
     if (!cheapest) return `${route} 没有查到票价，可以换个相近的日期或城市试试。`;
     const count = options.length > 1 ? `，共找到 ${options.length} 个票价` : "";
-    return `${route}，${passengers} 位旅客最便宜的是 ${cheapest.carrier}，${moneyIn(cheapest.price, BASE_CURRENCY)}${count}。${chineseAdvice()}价格是全体旅客的总价，随时可能变动，这里不会预订。`;
+    const each =
+      passengers > 1 ? `（每人约 ${formatMoney(cheapest.price / passengers, BASE_CURRENCY)}）` : "";
+    return `${route}，${passengers} 位旅客最便宜的是 ${cheapest.carrier}，${formatMoney(cheapest.price, BASE_CURRENCY)}${each}${count}。${chineseAdvice()}价格是全体旅客的总价，随时可能变动，这里不会预订。`;
   }
 
   function englishReply() {
@@ -114,7 +118,11 @@ export async function answerFlightQuery(
     if (!cheapest)
       return `No fares came back for ${trip}. Try a nearby date, or a different pair of cities.`;
     const count = options.length > 1 ? `, out of ${options.length} fares found` : "";
-    return `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${moneyIn(cheapest.price, BASE_CURRENCY)}${count}.${englishAdvice()} Prices are whole-party totals and change without notice; nothing here is booked.`;
+    const each =
+      passengers > 1
+        ? ` (about ${formatMoney(cheapest.price / passengers, BASE_CURRENCY)} each)`
+        : "";
+    return `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${formatMoney(cheapest.price, BASE_CURRENCY)}${each}${count}.${englishAdvice()} Prices are whole-party totals and change without notice; nothing here is booked.`;
   }
 
   return FlightAnswerSchema.parse({

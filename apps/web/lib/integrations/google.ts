@@ -221,6 +221,18 @@ export function unavailableRoute(
   };
 }
 
+const WEEK_MS = 7 * 86400000;
+
+function sameWeekdayInWindow(departure: string): string {
+  const at = Date.parse(departure);
+  const delta = at - Date.now();
+  if (delta > 93 * 86400000)
+    return new Date(at - (Math.floor(delta / WEEK_MS) - 1) * WEEK_MS).toISOString();
+  if (delta < -6 * 86400000)
+    return new Date(at + Math.ceil(-delta / WEEK_MS + 1) * WEEK_MS).toISOString();
+  return departure;
+}
+
 export async function requestGoogleRoute(
   from: string,
   to: string,
@@ -228,8 +240,7 @@ export async function requestGoogleRoute(
   mode: RouteMode,
 ): Promise<RouteResult> {
   const base = { from, to, mode };
-  const delta = Date.parse(departure) - Date.now();
-  if (mode === "TRANSIT" && (delta < -7 * 86400000 || delta > 100 * 86400000))
+  if (!Number.isFinite(Date.parse(departure)))
     throw new NoticeError({
       key: "transitDepartureIsOutsideGoogle",
     });
@@ -240,7 +251,7 @@ export async function requestGoogleRoute(
       origin: { placeId: from },
       destination: { placeId: to },
       travelMode: mode,
-      ...(mode === "TRANSIT" ? { departureTime: departure } : {}),
+      ...(mode === "TRANSIT" ? { departureTime: sameWeekdayInWindow(departure) } : {}),
     },
   );
 
