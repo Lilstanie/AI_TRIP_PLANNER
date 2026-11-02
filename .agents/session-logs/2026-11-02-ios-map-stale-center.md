@@ -13,8 +13,10 @@ contract-impact: none
 
 - `apps/web/components/map/apple-maps-renderer.ts`: `move` drops camera fields equal to the
   renderer's region and sends nothing when no field changed.
-- Agent Note `feature/2026-11-01-ios-native-tabs-and-maps.md`: the gesture-only move events and the
-  stale-region rule.
+- `apps/ios/ios/App/App/TripMap.swift`: camera moves and region reports use the centre of the
+  inset area; a change of insets before any touch repeats the last fit or camera move.
+- Agent Note `feature/2026-11-01-ios-native-tabs-and-maps.md`: the gesture-only move events, the
+  stale-region rule and the inset-area centre.
 
 ## Why
 
@@ -24,11 +26,18 @@ centre and lost hand pans on tab switches. A recorded run of the native calls sh
 Apple renderer still held the create centre, and a camera call while the map is unsized replaces the
 pending fit.
 
+A local-server retest of the web fix on the Mac passed framing, tab switches and pans, but stop 4 sat
+behind the expanded Day stops sheet and a restored selected stop was not centred above it: the native
+map centred on its full frame and fitted with the insets of its first layout only.
+
 ## Validation
 
 - Scratch Playwright run with a recording `TripMap` plugin: before, `fit` then
   `camera(-33.796, 151.213)`; after, `fit` only, and Chat -> Map sends no camera call.
 - `ios-app-shell` E2E 14/14.
+- Mac simulator against a local dev server (web fix only): framing at city level, Chat -> Map
+  unchanged, pan kept, pin tap opens the stop. The Swift change has not been built here (no Swift
+  toolchain in the cloud container); the Mac rebuild covers it.
 
 ## Notes for the next person
 
