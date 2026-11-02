@@ -4,7 +4,6 @@ export type ReusedPlace = { location: string; days: number[] };
 
 const NAMED = 3;
 
-/** One sentence for the fallback reply; empty when nothing repeats. */
 export function reusedPlacesNote(places: ReusedPlace[], language: InterfaceLanguage): string {
   if (!places.length) return "";
   const zh = language === "zh";
