@@ -300,7 +300,6 @@ export const FlightPriceInsight = z.object({
   typicalRange: z.tuple([z.number().nonnegative(), z.number().nonnegative()]).optional(),
   history: z.array(z.object({ date: z.string(), price: z.number().nonnegative() })).optional(),
 });
-/** Google Flights' view of the searched route's fares, on the same AUD whole-party basis as the options. */
 export type FlightPriceInsight = z.infer<typeof FlightPriceInsight>;
 
 export const FlightAnswer = z.object({
