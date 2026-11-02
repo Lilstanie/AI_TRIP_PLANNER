@@ -19,7 +19,7 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.rdp-day_button)
     .trip-home-calendar__date
   ):not(.trip-home-calendar__event):not(.trip-home-ideas-bookings__day):not(
     .phone-mine__settings
-  ):not(.plan-days__scroll) {
+  ):not(.dialog__close):not(.plan-days__scroll) {
   min-height: 36px;
 }
 button:disabled {
@@ -43,7 +43,9 @@ button:not(.cl-button):not(.section__row):not(.stay-option):not(.primary):not(.t
     .thinking-row__summary-button
   ):not(.chat__tab):not(.msg-action):not(.trip-home-calendar-button):not(
     .trip-home-calendar__date
-  ):not(.trip-home-calendar__event):not(.trip-home-ideas-bookings__day):not(.phone-mine__settings) {
+  ):not(.trip-home-calendar__event):not(.trip-home-ideas-bookings__day):not(
+    .phone-mine__settings
+  ):not(.dialog__close) {
   border: 1px solid transparent;
   border-radius: var(--radius-pill);
   background: var(--button-bg, var(--fill-hover));

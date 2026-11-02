@@ -155,3 +155,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Scanned every visible button on home, Trips/Mine, trip page and the five trip-home tabs (390px and 1440px) for the generic `forms.css` pill overriding a designed shape. Most pills are intended; the phone Mine tab's 设置与账户 row was not: `phone/polish.css` designs it as a white card (`--radius-xl`, `--phone-card`, bold) matching the trip and chat rows, but it rendered as a grey pill (computed `border-radius: 999px`, `rgba(120,120,128,.1)`).
 - `forms.css`: both generic button rules exclude `.phone-mine__settings`. After: `26px`, `rgb(255,255,255)` light / `rgb(28,28,30)` dark.
 - Validation: light and dark phone screenshots. No machine check, same cascade class as TP-293 and TP-306; the `:where()` restructure of the generic rule is still the open follow-up that would remove the class.
+
+## Round 21 — TP-308 dialog close button
+
+- Settings dialog (1440px, zh): the × sat at the right edge of a grey 32×36 oval. `trip/trip.css` designs `.dialog__close` as a 32px transparent circle with the icon centred (grey only on hover), but the generic `forms.css` rules added 14px side padding, the grey fill and a 36px minimum height. The button comes from `components/ui/Dialog.tsx`, so every dialog using it had the same close button.
+- `forms.css`: both generic button rules exclude `.dialog__close`. After: 32×32, transparent, × centred.
+- Validation: before/after crops of the Settings dialog and the measured box (`32×36` → `32×32`). No machine check, same cascade class as TP-293, TP-306 and TP-307 (the `:where()` restructure is the open follow-up).
+- Also looked at: desktop trip page and Trips page (light and dark), Settings sections. The desktop trip page's map column stays an empty box with one line when the map cannot place the trip; left for a design decision.
