@@ -38,7 +38,7 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   while the map was hidden. It drops a camera field that matches that state, so re-centring on the
   current centre after a resize never replaces a pending fit.
 - The native map centres and reports the centre of the area the web leaves visible (inside the layout
-  insets for the top bar and Day stops sheet), not of its full frame. When those insets change before
+  insets for the top bar and the Day stops sheet or an open stop's details), not of its full frame. When those insets change before
   the traveller touches the map, it repeats its last fit or camera move, so stops stay framed above the
   sheet as it settles.
 - The app asks for location while in use, so the map's location button works in the web view.

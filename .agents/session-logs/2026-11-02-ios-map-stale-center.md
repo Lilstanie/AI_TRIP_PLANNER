@@ -12,7 +12,8 @@ contract-impact: none
 ## What changed
 
 - `apps/web/components/map/apple-maps-renderer.ts`: `move` drops camera fields equal to the
-  renderer's region and sends nothing when no field changed.
+  renderer's region and sends nothing when no field changed; the layout bottom inset also stops at
+  an open stop's details panel, not only the Day stops sheet.
 - `apps/ios/ios/App/App/TripMap.swift`: camera moves and region reports use the centre of the
   inset area; a change of insets before any touch repeats the last fit or camera move.
 - Agent Note `feature/2026-11-01-ios-native-tabs-and-maps.md`: the gesture-only move events, the
@@ -38,6 +39,11 @@ map centred on its full frame and fitted with the insets of its first layout onl
 - Mac simulator against a local dev server (web fix only): framing at city level, Chat -> Map
   unchanged, pan kept, pin tap opens the stop. The Swift change has not been built here (no Swift
   toolchain in the cloud container); the Mac rebuild covers it.
+- Mac simulator with the Swift change (local dev server): build succeeded; all stops framed above
+  the expanded sheet, re-framed when it collapsed, a hand pan kept through sheet changes and tab
+  switches. A tapped or restored stop was centred horizontally but sat low, because the inset ignored
+  the details panel; the scratch run now reports a bottom inset of 383 with the panel open (100
+  before).
 
 ## Notes for the next person
 
