@@ -140,7 +140,15 @@ function hopNights(
   return counts.every((count) => count >= 0) ? counts : undefined;
 }
 
+const OUTDOOR_STAY = /\b(glamping|camping|campground|campsite|caravan|holiday park|tents?)\b/i;
+
 export function eligibleOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {
+  const valid = validOptions(options, prefs);
+  const indoor = valid.filter((option) => !OUTDOOR_STAY.test(option.name));
+  return indoor.length ? indoor : valid;
+}
+
+function validOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {
   return options
     .filter(
       (option) =>
