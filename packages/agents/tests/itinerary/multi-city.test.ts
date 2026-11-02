@@ -387,6 +387,86 @@ describe("multi-city transfer-day activities", () => {
     ]);
   });
 
+  it("plans the destination after a drive in from the traveller's home city", async () => {
+    const trip = {
+      ...brief,
+      origin: "Brisbane",
+      destination: "Gold Coast",
+      dates: ["2026-12-27", "2026-12-29"] as [string, string],
+    };
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ near, category }) =>
+      category === "sight"
+        ? [
+            { name: `${near} Theme Park`, category: "sight" },
+            { name: `${near} Beach`, category: "sight" },
+          ]
+        : [{ name: `${near} Foreshore`, category: "neighborhood" }],
+    );
+    const accommodation: AgentProposal = {
+      agent: "accommodation",
+      summary: "Two nights on the Gold Coast",
+      items: [],
+      assumptions: [],
+      conflictsWith: [],
+      stays: [
+        {
+          id: "stay-gold-coast",
+          city: "Gold Coast",
+          checkIn: "2026-12-27",
+          checkOut: "2026-12-29",
+          day: 1,
+          nights: 2,
+          rooms: 1,
+          selectedId: "stay-gold-coast-0",
+          candidates: [
+            {
+              id: "stay-gold-coast-0",
+              name: "Surfers Stay",
+              area: "Gold Coast",
+              pricePerNight: 230,
+              rating: 8,
+              freeCancellation: true,
+            },
+          ],
+        },
+      ],
+    };
+    const transport: AgentProposal = {
+      agent: "transport",
+      summary: "Drive there and back",
+      items: [
+        {
+          kind: "transport",
+          day: 1,
+          startTime: "09:00",
+          endTime: "09:52",
+          location: "Brisbane → Gold Coast",
+          detail: "Drive",
+        },
+        {
+          kind: "transport",
+          day: 3,
+          startTime: "17:00",
+          endTime: "17:49",
+          location: "Gold Coast → Brisbane",
+          detail: "Drive",
+        },
+      ],
+      assumptions: [],
+      conflictsWith: [],
+    };
+
+    const result = await createItineraryAgent({ generator: false }).invoke({
+      brief: trip,
+      context: ctx,
+      board: { proposals: [transport, accommodation] },
+    });
+
+    expect(result.conflictsWith.join(" ")).not.toMatch(/overnight city/);
+    expect(new Set(result.items.map(({ day }) => day))).toEqual(new Set([1, 2, 3]));
+  });
+
   it("does not reuse the origin city after a disconnected transfer chain", async () => {
     const trip = {
       ...brief,

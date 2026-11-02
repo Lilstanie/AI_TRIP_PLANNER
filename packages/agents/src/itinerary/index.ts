@@ -170,7 +170,7 @@ function citiesForStayNights(
     const remaining = [...transfers];
     const ordered: TransferWindow[] = [];
     while (remaining.length) {
-      const candidates = remaining.filter(({ from }) => from === currentCity);
+      const candidates = remaining.filter(({ from }) => from === currentCity || from === "home");
       if (candidates.length !== 1) {
         currentCity = undefined;
         return [];
