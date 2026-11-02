@@ -20,6 +20,8 @@ export type ConflictPlacement = {
 const INFEASIBLE = "infeasible budget";
 const OVER_BUDGET = /over budget$/;
 const OVERLAP = /^time overlap on day (\d+):/;
+const ROUTE_TIME =
+  /^geography conflict on day (\d+): (.+?) to (.+) needs (\d+) minutes including a 15-minute buffer but only (-?\d+) are available$/;
 const DAY = /\bday (\d+)\b/i;
 
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
@@ -82,6 +84,20 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
       const authored = keyOfAuthoredSentence(reason);
       if (authored) {
         placeAuthored(authored);
+        continue;
+      }
+      const routeTime = ROUTE_TIME.exec(reason);
+      if (routeTime) {
+        const [, day, from, to, required, available] = routeTime;
+        addTo(placement.days, Number(day), {
+          key: "routeNeedsMoreTime",
+          params: {
+            from: from!,
+            to: to!,
+            required: Number(required),
+            available: Number(available),
+          },
+        });
         continue;
       }
       const overlap = OVERLAP.exec(reason);

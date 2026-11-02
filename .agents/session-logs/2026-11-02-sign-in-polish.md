@@ -125,3 +125,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Trip home Bookings tab (390px and 1440px, zh): flights read "2 出行人数" (a heading label glued to a number) and stays read "1 / 6 房间数 / 晚数".
 - `TripHomeIdeasBookings.tsx`: flight and stay details use the existing plural messages (`countTravellers`, `countNights`, `stayRoomRate`), and are passed as a list rendered in nowrap parts (`trip-home-ideas-bookings.css`) so "1 间房" does not split. The now unused `roomsNights` message is removed from both dictionaries.
 - Validation: zh and en phone screenshots; `tsc --noEmit`, eslint, `check-ui-copy` pass. No machine check: the copy came from picking the wrong message key, which types allow.
+
+## Round 16 — TP-303 English route-time warning on the day timeline
+
+- Trip home 日程 tab (390px and 1440px, zh, mock Perth → Bali trip): day 1 showed the planner's raw sentence "geography conflict on day 1: Mock attraction near 巴厘岛 to Mock Corner Bistro, 巴厘岛 needs 35 minutes including a 15-minute buffer but only 15 are available" in English.
+- `lib/trip/conflicts.ts`: `placeConflicts` reads that sentence into a `routeNeedsMoreTime` notice on its day (from, to, required and available minutes); en and zh messages added. Other geography conflicts are placed as before.
+- Machine check: `tests/lib/trip/route-time-conflict.test.ts` (inventory `route-time-conflict.failures.md` written first). Old code: `AssertionError: expected { Object (raw) } to deeply equal { key: 'routeNeedsMoreTime', …(1) }`; new code passes with the rest of `tests/lib` (410).

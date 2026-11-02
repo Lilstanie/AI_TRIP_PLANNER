@@ -52,6 +52,8 @@ export const enWorkspace = {
     "The cheapest options found cost more than the budget. Raise the budget or change the dates in the chat.",
   overlapsRangeOnThisDay: "Overlaps {range} on this day.",
   twoScheduledItemsOverlapOn: "Two scheduled items overlap on Day {day}.",
+  routeNeedsMoreTime:
+    "Getting from {from} to {to} takes about {required} min with a 15-min buffer, but only {available} min are free.",
   thatActivityAlreadyExistsIn: "That activity already exists in this plan.",
   estimateChangedByChangeFrom: "Estimate changed by {change} from the previous plan.",
   dismiss: "Dismiss",
