@@ -52,6 +52,16 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Check: `summary-copy.test.ts` expects "2 transport options for Tokyo → Kyoto" with origin
   " tokyo"; on the old code it received "for  tokyo ↔ Tokyo → Kyoto". Agents suite: 211 passed.
 
+## Round 6: TP-293 phone map sheet rows painted as grey buttons
+
+- `apps/web/app/styles/phone/map.css`: the sheet handle and stop rows set `--button-bg:
+  transparent`. Their own `background: transparent` lost to the generic button rule in
+  `forms.css`, whose long `:not()` list gives it a higher specificity than any component rule.
+- Local dev phone Map tab at 390 px, en: header and rows have no grey fill.
+- No machine check here; the cause is the generic rule's specificity. Wrapping its `:not()` list
+  in `:where()` would let every component rule win, but it touches every button in the app and
+  needs a full visual pass, so it is left as a follow-up.
+
 ## Notes for the next person
 
 - The sign-in page copy is English only; the workspace language setting does not reach it yet.
