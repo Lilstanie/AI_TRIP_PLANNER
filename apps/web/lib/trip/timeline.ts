@@ -42,6 +42,13 @@ export type BookingRow = {
   date?: string;
 };
 
+export function flightRoute(
+  flight: Pick<FlightSelection, "from" | "to">,
+  role: BookingRow["role"],
+) {
+  return role === "out" ? `${flight.to} → ${flight.from}` : `${flight.from} → ${flight.to}`;
+}
+
 export type StopRow<A> = { type: "stop"; activity: A };
 export type TimelineRow<A> = FixedRow | BookingRow | StopRow<A>;
 

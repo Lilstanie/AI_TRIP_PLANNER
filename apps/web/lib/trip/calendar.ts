@@ -1,7 +1,7 @@
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { translate, type AppLocale } from "../i18n/locale";
 import { itineraryActivities } from "./itinerary";
-import { dayCount, dayRows, type TimelineRow } from "./timeline";
+import { dayCount, dayRows, flightRoute, type TimelineRow } from "./timeline";
 
 export const DAY_MS = 86_400_000;
 
@@ -127,7 +127,7 @@ export function monthStarts(plan: TripPlan) {
 function titleOf(row: TimelineRow<ProposalItem>) {
   if (row.type === "stop") return row.activity.location?.trim() || row.activity.detail;
   if (row.type === "fixed") return row.title;
-  if ("from" in row.selection) return `${row.selection.from} → ${row.selection.to}`;
+  if ("from" in row.selection) return flightRoute(row.selection, row.role);
   const candidate = row.selection.candidates.find((value) => value.id === row.selection.selectedId);
   return (candidate && "name" in candidate ? candidate.name : undefined) ?? row.selection.city;
 }

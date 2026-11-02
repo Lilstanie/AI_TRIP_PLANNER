@@ -87,3 +87,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `lib/workspace/trip-identity.ts`: `tripMetaParts` returns the details as a list; `tripMeta` joins them as before.
 - `TripsPage.tsx` renders each part in `.trip-card__meta-part` (`white-space: nowrap` in `workspace/trips.css`), so the line breaks only at the dots.
 - Validation: card screenshot after the fix; `tsc --noEmit`, eslint, workspace lib tests (103) pass. No machine check: wrapping depends on rendered width.
+
+## Round 10 — TP-297 return flight route in the calendar
+
+- Trip calendar week view (1440px, zh, mock Perth → Bali trip): the last-day return flight read "珀斯 → 巴厘岛", the same as the outbound. The day timeline (`BookingRow`) already reversed it; `lib/trip/calendar.ts` built its own label and did not.
+- `lib/trip/timeline.ts` gains `flightRoute(flight, role)`; the calendar and `BookingRow` both call it.
+- Machine check: `tests/lib/trip/flight-route.test.ts` (inventory `flight-route.failures.md` written first). On the old code it fails with `TypeError: flightRoute is not a function`.
+- Validation: calendar screenshot shows "巴厘岛 → 珀斯" on the last day; `tsc --noEmit`, eslint on changed files, `tests/lib/trip` pass.
