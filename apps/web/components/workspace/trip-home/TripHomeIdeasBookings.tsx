@@ -96,6 +96,7 @@ export function TripHomeIdeas({
                   <button
                     key={day}
                     type="button"
+                    className="trip-home-ideas-bookings__day"
                     disabled={disabled || busy}
                     aria-label={t("scheduleNameOnDayDay", { name: title, day })}
                     title={dayLabel(plan, day, locale)}

@@ -7,6 +7,7 @@
   list-style: none;
 }
 .trip-home-ideas-bookings__idea {
+  min-width: 0;
   padding-bottom: var(--space-4);
   border-bottom: 1px solid var(--border);
 }
@@ -55,7 +56,7 @@
   margin-top: var(--space-3);
   padding-left: 44px;
 }
-.trip-home-ideas-bookings__schedule button {
+.trip-home-ideas-bookings__day {
   display: flex;
   flex: 1 0 68px;
   flex-direction: column;
@@ -67,7 +68,7 @@
   background: var(--surface);
   color: var(--text);
 }
-.trip-home-ideas-bookings__schedule button:hover:not(:disabled) {
+.trip-home-ideas-bookings__day:hover:not(:disabled) {
   border-color: var(--accent);
   background: var(--surface-2);
 }
@@ -100,7 +101,14 @@
 }
 @media (max-width: 520px) {
   .trip-home-ideas-bookings__schedule {
-    padding-left: 0;
+    flex-wrap: nowrap;
+    margin-inline: calc(var(--space-4) * -1);
+    padding-inline: var(--space-4);
+    overflow-x: auto;
+    scrollbar-width: none;
+  }
+  .trip-home-ideas-bookings__day {
+    flex: 0 0 auto;
   }
   .trip-home-ideas-bookings__booking-group ul {
     padding-left: 0;
