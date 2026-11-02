@@ -36,4 +36,4 @@ See the PR body for the commands run and their results.
 
 ## Notes for the next person
 
-Joey is deciding whether the cost sentence should move to the model as well.
+Joey chose (2026-11-02) to keep the cost sentence code-written after reviewing the 2026-10-24 decision.
