@@ -108,6 +108,8 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：P
   模拟模式下的编辑预览保持占位 fixture，且不会触达任何提供方，除非 Google 被模拟为不可用或 `WEB_MAPS_PROVIDER=osm`；
   此时提供方从 OpenStreetMap fixture 应答，同样不调用任何外部服务。
 
+Google 公共交通路线只接受大约一周前到 100 天后的出发时间。行程超出这个范围时，规划（`packages/tools/src/maps-port.ts`）和网页路线（`apps/web/lib/integrations/google.ts`）都改为查询范围内同一星期几、同一当地时间的班次，所以较远日期的行程也能拿到公共交通和驾车时间，而不是“路线未核实”。
+
 <a id="routes-and-time-zones-without-google"></a>
 
 ### 没有 Google 时的路线与时区

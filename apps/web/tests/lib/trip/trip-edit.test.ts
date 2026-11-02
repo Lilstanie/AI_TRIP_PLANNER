@@ -150,10 +150,10 @@ describe("P3 edit boundary", () => {
     vi.unstubAllGlobals();
     vi.unstubAllEnvs();
   });
-  it("does not query transit outside the supported date window", async () => {
+  it("does not query transit without a valid departure", async () => {
     const fetcher = vi.fn();
     vi.stubGlobal("fetch", fetcher);
-    const result = await googleRoute("a", "b", "2020-01-01T09:00:00Z", "TRANSIT");
+    const result = await googleRoute("a", "b", "not-a-date", "TRANSIT");
     expect(result.status).toBe("unavailable");
     expect(result.error).toContain("date window");
     expect(fetcher).not.toHaveBeenCalled();
