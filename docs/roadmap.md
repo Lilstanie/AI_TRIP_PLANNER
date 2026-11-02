@@ -48,7 +48,7 @@ Status as of 2026-10-30 on `main` (`8029779`); see [workspace UI](workspace-ui.m
   download as versioned artifacts that replay offline in the page. Benchmark scenarios cover an
   infeasible Paris budget and a Tokyo and Kyoto trip whose move between cities must stay consistent, and a
   Failure Lab runs five registered faults (provider timeout, empty result, invalid output, supervisor failure,
-  stalled revision) through the same views. Live runs exist only where the deployment enables them, within
+  stalled revision) through the same views. Live runs are on for signed-in travellers unless the deployment turns them off, within
   concurrency and hourly limits, and fixture runs can never reach a provider or model. The public lab is complete: four
   views (Run, Compare, Failures, Architecture) with release evidence from one end-to-end script.
 

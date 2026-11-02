@@ -239,12 +239,12 @@ stored metrics are shown as recorded, not recomputed in the page; the
 The live gate protects the public endpoint. A fixture run executes under a request-scoped mock data mode and with
 models disabled (`runWithDataMode("mock")` and `runWithModelsDisabled`), both carried by AsyncLocalStorage and never
 written to `process.env`, so no key and no data-mode default can make it reach a provider or a model. A live run is
-allowed only when the deployment sets `AGENT_LAB_LIVE_ENABLED=true`, only for a strategy with a live implementation
+allowed unless the deployment sets `AGENT_LAB_LIVE_ENABLED=false`, only for a signed-in caller on a deployment, only for a strategy with a live implementation
 (the scripted baseline has none), and only within the concurrency and hourly limits kept by
 `apps/web/lib/agent-lab/live-gate.ts`; each refusal is a typed `rejected` frame sent before any run starts. A live run
 executes under a live data mode with a usage collector captured when each model is built, so the usage in the artifact
 is what the provider returned for every call, or is unavailable. The multi-agent strategy never publishes a model's
-`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the decision.
+`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the gate and the [live-by-default note](../.agents/notes/implemented/architecture/2026-11-02-agent-lab-live-by-default.md) its current default.
 
 The Failure Lab runs five registered faults through the same strategy, trace, artifact and views. A
 profile is a server-owned id bound to one scenario and strategy; the visitor never defines a fault, and

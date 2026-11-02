@@ -27,7 +27,7 @@ const SettingsContext = createContext<SettingsState>({
 
 export const useSettings = () => useContext(SettingsContext);
 
-function readLocal(): UserSettings {
+export function readLocalSettings(): UserSettings {
   try {
     const parsed = UserSettings.safeParse(JSON.parse(localStorage.getItem(SETTINGS_KEY) ?? "null"));
     return parsed.success ? parsed.data : defaultSettings();
@@ -102,7 +102,7 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const current = useRef(settings);
   current.current = settings;
 
-  useEffect(() => setSettings(readLocal()), []);
+  useEffect(() => setSettings(readLocalSettings()), []);
   useEffect(() => applyAppearance(settings.appearance), [settings.appearance]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;

@@ -115,7 +115,7 @@ async function executeAgentLab(
 
   await emit({
     type: "lab_run_started",
-    summary: `Started ${scenario.title} with fixture data.`,
+    summary: `Started ${scenario.title} with ${request.dataMode} data.`,
   });
   if (fault) {
     await emit({
