@@ -180,3 +180,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Planned mock trips from the example chips (phone zh, desktop en) and read the replies and day cards: no layout fault. Phone Map tab (390px): the map credit ("OpenFreeMap © OpenMapTiles Data from OpenStreetMap") is a top-left control that ran 364px wide under the locate, layers and zoom buttons (top-right, 194px), so most of the credit was hidden.
 - `phone/map.css`: the top-left control area on the phone Map panel stops 214px from the right edge, so the credit wraps beside the buttons and stays readable (attribution box 364×24 → 156×64).
 - Validation: phone map crops before and after; measured boxes no longer overlap. No machine check: the overlap depends on rendered control widths.
+
+## Round 25 — TP-312 solid modal sheets
+
+- Phone Map tab with no trip (390px, zh, light and dark): opening the Trip details sheet (行程信息) from the title showed the blue "去聊天里规划" button of the empty-map card through the 预算/偏好 rows as a blurred blue blob. The sheet used the 88% glass tint, but it is a modal that already sits on a scrim, so the glass only let content bleed through.
+- `glass.css`: the modal fact sheet and `.dialog` set `--glass-fill: var(--surface)`, so they render solid (`rgba(255,255,255,.88)` → `rgb(255,255,255)`, dark `rgba(30,30,32,.88)` → `rgb(28,28,30)`). Floating, non-modal surfaces keep the glass tint.
+- Validation: light and dark phone screenshots before and after with the measured sheet background. No machine check: the bleed depends on what is rendered behind the sheet.

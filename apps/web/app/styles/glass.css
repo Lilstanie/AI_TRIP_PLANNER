@@ -467,6 +467,7 @@
 }
 .fact-popover.fact-popover--modal,
 .dialog {
+  --glass-fill: var(--surface);
   border-radius: 28px;
 }
 .fact-popover--modal .fact-popover__head h2 {
