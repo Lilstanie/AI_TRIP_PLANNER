@@ -95,3 +95,8 @@ export function activityFitsTransferWindows(
   if (next) return next.from === city;
   return false;
 }
+
+export const blockedAllDay = (windows: ReadonlyMap<number, TransferWindow[]>, day: number) =>
+  (windows.get(day) ?? []).some(
+    (window) => window.startTime === "00:00" && window.endTime === "23:59",
+  );

@@ -106,6 +106,34 @@ describe("itinerary planner", () => {
     expect(ctx.tools.maps.places).toHaveBeenCalledWith({ near: "Kyoto", category: "sight" });
   });
 
+  it("drops a place the model repeats on a later day while another candidate is unused", async () => {
+    const [museum, , garden] = feasibleDraft.activities;
+    const generator: ItineraryGenerator = {
+      generate: vi.fn(async () => ({
+        ...feasibleDraft,
+        activities: [
+          museum!,
+          { ...garden!, day: 2 },
+          { ...museum!, day: 2, startTime: "14:00", endTime: "16:00" },
+          { ...garden!, day: 3 },
+        ],
+      })),
+    };
+    const result = await createItineraryAgent({ generator }).invoke({ brief, context: context() });
+    expect(result.items.filter(({ day }) => day === 2).map(({ location }) => location)).toEqual([
+      "Garden",
+    ]);
+  });
+
+  it("schedules a night market in the evening without a model", async () => {
+    const ctx = context();
+    ctx.tools.maps.places = vi.fn(async ({ category }) =>
+      category === "sight" ? [{ name: "Shibuya Night Market", category: "sight" }] : [],
+    );
+    const result = await createItineraryAgent({ generator: false }).invoke({ brief, context: ctx });
+    expect(result.items.map(({ startTime }) => startTime)).toEqual(["19:30", "19:30", "19:30"]);
+  });
+
   it("uses an injected structured generator and checks travel feasibility", async () => {
     const generator: ItineraryGenerator = { generate: vi.fn(async () => feasibleDraft) };
     const result = await createItineraryAgent({ generator }).invoke({
