@@ -70,6 +70,9 @@ const BOOKING_CLAIM =
 const FLIGHT_BOOKING_CLAIM =
   /\b(?:flights?|airfare|plane tickets?)\b.{0,24}\b(?:booked|reserved|purchased|ticketed|confirmed)\b|\b(?:booked|reserved|purchased|ticketed|confirmed)\b.{0,24}\b(?:flights?|airfare|plane tickets?)\b|(?:机票|航班票).{0,8}(?:(?:已|已经)?(?:预订|预定|订好|购买|买了|出票))|(?:(?:已|已经)?(?:预订|预定|订好|购买|买了|出票)).{0,8}(?:机票|航班票)/i;
 
+const NEGATED_BOOKING =
+  /\b(?:not|never|nothing|no|none|neither|nor|without|(?:is|are|was|were|has|have|had|do|does|did|can|could|wo)n['’]t)\b[^.!?;:,\n]{0,40}?\b(?:booked|reserved|purchased|ticketed|confirmed)\b(?:,?\s*(?:or|and|nor)?\s*(?:booked|reserved|purchased|ticketed|confirmed)\b)*|(?:没有|没|未|尚未|还没|并未|无法|不能|不会)[^。！？；，\n]{0,12}?(?:预订|预定|订好|购买|买了|出票)/gi;
+
 const USER_BOOKING_EVIDENCE =
   /\b(?:i|we)(?:(?:'|’)ve|\s+have|\s+already|\s+had)?\s+(?:booked|reserved|purchased|ticketed)\b|\b(?:booked|reserved|purchased|ticketed)\s+(?:a|an|the|our|my)\b|(?:我|我们)(?:已经|已)?(?:预订|预定|订好|买了|购买|出票)了?/i;
 
@@ -219,9 +222,10 @@ export function ungroundedClaim(
   planned: TripPlan | undefined,
   reply: string,
 ): string | undefined {
-  if (FLIGHT_BOOKING_CLAIM.test(reply) && !hasFlightBookingEvidence(request))
+  const affirmed = reply.replace(NEGATED_BOOKING, "");
+  if (FLIGHT_BOOKING_CLAIM.test(affirmed) && !hasFlightBookingEvidence(request))
     return "Nothing was booked or paid: the planner cannot book flights, it only shows fares.";
-  if (BOOKING_CLAIM.test(reply) && !hasBookingEvidence(request, planned))
+  if (BOOKING_CLAIM.test(affirmed) && !hasBookingEvidence(request, planned))
     return "Nothing was booked or reserved: the planner cannot make bookings.";
   if (INFORMATION_QUESTION.test(request.message.trim()) || !PLAN_SUCCESS_CLAIM.test(reply))
     return undefined;
