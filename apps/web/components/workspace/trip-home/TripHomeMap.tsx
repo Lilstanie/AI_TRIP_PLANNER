@@ -42,6 +42,7 @@ export function TripHomeMap({
         tripPlaces={tripPlaces}
         selectedActivity={selectedActivity}
         onSelectActivity={onSelectActivity}
+        onClearActivity={undefined}
         routes={routes}
         focusedDay={focusedDay}
         focusRequest={focusRequest}

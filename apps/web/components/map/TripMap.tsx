@@ -65,6 +65,7 @@ export function TripMap({
   path,
   selected,
   onSelect,
+  onDeselect,
   routes,
   mode = "WALK",
   viewKey,
@@ -93,6 +94,7 @@ export function TripMap({
   destinations?: GooglePlace[];
   selected?: string;
   onSelect(id: string): void;
+  onDeselect?(): void;
   routes: RouteResult[];
   mode?: "WALK" | "TRANSIT";
 
@@ -185,6 +187,7 @@ export function TripMap({
 
   const closePopup = useCallback(() => {
     setClosedFor(selected);
+    onDeselect?.();
     const target = returnFocus.current;
     returnFocus.current = null;
     if (popup.current?.contains(document.activeElement)) {
@@ -201,7 +204,7 @@ export function TripMap({
       if (phone) requestAnimationFrame(restore);
       else restore();
     }
-  }, [selected, phone]);
+  }, [selected, phone, onDeselect]);
   const closeRef = useRef(closePopup);
   closeRef.current = closePopup;
 
