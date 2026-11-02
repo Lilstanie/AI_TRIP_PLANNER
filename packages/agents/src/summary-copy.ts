@@ -77,7 +77,7 @@ const ENGLISH = {
       ? `${city}, ${day(date, "en-AU")} (${result.horizon === "forecast" ? "forecast" : "historical climate, not a forecast"}): ${result.summary}`
       : `${city}, ${day(date, "en-AU")}: weather unavailable; check a current forecast before travel.`,
   weatherUnavailable: (city: string, dates: string[]) =>
-    `${city}, ${dates.map((date) => day(date, "en-AU")).join("; ")}: weather unavailable; check a current forecast before travel.`,
+    `${city}, ${days(dates, "en-AU", "; ")}: weather unavailable; check a current forecast before travel.`,
   transport: ({
     options,
     origin,
@@ -130,7 +130,7 @@ const CHINESE: typeof ENGLISH = {
       ? `${city}，${day(date, "zh-CN")}（${result.horizon === "forecast" ? "预报" : "历史气候，非预报"}）：${result.summary}`
       : `${city}，${day(date, "zh-CN")}：暂无天气数据，出行前请查看最新预报。`,
   weatherUnavailable: (city, dates) =>
-    `${city}，${dates.map((date) => day(date, "zh-CN")).join("、")}：暂无天气数据，出行前请查看最新预报。`,
+    `${city}，${days(dates, "zh-CN", "、")}：暂无天气数据，出行前请查看最新预报。`,
   transport: ({ options, origin, destinations, money, unpriced, unavailable, incomplete }) =>
     `${options} 个交通方案（${route(origin, destinations)}）· 已知估算 ${money}${unpriced ? ` · ${unpriced} 段未计价` : ""}${unavailable ? ` · ${unavailable} 个出行选择不可用` : ""}${incomplete ? "（不完整/未核实）" : ""}`,
 };
@@ -160,6 +160,26 @@ function day(date: string, locale: string): string {
     month: "short",
     timeZone: "UTC",
   }).format(Date.parse(`${date}T00:00:00.000Z`));
+}
+
+const DAY_MS = 86_400_000;
+
+function days(dates: string[], locale: string, separator: string): string {
+  const sorted = [...dates].sort();
+  const runs: string[][] = [];
+  for (const date of sorted) {
+    const run = runs.at(-1);
+    const previous = run?.at(-1);
+    if (run && previous && Date.parse(date) - Date.parse(previous) === DAY_MS) run.push(date);
+    else runs.push([date]);
+  }
+  return runs
+    .flatMap((run) =>
+      run.length >= 3
+        ? [`${day(run[0]!, locale)}–${day(run.at(-1)!, locale)}`]
+        : run.map((date) => day(date, locale)),
+    )
+    .join(separator);
 }
 
 export function summaryCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {

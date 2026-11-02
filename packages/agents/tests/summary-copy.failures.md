@@ -41,3 +41,14 @@ preferences name none.
 - A real origin that differs from the first destination loses its "↔" leg.
 - The same city written with other case or spacing ("tokyo", " Tokyo") still repeats.
 - A single-city trip whose origin is that city prints an empty route.
+
+## Weather unavailable for a run of days (TP-305)
+
+Written before the code. With no forecast for the trip dates, the day card listed every date
+("巴厘岛，11月28日周六、11月29日周日、…、12月4日周五：暂无天气数据…").
+
+- A run of three or more consecutive days still lists each date instead of "first–last".
+- A one- or two-day gap is hidden inside a range, so a day with weather reads as unavailable.
+- A single missing day or two separate days change wording (they must stay as before).
+- A range across a month end (28 Nov–4 Dec) or a year end is split or misordered.
+- Unsorted dates produce a backwards range.
