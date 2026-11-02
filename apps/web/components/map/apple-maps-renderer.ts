@@ -141,12 +141,14 @@ class AppleMap {
     this.listeners.get(event)?.forEach((fn) => fn());
   }
 
-  private settle(next: Region) {
+  private settle({ gesture, ...next }: Region & { gesture?: boolean }) {
     const previous = this.region;
     this.region = next;
-    if (Math.abs(previous.zoom - next.zoom) > 1e-6) this.emit("zoom_changed");
-    if (Math.abs(previous.lat - next.lat) > 1e-9 || Math.abs(previous.lng - next.lng) > 1e-9)
-      this.emit("center_changed");
+    if (gesture) {
+      if (Math.abs(previous.zoom - next.zoom) > 1e-6) this.emit("zoom_changed");
+      if (Math.abs(previous.lat - next.lat) > 1e-9 || Math.abs(previous.lng - next.lng) > 1e-9)
+        this.emit("center_changed");
+    }
     this.emit("idle");
   }
 
