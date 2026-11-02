@@ -236,3 +236,17 @@ html [data-native-map-hole]::before,
 html [data-native-map-hole]::after {
   background: transparent !important;
 }
+
+html[data-shell="ios-app"] body::after {
+  position: fixed;
+  z-index: 2147483000;
+  top: 0;
+  right: 0;
+  left: 0;
+  height: var(--ios-safe-top);
+  background: var(--glass-tint);
+  -webkit-backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  backdrop-filter: blur(var(--glass-blur)) saturate(var(--glass-saturate));
+  content: "";
+  pointer-events: none;
+}
