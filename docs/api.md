@@ -133,6 +133,12 @@ check and targeted revision run, and the response's `assistant` is the first men
 `plan`, the mentioned specialist answers, nothing is created, and a `needs_info` frame (with the same
 optional `assistant`) asks for the brief.
 
+Optional `history`: up to 20 earlier turns of this conversation, oldest first, each
+`{ role: "user" | "assistant", content }` with `content` at most 8,000 characters (`ChatHistoryTurn`).
+The web app sends the visible conversation with every chat message and ask-user answer. The server
+uses it only when its own short-term memory for the trip is empty, for example when the request
+reaches another serverless instance; otherwise the stored turns win.
+
 Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
 chat request. The coordinator always replies in the language of the traveller's latest message; this

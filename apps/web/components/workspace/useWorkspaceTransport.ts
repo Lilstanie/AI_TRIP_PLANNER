@@ -2,8 +2,10 @@
 import { resolveMentions } from "../chat/mentions";
 import { useEffect, useRef, type MutableRefObject } from "react";
 import {
+  MAX_CHAT_HISTORY_TURNS,
   TripPlan,
   type AssistantSettings,
+  type ChatHistoryTurn,
   type Attachment,
   type Currency,
   type InterfaceLanguage,
@@ -74,6 +76,16 @@ type WorkspaceTransportOptions = {
   displayCurrency: Currency;
   planDestinationLocation?: Draft["destinationLocation"];
 };
+
+function chatHistory(messages: Message[]): ChatHistoryTurn[] {
+  return messages
+    .filter((item) => item.text.trim())
+    .slice(-MAX_CHAT_HISTORY_TURNS)
+    .map((item) => ({
+      role: item.role === "user" ? "user" : "assistant",
+      content: item.text.slice(0, 8000),
+    }));
+}
 
 type ChatSendContext = {
   plan: TripPlan;
@@ -326,6 +338,7 @@ export function useWorkspaceTransport({
       data,
     }));
     const mentions = resolveMentions(message, assistant?.names);
+    const history = context ? [] : chatHistory(shownMessages());
     const destination = currentPlan?.brief.destination ?? currentDraft.destination;
     const location = destinationLocationFor(
       destination,
@@ -346,6 +359,7 @@ export function useWorkspaceTransport({
               }
             : { tripId: freshTripId.current, message, known: knownFromDraft(currentDraft) }),
           ...(mentions.length ? { mentions } : {}),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
           ...(sent.length ? { attachments: sent } : {}),
         },
@@ -377,6 +391,7 @@ export function useWorkspaceTransport({
     if (!ask || !canStart((ask.plan ?? plan)?.tripId ?? freshTripId.current)) return;
     if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
+    const history = chatHistory(shownMessages());
     const current = ask.plan ?? plan;
     const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
     const destination = current?.brief.destination ?? known?.destination;
@@ -402,6 +417,7 @@ export function useWorkspaceTransport({
                 message,
                 known,
               }),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
         },
       },

@@ -512,6 +512,9 @@ export async function runTripChat(
       ...orchestrationOptions,
       mem,
     });
+  if (request.history?.length && (await mem.getShortTerm(request.tripId)).length === 0)
+    for (const turn of request.history)
+      await mem.appendShortTerm(request.tripId, ChatTurn.parse(turn));
   await mem.appendShortTerm(
     request.tripId,
     ChatTurn.parse({ role: "user", content: request.message }),

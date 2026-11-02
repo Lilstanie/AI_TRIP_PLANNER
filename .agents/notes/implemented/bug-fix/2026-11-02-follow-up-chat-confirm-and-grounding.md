@@ -53,9 +53,9 @@ positives were wrong.
 legs, so the excluded fields would keep growing; the revision owner already knows which applies are
 background ones.
 
-**Send the visible conversation with each request.** The recorded stream showed the server's
-short-term memory supplied the earlier turns. That memory is per process unless KV is configured,
-which remains a deployment setting (see `2026-11-01-durable-chat-turns.md`).
+**Rely on server short-term memory alone.** It is per process unless KV is configured
+(`2026-11-01-durable-chat-turns.md`), and the deployment has no KV, so a cold or different instance
+lost the conversation; TP-260 sends the visible conversation as a fallback.
 
 ## Consequences
 
