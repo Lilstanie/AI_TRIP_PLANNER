@@ -222,12 +222,18 @@ describe("googleRoute", () => {
     },
   );
 
-  it("degrades to 'unavailable' when the transit date is outside Google's supported window", async () => {
-    const result = await googleRoute("place-a", "place-b", "2020-01-01T00:00:00Z", "TRANSIT");
-    expect(result).toMatchObject({
-      status: "unavailable",
-      error: expect.stringContaining("supported date window"),
-    });
+  it("asks for the same weekday inside Google's window when the trip is further out", async () => {
+    pinNow("2026-09-20T00:00:00Z");
+    process.env.MAPS_API_KEY = "test-key";
+    const fetcher = stubFetch(() =>
+      Response.json({ routes: [{ duration: "1200s", polyline: { encodedPolyline: "abc" } }] }),
+    );
+    const result = await googleRoute("place-a", "place-b", "2027-06-01T09:00:00Z", "TRANSIT");
+    const body = JSON.parse(String(fetcher.mock.calls[0]![1]!.body)) as { departureTime: string };
+    const asked = new Date(body.departureTime);
+    expect(result.status).not.toBe("unavailable");
+    expect(asked.getUTCDay()).toBe(new Date("2027-06-01T09:00:00Z").getUTCDay());
+    expect(asked.getTime() - Date.parse("2026-09-20T00:00:00Z")).toBeLessThan(100 * 86400000);
   });
 
   it("surfaces an upstream failure as 'unavailable', never as a thrown error", async () => {

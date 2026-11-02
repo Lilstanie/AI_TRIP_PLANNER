@@ -110,6 +110,8 @@ records the boundary.
   fixtures and never reach a provider, unless Google is simulated down or `WEB_MAPS_PROVIDER=osm`;
   then the provider answers from the OpenStreetMap fixtures and still calls nothing.
 
+Google transit routing only accepts departures from about a week ago to 100 days ahead. For a trip outside that window, both the planner (`packages/tools/src/maps-port.ts`) and the web route lines (`apps/web/lib/integrations/google.ts`) ask for the same weekday and local time inside the window, so far-off trips still get transit and driving times instead of an unverified route.
+
 ### Routes and time zones without Google
 
 - **Walking and driving** come from OSRM. Walking asks the foot profile of `OSRM_FOOT_BASE_URL`
