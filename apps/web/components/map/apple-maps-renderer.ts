@@ -164,7 +164,7 @@ class AppleMap {
         .filter((rect) => rect.height > 0)
         .map((rect) => rect.top),
     );
-    const floor = Math.max(Math.min(canvas.bottom, sheetTop), box.top + box.height / 2);
+    const floor = Math.max(Math.min(canvas.bottom, sheetTop), canvas.top + canvas.height / 4);
     const occluders = visible
       ? [...document.querySelectorAll<HTMLElement>(OCCLUDERS)]
           .filter((node) => !node.contains(this.element) && !this.element.contains(node))

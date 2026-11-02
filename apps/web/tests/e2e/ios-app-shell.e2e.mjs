@@ -255,6 +255,22 @@ try {
       picked === true && (await page.locator(".phone-map-details").count()) > 0,
       "tapping an Apple Maps pin opens the stop and marks the pin selected",
     );
+    await page.evaluate(() => {
+      document.querySelector(".phone-map-details").style.minHeight = "420px";
+    });
+    await settle(page, 400);
+    const tall = await page.evaluate(() => {
+      const { frame, inset } = window.__mapCalls.filter((call) => call.method === "layout").at(-1);
+      return {
+        floor: frame.y + frame.height - inset.bottom,
+        details: document.querySelector(".phone-map-details").getBoundingClientRect().top,
+      };
+    });
+    check(
+      Math.abs(tall.floor - tall.details) <= 1,
+      "the native map's visible area stops at a tall details panel",
+      tall,
+    );
     await shot(page, "native-tabbar-map");
     await context.close();
   }
