@@ -2,6 +2,7 @@ import { ClerkProvider } from "@clerk/nextjs";
 import "./globals.css";
 import type { Metadata, Viewport } from "next";
 import type { ReactNode } from "react";
+import { IosAppBridge } from "@/components/pwa/ios-app-bridge";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { authEnabled } from "@/lib/auth/config";
 
@@ -21,11 +22,17 @@ export const viewport: Viewport = {
   ],
 };
 
+const IOS_APP_MARKER = `if (/TripPlannerIOSApp/.test(navigator.userAgent)) document.documentElement.dataset.shell = "ios-app";`;
+
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
-    <html lang="en">
+    <html lang="en" suppressHydrationWarning>
+      <head>
+        <script dangerouslySetInnerHTML={{ __html: IOS_APP_MARKER }} />
+      </head>
       <body>
         <ServiceWorkerRegistration />
+        <IosAppBridge />
         {authEnabled ? (
           <ClerkProvider
             signInUrl="/sign-in"

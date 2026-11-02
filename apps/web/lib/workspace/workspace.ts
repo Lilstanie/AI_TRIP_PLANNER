@@ -8,6 +8,7 @@ import {
   Currency,
   FlightAnswer,
   LegModeChoice,
+  CityNights,
   toAud,
   PartialTripBrief,
   partyPeople,
@@ -78,6 +79,7 @@ export type Draft = {
   excludeFlights?: boolean;
 
   legModes?: LegModeChoice[];
+  cityNights?: CityNights[];
 
   bookedStay?: BookedStay;
   noAccommodation?: boolean;
@@ -127,6 +129,7 @@ export function draftFor(brief: TripBrief): Draft {
     ...(brief.intent ? { intent: brief.intent } : {}),
     ...(brief.excludeFlights ? { excludeFlights: true } : {}),
     ...(brief.legModes?.length ? { legModes: brief.legModes } : {}),
+    ...(brief.cityNights?.length ? { cityNights: brief.cityNights } : {}),
     ...(brief.noAccommodation !== undefined ? { noAccommodation: brief.noAccommodation } : {}),
     ...(brief.bookedStay ? { bookedStay: brief.bookedStay } : {}),
     nationality: brief.nationality ?? "",
@@ -215,6 +218,7 @@ export function isDraft(value: unknown): value is Draft {
     (value.intent === undefined || TripIntent.safeParse(value.intent).success) &&
     (value.excludeFlights === undefined || typeof value.excludeFlights === "boolean") &&
     (value.legModes === undefined || LegModeChoice.array().safeParse(value.legModes).success) &&
+    (value.cityNights === undefined || CityNights.array().safeParse(value.cityNights).success) &&
     (value.budgetSource === undefined ||
       TripBrief.shape.budgetSource.unwrap().safeParse(value.budgetSource).success) &&
     (value.displayCurrency === undefined || Currency.safeParse(value.displayCurrency).success) &&
@@ -246,6 +250,7 @@ export function parseDraft(draft: Draft, current: Pick<TripBrief, "tripId"> & Pa
     excludeFlights: draft.excludeFlights || undefined,
 
     legModes: draft.legModes?.length ? draft.legModes : undefined,
+    cityNights: draft.cityNights?.length ? draft.cityNights : undefined,
     bookedStay: draft.bookedStay,
     noAccommodation: draft.noAccommodation,
     nationality: draft.nationality.trim() || undefined,
@@ -274,6 +279,7 @@ export function knownFromDraft(draft: Draft): PartialTripBrief {
     intent: draft.intent,
     excludeFlights: draft.excludeFlights || undefined,
     legModes: draft.legModes?.length ? draft.legModes : undefined,
+    cityNights: draft.cityNights?.length ? draft.cityNights : undefined,
     bookedStay: draft.bookedStay,
     noAccommodation: draft.noAccommodation,
   });
@@ -326,6 +332,7 @@ export function draftWithKnown(draft: Draft, known: PartialTripBrief): Draft {
     intent: known.intent ?? draft.intent,
     excludeFlights: known.excludeFlights ?? draft.excludeFlights,
     legModes: known.legModes ?? draft.legModes,
+    cityNights: known.cityNights ?? draft.cityNights,
     bookedStay: known.bookedStay ?? draft.bookedStay,
     noAccommodation: known.noAccommodation ?? draft.noAccommodation,
   };

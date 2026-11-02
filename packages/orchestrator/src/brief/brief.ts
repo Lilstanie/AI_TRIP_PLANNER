@@ -3,6 +3,7 @@ import {
   BookedStay,
   Currency,
   LegModeChoice,
+  CityNights,
   TripIntent,
   TripPreferences,
   TravellerParty,
@@ -32,6 +33,7 @@ export const BriefPatchSchema = z.object({
   intent: TripIntent.optional(),
   excludeFlights: z.boolean().optional(),
   legModes: z.array(LegModeChoice).max(12).optional(),
+  cityNights: z.array(CityNights).max(12).optional(),
   bookedStay: BookedStay.optional(),
   noAccommodation: z.boolean().optional(),
 });

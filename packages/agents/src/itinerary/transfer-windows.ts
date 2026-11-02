@@ -1,5 +1,5 @@
 import type { AgentProposal } from "@trip/shared";
-import { parseCityHop } from "../transport/legs";
+import { cities, parseCityHop } from "../transport/legs";
 import { minutes } from "./landing";
 
 export const TIME = /^([01]\d|2[0-3]):[0-5]\d$/;
@@ -22,7 +22,7 @@ export function transferWindowsByDay(
   const windows = new Map<number, TransferWindow[]>();
   for (const item of transport?.items ?? []) {
     if (!item.day) continue;
-    const hop = parseCityHop(destination, item.location);
+    const hop = parseCityHop(destination, item.location) ?? outsideLeg(destination, item);
     if (!hop) continue;
     const { from, to } = hop;
     const startTime =
@@ -57,6 +57,18 @@ export function transferWindowsByDay(
   return windows;
 }
 
+function outsideLeg(destination: string, item: AgentProposal["items"][number]) {
+  const [rawFrom, rawTo] = (item.location ?? "").split(" → ").map((part) => part.trim());
+  if (!rawFrom || !rawTo) return undefined;
+  const tripCity = (raw: string) =>
+    cities(destination).find((name) => name.toLocaleLowerCase() === raw.toLocaleLowerCase());
+  const from = tripCity(rawFrom);
+  const to = tripCity(rawTo);
+  if (from && !to) return { from, to: "home" };
+  if (to && !from && !item.selectionId?.startsWith("flight-")) return { from: "home", to };
+  return undefined;
+}
+
 export function activityFitsTransferWindows(
   activity: { startTime: string; endTime: string },
   city: string,
@@ -83,3 +95,8 @@ export function activityFitsTransferWindows(
   if (next) return next.from === city;
   return false;
 }
+
+export const blockedAllDay = (windows: ReadonlyMap<number, TransferWindow[]>, day: number) =>
+  (windows.get(day) ?? []).some(
+    (window) => window.startTime === "00:00" && window.endTime === "23:59",
+  );

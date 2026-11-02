@@ -38,6 +38,7 @@ export { detectConflicts } from "./conflicts";
 import { createPlanningBoard } from "./board";
 import { choiceFor, dispatchWithSupervisor, reviseWithSupervisor } from "./supervisor";
 import { withProgressTools } from "./progress-tools";
+import { scopedItineraryEdit } from "./edit-scope";
 import type { WorkflowDecision } from "./decisions";
 import { memoriesForBrief } from "./preference-precedence.mjs";
 import { progressCopy, ROLE_NAMES } from "./progress-copy";
@@ -59,7 +60,13 @@ export interface OrchestratorOptions {
   interfaceLanguage?: InterfaceLanguage;
   replyLanguage?: InterfaceLanguage;
 
-  mention?: { agents: AgentName[]; message: string; plan: TripPlan };
+  mention?: {
+    agents: AgentName[];
+    message: string;
+    plan: TripPlan;
+    days?: number[];
+    places?: string[];
+  };
 }
 
 const OrchestratorState = new StateSchema({
@@ -285,6 +292,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
                     kind: "request",
                     reason: mention.message,
                     constraints: [mention.message],
+                    ...(mention.places?.length ? { places: mention.places } : {}),
                   },
                 }
               : {}),
@@ -293,10 +301,15 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           });
         }),
       );
-      const proposals = kept.map(
-        (proposal) => revised.find((next) => next.agent === proposal.agent) ?? proposal,
-      );
-      for (const next of revised) if (!proposals.includes(next)) proposals.push(next);
+      const proposals = kept.map((proposal) => {
+        const next = revised.find((candidate) => candidate.agent === proposal.agent);
+        if (!next) return proposal;
+        return next.agent === "itinerary"
+          ? scopedItineraryEdit(proposal, next, mention.days)
+          : next;
+      });
+      for (const next of revised)
+        if (!kept.some((proposal) => proposal.agent === next.agent)) proposals.push(next);
       return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
     }
     onProgress?.({
@@ -454,6 +467,18 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       }
     }
 
+    const editedFrom = options.mention?.plan.sections.find(
+      (section) => section.proposal?.agent === "itinerary",
+    )?.proposal;
+    if (editedFrom)
+      proposals = proposals.map((proposal) => {
+        if (proposal.agent !== "itinerary") return proposal;
+        const earlier = state.proposals.find((candidate) => candidate.agent === "itinerary");
+        const kept = earlier ? scopedItineraryEdit(earlier, proposal) : proposal;
+        return kept === proposal
+          ? scopedItineraryEdit(editedFrom, proposal, options.mention?.days)
+          : kept;
+      });
     const scoreBefore = planScore(state.proposals, state.brief);
     const scoreAfter = planScore(proposals, state.brief);
     decide({

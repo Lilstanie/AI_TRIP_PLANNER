@@ -1,6 +1,7 @@
 "use client";
 import * as maplibre from "maplibre-gl";
 import type { StyleSpecification } from "maplibre-gl";
+import { decodePath } from "@/lib/map/polyline";
 import type { Coordinate, MapsSDK, MapMarker } from "./google-maps-sdk";
 
 maplibre.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href);
@@ -265,31 +266,6 @@ class LibreLine {
   }
   setOptions() {}
 }
-function decodePath(value: string): Coordinate[] {
-  let i = 0,
-    lat = 0,
-    lng = 0;
-  const path: Coordinate[] = [];
-  const read = () => {
-    let bits = 0,
-      shift = 0,
-      byte: number;
-    do {
-      if (i >= value.length || shift > 30) throw new Error("Invalid route geometry");
-      byte = value.charCodeAt(i++) - 63;
-      bits |= (byte & 31) << shift;
-      shift += 5;
-    } while (byte >= 32);
-    return bits & 1 ? ~(bits >> 1) : bits >> 1;
-  };
-  while (i < value.length) {
-    lat += read();
-    lng += read();
-    path.push({ lat: lat / 1e5, lng: lng / 1e5 });
-  }
-  return path;
-}
-
 export function mapLibreRenderer(): MapsSDK {
   if (!customElements.get("trip-libre-marker"))
     customElements.define("trip-libre-marker", LibreMarker);

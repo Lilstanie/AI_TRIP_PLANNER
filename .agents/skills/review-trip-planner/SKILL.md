@@ -99,6 +99,9 @@ Each item below is a defect this project has hit; the source is in brackets.
   must be read from the field that decides it, never a constant. Agent Lab's first slice shipped a
   fixed "Within budget" label and a page that showed a figure its artifact did not hold. A comparison
   page must not rank what it only measures.
+- **A fixed bug is locked.** A bug-fix PR adds a lint rule, type, verify script or deletion that fails
+  on the old code, with the red output in Evidence, or says why no machine check can catch the class
+  ([lock a fixed bug](../../../docs/development.md#lock-a-fixed-bug)).
 - **A check must be able to fail.** An evaluator measures the rules its scenario states, not a
   convenient subset, and each acceptance criterion needs a check that fails when it is broken. A
   sign-in-gate criterion no test could observe was caught only by review. Prefer metrics a plain

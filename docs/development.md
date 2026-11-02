@@ -126,16 +126,16 @@ missing the `account_memories` table from `0002_adorable_namor.sql`.
 
 Only `main` deploys on Vercel: `apps/web/vercel.json` turns off Git deployments for every other
 branch, so a pull request gets no preview build. Previews sat behind Vercel login and were not used
-for checks, but each push used up deployment quota; on 2026-11-01 the quota ran out and merged fixes
-stayed off the live site for a day. Verify live behaviour on the deployed site after the merge.
+for checks, but each push used up deployment quota; the quota ran out on 2026-11-01 and twice on
+2026-11-02, holding merged fixes off the live site. Verify live behaviour on the deployed site after the merge.
 
-Agent Lab live runs are off unless the deployment enables them (these names are not in `.env.example`):
+Agent Lab live runs are on unless the deployment turns them off (these names are not in `.env.example`):
 
-| Setting                            | Purpose                                                                                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_LAB_LIVE_ENABLED`           | Exactly `true` enables live runs, which use the model and provider keys above; deployments also require sign-in. Anything else leaves live off; fixture data is never affected. |
-| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | Live runs in flight at once. Default `1`; `0` allows none; capped at `20`.                                                                                                      |
-| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | Live runs that may start in a rolling hour. Default `6`; `0` allows none; capped at `1000`.                                                                                     |
+| Setting                            | Purpose                                                                                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_LAB_LIVE_ENABLED`           | Exactly `false` turns live runs off. Otherwise live runs use the model and provider keys above; deployments also require sign-in. Fixture data is never affected. |
+| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | Live runs in flight at once. Default `1`; `0` allows none; capped at `20`.                                                                                        |
+| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | Live runs that may start in a rolling hour. Default `6`; `0` allows none; capped at `1000`.                                                                       |
 
 An unusable value falls back to the default, never to no limit. The counts are kept in one server process, so a
 deployment that runs several instances applies the limits to each; size them for that.
@@ -233,6 +233,27 @@ It writes screenshots and `summary.json` to `output/playwright/installable-app/`
 installability check runs in full Chromium (`CHANNEL=chrome` uses Chrome instead) with a throwaway
 persistent profile, and also confirms it reports a page whose manifest link is removed.
 
+### iOS app
+
+`apps/ios/` is a Capacitor shell that opens the deployed site and adds `TripPlannerIOSApp` to its
+user agent. The web app then sets `data-shell="ios-app"` on `<html>`, and `app/styles/ios-app.css`
+gives the app its liquid-glass look; Safari and the PWA are unchanged. See the
+[Agent Note](../.agents/notes/implemented/feature/2026-11-01-ios-app-shell.md). Check the app layer in
+a browser with `node apps/web/tests/e2e/ios-app-shell.e2e.mjs` against a running server. On a Mac with
+Xcode:
+
+```bash
+pnpm install
+pnpm --filter @trip/ios sync
+pnpm --filter @trip/ios open
+```
+
+In Xcode, choose the App target, set Signing & Capabilities to your Apple ID team, pick the iPhone and
+press Run. On the iPhone, trust the developer under Settings → General → VPN & Device Management.
+
+The app also replaces the web tab bar with the system tab bar and shows the phone Map tab on Apple
+Maps; see the [native tab bar and Apple Maps note](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md).
+
 ## Licence and third-party code
 
 The repository is MIT licensed (see [LICENSE](../LICENSE)), and every `package.json` declares
@@ -314,6 +335,29 @@ counterpart in the same task.
 When a bug is fixed, reproduce it, name its cause with evidence, and fix that cause. Do not hide the
 symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
 option for now, say so in the pull request and the session log, with the cause it leaves in place.
+
+### Lock a fixed bug
+
+A fixed bug gets a machine check in the same pull request, so the same mistake cannot return. Pick
+the cheapest check that fails on the old code:
+
+- **Lint rule** for a banned call or pattern: add it to `apps/web/.eslintrc.json` (web) or
+  `eslint.config.mjs` (packages) with a message that names what to use instead.
+- **Type** when callers must make a choice: a required parameter or a union, so every new caller
+  has to decide. `settlePlan` takes `write: "traveller" | "background"` because route checks once
+  counted as traveller edits (TP-247).
+- **Verify script** for repository-wide facts: a `scripts/verify-*.mjs` run by CI.
+- **Delete** the helper that made the mistake easy when nothing else uses it.
+
+Prove the check fires: run it on the old code and quote the red output in the pull request's
+Evidence section. When no machine check can catch the bug class (model wording, map timing), say
+why in the pull request. Current rules:
+
+| Rule                                     | Where                         | Bug it locks                                  |
+| ---------------------------------------- | ----------------------------- | --------------------------------------------- |
+| No `toFixed(2)` for amounts              | `apps/web/.eslintrc.json`     | Hand-formatted money                          |
+| No `window.confirm`, `alert` or `prompt` | `apps/web/.eslintrc.json`     | False edit dialog on chat follow-ups (TP-257) |
+| `settlePlan` names the write             | `apps/web/lib/trip/settle.ts` | Background writes counted as edits (TP-247)   |
 
 ## Verification
 
@@ -410,8 +454,8 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
 
 `output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). `node scripts/worktrees.mjs` lists worktrees and leftovers by category: clean worktrees, `.next` and `.turbo` build output in kept worktrees, directories under `~/.codex/worktrees` that hold only the worktree-name marker, and unregistered clean clones of the same `origin`. It is a dry run until `--apply`, which moves them to the Trash and runs `git worktree prune`; it keeps anything with changes, a stash, unpushed or unreachable commits, a lock, the main worktree and the one it runs from, and never deletes a branch. Without `--worktree` it also keeps any worktree or clone whose Git index, `HEAD` or reflog changed within `--idle-hours` (default 24), so it does not pull a worktree from under another session. `--worktree <path>` limits it to the named worktrees, which is how a run removes its own worktree when it ends. `--root <dir>` replaces the scan root, `--trash <dir>` the Trash, and `--sizes` sizes only the listed entries; use it instead of `du` over the whole disk or `git status --untracked-files=all`. Its failure inventory is [scripts/worktrees.failures.md](../scripts/worktrees.failures.md). Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
-Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
-(see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
+Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled,
+and its main server needs `AGENT_LAB_LIVE_ENABLED=false`. `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
 versioned artifacts, a comparison summary, a report and a screenshot matrix (light and dark, desktop and narrow,
 reduced motion). Release smoke keeps `provider-empty-result` as the representative fault journey;
 `agent-lab-failures` owns all five registered fault profiles, their outcomes, downloads and offline replay,

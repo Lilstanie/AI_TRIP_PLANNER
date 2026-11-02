@@ -121,7 +121,7 @@ export function applyDayAction(
       break;
   }
 
-  settlePlan(next, plan.editVersion ?? 0, currency);
+  settlePlan(next, plan.editVersion ?? 0, currency, "traveller");
   const parsed = TripPlan.safeParse(next);
   if (!parsed.success) throw new NoticeError({ key: "thatChangeWouldLeaveThe" });
   return parsed.data;

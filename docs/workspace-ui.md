@@ -1230,7 +1230,7 @@ driving. Cycling uses `OSRM_BIKE_BASE_URL` (default the FOSSGIS bike instance) a
 ## Agent Lab
 
 `/agent-lab` is a public engineering-demo route, including when Clerk protects the main workspace.
-It does not share the workspace shell or read and write its browser storage. The toolbar exposes one
+It does not share the workspace shell or write its browser storage; it reads only the saved Trip data preference. The toolbar exposes one
 registered scenario, a strategy choice and a Data mode control; Run experiment becomes Cancel
 run while the NDJSON response is active. Compare all strategies runs the single-agent baseline, the
 five-specialist no-revision strategy and the targeted-revision strategy one after the other and opens
@@ -1297,8 +1297,9 @@ mismatched event count or an invalid plan, records a failed run that kept no eve
 5 MB or would play for more than ten minutes. Fields the contract does not define are dropped, never
 shown.
 
-Data mode is Fixture data by default. Live data is selectable only when the deployment has enabled it, and the page
-says beforehand when it has not. Choosing Live data marks the scripted baseline fixture only and runs the specialist
+Data mode starts as Live data when live is available to the caller and the Trip data preference is not sample data,
+otherwise as Fixture data. Live data is selectable only for a signed-in caller on a deployment that has not turned it
+off, and the page says beforehand when it is not (sign in, or not enabled). Choosing Live data marks the scripted baseline fixture only and runs the specialist
 strategies. A request the server turns away (live not enabled, or a concurrency or hourly limit) shows Live run not
 started and an alert that says which limit was hit, how long to wait and that nothing was run; it is never shown as a
 failed run, and fixture data stays available. The trace, the metrics, the comparison and every artifact say Fixture data

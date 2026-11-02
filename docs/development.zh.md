@@ -87,15 +87,15 @@ ln -s ../../.env.local apps/web/.env.local
 
 Vercel 的生产构建会在 `next build` 之前执行待运行的迁移（`apps/web/package.json` 里的 `vercel-build`），所以合并的迁移会随部署进入生产数据库。只有 `VERCEL_ENV` 是 `production` 且设置了 `DATABASE_URL` 时才执行；预览构建和没有数据库的构建会跳过，迁移失败会让部署失败。只有项目的 Root Directory 是 `apps/web` 时 Vercel 才会用这个脚本。其他数据库（本地或演示用的）仍要手动跑 `db:migrate`；缺少 `0002_adorable_namor.sql` 里的 `account_memories` 表时，设置里会显示“Could not load remembered preferences”。
 
-只有 `main` 会在 Vercel 上部署：`apps/web/vercel.json` 关掉了其他分支的 Git 部署，所以 PR 不再有预览构建。预览有 Vercel 登录保护，没人用来做检查，却每次推送都消耗部署额度；2026-11-01 额度用完，合并的修复一整天上不了线。线上行为在合并后到官网验证。
+只有 `main` 会在 Vercel 上部署：`apps/web/vercel.json` 关掉了其他分支的 Git 部署，所以 PR 不再有预览构建。预览有 Vercel 登录保护，没人用来做检查，却每次推送都消耗部署额度；2026-11-01 额度用完一次，2026-11-02 又用完两次，合并的修复迟迟上不了线。线上行为在合并后到官网验证。
 
-Agent Lab 的实时运行默认关闭，除非部署启用它（这些名称不在 `.env.example` 中）：
+Agent Lab 的实时运行默认开启，除非部署关闭它（这些名称不在 `.env.example` 中）：
 
-| 设置                               | 用途                                                                                                                               |
-| ---------------------------------- | ---------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_LAB_LIVE_ENABLED`           | 恰为 `true` 时才启用实时运行，它使用上面的模型和提供方密钥；部署环境还要求登录。其他任何值都保持实时关闭；fixture 数据从不受影响。 |
-| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | 同时进行的实时运行数。默认 `1`；`0` 表示不允许；上限 `20`。                                                                        |
-| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | 滚动一小时内可开始的实时运行数。默认 `6`；`0` 表示不允许；上限 `1000`。                                                            |
+| 设置                               | 用途                                                                                                                    |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_LAB_LIVE_ENABLED`           | 恰为 `false` 时关闭实时运行。其他情况下实时运行使用上面的模型和提供方密钥；部署环境还要求登录。fixture 数据从不受影响。 |
+| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | 同时进行的实时运行数。默认 `1`；`0` 表示不允许；上限 `20`。                                                             |
+| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | 滚动一小时内可开始的实时运行数。默认 `6`；`0` 表示不允许；上限 `1000`。                                                 |
 
 无法使用的值会回退为默认值，绝不会变成无限制。计数保存在单个服务进程中，因此运行多个实例的部署会对每个实例分别应用限额；设置时请考虑这一点。
 
@@ -176,6 +176,28 @@ pnpm --filter @trip/web e2e installable-app --prod
 Chromium（`CHANNEL=chrome` 时改用 Chrome）和一个用完即删的持久化配置文件中运行，并确认它能报告移除了
 manifest 链接的页面。
 
+<a id="ios-app"></a>
+
+### iOS 应用
+
+`apps/ios/` 是一个打开线上网站的 Capacitor 壳，会在 user agent 末尾加上 `TripPlannerIOSApp`。网页据此在
+`<html>` 上设置 `data-shell="ios-app"`，由 `app/styles/ios-app.css` 提供 App 专属的液态玻璃外观；Safari 和
+PWA 不受影响。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-11-01-ios-app-shell.md)。
+在浏览器里检查 App 样式层：服务器运行时执行 `node apps/web/tests/e2e/ios-app-shell.e2e.mjs`。在装有
+Xcode 的 Mac 上：
+
+```bash
+pnpm install
+pnpm --filter @trip/ios sync
+pnpm --filter @trip/ios open
+```
+
+在 Xcode 里选中 App target，在 Signing & Capabilities 里选你的 Apple ID 团队，选择 iPhone 后点 Run。
+然后在 iPhone 的 设置 → 通用 → VPN 与设备管理 里信任这个开发者。
+
+App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地图；见
+[原生标签栏与 Apple 地图说明](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md)。
+
 <a id="licence-and-third-party-code"></a>
 
 ## 许可与第三方代码
@@ -234,6 +256,25 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 修复缺陷时，先复现，用证据说明其原因，再修复该原因。不要用重试、加长超时、额外保护或特例来掩盖症状。若暂时只能采用变通方案，在 PR 和 session log 中说明，并写明它保留了哪个原因。
 
+<a id="lock-a-fixed-bug"></a>
+
+### 锁住修好的缺陷
+
+修好的缺陷要在同一个 PR 里加一条机器检查，让同样的错误回不来。选在旧代码上会失败的、成本最低的检查：
+
+- **Lint 规则**：禁止某个调用或写法。加到 `apps/web/.eslintrc.json`（web）或 `eslint.config.mjs`（packages），message 写明应该改用什么。
+- **类型**：调用方必须做选择时，用必填参数或联合类型，让每个新调用方都得决定。`settlePlan` 接收 `write: "traveller" | "background"`，因为路线检查曾被算成旅行者编辑（TP-247）。
+- **Verify 脚本**：仓库范围的事实，用 CI 运行的 `scripts/verify-*.mjs`。
+- **删除**：让错误容易发生、又没有别处使用的辅助函数，直接删掉。
+
+证明检查会触发：在旧代码上运行，并把报错输出贴进 PR 的 Evidence。若没有机器检查能挡住这类缺陷（模型措辞、地图时序），在 PR 中说明原因。现有规则：
+
+| 规则                                     | 位置                          | 锁住的缺陷                               |
+| ---------------------------------------- | ----------------------------- | ---------------------------------------- |
+| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`     | 手写金额格式                             |
+| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`     | 聊天追问时弹出错误的编辑确认框（TP-257） |
+| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts` | 后台写入被算成编辑（TP-247）             |
+
 <a id="verification"></a>
 
 ## 验证
@@ -277,7 +318,7 @@ BASE_URL=http://localhost:3000 pnpm --filter @trip/web e2e settings   # against 
 - **API 脚本**（`plan-quality`、`conversation-scope`）向 `/api/chat` 发请求，`DATA_MODE=live` 为默认值，也可设为 `mock`。`plan-quality` 提交三个固定行程需求，并检查预算、未解决冲突、行程来源、重复停靠点和泛化停靠点，任一检查失败或规划出错时以非零状态退出；实时模型输出会变化，因此应比较多次运行。每次运行把 NDJSON 流、方案和 `summary.json` 写入 `output/e2e/<name>/<run>/`。
 - **浏览器脚本**（其余所有脚本，包括六个 `agent-lab-*`）用 Playwright 在桌面和手机宽度下运行，并把截图写入 `output/playwright/<name>/`；Agent Lab 的脚本还会写入原始 NDJSON 和 artifact。`CHANNEL=chrome` 与 `PLAYWRIGHT=<path>` 用于选择浏览器和 Playwright 包。
 
-`output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。`node scripts/worktrees.mjs` 按类别列出 worktree 和残留：干净的 worktree、保留的 worktree 里的 `.next` 和 `.turbo` 构建产物、`~/.codex/worktrees` 下只剩 worktree 名称标记文件的目录，以及同一 `origin` 的未注册干净克隆。不加 `--apply` 时只演练；加上后把它们移到废纸篓并运行 `git worktree prune`。有改动、有 stash、有未推送或不可达提交、已锁定的 worktree，主 worktree 和运行命令所在的 worktree 一律保留，也从不删除分支。不加 `--worktree` 时，Git index、`HEAD` 或 reflog 在 `--idle-hours`（默认 24）小时内有变化的 worktree 或克隆也会保留，避免把其他会话正在用的 worktree 移走。`--worktree <path>` 只处理指定的 worktree，任务结束时用它清理自己创建的 worktree。`--root <dir>` 替换扫描根目录，`--trash <dir>` 替换废纸篓，`--sizes` 只计算列出条目的大小；需要空间报告时用它，不要对整个磁盘跑 `du` 或 `git status --untracked-files=all`。它的失败清单见 [scripts/worktrees.failures.md](../scripts/worktrees.failures.md)。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务（见其文件头）。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
+`output/`、`apps/web/output/`、`tmp/` 和 `.scratch/` 是被 Git 忽略的临时目录，其中 `output/` 会增长到数 GB。证据已写进 PR 描述后，运行 `pnpm clean:output` 删除它们；先运行 `pnpm clean:output --dry-run` 可只看各目录大小。只要这些目录下有已跟踪的文件，它就会拒绝执行。PR 合并或关闭后，删除它的远程分支（见 [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)）。`node scripts/worktrees.mjs` 按类别列出 worktree 和残留：干净的 worktree、保留的 worktree 里的 `.next` 和 `.turbo` 构建产物、`~/.codex/worktrees` 下只剩 worktree 名称标记文件的目录，以及同一 `origin` 的未注册干净克隆。不加 `--apply` 时只演练；加上后把它们移到废纸篓并运行 `git worktree prune`。有改动、有 stash、有未推送或不可达提交、已锁定的 worktree，主 worktree 和运行命令所在的 worktree 一律保留，也从不删除分支。不加 `--worktree` 时，Git index、`HEAD` 或 reflog 在 `--idle-hours`（默认 24）小时内有变化的 worktree 或克隆也会保留，避免把其他会话正在用的 worktree 移走。`--worktree <path>` 只处理指定的 worktree，任务结束时用它清理自己创建的 worktree。`--root <dir>` 替换扫描根目录，`--trash <dir>` 替换废纸篓，`--sizes` 只计算列出条目的大小；需要空间报告时用它，不要对整个磁盘跑 `du` 或 `git status --untracked-files=all`。它的失败清单见 [scripts/worktrees.failures.md](../scripts/worktrees.failures.md)。每个脚本的文件头列出它所依据的失败清单和所需的服务器环境，fixture 运行与部署的密钥和默认数据模式相互隔离，因此无论环境中有什么，Agent Lab 的脚本都能通过；`agent-lab-live-gate` 还会使用两个启用了实时运行的服务，它的主服务需要 `AGENT_LAB_LIVE_ENABLED=false`。`agent-lab-release` 走完整个公开流程并写出发布证据：原始 NDJSON、带版本的产物、对比摘要、报告，以及一组截图矩阵（浅色与深色、桌面与窄屏、减少动态效果）。发布冒烟测试保留 `provider-empty-result` 作为有代表性的故障路径；`agent-lab-failures` 负责全部五个已注册故障 profile 的结果、下载、离线回放，以及 Run all 的顺序和取消。修改 Failure Lab 行为时应运行这两个脚本。
 
 `plan-revision` 和 `check-entry-point` 只通过 `apps/web/tests/e2e/trip-setup.mjs` 共用地点 fixture、工作区启动、按天数据到计划的转换和轮询。所有 44 px 触控尺寸检查都用其中的 `touchSized(pixels)`，它会先把亚像素尺寸取整；要在 Node 端调用，不能放进 `evaluate`。每个脚本仍负责自己的场景断言、请求拦截、挂起响应和截图；并发与取消的设置留在它们验证的场景旁。[覆盖归属说明](../.agents/notes/implemented/simplification/2026-10-10-repository-surface-reduction.md)记录了断言合并的边界。
 

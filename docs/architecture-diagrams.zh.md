@@ -63,7 +63,7 @@
 
 LangGraph（`@langchain/langgraph`）拥有确定性的规划状态机，决定何时分派专家、检测冲突、修订指定提案、组装 `TripPlan` 或停止。LangChain 不负责选择图的下一状态。
 
-LangChain JS（`langchain`）通过 `createAgent` 提供对话协调器、分派与修订 supervisor，以及五个职责型 agent。对话协调器通过带类型的工具暴露 `update_trip_brief`、`ask_user_question`、`replan_trip` 和 `change_itinerary`；`change_itinerary` 像 @ 提及一样只把对具体停靠点的修改交给行程专家，并返回删除和新增的停靠点。各专家使用边界明确的依据工具；结构化结果按照共享 Zod 契约解析校验。
+LangChain JS（`langchain`）通过 `createAgent` 提供对话协调器、分派与修订 supervisor，以及五个职责型 agent。对话协调器通过带类型的工具暴露 `update_trip_brief`、`ask_user_question`、`replan_trip` 和 `change_itinerary`；`change_itinerary` 像 @ 提及一样只把对具体停靠点的修改交给行程专家，并返回删除和新增的停靠点。它会写明这次修改涉及哪几天，其他天的停靠点保持不变，被修改的那几天不会再出现其他天已有的地点（去重后某天一个新地点都没有时保留原来的安排）；也会写明要新增的地点，行程专家先按名称搜索这些地点（不套用景点类型过滤）再重排；如果修改落到了确定性的备用行程，就保留原来的行程并如实说没改（`planning/edit-scope.ts`）。多城市行程里某个城市住几晚属于简报事实（`TripBrief.cityNights`），它决定换城那一天（`transport/legs.ts` 的 `cityStartDays`）；每个城市都写了晚数、但加起来比行程少时，多出来的几晚（通常是飞过去的那一晚）算在第一个城市。各专家使用边界明确的依据工具；结构化结果按照共享 Zod 契约解析校验。
 
 `packages/agents/src/models.ts` 集中通过 OpenAI 兼容的 DeepSeek adapter 路由模型。项目有 MiniMax 配置，但当前没有将它接入模型路由。模型或工具调用失败时，系统通过已校验的确定性回退继续规划。Agent 通过 `AgentContext` 注入 `ToolGateway` 和 `MemoryStore`，不直接导入数据提供方或 service 单例。
 

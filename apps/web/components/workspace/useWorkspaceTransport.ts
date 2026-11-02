@@ -2,8 +2,10 @@
 import { resolveMentions } from "../chat/mentions";
 import { useEffect, useRef, type MutableRefObject } from "react";
 import {
+  MAX_CHAT_HISTORY_TURNS,
   TripPlan,
   type AssistantSettings,
+  type ChatHistoryTurn,
   type Attachment,
   type Currency,
   type InterfaceLanguage,
@@ -75,6 +77,16 @@ type WorkspaceTransportOptions = {
   planDestinationLocation?: Draft["destinationLocation"];
 };
 
+function chatHistory(messages: Message[]): ChatHistoryTurn[] {
+  return messages
+    .filter((item) => item.text.trim())
+    .slice(-MAX_CHAT_HISTORY_TURNS)
+    .map((item) => ({
+      role: item.role === "user" ? "user" : "assistant",
+      content: item.text.slice(0, 8000),
+    }));
+}
+
 type ChatSendContext = {
   plan: TripPlan;
   draft: Draft;
@@ -105,10 +117,9 @@ export function useWorkspaceTransport({
   displayCurrency,
   planDestinationLocation,
 }: WorkspaceTransportOptions) {
-  const originalPlan = useRef<string | undefined>(undefined);
+  const originalPlan = useRef<{ tripId: string; snapshot: string } | undefined>(undefined);
   const editSnapshot = (value: TripPlan) =>
     JSON.stringify({
-      tripId: value.tripId,
       brief: value.brief,
       dayNotes: value.dayNotes,
       sections: value.sections.map((section) => ({
@@ -122,26 +133,35 @@ export function useWorkspaceTransport({
           : undefined,
       })),
     });
-  if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
+  const unedited = (value: TripPlan) =>
+    originalPlan.current?.tripId === value.tripId &&
+    originalPlan.current.snapshot === editSnapshot(value);
+  if (plan && (plan.editVersion ?? 0) === 0)
+    originalPlan.current = { tripId: plan.tripId, snapshot: editSnapshot(plan) };
 
-  function confirmReplacingEditedPlan(currentPlan = plan) {
-    if (!currentPlan) return true;
+  function settleBackground(base: TripPlan, next: TripPlan) {
+    if (unedited(base))
+      originalPlan.current = { tripId: next.tripId, snapshot: editSnapshot(next) };
+  }
+
+  function confirmReplacingEditedPlan() {
+    if (!plan) return true;
     const hasDirectEdits =
-      (currentPlan.editVersion ?? 0) > 0 &&
-      (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
+      (plan.editVersion ?? 0) > 0 &&
+      originalPlan.current?.tripId === plan.tripId &&
+      !unedited(plan);
     if (!hasDirectEdits) return true;
     const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
+    // eslint-disable-next-line no-restricted-properties
     return window.confirm(message);
   }
 
   function run(
     task: Task,
-    replacementConfirmed = false,
     change?: { message: Message; brief?: boolean; rewindIndex?: number },
     resumeRunId?: string,
   ): boolean {
     if (!canStart(task.request.tripId)) return false;
-    if (!replacementConfirmed && !confirmReplacingEditedPlan()) return false;
     const controller = new AbortController();
     const id = start(task, controller, change);
     if (!id) return false;
@@ -226,7 +246,6 @@ export function useWorkspaceTransport({
       !answered &&
       run(
         pending.task,
-        true,
         missing && pending.message ? { message: pending.message } : undefined,
         pending.runId,
       );
@@ -291,7 +310,6 @@ export function useWorkspaceTransport({
             : {}),
         },
       },
-      true,
       {
         message: { role: "user", text: message, at: Date.now() },
         brief: true,
@@ -304,11 +322,7 @@ export function useWorkspaceTransport({
     const currentDraft = context?.draft ?? draft;
     const message = (override ?? (context ? "" : input)).trim();
     const files = context ? (context.attachments ?? []) : attachments;
-    if (
-      (!message && files.length === 0) ||
-      !canStart(currentPlan?.tripId ?? freshTripId.current) ||
-      !confirmReplacingEditedPlan(currentPlan)
-    )
+    if ((!message && files.length === 0) || !canStart(currentPlan?.tripId ?? freshTripId.current))
       return;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
       name,
@@ -317,6 +331,7 @@ export function useWorkspaceTransport({
       data,
     }));
     const mentions = resolveMentions(message, assistant?.names);
+    const history = context ? [] : chatHistory(shownMessages());
     const destination = currentPlan?.brief.destination ?? currentDraft.destination;
     const location = destinationLocationFor(
       destination,
@@ -337,6 +352,7 @@ export function useWorkspaceTransport({
               }
             : { tripId: freshTripId.current, message, known: knownFromDraft(currentDraft) }),
           ...(mentions.length ? { mentions } : {}),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
           ...(sent.length ? { attachments: sent } : {}),
         },
@@ -356,7 +372,7 @@ export function useWorkspaceTransport({
   function send(override?: string, rewindIndex?: number, context?: ChatSendContext) {
     const prepared = prepareChat(override, context);
     if (!prepared) return false;
-    const started = run(prepared.task, true, {
+    const started = run(prepared.task, {
       ...prepared.change,
       ...(rewindIndex === undefined ? {} : { rewindIndex }),
     });
@@ -366,8 +382,8 @@ export function useWorkspaceTransport({
 
   function answer(answers: QuestionAnswer[]) {
     if (!ask || !canStart((ask.plan ?? plan)?.tripId ?? freshTripId.current)) return;
-    if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
+    const history = chatHistory(shownMessages());
     const current = ask.plan ?? plan;
     const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
     const destination = current?.brief.destination ?? known?.destination;
@@ -393,10 +409,10 @@ export function useWorkspaceTransport({
                 message,
                 known,
               }),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
         },
       },
-      true,
       { message: { role: "user", text: message, at: Date.now() } },
     );
   }
@@ -405,5 +421,5 @@ export function useWorkspaceTransport({
   useEffect(() => {
     resumeOnLoad.current(activeConversation.current);
   }, [activeConversation]);
-  return { run, resumePending, submit, prepareChat, send, answer };
+  return { run, resumePending, submit, prepareChat, send, answer, settleBackground };
 }

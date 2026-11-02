@@ -436,35 +436,36 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
   }
 
   const composerAttachments = useComposerAttachments();
-  const { run, resumePending, submit, prepareChat, send, answer } = useWorkspaceTransport({
-    activeConversation,
-    hasTurn: (id) => backgroundTurns.current.has(id),
-    shownMessages: () => stateRef.current.messages,
-    plan,
-    dataMode: dataMode.mode,
-    assistant: settings.assistant,
-    interfaceLanguage: locale,
-    displayCurrency: settings.displayCurrency,
-    planDestinationLocation:
-      plan && plannedLocation
-        ? {
-            ...plannedLocation,
-            destination: plan.brief.destination,
-          }
-        : undefined,
-    draft,
-    input,
-    freshTripId,
-    canStart,
-    start,
-    progress,
-    finish,
-    dispatch,
-    attachments: composerAttachments.attachments,
-    clearAttachments: composerAttachments.clearAttachments,
-    ask,
-    onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
-  });
+  const { run, resumePending, submit, prepareChat, send, answer, settleBackground } =
+    useWorkspaceTransport({
+      activeConversation,
+      hasTurn: (id) => backgroundTurns.current.has(id),
+      shownMessages: () => stateRef.current.messages,
+      plan,
+      dataMode: dataMode.mode,
+      assistant: settings.assistant,
+      interfaceLanguage: locale,
+      displayCurrency: settings.displayCurrency,
+      planDestinationLocation:
+        plan && plannedLocation
+          ? {
+              ...plannedLocation,
+              destination: plan.brief.destination,
+            }
+          : undefined,
+      draft,
+      input,
+      freshTripId,
+      canStart,
+      start,
+      progress,
+      finish,
+      dispatch,
+      attachments: composerAttachments.attachments,
+      clearAttachments: composerAttachments.clearAttachments,
+      ask,
+      onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
+    });
 
   const tripTitles = distinctTripTitles(catalog.trips, (item) => tripName(item, t));
   const filteredHistory = searchCatalog(catalog, historyQuery, (item) => [
@@ -582,7 +583,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     open(snapshot, conversationId);
     const sentSnapshot = { ...snapshot, messages: [prepared.change.message] };
     setCatalog((current) => upsertCurrent(current, sentSnapshot, sentSnapshot.messages));
-    if (!run(prepared.task, true, prepared.change)) return undefined;
+    if (!run(prepared.task, prepared.change)) return undefined;
     if (navigate) layout({ type: "chat-started" });
     if (navigate) {
       requestAnimationFrame(() =>
@@ -807,8 +808,9 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
 
   const [stable] = useState(() => ({
     session: {
-      applyEdit: (next: TripPlan) => {
+      applyEdit: (next: TripPlan, backgroundBase?: TripPlan) => {
         if (stateRef.current.plan?.tripId !== next.tripId) return;
+        if (backgroundBase) settleBackground(backgroundBase, next);
         dispatch({ kind: "edited", plan: next });
       },
       type: (text: string) => dispatch({ kind: "typed", input: text }),

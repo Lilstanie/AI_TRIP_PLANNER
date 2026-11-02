@@ -5,14 +5,16 @@ import {
   googleAuthRejected,
   subscribeGoogleAuthFailure,
   type MapsSDK,
+  type MapProvider,
   type MapRuntime,
 } from "./google-maps-sdk";
+import { nativePlugin } from "@/components/pwa/native-shell";
 
 function runtime(
   element: HTMLElement,
   maps: MapsSDK,
   map: InstanceType<MapsSDK["Map"]>,
-  provider: "google" | "osm",
+  provider: MapProvider,
 ): MapRuntime {
   const listeners = new Set<{ remove(): void }>();
   const authListeners = new Set<() => void>();
@@ -94,7 +96,7 @@ function create(
   root: HTMLElement,
   maps: MapsSDK,
   options: object,
-  provider: "google" | "osm",
+  provider: MapProvider,
 ): MapRuntime {
   const element = document.createElement("div");
   element.className = "google-map__renderer";
@@ -113,6 +115,14 @@ export async function loadRenderer(
   settings: { forceOsm?: boolean; allowFallback?: boolean; signal?: AbortSignal } = {},
 ): Promise<MapRuntime> {
   const { forceOsm = false, allowFallback = true, signal } = settings;
+  if (
+    root.closest(".workspace-app[data-phone] .workspace-panel--map .trip-map-canvas") &&
+    nativePlugin("TripMap")
+  ) {
+    const { appleMapsRenderer } = await import("./apple-maps-renderer");
+    signal?.throwIfAborted();
+    return create(root, appleMapsRenderer(), options, "apple");
+  }
   if (!forceOsm && googleAuthRejected() && !allowFallback)
     throw new NoticeError({ key: "theMapCouldNotLoad" });
   if (!forceOsm && !googleAuthRejected()) {

@@ -1,0 +1,279 @@
+import { mkdirSync, writeFileSync } from "node:fs";
+import { createRequire } from "node:module";
+import { resolve } from "node:path";
+
+import { seedTrip } from "./phone-map-seed.mjs";
+import { openMockWorkspace, planSuggestedTrip, settle } from "./trip-setup.mjs";
+
+const { chromium } = createRequire(import.meta.url)(process.env.PLAYWRIGHT ?? "playwright");
+const BASE = process.env.BASE_URL ?? "http://localhost:3000";
+const OUT = resolve("output/playwright/ios-app-shell", process.env.LABEL ?? "run");
+mkdirSync(OUT, { recursive: true });
+
+const IOS_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Mobile/15E148 TripPlannerIOSApp";
+const SAFARI_UA =
+  "Mozilla/5.0 (iPhone; CPU iPhone OS 26_0 like Mac OS X) AppleWebKit/605.1.15 (KHTML, like Gecko) Version/26.0 Mobile/15E148 Safari/604.1";
+
+const results = [];
+const check = (ok, name, observed) => {
+  results.push({ ok: Boolean(ok), name, observed });
+  console.log(
+    `${ok ? "ok" : "FAIL"} ${name}${observed === undefined ? "" : `: ${JSON.stringify(observed)}`}`,
+  );
+};
+
+async function open(browser, { userAgent, scheme }) {
+  const context = await browser.newContext({
+    viewport: { width: 390, height: 844 },
+    deviceScaleFactor: 2,
+    isMobile: true,
+    hasTouch: true,
+    userAgent,
+    colorScheme: scheme,
+    reducedMotion: "reduce",
+  });
+  await context.addInitScript(() => {
+    localStorage.setItem(
+      "trip.settings.v1",
+      JSON.stringify({
+        version: 1,
+        travel: { homeCity: "", preferences: [] },
+        language: "en",
+        dataMode: "mock",
+        appearance: "system",
+        updatedAt: "2026-11-01T00:00:00Z",
+      }),
+    );
+  });
+  return { context, page: await context.newPage() };
+}
+
+const shot = (page, name) => page.screenshot({ path: `${OUT}/${name}.png` });
+
+const inputFontSizes = (page) =>
+  page.evaluate(() =>
+    [...document.querySelectorAll("textarea, input:not([type=hidden]), select")]
+      .filter((node) => node.getClientRects().length > 0)
+      .map((node) => parseFloat(getComputedStyle(node).fontSize)),
+  );
+
+const browser = await chromium.launch();
+try {
+  for (const scheme of ["light", "dark"]) {
+    const { context, page } = await open(browser, { userAgent: IOS_UA, scheme });
+    await openMockWorkspace(page, BASE);
+    await settle(page, 600);
+
+    check(
+      (await page.evaluate(() => document.documentElement.dataset.shell)) === "ios-app",
+      `${scheme}: app user agent marks the page as the iOS app`,
+    );
+    await shot(page, `${scheme}-1-chat-empty`);
+
+    const sizes = await inputFontSizes(page);
+    check(
+      sizes.length > 0 && sizes.every((size) => size >= 16),
+      `${scheme}: visible fields are at least 16px so iOS does not zoom on focus`,
+      sizes,
+    );
+
+    const tabbar = await page.evaluate(() => {
+      const node = document.querySelector(".phone-tabbar");
+      if (!node) return null;
+      const style = getComputedStyle(node);
+      return {
+        filter: style.backdropFilter || style.webkitBackdropFilter,
+        radius: style.borderRadius,
+      };
+    });
+    check(tabbar && /blur/.test(tabbar.filter), `${scheme}: tab bar is glass`, tabbar);
+
+    if (scheme === "light") {
+      await planSuggestedTrip(page);
+      await shot(page, `${scheme}-2-trip`);
+      await page.getByRole("tab", { name: /^Chat/ }).click();
+      await settle(page, 700);
+      await shot(page, `${scheme}-3-chat-planned`);
+      await page.getByRole("tab", { name: /^Map/ }).click();
+      await settle(page, 1200);
+      await shot(page, `${scheme}-4-map`);
+    }
+    await page.getByRole("tab", { name: /^Mine/ }).click();
+    await settle(page, 700);
+    await shot(page, `${scheme}-5-mine`);
+
+    await page.goto(`${BASE}/sign-in`);
+    await page.locator(".auth-page").waitFor();
+    await settle(page, 600);
+    await page.addStyleTag({ content: "html { --ios-safe-top: 47px !important; }" });
+    const authTop = await page.evaluate(
+      () => getComputedStyle(document.querySelector(".auth-page")).paddingTop,
+    );
+    check(
+      parseFloat(authTop) >= 47 + 20,
+      `${scheme}: sign-in page clears a 47px status bar`,
+      authTop,
+    );
+    await shot(page, `${scheme}-6-sign-in`);
+    await context.close();
+  }
+
+  {
+    const { context, page } = await open(browser, { userAgent: IOS_UA, scheme: "light" });
+    const seed = seedTrip();
+    seed.snapshot.plan.sections[0].proposal.items[0].detail = "Harbour Bridge";
+    seed.snapshot.plan.sections[0].proposal.items.push({
+      ...seed.snapshot.plan.sections[0].proposal.items[0],
+      id: "empty-day-trip-stop-2",
+      detail: "Opera House",
+      startTime: "11:00",
+      endTime: "12:00",
+    });
+    seed.catalog.conversations[0].snapshot = seed.snapshot;
+    seed.catalog.trips[0].snapshot = seed.snapshot;
+    await context.addInitScript((seed) => {
+      localStorage.setItem("trip-workspace-v1", JSON.stringify(seed.snapshot));
+      localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(seed.catalog));
+      localStorage.setItem("trip.dataMode", "mock");
+      window.__shellCalls = [];
+      window.__mapCalls = [];
+      window.__mapListeners = {};
+      window.Capacitor = {
+        PluginHeaders: [{ name: "TripShell" }, { name: "TripMap" }, { name: "Haptics" }],
+        nativePromise: async (plugin, method, options) => {
+          if (plugin === "TripShell" && method === "setTabs") {
+            window.__shellCalls.push(options);
+            return { height: 83 };
+          }
+          if (plugin === "TripMap") window.__mapCalls.push({ method, ...options });
+          return {};
+        },
+        addListener: (plugin, event, callback) => {
+          window.__mapListeners[`${plugin}:${event}`] = callback;
+          return { remove() {} };
+        },
+      };
+    }, seed);
+    const fixturePlace = (text) => {
+      const hash = [...text].reduce((n, c) => n + c.charCodeAt(0), 0);
+      return {
+        id: `fixture-${hash}`,
+        displayName: { text },
+        formattedAddress: text,
+        location: { latitude: 35 + (hash % 97) / 1000, longitude: 135.75 + (hash % 89) / 1000 },
+      };
+    };
+    await page.route("**/api/places/search", (route) =>
+      route.fulfill({ json: { places: [fixturePlace(route.request().postDataJSON().text)] } }),
+    );
+    await page.route("**/api/places/details", (route) =>
+      route.fulfill({ json: { place: fixturePlace(route.request().postDataJSON().placeId) } }),
+    );
+    await page.goto(BASE, { waitUntil: "domcontentloaded" });
+    await page.locator(".phone-tabbar").waitFor({ state: "attached" });
+    await page.evaluate(() => document.getElementById("phone-tab-mine")?.click());
+    await page
+      .locator(".phone-mine button", { hasText: /^SydneyTrip to Sydney/ })
+      .first()
+      .click();
+    await settle(page, 1200);
+    const first = await page.evaluate(() => window.__shellCalls.at(-1));
+    check(
+      first?.tabs.map((tab) => tab.id).join() === "chat,map,trip,mine" && first.selected === "chat",
+      "native tab bar receives the web tabs and the selected one",
+      first,
+    );
+    const webBar = await page.evaluate(() => {
+      const bar = document.querySelector(".phone-tabbar");
+      return {
+        visibility: getComputedStyle(bar).visibility,
+        height: bar.getBoundingClientRect().height,
+      };
+    });
+    check(
+      webBar.visibility === "hidden" && Math.round(webBar.height) === 83,
+      "web tab bar becomes a spacer the native bar covers",
+      webBar,
+    );
+    await page.evaluate(() => document.getElementById("phone-tab-map")?.click());
+    await settle(page, 1500);
+    check(
+      (await page.evaluate(() => window.__shellCalls.at(-1)?.selected)) === "map",
+      "a tap relayed from the native bar switches the web tab and reports it back",
+    );
+    const native = await page.evaluate(() => {
+      const calls = window.__mapCalls;
+      const layout = calls.filter((call) => call.method === "layout").at(-1);
+      const markers = new Map();
+      for (const call of calls) {
+        if (call.method === "setMarker") markers.set(call.id, call);
+        if (call.method === "removeMarker") markers.delete(call.id);
+      }
+      const stops = [...markers.values()].filter((marker) => marker.kind === "stop");
+      const map = document.querySelector(".trip-map-canvas .google-map");
+      return {
+        provider: map?.dataset.provider,
+        visible: layout?.visible,
+        frame: layout?.frame,
+        occluders: layout?.occluders.length,
+        stops: stops.map((stop) => `${stop.glyph}:${stop.color}:${stop.title}`),
+        sheet: [...document.querySelectorAll(".phone-map-sheet__body li")].map((li) =>
+          li.textContent.trim(),
+        ),
+        lines: calls.filter((call) => call.method === "setLine").length,
+        transparent: getComputedStyle(document.querySelector(".workspace-app")).backgroundImage,
+      };
+    });
+    check(
+      native.provider === "apple" &&
+        native.visible &&
+        native.frame?.width === 390 &&
+        native.occluders >= 2 &&
+        native.stops.length > 1 &&
+        native.stops.every((stop) => /^\d+:#[0-9a-f]{8}:./.test(stop)) &&
+        native.lines > 0 &&
+        native.transparent === "none",
+      "Map tab hands stops, routes and its frame to native Apple Maps and clears the web backdrop",
+      native,
+    );
+    const stopId = await page.evaluate(() => {
+      const stop = window.__mapCalls.find(
+        (call) => call.method === "setMarker" && call.kind === "stop",
+      );
+      window.__mapListeners["TripMap:markerTap"]?.({ id: stop.id });
+      return stop.id;
+    });
+    await settle(page, 800);
+    const picked = await page.evaluate(
+      (id) =>
+        window.__mapCalls.filter((call) => call.method === "setMarker" && call.id === id).at(-1)
+          ?.selected,
+      stopId,
+    );
+    check(
+      picked === true && (await page.locator(".phone-map-details").count()) > 0,
+      "tapping an Apple Maps pin opens the stop and marks the pin selected",
+    );
+    await shot(page, "native-tabbar-map");
+    await context.close();
+  }
+
+  const { context, page } = await open(browser, { userAgent: SAFARI_UA, scheme: "light" });
+  await openMockWorkspace(page, BASE);
+  check(
+    (await page.evaluate(() => document.documentElement.dataset.shell)) === undefined,
+    "Safari on iPhone is not marked as the app, so the web layout is unchanged",
+  );
+  await shot(page, "safari-chat-empty");
+  await context.close();
+} finally {
+  await browser.close();
+}
+
+writeFileSync(`${OUT}/result.json`, `${JSON.stringify(results, null, 2)}\n`);
+const failed = results.filter((result) => !result.ok);
+console.log(
+  `${results.length - failed.length}/${results.length} checks passed; screenshots in ${OUT}`,
+);
+process.exitCode = failed.length ? 1 : 0;

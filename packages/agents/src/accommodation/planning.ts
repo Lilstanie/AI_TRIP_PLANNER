@@ -121,7 +121,15 @@ export function splitStay(
   });
 }
 
-function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): number[] | undefined {
+function hopNights(
+  cities: string[],
+  nights: number,
+  scheduled: ScheduledHop[],
+): number[] | undefined {
+  const hops =
+    scheduled.length === cities.length && scheduled.at(-1)?.to === cities[0]
+      ? scheduled.slice(0, -1)
+      : scheduled;
   if (cities.length < 2 || hops.length !== cities.length - 1) return undefined;
   const arrivals = [1];
   for (const [index, hop] of hops.entries()) {
@@ -132,7 +140,15 @@ function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): numb
   return counts.every((count) => count >= 0) ? counts : undefined;
 }
 
+const OUTDOOR_STAY = /\b(glamping|camping|campground|campsite|caravan|holiday park|tents?)\b/i;
+
 export function eligibleOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {
+  const valid = validOptions(options, prefs);
+  const indoor = valid.filter((option) => !OUTDOOR_STAY.test(option.name));
+  return indoor.length ? indoor : valid;
+}
+
+function validOptions(options: StayOption[], prefs: StayPreferences): StayOption[] {
   return options
     .filter(
       (option) =>

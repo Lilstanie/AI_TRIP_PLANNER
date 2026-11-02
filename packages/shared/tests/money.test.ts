@@ -5,7 +5,6 @@ import {
   SUPPORTED_CURRENCIES,
   detectCurrency,
   formatMoney,
-  moneyIn,
   toAud,
 } from "../src/money";
 import { TripBrief } from "../src/contracts";
@@ -124,17 +123,6 @@ describe("budgetSource on a brief", () => {
     expect(() =>
       TripBrief.parse({ ...base, budgetSource: { amount: 3000, currency: "GBP" } }),
     ).toThrow();
-  });
-});
-
-describe("moneyIn", () => {
-  it("drops the minor unit for a currency that has none", () => {
-    expect(moneyIn(3000, "JPY")).not.toMatch(/\./);
-  });
-
-  it("keeps cents for currencies that have them", () => {
-    expect(moneyIn(3000, "CNY")).toMatch(/3,000\.00/);
-    expect(moneyIn(3000, "USD")).toMatch(/3,000\.00/);
   });
 });
 

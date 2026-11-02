@@ -133,6 +133,12 @@ check and targeted revision run, and the response's `assistant` is the first men
 `plan`, the mentioned specialist answers, nothing is created, and a `needs_info` frame (with the same
 optional `assistant`) asks for the brief.
 
+Optional `history`: up to 20 earlier turns of this conversation, oldest first, each
+`{ role: "user" | "assistant", content }` with `content` at most 8,000 characters (`ChatHistoryTurn`).
+The web app sends the visible conversation with every chat message and ask-user answer. The server
+uses it only when its own short-term memory for the trip is empty, for example when the request
+reaches another serverless instance; otherwise the stored turns win.
+
 Optional `interfaceLanguage`: `en` or `zh` (`InterfaceLanguage` in `packages/shared/src/chat/chat.ts`),
 the language the traveller's interface is showing. The web app sends its current locale with every
 chat request. The coordinator always replies in the language of the traveller's latest message; this
@@ -180,7 +186,7 @@ blocks, text files are inlined into its message under a delimiter naming the fil
 specialists' inputs are unchanged. Without a provider key, images are ignored and the inlined text is
 still read.
 
-New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. The confirmation is accepted on its own line in a multi-question card reply (for example, `Dates: Confirm historical trip`); a confirmation without the matching clarification is not accepted. Supplying an existing plan preserves historical editing. When an edit leaves the material itinerary, stays, transport and costs unchanged, the reply states that the plan was unchanged rather than claiming the requested edit completed. Without a model key, a follow-up from which the offline extractor reads no brief change is not replanned: the plan comes back unchanged and the reply, in the message's language, says that chat can only change the destination, dates, travellers or budget.
+New planning requests whose start or end date precedes the current calendar date at the destination receive an explicit clarification instead of a plan. The web client includes coordinates from a selected destination suggestion; the server uses an offline coordinate-to-time-zone lookup. If no coordinates are available, the check falls back to UTC. The traveller can provide corrected dates or explicitly confirm the historical dates in response to the matching clarification. The confirmation is accepted on its own line in a multi-question card reply (for example, `Dates: Confirm historical trip`); a confirmation without the matching clarification is not accepted. Supplying an existing plan preserves historical editing. When a model reply claims a change the resulting plan does not show (including an edit that leaves the material itinerary, stays, transport and costs unchanged) or a booking the traveller did not report (a sentence that says nothing was booked is not a booking claim), the model is asked once to rewrite it given that fact; a fixed sentence replaces it only when the rewrite fails or still makes the claim. A reply that makes no such claim is kept as the model wrote it. Without a model key, a follow-up from which the offline extractor reads no brief change is not replanned: the plan comes back unchanged and the reply, in the message's language, says that chat can only change the destination, dates, travellers or budget.
 
 Every reply that comes with a new plan ends with a cost sentence written by code from the plan, not by the model: the estimated total, the categories that carry an amount, what is not included (transport without a price, stops without a published price) and the exact headroom or overrun against the budget, with the minimum budget when the plan is infeasible. It uses the same figures as the Trip budget card and the reply language. The model receives the replanned facts without amounts and is told not to state totals, budget comparisons or what is included.
 
@@ -301,8 +307,8 @@ message or a provider payload.
 that request, so it makes no external call and spends no quota whatever keys or data-mode default the
 deployment holds. It needs no credential, and neither it nor a live run persists chats, trips or lab results.
 
-On a deployment, a live run requires a signed-in traveller; without configured authentication it is refused. Local development without authentication may still run live. A live run uses the deployment's own models and providers, and exists only where the deployment sets
-`AGENT_LAB_LIVE_ENABLED=true` (see [development](development.md)). Only the two specialist strategies have a live
+On a deployment, a live run requires a signed-in traveller; without configured authentication it is refused. Local development without authentication may still run live. A live run uses the deployment's own models and providers, and exists unless the deployment sets
+`AGENT_LAB_LIVE_ENABLED=false` (see [development](development.md)). Only the two specialist strategies have a live
 implementation; the single-agent baseline replays a recording, so asking for it live is refused. A request that
 cannot start is answered with one typed `rejected` frame and no run, never an artifact: 401 `live_disabled` when authentication is required or unavailable, 503 `live_disabled`, 400
 `live_unsupported`, or 429 `concurrency_limit` or `rate_limit` with a `Retry-After` header and

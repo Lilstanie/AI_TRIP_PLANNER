@@ -27,8 +27,10 @@ describe("journeyLegs", () => {
       "Melbourne → Tokyo",
       "Tokyo → Kyoto",
       "Kyoto → Osaka",
+      "Osaka → Tokyo",
     ]);
-    expect(legs.map((leg) => leg.index)).toEqual([0, 1, 2]);
+    expect(legs.map((leg) => leg.index)).toEqual([0, 1, 2, 3]);
+    expect(legs.at(-1)).toMatchObject({ day: 8, closing: "to-first-city" });
 
     const days = legs.map((leg) => leg.day);
     expect(days).toEqual([...days].sort((a, b) => a - b));
@@ -75,6 +77,20 @@ describe("legMode", () => {
       destinations: ["Tokyo", "Kyoto"],
     });
     expect(flightLegs(legs).map((l) => l.to)).toEqual(["Tokyo"]);
-    expect(groundLegs(legs).map((l) => l.to)).toEqual(["Kyoto"]);
+    expect(groundLegs(legs).map((l) => l.to)).toEqual(["Kyoto", "Tokyo"]);
+  });
+
+  it("keeps the asked hotel nights when the first night is spent flying", () => {
+    const legs = journeyLegs({
+      origin: "Sydney",
+      destinations: ["London", "Paris"],
+      start: "2027-04-10",
+      days: 12,
+      cityNights: [
+        { city: "London", nights: 4 },
+        { city: "Paris", nights: 6 },
+      ],
+    });
+    expect(legs.find((leg) => leg.from === "London" && leg.to === "Paris")?.day).toBe(6);
   });
 });

@@ -1,0 +1,15 @@
+{
+  "appId": "app.vercel.elec5620aitripplanner",
+  "appName": "AI Trip Planner",
+  "webDir": "www",
+  "appendUserAgent": "TripPlannerIOSApp",
+  "server": {
+    "url": "https://elec5620-ai-trip-planner.vercel.app",
+    "errorPath": "index.html",
+    "allowNavigation": ["more-puma-666.clerk.accounts.dev"]
+  },
+  "ios": {
+    "contentInset": "never",
+    "limitsNavigationsToAppBoundDomains": false
+  }
+}

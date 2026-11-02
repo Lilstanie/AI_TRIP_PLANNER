@@ -1,6 +1,7 @@
 # Agent Note: No native phone app; the web app stays installable
 
 Status: implemented
+Archived: 2026-11-01
 Owner: C (@HeadmasterEggy)
 
 ## Problem

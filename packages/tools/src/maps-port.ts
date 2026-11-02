@@ -176,19 +176,24 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
     return new Date(parseDepartureTime(q.departureTime)).toISOString();
   if (q.date === undefined)
     throw new Error("Google transit route requires a date or explicit departureTime.");
-  const dateTimestamp = parseDate(q.date);
-
-  const roughDelta = dateTimestamp - toolNow().getTime();
-  if (
-    roughDelta < -(transitWindowMs.past + 86400000) ||
-    roughDelta > transitWindowMs.future + 86400000
-  )
-    throw new Error("Transit departure is outside Google's supported date window.");
+  const dateTimestamp = sameWeekdayInWindow(parseDate(q.date));
+  const date = new Date(dateTimestamp).toISOString().slice(0, 10);
   const localTime = q.localTime ?? "09:00";
   if (!localTimePattern.test(localTime))
     throw new Error("Google transit route requires localTime in HH:MM format.");
   const zone = await originTimeZone(q, dateTimestamp);
-  return localInstant(q.date, localTime, zone);
+  return localInstant(date, localTime, zone);
+}
+
+const WEEK_MS = 7 * 86400000;
+
+function sameWeekdayInWindow(dateTimestamp: number): number {
+  const delta = dateTimestamp - toolNow().getTime();
+  if (delta > transitWindowMs.future - WEEK_MS)
+    return dateTimestamp - (Math.floor(delta / WEEK_MS) - 1) * WEEK_MS;
+  if (delta < -transitWindowMs.past + 86400000)
+    return dateTimestamp + Math.ceil(-delta / WEEK_MS + 1) * WEEK_MS;
+  return dateTimestamp;
 }
 
 const isMockPlace = (name: string) => name.startsWith("Mock ");
@@ -389,14 +394,53 @@ async function osmPlaces(q: PlaceQuery): Promise<Place[]> {
   }));
 }
 
+const GOOGLE_CATEGORY_QUERY: Record<string, string> = {
+  sight: "top tourist attractions",
+  museum: "museums",
+  neighborhood: "best neighbourhoods to walk around",
+};
+
+const NOT_A_SIGHT = new Set([
+  "lodging",
+  "hotel",
+  "hostel",
+  "travel_agency",
+  "tour_agency",
+  "real_estate_agency",
+  "corporate_office",
+  "consultant",
+  "store",
+  "clothing_store",
+  "locality",
+  "administrative_area_level_1",
+  "administrative_area_level_2",
+  "country",
+  "political",
+]);
+
+const AREA_TYPES = new Set(["neighborhood", "sublocality", "sublocality_level_1"]);
+
+function fitsCategory(category: string | undefined, types: readonly string[] | undefined): boolean {
+  if (!types?.length) return true;
+  if (category === "neighborhood")
+    return types.some((type) => AREA_TYPES.has(type) || type === "tourist_attraction");
+  if (category === "sight" || category === "museum")
+    return !types.some((type) => NOT_A_SIGHT.has(type));
+  return true;
+}
+
 async function googlePlaces(q: PlaceQuery): Promise<Place[]> {
   if (!toolRuntimeConfig().mapsApiKey)
     throw new Error("Google Maps provider requires MAPS_API_KEY.");
+  const listed = q.category !== undefined && q.category in GOOGLE_CATEGORY_QUERY;
   const results = await searchGooglePlacesText(
-    q.textQuery ?? `${q.category ?? "attraction"} in ${q.near}`,
+    q.textQuery ??
+      `${(q.category && GOOGLE_CATEGORY_QUERY[q.category]) ?? q.category ?? "attraction"} in ${q.near}`,
     "places.displayName,places.types,places.rating,places.location,places.websiteUri",
+    listed ? 20 : 5,
   );
   return results
+    .filter((place) => fitsCategory(q.category, place.types))
     .map((place) => ({
       name: place.displayName?.text?.trim() ?? "",
       category: q.category ?? place.types?.[0] ?? "place",

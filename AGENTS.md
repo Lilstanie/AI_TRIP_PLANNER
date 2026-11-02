@@ -63,7 +63,10 @@ checks the frozen and shared-contract rules.
   run the [added-comment check](.agents/skills/review-trip-planner/references/comment-policy.md).
 - Fix a bug at its cause: reproduce it, name the cause with evidence, and fix that cause. Do not hide a
   symptom with a retry, a longer timeout, an extra guard or a special case
-  ([root causes](docs/development.md#fix-root-causes)).
+  ([root causes](docs/development.md#fix-root-causes)). In the same pull request, add a machine check
+  that fails on the old code (a lint rule, a type, or a `scripts/verify-*` check) and quote its red
+  output in the Evidence section; when no check can catch the bug class, say why
+  ([lock a fixed bug](docs/development.md#lock-a-fixed-bug)).
 - Let the layout explain. Do not add secondary labels, descriptions or helper copy that repeat what the
   layout already shows; keep form labels and accessible names. Run
   `node .agents/skills/better-ui/scripts/check-ui-copy.mjs` before pushing UI changes.

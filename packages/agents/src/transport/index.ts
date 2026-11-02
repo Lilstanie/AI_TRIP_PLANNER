@@ -37,6 +37,8 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { plural, summaryCopy } from "../summary-copy";
 import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
+const LONG_GROUND_MAX_MINUTES = 6 * 60;
+
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
     throw new Error("A transport leg cannot fit inside one planning day.");
@@ -97,7 +99,14 @@ async function gatherTransportEvidence(
   const legModes = brief.excludeFlights
     ? brief.legModes?.filter((choice) => choice.mode !== "flight")
     : brief.legModes;
-  const legs = journeyLegs({ origin, destinations, start: brief.dates[0], days, legModes });
+  const legs = journeyLegs({
+    origin,
+    destinations,
+    start: brief.dates[0],
+    days,
+    legModes,
+    ...(brief.cityNights ? { cityNights: brief.cityNights } : {}),
+  });
   const routeQueries: RouteQuery[] = groundLegs(legs).map((leg) => ({
     localTime: scheduleRevision ? "06:00" : "09:00",
     from: leg.from,
@@ -158,17 +167,18 @@ async function gatherTransportEvidence(
   ctx.signal?.throwIfAborted();
 
   const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
-  const promoted = groundResults.filter(({ query, legs: hop }) => {
+  const mustFly = new Set<string>();
+  const candidates = groundResults.filter(({ query, legs: hop }) => {
     if (!hop.length) return false;
 
     if (query.chosenMode) return false;
     const duration = hopDuration(hop);
-
-    return Number.isFinite(duration) && !fitsInPlanningDay(duration, startMinutes);
+    if (!Number.isFinite(duration)) return false;
+    if (!fitsInPlanningDay(duration, startMinutes)) mustFly.add(`${query.from}|${query.to}`);
+    return duration > LONG_GROUND_MAX_MINUTES || mustFly.has(`${query.from}|${query.to}`);
   });
-  const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
-  const promotedFlights = await Promise.all(
-    promoted.map(({ query }) => {
+  const pricedCandidates = await Promise.all(
+    candidates.map(({ query }) => {
       const leg = legs.find(
         (candidate) => candidate.from === query.from && candidate.to === query.to,
       );
@@ -187,6 +197,21 @@ async function gatherTransportEvidence(
     }),
   );
   ctx.signal?.throwIfAborted();
+  const keptGround = new Set(
+    pricedCandidates
+      .filter(({ leg, options }) => !options.length && !mustFly.has(`${leg.from}|${leg.to}`))
+      .map(({ leg }) => `${leg.from}|${leg.to}`),
+  );
+  const promotedFlights = pricedCandidates.filter(
+    ({ leg }) => !keptGround.has(`${leg.from}|${leg.to}`),
+  );
+  for (const key of keptGround) {
+    const [from, to] = key.split("|");
+    const hop = `${from} → ${to}`;
+    for (let index = conflicts.length - 1; index >= 0; index -= 1)
+      if (conflicts[index]!.includes(hop)) conflicts.splice(index, 1);
+  }
+  const promotedKeys = new Set(promotedFlights.map(({ leg }) => `${leg.from}|${leg.to}`));
 
   const routed = groundResults.filter(
     ({ query }) => !promotedKeys.has(`${query.from}|${query.to}`),
@@ -702,6 +727,7 @@ async function planTransport(
             flightId: `flight-${leg.index}-${index}`,
             legIndex: leg.index,
             hop: `${leg.from} → ${leg.to}`,
+            ...(leg.closing ? { closing: leg.closing } : {}),
             carrier: option.carrier,
             totalCost: option.price,
             note: option.note,
@@ -716,6 +742,9 @@ async function planTransport(
           to: query.to,
           day: query.day,
           date: query.date,
+          closing: evidence!.legs.find(
+            (leg) => leg.from === query.from && leg.to === query.to && leg.day === query.day,
+          )?.closing,
           totalMinutes: legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0),
           modes: [...new Set(legs.map((leg) => leg.mode))],
         })),
@@ -733,7 +762,7 @@ async function planTransport(
     model,
     tools: [search],
     systemPrompt:
-      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Saved accessibility preferences are requirements to consider, not evidence that a route, station, vehicle, or carrier is accessible; state that accessibility is unverified when the evidence does not establish it. Return the requested structured selection. " +
+      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. A leg marked closing to-first-city brings the traveller back to the city the return flight leaves from: choose a departure that arrives at least three hours before that flight leaves. A leg marked closing home is the trip home on the last day. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Saved accessibility preferences are requirements to consider, not evidence that a route, station, vehicle, or carrier is accessible; state that accessibility is unverified when the evidence does not establish it. Return the requested structured selection. " +
       REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,

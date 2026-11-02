@@ -108,5 +108,10 @@
     "file": "apps/web/components/trip/timeline/TimelineStop.tsx",
     "text": "// eslint-disable-next-line @next/next/no-img-element",
     "reason": "The thumbnail loads the place photo proxy, which next/image cannot optimise; the same lint directive is used by the place preview."
+  },
+  {
+    "file": "apps/web/components/workspace/useWorkspaceTransport.ts",
+    "text": "// eslint-disable-next-line no-restricted-properties",
+    "reason": "Lint directive: the form replan confirm is the one listed exception to the browser-dialog ban until a replan Undo exists (TP-283, Agent Note 2026-11-02-lock-fixed-bugs)."
   }
 ]

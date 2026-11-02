@@ -78,6 +78,7 @@ supervisor 只选择某个节点需要哪些 specialist 工具。控制路径、
 3. 进度事件以 NDJSON 流式发送到浏览器；最终帧携带 `{ reply, plan }`。
 4. 完成信息接收后，旅行者通过聊天说明或编辑行程来修改计划，无需批准检查点。
    地图查询和行程编辑预览使用 `apps/web` 中的地图路由，绝不会重新运行规划器。
+   只重跑行程的聊天修改会原地替换计划里的行程部分，计划里不会出现两份行程（`planning/workflow.ts`）。
 
 <a id="web-map-providers"></a>
 
@@ -107,6 +108,8 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：P
   仅对处于模拟数据模式的请求生效（取 `x-trip-data-mode` 请求头，否则取 `USE_MOCK_TOOLS`）。实时模式下忽略。
   模拟模式下的编辑预览保持占位 fixture，且不会触达任何提供方，除非 Google 被模拟为不可用或 `WEB_MAPS_PROVIDER=osm`；
   此时提供方从 OpenStreetMap fixture 应答，同样不调用任何外部服务。
+
+Google 公共交通路线只接受大约一周前到 100 天后的出发时间。行程超出这个范围时，规划（`packages/tools/src/maps-port.ts`）和网页路线（`apps/web/lib/integrations/google.ts`）都改为查询范围内同一星期几、同一当地时间的班次，所以较远日期的行程也能拿到公共交通和驾车时间，而不是“路线未核实”。
 
 <a id="routes-and-time-zones-without-google"></a>
 
@@ -200,10 +203,10 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 所存的指标按记录原样显示，不在页面中重新计算；原因见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-artifact-replay.md)。
 
 实时门控保护这个公开端点。fixture 运行在请求级的 mock 数据模式下、并禁用模型来执行（`runWithDataMode("mock")` 和 `runWithModelsDisabled`），
-两者都由 AsyncLocalStorage 携带，绝不写入 `process.env`，因此没有任何密钥或默认数据模式能让它触及提供方或模型。只有部署设置了 `AGENT_LAB_LIVE_ENABLED=true`、
+两者都由 AsyncLocalStorage 携带，绝不写入 `process.env`，因此没有任何密钥或默认数据模式能让它触及提供方或模型。只要部署没有设置 `AGENT_LAB_LIVE_ENABLED=false`、部署上的调用方已登录、
 策略有实时实现（脚本化基线没有），并且在 `apps/web/lib/agent-lab/live-gate.ts` 维护的并发和每小时限额之内，才允许实时运行；每一次拒绝都是在运行开始之前发出的、带类型的 `rejected` 帧。
 实时运行在实时数据模式下执行，用量收集器在每个模型创建时捕获，因此产物中的用量就是提供方为每次调用返回的数字，否则为不可用。多 agent 策略从不发布模型的 `agent_reasoning`。
-决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md)。
+决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md)，当前默认值见[默认开启实时的 Agent Note](../.agents/notes/implemented/architecture/2026-11-02-agent-lab-live-by-default.md)。
 
 故障实验室让五个已注册的故障走过同一套策略、轨迹、产物和视图。档案是服务端持有的 id，绑定到一个场景和一个策略；访客从不定义故障，
 `POST /api/agent-lab/runs` 会拒绝任何其他组合。故障是包在工作流已在运行的 specialist 外面的包装器，位于轨迹包装器之外，
@@ -258,6 +261,8 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   住宿读取相同的移动安排（`transport/legs.ts` 中的 `scheduledHops`），不产生过夜的城市会从住宿搜索中省略；
   协作板上没有移动安排时，夜晚均分。
   失败场景与决策记录在[多城市转场日 Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md)。
+- 行程在最后一天收尾（`transport/legs.ts` 的 `journeyLegs`）。如果是飞进来的，而且结束的城市不是第一个城市，最后一天会加一段回到第一个城市的城际移动，因为往返航班从那里起飞；任何城际地面交通（旅行者没有指定方式）超过 6 小时都会查机票，查到票价就改坐飞机，查不到才保留地面交通，并要求模型选在回程航班起飞前 3 小时到达的班次。如果是开车、坐火车或大巴来的，最后一天会按同样的方式加一段回家的行程，当天从出发时间起不再安排景点；第一天开车或坐车进城那段同样处理，到达之前不在目的地安排景点；从家出发的这段直接作为当天城市顺序的起点（`itinerary/index.ts` 的 `citiesForStayNights`）。住宿按城市分夜时不算这段收尾移动。
+- 模型排的行程如果在后面某天重复了前面去过的地方，而那天还有别的安排、这个城市也还有没用过的候选地点，就去掉这次重复（`itinerary/index.ts` 的 `withoutRepeatedPlaces`）。夜市、酒吧、夜店、现场音乐和演出排在晚上：要求模型从 18:00 以后开始，没有模型时的备用行程（`itinerary/fallback.ts`）排在 19:30。
 - 交通规划搜索并计价每一段计划航班，包括旅客选择的城市间航班；每个可用票价连同路线和选择结果进入提案。没有有效票价的航班保持未计价。
 - 行程读取所选去程航班的方式和 `detect_conflicts` 相同（`packages/shared/src/arrival.ts` 的 `outboundArrival`）。落地那天之前不安排任何活动；落地当天，活动从落地 90 分钟后开始。16:00 以后落地的，当天不安排活动。在飞机上度过的日子记为旅行日，不算行程不完整。
 - 住宿读取同一个落地信息：去程航班在第 1 天之后落地时，第一个城市的入住日期改为落地当天，旅途中度过的夜晚不再预订。
@@ -321,6 +326,10 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
 目的地证据工具把带日期的天气资料交给行李建议生成器，区分预报与历史气候背景。它提供的行程简介不含 `budgetTotal` 和 `budgetSource`：指南用不到预算，而裸露的 AUD 数字曾让模型在以其他币种显示的回复里写出“about 4,000”（`guide-budget-evidence` E2E）。生成失败或未配置模型时，确定性行李建议仍使用现有防雨、保暖和防晒证据；不可用日期不会被编造为已知天气。天气提示文字跟随本轮的回复语言：日期使用与行程页每日标题相同的 `Intl` 格式（`Fri, 18 June`、`6月18日周五`），预报、历史气候和不可用的标注来自 `summary-copy.ts`。没有天气数据的日期按城市合并成一行不可用说明。目的地指南的输出被限制为最多五条提示、每条一句话，行李最多四个短项，入境与健康的核实提醒保留在方案假设中。确定性的旅行提示文字（游览地点、风俗、安全、入境与健康、月度天气、行李）以及回退生成的游览点和餐厅说明也来自这个文件，所以没有模型时，中文对话也显示中文。
 
 餐饮读取行程偏好、聊天学到的要求和已保存记忆中的饮食需求，包括花生、坚果过敏和中文表述。无模型聊天也保留明确的饮食句子。同一份要求交给生成器与确定性回退，不写入长期记忆。餐厅名称有依据不代表过敏安全；明显的模型保证会被拒绝，旅行者仍需直接确认食材和交叉接触控制。
+
+Google Places 的景点和街区搜索使用旅行用语（“top tourist attractions in X”“best neighbourhoods to walk around in X”），
+不再只用类别单词（它会匹配到公司名），并丢弃 Google 类型标为酒店、旅行社、商店、办公室或整个城市、地区的结果。
+同一城市的每个景点先各用一次，用完才会重复。
 
 餐厅搜索通过可选的 PlaceQuery.textQuery 把饮食要求传给 Google Places 或 OSM，同时保留餐厅类别。进度记录实际查询文字。未传搜索文字的现有调用仍使用类别与城市，模拟模式保持离线。搜索相关性不能验证食材、饮食适配性或过敏安全。
 
@@ -390,8 +399,9 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
 - `noAccommodation`：旅行者不需要住宿；它与 `bookedStay` 相互独立。
 - `intent`（`packages/shared/src/contracts.ts` 中的 `TripIntent`）：旅行者想怎么玩，由模型从任何语言的原话和
   `preferences` 中读出。`pace`（relaxed、balanced、packed）决定行程每天排几站：1-2、2-3，或 4-6 个景点加午餐和晚餐；
-  兜底行程在紧凑的一天排四个景点和两餐。`dietary` 是餐饮搜索的依据，`interests` 让匹配类别的地点排在前面
-  （博物馆、艺术或历史会额外搜索博物馆），`stay`（`minRating`、`freeCancellation`、`stayType`）优先于账户记忆筛选住宿。
+  兜底行程在紧凑的一天排四个景点和两餐。`dietary` 是餐饮搜索的依据，`interests` 每项在每个城市多搜一次
+  （寺庙神社、历史古迹、公园海滩、美食市场、购物街、夜市；博物馆和艺术额外搜索博物馆），结果排在普通景点之前；
+  同行有儿童或婴儿时再搜亲子景点；`stay`（`minRating`、`freeCancellation`、`stayType`）优先于账户记忆筛选住宿（只要还有别的住宿符合条件，就不选帐篷露营、营地和房车营地）。
   字段逐项合并，更新时没提到的字段保留。
 
 旅行者以天数说明的行程长度由模型的 `tripDays` 传入，结束日期为开始日期加上天数再减一，因此 N 天就是 N 个日历日，
@@ -431,7 +441,9 @@ false 时保留原有行为。
 航班问题不经过规划即可回答。带路线、航班词和日期的消息直接进入 `answerFlightQuery`
 （`parseFlightQuery`）；其他说法交给协调器，由它的 `search_flights` 工具执行同样的查询并抛出
 `FlightAnswerReady`。两条路径都流式发送 `FlightAnswer` 帧（`type: "flight_answer"`），
-客户端的计划保持不变。
+客户端的计划保持不变。回复给出最便宜的全体总价并带币种代码（`AUD 5,678.00`），多于一人时再给每人约多少。Google Flights 返回 `price_insights` 时，帧里带 `priceInsight`（价格水平、
+常见区间、每日历史）；回复按价格水平加一句"现在订还是再等等"，卡片显示价格水平、常见区间和走势线
+（[价格参考说明](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)）。
 
 缺少密钥、模型调用失败或输出不符合 schema 时，该步骤会回退到经过验证的确定性输出，
 因此规划请求仍能完成。汇总前，每个提案都必须通过 schema、预算、日程和路线检查。

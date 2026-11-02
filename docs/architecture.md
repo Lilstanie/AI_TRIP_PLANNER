@@ -76,7 +76,9 @@ step.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
 4. After intake, the traveller changes a plan by saying so in chat or editing the itinerary,
    without an approval checkpoint. Map lookups and itinerary
-   edit previews use the map routes in `apps/web` and never re-run the planner.
+   edit previews use the map routes in `apps/web` and never re-run the planner. A chat change that
+   reruns only the itinerary replaces the plan's itinerary section in place, so the plan never holds
+   two (`planning/workflow.ts`).
 
 ## Web map providers
 
@@ -109,6 +111,8 @@ records the boundary.
   `USE_MOCK_TOOLS`). It is ignored in live mode. Edit previews in mock mode keep their placeholder
   fixtures and never reach a provider, unless Google is simulated down or `WEB_MAPS_PROVIDER=osm`;
   then the provider answers from the OpenStreetMap fixtures and still calls nothing.
+
+Google transit routing only accepts departures from about a week ago to 100 days ahead. For a trip outside that window, both the planner (`packages/tools/src/maps-port.ts`) and the web route lines (`apps/web/lib/integrations/google.ts`) ask for the same weekday and local time inside the window, so far-off trips still get transit and driving times instead of an unverified route.
 
 ### Routes and time zones without Google
 
@@ -239,12 +243,12 @@ stored metrics are shown as recorded, not recomputed in the page; the
 The live gate protects the public endpoint. A fixture run executes under a request-scoped mock data mode and with
 models disabled (`runWithDataMode("mock")` and `runWithModelsDisabled`), both carried by AsyncLocalStorage and never
 written to `process.env`, so no key and no data-mode default can make it reach a provider or a model. A live run is
-allowed only when the deployment sets `AGENT_LAB_LIVE_ENABLED=true`, only for a strategy with a live implementation
+allowed unless the deployment sets `AGENT_LAB_LIVE_ENABLED=false`, only for a signed-in caller on a deployment, only for a strategy with a live implementation
 (the scripted baseline has none), and only within the concurrency and hourly limits kept by
 `apps/web/lib/agent-lab/live-gate.ts`; each refusal is a typed `rejected` frame sent before any run starts. A live run
 executes under a live data mode with a usage collector captured when each model is built, so the usage in the artifact
 is what the provider returned for every call, or is unavailable. The multi-agent strategy never publishes a model's
-`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the decision.
+`agent_reasoning`. The [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-live-gate.md) records the gate and the [live-by-default note](../.agents/notes/implemented/architecture/2026-11-02-agent-lab-live-by-default.md) its current default.
 
 The Failure Lab runs five registered faults through the same strategy, trace, artifact and views. A
 profile is a server-owned id bound to one scenario and strategy; the visitor never defines a fault, and
@@ -315,6 +319,8 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   The failure cases and decision are recorded in the
   [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - Transport searches and prices every planned flight leg, including traveller-selected inter-city flights; each available fare carries its route and selection into the proposal. A flight without a valid fare remains unpriced.
+- The journey closes on the last day (`journeyLegs` in `transport/legs.ts`). When the trip flies in and ends in a different city from the first, a closing hop takes the traveller back to the first city, where the round-trip flight leaves; any inter-city ground hop over six hours (the traveller has not chosen its mode) is priced as a flight and flown when a fare exists, otherwise it stays on the ground, and the model is told to arrive three hours before the return flight. When the traveller arrived by ground (drive, train or coach), a closing leg takes them home by the same mode, and the itinerary blocks that day from the leg's departure. The ground leg in on the first day is blocked the same way: no stop in the destination starts before it arrives, and a leg from home starts the day's city chain wherever the traveller is (`citiesForStayNights` in `itinerary/index.ts`). Accommodation ignores the closing hop when it splits nights.
+- A model day plan that repeats a place on a later day loses the repeat when that day keeps another stop and the city still has an unused candidate (`withoutRepeatedPlaces` in `itinerary/index.ts`). Night markets, bars, clubs, live music and shows go in the evening: the model is told to start them at 18:00 or later, and the no-model fallback (`itinerary/fallback.ts`) puts them at 19:30.
 - The itinerary reads the selected outbound flight the same way `detect_conflicts` does (`outboundArrival` in `packages/shared/src/arrival.ts`). It plans nothing before landing day, and on that day it starts stops 90 minutes after landing. A landing after 16:00 leaves that day empty. Days in the air are noted as travel days, not as incomplete days.
 - Accommodation reads the same arrival: when the outbound flight lands after day 1, the first city's check-in moves to the landing date, so nights spent travelling are not booked.
 - The itinerary also asks the place tools for each city's restaurants. If the traveller has a dietary requirement, it uses the same text query as dining. It then adds one lunch or dinner a day at a found restaurant, rotating so a restaurant repeats only after the others are used. Restaurants never replace sights; a failed restaurant lookup is reported and leaves the sights in place.
@@ -384,6 +390,11 @@ Destination guidance checks weather for every city and trip date, with three loo
 The destination evidence tool supplies dated weather to packing generation. Its brief leaves out `budgetTotal` and `budgetSource`, because the guide does not use the budget and a bare AUD figure let the model write "about 4,000" in a reply shown in another currency (`guide-budget-evidence` E2E). Forecast entries remain forecasts and climate entries remain historical context. If generation fails or no model is configured, deterministic packing uses the available rain, cold and heat evidence; it never invents conditions for unavailable dates. The weather tip text follows the turn's reply language: day names use the same `Intl` format as the Trip tab day headers (`Fri, 18 June`, `6月18日周五`), and the forecast, climate and unavailable labels come from `summary-copy.ts`. Days without weather are grouped into one unavailable line per city. Destination-guide output is shaped to at most five tips of one sentence each, with packing capped at four short items, and the entry and health verification caution kept in the proposal assumptions. The deterministic Travel tips text (attractions, customs, safety, entry and health, monthly weather, packing) and fallback stop and restaurant descriptions come from the same file, so a Chinese turn without a model still reads Chinese.
 
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
+
+Google Places sight and neighbourhood searches use travel wording ("top tourist attractions in X",
+"best neighbourhoods to walk around in X") rather than the bare category word, which matched business
+names, and drop results whose Google types mark a hotel, agency, shop, office or a whole city or
+region. Each sight is used once in a city before any repeats.
 
 Restaurant searches carry dietary requirements in optional PlaceQuery.textQuery through Google Places or OSM, retaining the restaurant category. Progress records the query used. Existing callers without search text keep the category-and-city query, and mock mode remains offline. Search relevance does not verify ingredients, dietary suitability or allergen safety.
 
@@ -474,8 +485,10 @@ when one could not be met, and never treat one as a verified fact.
   read by the model from their words in any language and from `preferences`. `pace` (relaxed,
   balanced, packed) sets how many stops the itinerary plans a day: 1-2, 2-3, or 4-6 sights plus
   lunch and dinner, and the fallback plans four sights and two meals a packed day. `dietary` is what
-  dining searches for, `interests` rank matching place categories first (and museums are fetched for
-  museums, art or history), and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
+  dining searches for, `interests` each add a per-city place search (temples, historic landmarks,
+  parks and beaches, food markets, shopping streets, night markets; museums and art add a museum
+  search) whose results come before generic sights, children or infants in the party add a
+  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays (glamping, campsites and caravan parks are skipped while any other stay qualifies)
   over the account memory. Fields merge, so an update keeps fields it does not mention.
 
 A trip length the traveller states in days reaches the brief as the model's `tripDays`, and the end
@@ -542,7 +555,10 @@ question card in the composer's place and sends the traveller's answers as the n
 A flight question is answered without planning. A message with a route, a flight word and a date goes
 straight to `answerFlightQuery` (`parseFlightQuery`); any other wording reaches the coordinator, whose
 `search_flights` tool runs the same search and throws `FlightAnswerReady`. Both stream a `FlightAnswer`
-frame (`type: "flight_answer"`), and the client's plan is unchanged.
+frame (`type: "flight_answer"`), and the client's plan is unchanged. The reply quotes the cheapest whole-party fare with its currency code (`AUD 5,678.00`) and, for more than one traveller, the per-person share. When Google Flights returns
+`price_insights`, the frame carries `priceInsight` (level, typical range, daily history); the reply adds
+one buy-or-wait sentence from the level and the card shows the level, the range and a trend line
+([price insight note](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)).
 
 When a key is missing, a model call fails or output is off-schema, the step falls back to validated
 deterministic output, so planning requests still complete. Schema, budget, schedule and route checks
