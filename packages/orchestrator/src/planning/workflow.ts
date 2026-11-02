@@ -308,7 +308,8 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
           ? scopedItineraryEdit(proposal, next, mention.days)
           : next;
       });
-      for (const next of revised) if (!proposals.includes(next)) proposals.push(next);
+      for (const next of revised)
+        if (!kept.some((proposal) => proposal.agent === next.agent)) proposals.push(next);
       return { round, proposals: proposals.map((proposal) => AgentProposalSchema.parse(proposal)) };
     }
     onProgress?.({

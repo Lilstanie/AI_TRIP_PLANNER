@@ -76,7 +76,9 @@ step.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
 4. After intake, the traveller changes a plan by saying so in chat or editing the itinerary,
    without an approval checkpoint. Map lookups and itinerary
-   edit previews use the map routes in `apps/web` and never re-run the planner.
+   edit previews use the map routes in `apps/web` and never re-run the planner. A chat change that
+   reruns only the itinerary replaces the plan's itinerary section in place, so the plan never holds
+   two (`planning/workflow.ts`).
 
 ## Web map providers
 
