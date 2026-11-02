@@ -113,3 +113,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Desktop month view (1440px, zh, mock Bali trip): the hotel chip was drawn on every night, so each trip day started with the same "Mock 巴厘岛 Standard" chip.
 - `TripHomeCalendar.tsx`: month cells pass `continuedStays` (stay titles the previous visible day in the same week row already showed) to `CalendarEntries`, which leaves those out. A stay shows where it starts, on each Monday and on the first day of a month page.
 - Validation: November and December month screenshots (hotel on 28 Nov, 30 Nov and 1 Dec only); `tsc --noEmit`, eslint pass. No machine check: rendering rule in one view, covered by the screenshot.
+
+## Round 14 — TP-301 memory switch shows on when signed out
+
+- Settings > Personalization (1440px, en, signed out, default settings): the long-term memory switch was drawn on (disabled) beside "Sign in to use long-term memory." and "Nothing is remembered yet." The stored default is `memory: true`, and the switch showed the stored value even though memory never runs without sign-in.
+- `SettingsDialog.tsx`: the switch shows `signed-in && memory`; the signed-out "Nothing is remembered yet." line is dropped. The stored preference is untouched.
+- Machine check: `tests/e2e/settings.e2e.mjs` now seeds `memory: true` (the real default) and asserts the signed-out switch has `aria-checked="false"` and the stored value is kept. Old code: `FAIL desktop/phone: signed-out users see a disabled, off memory switch and sign-in hint`; new code: all ok.

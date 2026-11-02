@@ -465,16 +465,14 @@ function PersonalizationSection() {
           </div>
           <Switch
             label={t("useLongTermMemory")}
-            checked={settings.assistant.memory}
+            checked={account.status === "signed-in" && settings.assistant.memory}
             disabled={account.status !== "signed-in"}
             onChange={(memory) => update({ assistant: { ...settings.assistant, memory } })}
           />
         </div>
         {account.status !== "signed-in" && <p className="settings-hint">{t("signInToUseLong")}</p>}
         {memoryDeletionFailed && <p role="alert">{t("yourRememberedPreferenceCouldNot")}</p>}
-        {account.status !== "signed-in" ? (
-          <p>{t("nothingIsRememberedYet")}</p>
-        ) : memoryState === "loading" ? (
+        {account.status !== "signed-in" ? null : memoryState === "loading" ? (
           <p role="status">{t("loadingRememberedPreferences")}</p>
         ) : memoryState === "failed" ? (
           <div role="alert">

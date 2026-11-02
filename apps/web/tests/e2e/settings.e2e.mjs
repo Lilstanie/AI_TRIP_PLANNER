@@ -41,7 +41,7 @@ async function run(browser, { width, height, tag }) {
         version: 1,
         travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
         memberships: [],
-        assistant: { style: "neutral", memory: false },
+        assistant: { style: "neutral", memory: true },
         dataMode: "default",
         appearance: "system",
         displayCurrency: "AUD",
@@ -121,15 +121,16 @@ async function run(browser, { width, height, tag }) {
   check(
     (await memorySwitch.count()) === 1 &&
       (await memorySwitch.isDisabled()) &&
+      (await memorySwitch.getAttribute("aria-checked")) === "false" &&
       (await dialog.getByText("Sign in to use long-term memory.", { exact: true }).isVisible()),
-    `${tag}: signed-out users see a disabled memory switch and sign-in hint`,
+    `${tag}: signed-out users see a disabled, off memory switch and sign-in hint`,
   );
   const stored = await page.evaluate(() =>
     JSON.parse(localStorage.getItem("trip.settings.v1") ?? "{}"),
   );
   check(
-    stored.assistant?.style === "concise" && stored.assistant?.memory === false,
-    `${tag}: style updates while the stored memory setting stays false (${JSON.stringify(stored.assistant)})`,
+    stored.assistant?.style === "concise" && stored.assistant?.memory === true,
+    `${tag}: style updates while the stored memory setting is kept (${JSON.stringify(stored.assistant)})`,
   );
   await dialog.getByRole("combobox", { name: "Communication style" }).selectOption("neutral");
   await page.screenshot({ path: `${OUT}/${tag}-01b-personalization-filled.png`, fullPage: true });
