@@ -108,6 +108,8 @@ Google 无法应答时，改由基于 OpenStreetMap 的免费提供方应答：P
   模拟模式下的编辑预览保持占位 fixture，且不会触达任何提供方，除非 Google 被模拟为不可用或 `WEB_MAPS_PROVIDER=osm`；
   此时提供方从 OpenStreetMap fixture 应答，同样不调用任何外部服务。
 
+Google 公共交通路线只接受大约一周前到 100 天后的出发时间。行程超出这个范围时，规划（`packages/tools/src/maps-port.ts`）和网页路线（`apps/web/lib/integrations/google.ts`）都改为查询范围内同一星期几、同一当地时间的班次，所以较远日期的行程也能拿到公共交通和驾车时间，而不是“路线未核实”。
+
 <a id="routes-and-time-zones-without-google"></a>
 
 ### 没有 Google 时的路线与时区
@@ -258,7 +260,7 @@ Specialist 提案、行程需求和最终计划在图边界上分别通过 `Agen
   住宿读取相同的移动安排（`transport/legs.ts` 中的 `scheduledHops`），不产生过夜的城市会从住宿搜索中省略；
   协作板上没有移动安排时，夜晚均分。
   失败场景与决策记录在[多城市转场日 Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md)。
-- 行程在最后一天收尾（`transport/legs.ts` 的 `journeyLegs`）。如果是飞进来的，而且结束的城市不是第一个城市，最后一天会加一段回到第一个城市的城际移动，因为往返航班从那里起飞；这段地面交通超过 6 小时就改坐飞机，并要求模型选在回程航班起飞前 3 小时到达的班次。如果是开车、坐火车或大巴来的，最后一天会按同样的方式加一段回家的行程，当天从出发时间起不再安排景点；第一天开车或坐车进城那段同样处理，到达之前不在目的地安排景点。住宿按城市分夜时不算这段收尾移动。
+- 行程在最后一天收尾（`transport/legs.ts` 的 `journeyLegs`）。如果是飞进来的，而且结束的城市不是第一个城市，最后一天会加一段回到第一个城市的城际移动，因为往返航班从那里起飞；任何城际地面交通（旅行者没有指定方式）超过 6 小时都会查机票，查到票价就改坐飞机，查不到才保留地面交通，并要求模型选在回程航班起飞前 3 小时到达的班次。如果是开车、坐火车或大巴来的，最后一天会按同样的方式加一段回家的行程，当天从出发时间起不再安排景点；第一天开车或坐车进城那段同样处理，到达之前不在目的地安排景点。住宿按城市分夜时不算这段收尾移动。
 - 交通规划搜索并计价每一段计划航班，包括旅客选择的城市间航班；每个可用票价连同路线和选择结果进入提案。没有有效票价的航班保持未计价。
 - 行程读取所选去程航班的方式和 `detect_conflicts` 相同（`packages/shared/src/arrival.ts` 的 `outboundArrival`）。落地那天之前不安排任何活动；落地当天，活动从落地 90 分钟后开始。16:00 以后落地的，当天不安排活动。在飞机上度过的日子记为旅行日，不算行程不完整。
 - 住宿读取同一个落地信息：去程航班在第 1 天之后落地时，第一个城市的入住日期改为落地当天，旅途中度过的夜晚不再预订。
@@ -397,7 +399,7 @@ Supervisor 收到指令，将每条偏好传入它所影响的目标；每个 sp
   `preferences` 中读出。`pace`（relaxed、balanced、packed）决定行程每天排几站：1-2、2-3，或 4-6 个景点加午餐和晚餐；
   兜底行程在紧凑的一天排四个景点和两餐。`dietary` 是餐饮搜索的依据，`interests` 每项在每个城市多搜一次
   （寺庙神社、历史古迹、公园海滩、美食市场、购物街、夜市；博物馆和艺术额外搜索博物馆），结果排在普通景点之前；
-  同行有儿童或婴儿时再搜亲子景点；`stay`（`minRating`、`freeCancellation`、`stayType`）优先于账户记忆筛选住宿。
+  同行有儿童或婴儿时再搜亲子景点；`stay`（`minRating`、`freeCancellation`、`stayType`）优先于账户记忆筛选住宿（只要还有别的住宿符合条件，就不选帐篷露营、营地和房车营地）。
   字段逐项合并，更新时没提到的字段保留。
 
 旅行者以天数说明的行程长度由模型的 `tripDays` 传入，结束日期为开始日期加上天数再减一，因此 N 天就是 N 个日历日，
@@ -437,7 +439,7 @@ false 时保留原有行为。
 航班问题不经过规划即可回答。带路线、航班词和日期的消息直接进入 `answerFlightQuery`
 （`parseFlightQuery`）；其他说法交给协调器，由它的 `search_flights` 工具执行同样的查询并抛出
 `FlightAnswerReady`。两条路径都流式发送 `FlightAnswer` 帧（`type: "flight_answer"`），
-客户端的计划保持不变。Google Flights 返回 `price_insights` 时，帧里带 `priceInsight`（价格水平、
+客户端的计划保持不变。回复给出最便宜的全体总价并带币种代码（`AUD 5,678.00`），多于一人时再给每人约多少。Google Flights 返回 `price_insights` 时，帧里带 `priceInsight`（价格水平、
 常见区间、每日历史）；回复按价格水平加一句"现在订还是再等等"，卡片显示价格水平、常见区间和走势线
 （[价格参考说明](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)）。
 
