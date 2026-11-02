@@ -206,3 +206,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Phone trip page and every trip panel tab (en dark, seeded Bali trip). The Bookings tab printed raw ISO dates ("2026-11-28 · 2 travellers", "Check-in 2026-11-28 · Check-out 2026-12-04 · 6 nights"), where every other trip view shows "28 Nov" / "11月28日".
 - `TripHomeIdeasBookings.tsx`: the flight date and the stay's check-in to check-out use the existing `dateRangeLabel` from `lib/workspace/trip-facts.ts` ("28 Nov · 2 travellers", "28 Nov – 4 Dec · 6 nights"; zh "11月28日", "11月28日 – 12月4日 · 6 晚"). An unparseable date falls back to the old text.
 - Validation: Bookings tab text and screenshots before and after in en dark and zh light; `tsc`, eslint and prettier on the file. No machine check: a raw ISO string is a valid string to every type and lint rule, and a repo-wide grep for ISO dates in JSX would flag stored values that are meant to be raw.
+
+## Round 29 — TP-316 Trajectory empty state
+
+- Desktop zh dark with the seeded trip: home, Trips, Calendar, Trajectory. The top-bar data pill appears a moment after load (screenshot timing, not a fault). With no turns, the Trajectory view put its one sentence in the top-left corner of a 840×270 empty panel on desktop, and at the top of the phone Trajectory sheet with "Plan in Chat" under it.
+- `phone/shell.css` (the shared `.trajectory-empty` rule): the empty state centres its sentence and button in the panel (phone button y 187 → 489 in an 844px sheet).
+- Validation: desktop and phone before/after crops. The walkthrough e2e checks for this state (one sentence, button height ≤ 64px) still hold. No machine check: placement is visual.
