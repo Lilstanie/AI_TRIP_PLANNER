@@ -179,10 +179,10 @@ export function cityStartDays(
   const named = asked.reduce<number>((sum, nights) => sum + (nights ?? 0), 0);
   const unnamed = asked.filter((nights) => nights === undefined).length;
   const left = total - named;
-  if (left < unnamed || (unnamed === 0 && left !== 0)) return even;
+  if (left < unnamed) return even;
   let share = 0;
-  const nights = asked.map((nights) => {
-    if (nights !== undefined) return nights;
+  const nights = asked.map((nights, index) => {
+    if (nights !== undefined) return nights + (unnamed === 0 && index === 0 ? left : 0);
     const next = Math.floor(left / unnamed) + (share < left % unnamed ? 1 : 0);
     share += 1;
     return next;

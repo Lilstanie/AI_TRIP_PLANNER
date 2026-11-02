@@ -79,4 +79,18 @@ describe("legMode", () => {
     expect(flightLegs(legs).map((l) => l.to)).toEqual(["Tokyo"]);
     expect(groundLegs(legs).map((l) => l.to)).toEqual(["Kyoto", "Tokyo"]);
   });
+
+  it("keeps the asked hotel nights when the first night is spent flying", () => {
+    const legs = journeyLegs({
+      origin: "Sydney",
+      destinations: ["London", "Paris"],
+      start: "2027-04-10",
+      days: 12,
+      cityNights: [
+        { city: "London", nights: 4 },
+        { city: "Paris", nights: 6 },
+      ],
+    });
+    expect(legs.find((leg) => leg.from === "London" && leg.to === "Paris")?.day).toBe(6);
+  });
 });
