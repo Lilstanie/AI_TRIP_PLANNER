@@ -32,12 +32,17 @@ showed two faults on every follow-up message.
 - When the plan materially changed and the request is not a move, add or remove phrasing the guard
   can check, the change claim stands. An unchanged plan, a parsed move/add/remove that did not
   happen, and booking claims are still replaced.
-
 - Follow-up (TP-258): background saves are held while a chat turn writes the trip
   (`useWorkspaceTripEditor` `held: editPending || chatWriting`). The production re-test after the
   first fix showed the turn-1 plan's automatic saves landing while turn 2 ran; `finish` saw a
   different `editVersion`, treated it as a traveller edit (`planConflict`), kept the auto-saved
   turn-1 plan and dropped the chat result, so turn 3 still saw the stop turn 2 removed.
+- Follow-up (TP-259): an information question (English what/which/when/where/who/why/how
+  much|many|long|far|often ending in "?", not "what if"; Chinese 什么/哪/多少/几 ending in a question
+  mark) skips the change-claim check. The re-test after TP-258 showed "What did I just ask you to
+  change?" answered with a recap of turn 2's change while this turn's plan was unchanged, and the
+  recap was replaced. Booking claims are still checked; 吗 questions are left out because they are
+  often change requests (能把…删掉吗？).
 
 ## Alternatives considered
 

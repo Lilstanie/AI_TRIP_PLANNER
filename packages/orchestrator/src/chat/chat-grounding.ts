@@ -59,6 +59,9 @@ export function unchangedPlanReply(request: ChatRequest, planned: TripPlan): str
 const PLAN_SUCCESS_CLAIM =
   /\b(?:done\b|(?:i(?:(?:'|’)?ve| have)?\s+)?(?:moved|added|removed|dropped|deleted|rescheduled|shortened|extended|changed|updated)\b|(?:has|have|had|was|were|is|are)\s+(?:been\s+)?(?:moved|added|removed|dropped|deleted|rescheduled|shortened|extended|changed|updated)\b)|(?:已完成|已改(?:好|成|到)?|改好了|已移除|已删(?:除|掉)|已添加|已新增|已调整|已更新)/i;
 
+const INFORMATION_QUESTION =
+  /^(?:(?!what if\b)(?:what|which|when|where|who|whom|whose|why|how (?:much|many|long|far|often))\b[^\n]*\?|[^\n]*(?:什么|哪|多少|几)[^\n]*[？?])$/i;
+
 const BOOKING_CLAIM =
   /\b(?:booked|reserved|purchased|ticketed|confirmation number|reservation code)\b|(?:已|已经)(?:预订|预定|订好|购买|出票)|酒店.{0,6}(?:已订|订好)|机票.{0,6}已出票/i;
 
@@ -220,6 +223,7 @@ export function groundedReply(
     (FLIGHT_BOOKING_CLAIM.test(reply) && !hasFlightBookingEvidence(request)) ||
     (BOOKING_CLAIM.test(reply) && !hasBookingEvidence(request, planned));
   const changeUngrounded =
+    !INFORMATION_QUESTION.test(request.message.trim()) &&
     PLAN_SUCCESS_CLAIM.test(reply) &&
     (request.plan
       ? !resultingPlan || !requestedPlanChangeApplied(request, resultingPlan)
