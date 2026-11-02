@@ -74,3 +74,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 ## Notes for the next person
 
 - The sign-in page copy is English only; the workspace language setting does not reach it yet.
+
+## Round 8 — TP-295 team avatars overlap
+
+- The top-bar team button stacked three 20px avatars with an 8px overlap, which hid half of the coordinator sparkle and the route icon in light and dark themes.
+- `apps/web/app/styles/chat/thinking.css`: overlap reduced to 4px, so the overlap only covers the avatar padding.
+- Validation: element screenshots at 1440px, light and dark, show every icon in full. No machine check: the repo has no CSS geometry check, and adding CI wiring touches protected files.

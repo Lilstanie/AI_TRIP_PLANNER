@@ -671,7 +671,7 @@
 }
 
 .team-trigger__avatars .assistant-icon + .assistant-icon {
-  margin-inline-start: -8px;
+  margin-inline-start: -4px;
 }
 
 .team-trigger__avatars .assistant-icon svg {
