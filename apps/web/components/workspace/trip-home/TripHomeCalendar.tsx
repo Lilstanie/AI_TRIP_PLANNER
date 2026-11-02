@@ -121,6 +121,7 @@ function TimelineDay({
         <div
           className="trip-home-calendar__slot"
           key={entry.key}
+          data-size={end - start < 45 ? "tiny" : end - start < 90 ? "short" : undefined}
           style={
             {
               "--start": start,

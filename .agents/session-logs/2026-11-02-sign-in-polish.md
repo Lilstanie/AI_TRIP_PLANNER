@@ -36,6 +36,14 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   `expected 'New chat' to be '新聊天'`.
 - Local dev at 1440 px and 390 px, zh: header reads 新聊天.
 
+## Round 4: TP-291 short calendar events cut their time in half
+
+- `TripHomeCalendar.tsx` marks a timed slot `data-size="short"` under 90 minutes and `"tiny"` under
+  45; `trip-home-calendar.css` clamps the title to one line there and hides the time on tiny slots.
+  At 44 px an hour, a 60-minute lunch with a two-line title showed only the top half of "12:15–13:15".
+- Local dev week view at 1440 px, zh: lunch blocks show one title line and the full time.
+- No machine check: clipping depends on rendered text height, which no lint or type sees.
+
 ## Notes for the next person
 
 - The sign-in page copy is English only; the workspace language setting does not reach it yet.

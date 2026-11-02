@@ -226,6 +226,12 @@
   height: 100%;
   min-height: 0;
 }
+.trip-home-calendar__slot[data-size] .trip-home-calendar__event-title {
+  -webkit-line-clamp: 1;
+}
+.trip-home-calendar__slot[data-size="tiny"] .trip-home-calendar__event-meta {
+  display: none;
+}
 .trip-home-calendar__weekday {
   display: block;
   overflow: hidden;
