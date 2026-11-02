@@ -44,6 +44,8 @@ export interface JourneyLeg {
   mode: LegMode;
 
   chosenMode?: TravelMode;
+
+  closing?: "to-first-city" | "home";
 }
 
 export type LegMode = "flight" | "ground";
@@ -122,6 +124,34 @@ export function journeyLegs(input: {
       ...(chosen ? { chosenMode: chosen } : {}),
     });
   });
+
+  const last = destinations.at(-1)!;
+  const arrival = arrivesFromElsewhere ? legs[0] : undefined;
+  if (arrival?.mode === "flight" && last.toLowerCase() !== first.toLowerCase()) {
+    const chosen = chosenModeFor(legModes, last, first);
+    legs.push({
+      index: legs.length,
+      from: last,
+      to: first,
+      date: dateForDay(start, days),
+      day: days,
+      mode: legMode("inter-city", last, first, chosen),
+      ...(chosen ? { chosenMode: chosen } : {}),
+      closing: "to-first-city",
+    });
+  } else if (arrival && arrival.mode === "ground") {
+    const chosen = chosenModeFor(legModes, last, origin) ?? arrival.chosenMode;
+    legs.push({
+      index: legs.length,
+      from: last,
+      to: origin,
+      date: dateForDay(start, days),
+      day: days,
+      mode: "ground",
+      ...(chosen ? { chosenMode: chosen } : {}),
+      closing: "home",
+    });
+  }
 
   return legs;
 }
