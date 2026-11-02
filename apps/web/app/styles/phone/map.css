@@ -14,7 +14,7 @@
 .workspace-app[data-phone] .google-map {
   isolation: isolate;
 }
-.workspace-app[data-phone] .map-controls {
+.workspace-app[data-phone] .workspace-panel--map .map-controls {
   top: var(--space-3);
   bottom: auto;
   right: var(--space-3);
@@ -23,9 +23,16 @@
   gap: var(--space-2);
   z-index: 5;
 }
-.workspace-app[data-phone] .map-control-group {
+.workspace-app[data-phone] .workspace-panel--map .map-control-group {
   display: flex;
   flex-direction: row;
+}
+.workspace-app[data-phone] .trip-home__map .trip-map-status {
+  top: auto;
+  right: auto;
+  bottom: var(--space-3);
+  left: var(--space-3);
+  max-width: calc(100% - 2 * var(--space-3) - 44px - var(--space-3));
 }
 .workspace-app[data-phone] .map-control {
   width: 44px;
