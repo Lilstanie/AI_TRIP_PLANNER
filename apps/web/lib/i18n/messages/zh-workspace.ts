@@ -53,6 +53,7 @@ export const zhWorkspace = {
     "找到的最便宜的方案也超出预算了。可以在聊天里提高预算，或者换个日期。",
   overlapsRangeOnThisDay: "和当天 {range} 的安排时间冲突。",
   twoScheduledItemsOverlapOn: "第 {day} 天有两项安排时间冲突。",
+  routeBetweenNotChecked: "没能核实从{from}到{to}的路线。",
   routeNeedsMoreTime:
     "从{from}到{to}约需 {required} 分钟（含 15 分钟缓冲），但中间只空出 {available} 分钟。",
   thatActivityAlreadyExistsIn: "行程里已经有这项活动了。",

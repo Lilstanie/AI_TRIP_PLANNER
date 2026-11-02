@@ -22,6 +22,10 @@ const OVER_BUDGET = /over budget$/;
 const OVERLAP = /^time overlap on day (\d+):/;
 const ROUTE_TIME =
   /^geography conflict on day (\d+): (.+?) to (.+) needs (\d+) minutes including a 15-minute buffer but only (-?\d+) are available$/;
+const ROUTE_FAILED = /^geography conflict on day (\d+): route provider failed$/;
+const ROUTE_FAILED_TAIL = "connection unverified";
+const ROUTE_UNCHECKED =
+  /^geography conflict on day (\d+): (?:route provider unavailable for (.+?) → (.+)|(.+?) (?:to|→) (.+): (?:no route returned|invalid route duration, fare or mode|driving estimate cannot verify public transport timing))$/;
 const DAY = /\bday (\d+)\b/i;
 
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
@@ -80,7 +84,12 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
   const overlapDays = new Set<number>();
   for (const conflict of plan.conflicts ?? []) {
     for (const reason of conflict.reason.split("; ").map((part) => part.trim())) {
-      if (reason === PRICE_CHECK_MESSAGE || issueSentences.has(reason)) continue;
+      if (
+        reason === PRICE_CHECK_MESSAGE ||
+        reason === ROUTE_FAILED_TAIL ||
+        issueSentences.has(reason)
+      )
+        continue;
       const authored = keyOfAuthoredSentence(reason);
       if (authored) {
         placeAuthored(authored);
@@ -97,6 +106,20 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
             required: Number(required),
             available: Number(available),
           },
+        });
+        continue;
+      }
+      const routeFailed = ROUTE_FAILED.exec(reason);
+      if (routeFailed) {
+        addTo(placement.days, Number(routeFailed[1]), { key: "routeCouldNotBeVerified" });
+        continue;
+      }
+      const unchecked = ROUTE_UNCHECKED.exec(reason);
+      if (unchecked) {
+        const [, day, providerFrom, providerTo, from, to] = unchecked;
+        addTo(placement.days, Number(day), {
+          key: "routeBetweenNotChecked",
+          params: { from: (providerFrom ?? from)!, to: (providerTo ?? to)! },
         });
         continue;
       }

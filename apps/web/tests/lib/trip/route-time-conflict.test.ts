@@ -27,8 +27,47 @@ describe("route time conflicts", () => {
     expect(noticeText("en", notice!)).not.toContain("geography conflict");
   });
 
-  it("keeps other geography conflicts on their day", () => {
-    const other = "geography conflict on day 2: route provider failed; connection unverified";
-    expect(placeConflicts(planWith(other)).days.get(2)).toBeDefined();
+  it("keeps an unknown geography conflict on its day", () => {
+    const other = "geography conflict on day 2: something new";
+    expect(placeConflicts(planWith(other)).days.get(2)).toEqual([{ raw: other }]);
+  });
+});
+
+describe("unchecked routes", () => {
+  it("turns a route provider failure into a translated day notice", () => {
+    const placement = placeConflicts(
+      planWith("geography conflict on day 3: route provider failed; connection unverified"),
+    );
+    const notice = placement.days.get(3)?.[0];
+    expect(notice).toEqual({ key: "routeCouldNotBeVerified" });
+    expect(placement.budget).toEqual([]);
+    expect(noticeText("zh", notice!)).toBe("路线没法核实。");
+  });
+
+  it.each([
+    [
+      "geography conflict on day 2: route provider unavailable for Sydney to the Sea → Wollongong",
+      "Sydney to the Sea",
+      "Wollongong",
+    ],
+    [
+      "geography conflict on day 2: Bondi Beach to Manly Wharf: no route returned",
+      "Bondi Beach",
+      "Manly Wharf",
+    ],
+    [
+      "geography conflict on day 2: Sydney → Wollongong: driving estimate cannot verify public transport timing",
+      "Sydney",
+      "Wollongong",
+    ],
+    [
+      "geography conflict on day 2: Sydney → Wollongong: invalid route duration, fare or mode",
+      "Sydney",
+      "Wollongong",
+    ],
+  ])("names both stops for %s", (reason, from, to) => {
+    const notice = placeConflicts(planWith(reason)).days.get(2)?.[0];
+    expect(notice).toEqual({ key: "routeBetweenNotChecked", params: { from, to } });
+    expect(noticeText("en", notice!)).toBe(`Couldn't check the route from ${from} to ${to}.`);
   });
 });
