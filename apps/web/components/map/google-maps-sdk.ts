@@ -3,6 +3,7 @@ import type { FramableMap } from "@/lib/map/map-view";
 import { NoticeError } from "@/lib/i18n/notice";
 
 export type Coordinate = { lat: number; lng: number };
+export type MapProvider = "google" | "osm" | "apple";
 
 export type MapPolyline = { setMap(map: unknown): void; setOptions(options: object): void };
 export type MapMarker = HTMLElement & {
@@ -42,7 +43,7 @@ export type MapsSDK = {
 export type MapRuntime = {
   maps: MapsSDK;
   map: InstanceType<MapsSDK["Map"]>;
-  provider: "google" | "osm";
+  provider: MapProvider;
   listen(event: string, fn: () => void): { remove(): void };
   listenOnce(event: string, fn: () => void): { remove(): void };
   onAuthFailure(fn: () => void): { remove(): void };
