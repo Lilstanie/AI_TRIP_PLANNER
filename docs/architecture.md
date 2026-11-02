@@ -483,7 +483,7 @@ when one could not be met, and never treat one as a verified fact.
   dining searches for, `interests` each add a per-city place search (temples, historic landmarks,
   parks and beaches, food markets, shopping streets, night markets; museums and art add a museum
   search) whose results come before generic sights, children or infants in the party add a
-  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
+  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays (glamping, campsites and caravan parks are skipped while any other stay qualifies)
   over the account memory. Fields merge, so an update keeps fields it does not mention.
 
 A trip length the traveller states in days reaches the brief as the model's `tripDays`, and the end
