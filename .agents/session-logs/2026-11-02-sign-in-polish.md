@@ -200,3 +200,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `phone/polish.css`: on phone Mine the action sizes to its content (`width: auto`), with a 4px icon gap and the icon in the label's accent colour. Both actions now end at the right edge (x 260–362 en, 275–362 zh).
 - Validation: Mine tab before (en dark) and after (en dark, zh light), plus measured boxes. No machine check: placement depends on rendered widths.
 - Also checked: the phone top bar's grey band in dark mode is the designed glass bar.
+
+## Round 28 — TP-315 Bookings tab dates
+
+- Phone trip page and every trip panel tab (en dark, seeded Bali trip). The Bookings tab printed raw ISO dates ("2026-11-28 · 2 travellers", "Check-in 2026-11-28 · Check-out 2026-12-04 · 6 nights"), where every other trip view shows "28 Nov" / "11月28日".
+- `TripHomeIdeasBookings.tsx`: the flight date and the stay's check-in to check-out use the existing `dateRangeLabel` from `lib/workspace/trip-facts.ts` ("28 Nov · 2 travellers", "28 Nov – 4 Dec · 6 nights"; zh "11月28日", "11月28日 – 12月4日 · 6 晚"). An unparseable date falls back to the old text.
+- Validation: Bookings tab text and screenshots before and after in en dark and zh light; `tsc`, eslint and prettier on the file. No machine check: a raw ISO string is a valid string to every type and lint rule, and a repo-wide grep for ISO dates in JSX would flag stored values that are meant to be raw.

@@ -14,6 +14,7 @@ import { tripIdeas } from "@/lib/trip/ideas";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import { intlLocale } from "@/lib/i18n/locale";
+import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
 
 const titleOf = (item: ProposalItem) => item.location ?? item.detail;
@@ -174,7 +175,7 @@ function BookingGroup({
 }
 
 export function TripHomeBookings({ plan }: { plan: TripPlan }) {
-  const { t, money } = useLocale();
+  const { t, money, locale } = useLocale();
   const transport = plan.sections.find((section) => section.id === "transport")?.proposal;
   const accommodation = plan.sections.find((section) => section.id === "accommodation")?.proposal;
   const flights = transport?.flights ?? [];
@@ -223,7 +224,7 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: `flight-${selection.id}`,
       title: `${selection.from} → ${selection.to} · ${candidate.carrier}`,
       meta: [
-        selection.depart,
+        dateRangeLabel(selection.depart, selection.depart, locale) ?? selection.depart,
         t("countTravellers", { count: selection.passengers }),
         money(candidate.price),
       ],
@@ -239,8 +240,8 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: `stay-${selection.id}`,
       title: candidate.name,
       meta: [
-        `${t("checkIn")} ${selection.checkIn}`,
-        `${t("checkOut")} ${selection.checkOut}`,
+        dateRangeLabel(selection.checkIn, selection.checkOut, locale) ??
+          `${t("checkIn")} ${selection.checkIn} · ${t("checkOut")} ${selection.checkOut}`,
         t("countNights", { count: selection.nights }),
         t("stayRoomRate", { price: money(candidate.pricePerNight), rooms: selection.rooms }),
         money(candidate.pricePerNight * selection.rooms * selection.nights),
