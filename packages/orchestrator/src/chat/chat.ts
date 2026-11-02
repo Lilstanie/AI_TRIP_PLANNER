@@ -184,6 +184,17 @@ export const BriefUpdate = z.object({
     .describe(
       "The whole list of per-hop travel choices the traveller has stated, replacing the previous one: only hops between the trip's own cities, or its origin and first city. Keep earlier entries from knownSoFar.legModes unless they changed, and leave an entry out when the traveller takes that choice back.",
     ),
+  nightsPerCity: z
+    .array(
+      z.object({
+        city: z.string().describe("one of the trip's own cities, as the trip names it"),
+        nights: z.number().int().positive().describe("how many nights the traveller wants there"),
+      }),
+    )
+    .nullish()
+    .describe(
+      "The whole list of nights the traveller wants in particular cities of a multi-city trip, replacing the previous one. Keep earlier entries from knownSoFar.cityNights unless they changed; cities left out share the remaining nights.",
+    ),
   noAccommodation: z
     .boolean()
     .nullish()
@@ -260,6 +271,18 @@ function toPatch(update: z.infer<typeof BriefUpdate>): BriefPatch {
             .slice(0, 12),
         }
       : {}),
+    ...(update.nightsPerCity
+      ? {
+          cityNights: update.nightsPerCity
+            .flatMap((entry) => {
+              const city = text(entry.city);
+              return city && Number.isInteger(entry.nights) && entry.nights > 0
+                ? [{ city, nights: entry.nights }]
+                : [];
+            })
+            .slice(0, 12),
+        }
+      : {}),
     ...(typeof update.noAccommodation === "boolean"
       ? { noAccommodation: update.noAccommodation }
       : {}),
@@ -303,6 +326,7 @@ Choosing what to do:
 - When the traveller says a preference holds for every trip, also pass it in rememberForAccount so their account remembers it. A wish for this trip only never goes there.
 - When the traveller states a lasting wish in chat ("no dietary requirements", "we like quiet places", "no early starts"), record it with update_trip_brief learnedPreferences: pass the whole updated list, keeping earlier entries in knownSoFar.learnedPreferences unless they changed. Never copy the traveller's own preferences into it.
 - When they say how they want to make a particular hop ("take the train to Sydney", "we would rather drive to Wollongong", "fly that leg instead"), record it with update_trip_brief travelModeChoices: pass the whole updated list, keeping earlier entries in knownSoFar.legModes unless they changed, and leaving one out when they take it back. Name the hop with the trip's own place names. Then replan. The planner may answer that the mode is not offered for that hop; do not promise it beforehand.
+- When they say how long to stay in one city of a multi-city trip ("only 3 days in Chiang Mai", "two nights in Kyoto"), record nightsPerCity with update_trip_brief (a stay of N days is N nights unless they say otherwise), then replan. This is a brief change, not an itinerary change.
 - A one-day trip (same start and end date) is valid for one destination and is planned without accommodation; never ask to make it two days.
 - When they say they need no accommodation, set noAccommodation true and replan. This omits all stay searching, costs and sections. Set false when they want accommodation again. An already booked stay remains bookedStay, not noAccommodation.
 - When they say they arrange flights themselves or flights should not be considered, set excludeFlights true. When they say their stay is already booked, pass bookedStayName (and bookedStayNote). Then replan.
@@ -784,7 +808,7 @@ async function runConversationAgent(
   );
 
   const changeItinerary = tool(
-    async ({ change }: { change: string }) => {
+    async ({ change, days, places }: { change: string; days?: number[]; places?: string[] }) => {
       if (!request.plan)
         return { ok: false as const, reason: "There is no plan yet: call replan_trip instead." };
       const brief = TripBriefSchema.parse({ ...intake.known, tripId: request.tripId });
@@ -792,6 +816,8 @@ async function runConversationAgent(
         agents: ["itinerary"],
         message: change,
         plan: request.plan,
+        ...(days?.length ? { days } : {}),
+        ...(places?.length ? { places: places.map((place) => place.trim()).filter(Boolean) } : {}),
       });
       const changes = stopChanges(request.plan, planned);
       return {
@@ -808,10 +834,24 @@ async function runConversationAgent(
       description:
         "Change specific stops of the current plan: replace, remove, add, move or retime a stop, or rework one day. Pass the exact change in English with day, time and place names as the plan shows them. Only the itinerary is redrafted; the other stops, the stay and flights are kept. Returns the stops removed and added.",
       schema: z.object({
+        places: z
+          .array(z.string())
+          .max(8)
+          .optional()
+          .describe(
+            "names of places the change adds that the plan does not have yet, in English, e.g. Tegallalang Rice Terrace; they are searched before the itinerary is redrafted",
+          ),
         change: z
           .string()
           .describe(
             'the change, e.g. "On day 3 replace 五十稲荷神社 at 14:30 with 浅草寺 at the same time; keep every other stop unchanged"',
+          ),
+        days: z
+          .array(z.number().int().positive())
+          .max(31)
+          .optional()
+          .describe(
+            "the trip days this change touches; every other day keeps its stops. Leave out only when the change is about the whole trip",
           ),
       }),
     },

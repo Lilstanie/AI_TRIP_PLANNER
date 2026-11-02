@@ -1,5 +1,5 @@
 import type { AgentProposal } from "@trip/shared";
-import type { LegModeChoice, TravelMode } from "@trip/shared";
+import type { CityNights, LegModeChoice, TravelMode } from "@trip/shared";
 import { dateForDay } from "./validation";
 
 export type ScheduledHop = { day: number; from: string; to: string };
@@ -89,8 +89,11 @@ export function journeyLegs(input: {
   days: number;
 
   legModes?: readonly LegModeChoice[];
+
+  cityNights?: readonly CityNights[];
 }): JourneyLeg[] {
-  const { origin, destinations, start, days, legModes } = input;
+  const { origin, destinations, start, days, legModes, cityNights } = input;
+  const startsOn = cityStartDays(destinations, days, cityNights);
   if (!destinations.length) throw new Error("A journey needs at least one destination.");
   const first = destinations[0]!;
   const arrivesFromElsewhere = origin.toLowerCase() !== first.toLowerCase();
@@ -110,7 +113,7 @@ export function journeyLegs(input: {
   }
 
   destinations.slice(1).forEach((to, hop) => {
-    const day = Math.min(days, Math.floor((days * (hop + 1)) / destinations.length) + 1);
+    const day = startsOn[hop + 1]!;
     const chosen = chosenModeFor(legModes, destinations[hop]!, to);
     legs.push({
       index: legs.length,
@@ -129,11 +132,46 @@ export function journeyLegs(input: {
 export const flightLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "flight");
 export const groundLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "ground");
 
-export function cityForDay(cities: string[], days: number): string[] {
-  if (!cities.length) throw new Error("A journey needs at least one destination.");
-  const startsOn = cities.map((_, index) =>
+/**
+ * The day each city is reached. Without `cityNights` the trip is split evenly. Named cities get
+ * the nights the traveller asked for and the others share what is left; an impossible request
+ * (more nights than the trip has, or a city left with none) falls back to the even split.
+ */
+export function cityStartDays(
+  cities: readonly string[],
+  days: number,
+  cityNights?: readonly CityNights[],
+): number[] {
+  const even = cities.map((_, index) =>
     index === 0 ? 1 : Math.min(days, Math.floor((days * index) / cities.length) + 1),
   );
+  if (!cityNights?.length || cities.length < 2) return even;
+  const asked = cities.map(
+    (city) => cityNights.find((entry) => sameName(entry.city, city))?.nights,
+  );
+  if (asked.every((nights) => nights === undefined)) return even;
+  const total = days - 1;
+  const named = asked.reduce<number>((sum, nights) => sum + (nights ?? 0), 0);
+  const unnamed = asked.filter((nights) => nights === undefined).length;
+  const left = total - named;
+  if (left < unnamed || (unnamed === 0 && left !== 0)) return even;
+  let share = 0;
+  const nights = asked.map((nights) => {
+    if (nights !== undefined) return nights;
+    const next = Math.floor(left / unnamed) + (share < left % unnamed ? 1 : 0);
+    share += 1;
+    return next;
+  });
+  return nights.map((_, index) => 1 + nights.slice(0, index).reduce((sum, n) => sum + n, 0));
+}
+
+export function cityForDay(
+  cities: string[],
+  days: number,
+  cityNights?: readonly CityNights[],
+): string[] {
+  if (!cities.length) throw new Error("A journey needs at least one destination.");
+  const startsOn = cityStartDays(cities, days, cityNights);
   return Array.from({ length: days }, (_, offset) => {
     const day = offset + 1;
     let city = cities[0]!;

@@ -97,7 +97,14 @@ async function gatherTransportEvidence(
   const legModes = brief.excludeFlights
     ? brief.legModes?.filter((choice) => choice.mode !== "flight")
     : brief.legModes;
-  const legs = journeyLegs({ origin, destinations, start: brief.dates[0], days, legModes });
+  const legs = journeyLegs({
+    origin,
+    destinations,
+    start: brief.dates[0],
+    days,
+    legModes,
+    ...(brief.cityNights ? { cityNights: brief.cityNights } : {}),
+  });
   const routeQueries: RouteQuery[] = groundLegs(legs).map((leg) => ({
     localTime: scheduleRevision ? "06:00" : "09:00",
     from: leg.from,
