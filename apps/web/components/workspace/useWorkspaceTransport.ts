@@ -105,10 +105,9 @@ export function useWorkspaceTransport({
   displayCurrency,
   planDestinationLocation,
 }: WorkspaceTransportOptions) {
-  const originalPlan = useRef<string | undefined>(undefined);
+  const originalPlan = useRef<{ tripId: string; snapshot: string } | undefined>(undefined);
   const editSnapshot = (value: TripPlan) =>
     JSON.stringify({
-      tripId: value.tripId,
       brief: value.brief,
       dayNotes: value.dayNotes,
       sections: value.sections.map((section) => ({
@@ -122,13 +121,23 @@ export function useWorkspaceTransport({
           : undefined,
       })),
     });
-  if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
+  const unedited = (value: TripPlan) =>
+    originalPlan.current?.tripId === value.tripId &&
+    originalPlan.current.snapshot === editSnapshot(value);
+  if (plan && (plan.editVersion ?? 0) === 0)
+    originalPlan.current = { tripId: plan.tripId, snapshot: editSnapshot(plan) };
+
+  function settleBackground(base: TripPlan, next: TripPlan) {
+    if (unedited(base))
+      originalPlan.current = { tripId: next.tripId, snapshot: editSnapshot(next) };
+  }
 
   function confirmReplacingEditedPlan(currentPlan = plan) {
     if (!currentPlan) return true;
     const hasDirectEdits =
       (currentPlan.editVersion ?? 0) > 0 &&
-      (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
+      originalPlan.current?.tripId === currentPlan.tripId &&
+      !unedited(currentPlan);
     if (!hasDirectEdits) return true;
     const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
     return window.confirm(message);
@@ -405,5 +414,5 @@ export function useWorkspaceTransport({
   useEffect(() => {
     resumeOnLoad.current(activeConversation.current);
   }, [activeConversation]);
-  return { run, resumePending, submit, prepareChat, send, answer };
+  return { run, resumePending, submit, prepareChat, send, answer, settleBackground };
 }

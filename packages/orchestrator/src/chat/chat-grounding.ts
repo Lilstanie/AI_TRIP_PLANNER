@@ -195,7 +195,7 @@ function requestedPlanChangeApplied(request: ChatRequest, planned: TripPlan): bo
         ));
 
   if (moved || added || removed) return movedApplied && addedApplied && removedApplied;
-  return fact ?? false;
+  return fact ?? true;
 }
 
 function hasBookingEvidence(request: ChatRequest, planned: TripPlan | undefined): boolean {

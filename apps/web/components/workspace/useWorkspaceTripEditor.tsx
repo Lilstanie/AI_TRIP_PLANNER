@@ -62,7 +62,7 @@ export function useWorkspaceTripEditor({
   mapDay?: number;
   phone: boolean;
   narrow: boolean;
-  onApplyEdit(next: TripPlan): void;
+  onApplyEdit(next: TripPlan, backgroundBase?: TripPlan): void;
   onTrackEdit(value: boolean): void;
   onSelectStop(id: string): void;
   onShowRoutes(routes: RouteResult[]): void;
@@ -89,7 +89,7 @@ export function useWorkspaceTripEditor({
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
       if (backgroundBase) undo.preserveBackground(backgroundBase, next);
-      onApplyEdit(next);
+      onApplyEdit(next, backgroundBase);
     },
   });
   const chooser = useChooseCandidate(editorPlan, revisions, onTrackEdit);

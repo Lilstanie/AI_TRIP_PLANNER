@@ -1,0 +1,54 @@
+# Agent Note: follow-up chat turns stop asking to replace edits and stop hiding applied changes
+
+Status: implemented
+Owner: C (@HeadmasterEggy)
+
+## Problem
+
+A live test on the deployed site (Perth to Bali, 7 days, 2 people, AUD 5,000, then follow-ups)
+showed two faults on every follow-up message.
+
+1. The browser opened a "Replace your edited plan?" confirm although the traveller had edited
+   nothing. Automatic saves (matched stop places, rechecked legs) raise `editVersion`, and
+   `confirmReplacingEditedPlan` compared the plan with the snapshot taken at `editVersion` 0, so
+   every automatic save looked like a traveller edit. After a reload or a trip switch there was no
+   snapshot at all, and any plan with `editVersion > 0` asked.
+2. The reply said "I can't verify that requested change from the resulting itinerary." although the
+   recorded stream showed the planner had read the earlier turns and applied the change (day 3 went
+   from two stops to one). `requestedPlanChangeApplied` only recognises move, add and remove
+   phrasings and brief facts; for any other request ("fewer activities on day 3", or the question
+   "What did I just ask you to change?") it returned false, so `groundedReply` replaced the model's
+   correct answer. To the traveller this looked like the chat had no memory.
+
+## Decision
+
+- The trip editor passes the base plan of a background apply to `session.applyEdit`; the transport's
+  `settleBackground` moves its unedited snapshot forward when that base was itself unedited. A
+  traveller edit still leaves the plan different from the snapshot, so the confirm still appears
+  after a real edit, as `2026-10-28-quiet-panel-walkthrough.md` requires.
+- The snapshot carries its trip id. With no snapshot for the plan's trip (after a reload or a trip
+  switch) the transport does not ask; undo steps are cleared on reload as well, so edits made before
+  a reload are no longer distinguishable from the plan the traveller kept.
+- When the plan materially changed and the request is not a move, add or remove phrasing the guard
+  can check, the change claim stands. An unchanged plan, a parsed move/add/remove that did not
+  happen, and booking claims are still replaced.
+
+## Alternatives considered
+
+**Remove the confirm.** The itinerary walkthrough decision keeps it for real edits; only the false
+positives were wrong.
+
+**Compare snapshots without place ids and locations.** Automatic saves also retime stops and change
+legs, so the excluded fields would keep growing; the revision owner already knows which applies are
+background ones.
+
+**Send the visible conversation with each request.** The recorded stream showed the server's
+short-term memory supplied the earlier turns. That memory is per process unless KV is configured,
+which remains a deployment setting (see `2026-11-01-durable-chat-turns.md`).
+
+## Consequences
+
+- A plan restored after a reload with edits made before the reload is replaced by a later chat
+  replan without asking.
+- A reply can claim a change that differs from the one requested when the plan changed for another
+  reason and the request is not a parsed move, add or remove.
