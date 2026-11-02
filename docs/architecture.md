@@ -317,7 +317,7 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   The failure cases and decision are recorded in the
   [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - Transport searches and prices every planned flight leg, including traveller-selected inter-city flights; each available fare carries its route and selection into the proposal. A flight without a valid fare remains unpriced.
-- The journey closes on the last day (`journeyLegs` in `transport/legs.ts`). When the trip flies in and ends in a different city from the first, a closing hop takes the traveller back to the first city, where the round-trip flight leaves; a ground closing hop over six hours is flown instead, and the model is told to arrive three hours before the return flight. When the traveller arrived by ground (drive, train or coach), a closing leg takes them home by the same mode, and the itinerary blocks that day from the leg's departure. The ground leg in on the first day is blocked the same way: no stop in the destination starts before it arrives. Accommodation ignores the closing hop when it splits nights.
+- The journey closes on the last day (`journeyLegs` in `transport/legs.ts`). When the trip flies in and ends in a different city from the first, a closing hop takes the traveller back to the first city, where the round-trip flight leaves; any inter-city ground hop over six hours (the traveller has not chosen its mode) is priced as a flight and flown when a fare exists, otherwise it stays on the ground, and the model is told to arrive three hours before the return flight. When the traveller arrived by ground (drive, train or coach), a closing leg takes them home by the same mode, and the itinerary blocks that day from the leg's departure. The ground leg in on the first day is blocked the same way: no stop in the destination starts before it arrives. Accommodation ignores the closing hop when it splits nights.
 - The itinerary reads the selected outbound flight the same way `detect_conflicts` does (`outboundArrival` in `packages/shared/src/arrival.ts`). It plans nothing before landing day, and on that day it starts stops 90 minutes after landing. A landing after 16:00 leaves that day empty. Days in the air are noted as travel days, not as incomplete days.
 - Accommodation reads the same arrival: when the outbound flight lands after day 1, the first city's check-in moves to the landing date, so nights spent travelling are not booked.
 - The itinerary also asks the place tools for each city's restaurants. If the traveller has a dietary requirement, it uses the same text query as dining. It then adds one lunch or dinner a day at a found restaurant, rotating so a restaurant repeats only after the others are used. Restaurants never replace sights; a failed restaurant lookup is reported and leaves the sights in place.
@@ -485,7 +485,7 @@ when one could not be met, and never treat one as a verified fact.
   dining searches for, `interests` each add a per-city place search (temples, historic landmarks,
   parks and beaches, food markets, shopping streets, night markets; museums and art add a museum
   search) whose results come before generic sights, children or infants in the party add a
-  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
+  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays (glamping, campsites and caravan parks are skipped while any other stay qualifies)
   over the account memory. Fields merge, so an update keeps fields it does not mention.
 
 A trip length the traveller states in days reaches the brief as the model's `tripDays`, and the end
@@ -552,7 +552,7 @@ question card in the composer's place and sends the traveller's answers as the n
 A flight question is answered without planning. A message with a route, a flight word and a date goes
 straight to `answerFlightQuery` (`parseFlightQuery`); any other wording reaches the coordinator, whose
 `search_flights` tool runs the same search and throws `FlightAnswerReady`. Both stream a `FlightAnswer`
-frame (`type: "flight_answer"`), and the client's plan is unchanged. When Google Flights returns
+frame (`type: "flight_answer"`), and the client's plan is unchanged. The reply quotes the cheapest whole-party fare with its currency code (`AUD 5,678.00`) and, for more than one traveller, the per-person share. When Google Flights returns
 `price_insights`, the frame carries `priceInsight` (level, typical range, daily history); the reply adds
 one buy-or-wait sentence from the level and the card shows the level, the range and a trend line
 ([price insight note](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)).
