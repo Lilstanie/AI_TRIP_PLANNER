@@ -70,6 +70,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     private var lines: [String: TripLine] = [:]
     private var pendingCamera: (CLLocationCoordinate2D, Double)?
     private var pendingFit: (() -> Void)?
+    private var lastMove: (() -> Void)?
     private var inset = UIEdgeInsets.zero
     private var changing = false
     private var applying = false
@@ -110,6 +111,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         lines.removeAll()
         pendingCamera = nil
         pendingFit = nil
+        lastMove = nil
     }
 
     private func hide() {
@@ -126,6 +128,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
             hide()
             return
         }
+        let insetChanged = inset != self.inset
         self.inset = inset
         webView.isOpaque = false
         webView.backgroundColor = .clear
@@ -135,21 +138,25 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         map.isHidden = false
         webView.mapFrame = frame
         webView.occluders = occluders
-        if pendingCamera != nil { applyPendingCamera() }
-        if let fit = pendingFit {
+        if pendingCamera != nil {
+            applyPendingCamera()
+        } else if let fit = pendingFit {
             pendingFit = nil
             fit()
+        } else if insetChanged, let lastMove {
+            lastMove()
         }
     }
 
     private func applyPendingCamera() {
         guard let pending = pendingCamera else { return }
         pendingCamera = nil
+        remember(center: pending.0, zoom: pending.1)
         apply { map.setVisibleMapRect(rect(center: pending.0, zoom: pending.1), animated: false) }
     }
 
     func camera(lat: Double?, lng: Double?, zoom: Double?, animated: Bool) {
-        let current = map.region.center
+        let current = visibleCenter
         let center = CLLocationCoordinate2D(latitude: lat ?? current.latitude, longitude: lng ?? current.longitude)
         if map.bounds.width == 0 {
             pendingFit = nil
@@ -157,6 +164,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
             return
         }
         let level = zoom ?? currentZoom
+        remember(center: center, zoom: level)
         apply { map.setVisibleMapRect(rect(center: center, zoom: level), animated: animated) }
     }
 
@@ -181,12 +189,10 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         let stops = MKMapPoint(x: target.midX, y: target.midY)
         target = map.mapRectThatFits(target, edgePadding: edges)
         if let maxZoom, zoom(of: target) > maxZoom {
-            let scale = pow(2, 20 - maxZoom)
-            let width = Double(map.bounds.width) * scale
-            let height = Double(map.bounds.height) * scale
-            let x = stops.x - Double(edges.left - edges.right) / 2 * scale
-            let y = stops.y - Double(edges.top - edges.bottom) / 2 * scale
-            target = MKMapRect(x: x - width / 2, y: y - height / 2, width: width, height: height)
+            target = rect(center: stops.coordinate, zoom: maxZoom)
+        }
+        lastMove = { [weak self] in
+            self?.fit(north: north, south: south, east: east, west: west, padding: padding, maxZoom: maxZoom)
         }
         apply { map.setVisibleMapRect(target, animated: false) }
     }
@@ -263,12 +269,29 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         20 - log2(rect.size.width / Double(max(map.bounds.width, 1)))
     }
 
+    private func remember(center: CLLocationCoordinate2D, zoom: Double) {
+        lastMove = { [weak self] in
+            self?.camera(lat: center.latitude, lng: center.longitude, zoom: zoom, animated: false)
+        }
+    }
+
     private func rect(center: CLLocationCoordinate2D, zoom: Double) -> MKMapRect {
         let scale = pow(2, 20 - zoom)
         let width = Double(map.bounds.width) * scale
         let height = Double(map.bounds.height) * scale
         let point = MKMapPoint(center)
-        return MKMapRect(x: point.x - width / 2, y: point.y - height / 2, width: width, height: height)
+        let x = point.x - Double(inset.left - inset.right) / 2 * scale
+        let y = point.y - Double(inset.top - inset.bottom) / 2 * scale
+        return MKMapRect(x: x - width / 2, y: y - height / 2, width: width, height: height)
+    }
+
+    private var visibleCenter: CLLocationCoordinate2D {
+        let visible = map.visibleMapRect
+        let scale = visible.size.width / Double(max(map.bounds.width, 1))
+        return MKMapPoint(
+            x: visible.midX + Double(inset.left - inset.right) / 2 * scale,
+            y: visible.midY + Double(inset.top - inset.bottom) / 2 * scale
+        ).coordinate
     }
 
     private func apply(_ change: () -> Void) {
@@ -280,13 +303,14 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     private func report() {
         guard map.bounds.width > 0 else { return }
         let region = map.region
+        let center = visibleCenter
         lastZoom = currentZoom
         let byUser = gesture
         gesture = false
         plugin?.notifyListeners("region", data: [
             "gesture": byUser,
-            "lat": region.center.latitude,
-            "lng": region.center.longitude,
+            "lat": center.latitude,
+            "lng": center.longitude,
             "zoom": currentZoom,
             "north": region.center.latitude + region.span.latitudeDelta / 2,
             "south": region.center.latitude - region.span.latitudeDelta / 2,
@@ -300,7 +324,10 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         let touched = mapView.subviews.first?.gestureRecognizers?.contains {
             $0.state == .began || $0.state == .changed
         } ?? false
-        if touched { gesture = true }
+        if touched {
+            gesture = true
+            lastMove = nil
+        }
         plugin?.notifyListeners("regionStart", data: ["gesture": touched])
     }
 
