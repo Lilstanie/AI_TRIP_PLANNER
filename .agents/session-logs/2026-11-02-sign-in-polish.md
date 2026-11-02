@@ -186,3 +186,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Phone Map tab with no trip (390px, zh, light and dark): opening the Trip details sheet (行程信息) from the title showed the blue "去聊天里规划" button of the empty-map card through the 预算/偏好 rows as a blurred blue blob. The sheet used the 88% glass tint, but it is a modal that already sits on a scrim, so the glass only let content bleed through.
 - `glass.css`: the modal fact sheet and `.dialog` set `--glass-fill: var(--surface)`, so they render solid (`rgba(255,255,255,.88)` → `rgb(255,255,255)`, dark `rgba(30,30,32,.88)` → `rgb(28,28,30)`). Floating, non-modal surfaces keep the glass tint.
 - Validation: light and dark phone screenshots before and after with the measured sheet background. No machine check: the bleed depends on what is rendered behind the sheet.
+
+## Round 26 — TP-313 Agent Lab controls
+
+- Agent Lab (1440px en dark, 390px zh light; sign-up page phone and desktop). Desktop controls panel: Scenario and Strategy sat at the bottom with an empty band above them, and Data mode sat 21px higher, because the toolbar grid used `align-items: end` against the three stacked action buttons and the taller Data mode block.
+- `agent-lab/shell.css`: the toolbar aligns its columns to the top. The selects now share one line (top 319/319/319 at 1440px; the 900px two-column layout keeps its rows).
+- Validation: desktop dark crops before and after, 900px light after. No machine check: alignment depends on rendered column heights.
+- Also seen: the Agent Lab view buttons and secondary buttons are designed as outlined surface pills but render with the generic grey fill, the fifth instance of the `forms.css` cascade class, left for the `:where()` decision. Agent Lab copy stays English in Chinese locale (left as is).
