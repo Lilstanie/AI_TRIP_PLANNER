@@ -40,6 +40,8 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
 - In the app every field is 16 px, because iOS zooms the page when a smaller field takes focus and the
   web view did not zoom back out. The sign-in page adds the top and bottom safe-area insets, which it
   lacked under `viewportFit: "cover"`.
+- A fixed glass strip covers the status bar area on every app page, as native bars do, because pages
+  that scroll (the sign-in page when the keyboard opens) otherwise slid under the clock and signal icons.
 - The app is built in Xcode on the owner's Mac and installed with a free Apple ID (re-signed every
   seven days). It is not sent to TestFlight or the App Store.
 
