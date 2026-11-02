@@ -385,6 +385,11 @@ The destination evidence tool supplies dated weather to packing generation. Its 
 
 Dining reads dietary requirements from trip preferences, chat-learned preferences and saved memory, including peanut/nut allergies and Chinese terms. No-model chat also retains explicit dietary sentences. The same requirements reach the generator and deterministic fallback without writing long-term memory. Grounded venue names do not establish allergen safety; obvious model guarantees are rejected and travellers must confirm ingredients and cross-contamination controls directly.
 
+Google Places sight and neighbourhood searches use travel wording ("top tourist attractions in X",
+"best neighbourhoods to walk around in X") rather than the bare category word, which matched business
+names, and drop results whose Google types mark a hotel, agency, shop, office or a whole city or
+region. Each sight is used once in a city before any repeats.
+
 Restaurant searches carry dietary requirements in optional PlaceQuery.textQuery through Google Places or OSM, retaining the restaurant category. Progress records the query used. Existing callers without search text keep the category-and-city query, and mock mode remains offline. Search relevance does not verify ingredients, dietary suitability or allergen safety.
 
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
@@ -474,8 +479,10 @@ when one could not be met, and never treat one as a verified fact.
   read by the model from their words in any language and from `preferences`. `pace` (relaxed,
   balanced, packed) sets how many stops the itinerary plans a day: 1-2, 2-3, or 4-6 sights plus
   lunch and dinner, and the fallback plans four sights and two meals a packed day. `dietary` is what
-  dining searches for, `interests` rank matching place categories first (and museums are fetched for
-  museums, art or history), and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
+  dining searches for, `interests` each add a per-city place search (temples, historic landmarks,
+  parks and beaches, food markets, shopping streets, night markets; museums and art add a museum
+  search) whose results come before generic sights, children or infants in the party add a
+  family-attractions search, and `stay` (`minRating`, `freeCancellation`, `stayType`) filters stays
   over the account memory. Fields merge, so an update keeps fields it does not mention.
 
 A trip length the traveller states in days reaches the brief as the model's `tripDays`, and the end

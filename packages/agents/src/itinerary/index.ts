@@ -47,6 +47,7 @@ import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembe
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
+import { interestQueries, interleave } from "./interest-places";
 
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
 
@@ -361,6 +362,7 @@ function fallbackDraft(
   const slots = perDay === 1 ? [SINGLE_SLOT, ...DAY_SLOTS] : daySlots;
   const activities: ItineraryDraft["activities"] = [];
   const incompleteDays: number[] = [];
+  const visits = new Map<string, number>();
   for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
     const day = dayIndex + 1;
     const dayWindows = transferWindows.get(day) ?? [];
@@ -377,7 +379,9 @@ function fallbackDraft(
       });
       if (!city) continue;
       const cityPlaces = rankPlacesByInterests(placesForCity(city), interests);
-      const place = cityPlaces[(dayIndex * perDay + added) % cityPlaces.length]!;
+      const visit = visits.get(city) ?? 0;
+      visits.set(city, visit + 1);
+      const place = cityPlaces[visit % cityPlaces.length]!;
       activities.push({
         day,
         ...slot,
@@ -479,7 +483,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day the traveller is not flying with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When schedule is given, it lists every trip day: a day marked travelling gets no activities at all, and a day with earliestStart gets none that start before it. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When departure is given, the traveller flies home then: every stop on departure.day must end by departure.latestEnd, and plan nothing that day when latestEnd is missing. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day the traveller is not flying with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; visit each candidate at most once in the whole trip while unused candidates remain for that city; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When schedule is given, it lists every trip day: a day marked travelling gets no activities at all, and a day with earliestStart gets none that start before it. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When departure is given, the traveller flies home then: every stop on departure.day must end by departure.latestEnd, and plan nothing that day when latestEnd is missing. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -573,17 +577,20 @@ async function planItinerary(
     ] as const;
   };
   const wantsMuseums = brief.intent?.interests?.some((interest) =>
-    ["museums", "art", "history"].includes(interest),
+    ["museums", "art"].includes(interest),
   );
+  const asked = interestQueries(brief);
   const [byCity, preferences, mealsFound] = await Promise.all([
     Promise.all(
       cityNames.map(async (city) => {
-        const [sights, neighborhoods, museums] = await Promise.all([
+        const [sights, neighborhoods, museums, ...picked] = await Promise.all([
           readPlaces("sight", city),
           readPlaces("neighborhood", city),
           wantsMuseums ? readPlaces("museum", city) : Promise.resolve([]),
+          ...asked.map((query) => readPlaces("sight", city, `${query} in ${city}`)),
         ]);
-        return [city, { spots: [...museums, ...sights], neighborhoods }] as const;
+        const spots = [...interleave(picked), ...sights, ...museums];
+        return [city, { spots, neighborhoods }] as const;
       }),
     ),
     preferencesRead,
