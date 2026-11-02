@@ -38,6 +38,20 @@ describe("the conversation agent decides what to do", () => {
     ).toBe("I can’t verify that requested change from the resulting itinerary.");
   });
 
+  it("keeps a reply that says nothing was booked", async () => {
+    const planned = await runTripChat(
+      { tripId: brief.tripId, mode: "plan", message: "Plan it", brief },
+      { specialists: [itinerary], tools, mem: memoryStore().mem },
+    );
+    for (const reply of [
+      "Nothing was booked or reserved: fares are estimates, and no flights were booked.",
+      "还没有预订任何酒店，机票也没有出票。",
+    ])
+      expect(
+        groundedReply({ tripId: brief.tripId, message: "Plan it", brief }, planned.plan, reply),
+      ).toBe(reply);
+  });
+
   it("asks before planning a new trip with dates that have already passed", async () => {
     vi.mocked(itinerary.invoke).mockClear();
     const { mem } = memoryStore();
