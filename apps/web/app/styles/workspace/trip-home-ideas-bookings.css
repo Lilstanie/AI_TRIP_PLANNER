@@ -90,6 +90,7 @@
   flex: 1;
   margin: 0;
   font-size: var(--font-size-title);
+  font-weight: 700;
 }
 .trip-home-ideas-bookings__booking-group > header > span:last-child {
   color: var(--text-dim);

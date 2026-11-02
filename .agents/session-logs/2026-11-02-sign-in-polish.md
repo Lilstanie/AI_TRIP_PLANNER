@@ -212,3 +212,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Desktop zh dark with the seeded trip: home, Trips, Calendar, Trajectory. The top-bar data pill appears a moment after load (screenshot timing, not a fault). With no turns, the Trajectory view put its one sentence in the top-left corner of a 840×270 empty panel on desktop, and at the top of the phone Trajectory sheet with "Plan in Chat" under it.
 - `phone/shell.css` (the shared `.trajectory-empty` rule): the empty state centres its sentence and button in the panel (phone button y 187 → 489 in an 844px sheet).
 - Validation: desktop and phone before/after crops. The walkthrough e2e checks for this state (one sentence, button height ≤ 64px) still hold. No machine check: placement is visual.
+
+## Round 30 — TP-317 Bookings group headings
+
+- Desktop trip page (en light, zh dark) and its Bookings panel; phone Bookings tab (en dark). The Flights / Stays headings (`h3`, 20px) computed to weight 400 while the booking names under them were 14px bold, so the headings looked weaker than their own rows.
+- `trip-home-ideas-bookings.css`: the group heading is bold (400 → 700), like the other section headings ("Chats · 1").
+- Validation: computed weights and desktop zh dark / phone en dark crops before and after. No machine check: the weight is a design choice; the rule only lacked it.
+- Also seen: the desktop trip page's five panel tiles leave Calendar alone on a third row, and the map column stays an empty box for mock places; both left as design calls.
