@@ -44,6 +44,13 @@ showed two faults on every follow-up message.
   recap was replaced. Booking claims are still checked; 吗 questions are left out because they are
   often change requests (能把…删掉吗？).
 
+- Follow-up (TP-262): an unsupported claim is no longer replaced outright. `ungroundedClaim` names the
+  fact that contradicts the reply (plan unchanged, requested change missing, nothing booked) and
+  `truthfulReply` asks the model once to rewrite the reply given that fact. The fixed sentence is the
+  fallback when the model fails or its rewrite still makes the claim. After an unchanged replan the
+  model's own reply is kept unless it claims a change. The cost sentence stays code-written
+  (`2026-10-24-code-cost-sentence.md`).
+
 ## Alternatives considered
 
 **Remove the confirm.** The itinerary walkthrough decision keeps it for real edits; only the false
@@ -57,7 +64,12 @@ background ones.
 (`2026-11-01-durable-chat-turns.md`), and the deployment has no KV, so a cold or different instance
 lost the conversation; TP-260 sends the visible conversation as a fallback.
 
+**Keep the fixed sentences as the only correction.** Joey asked on 2026-11-02 why replies were fixed
+text; the guard's regexes misfire, and a fixed sentence also discards the true parts of the reply.
+
 ## Consequences
+
+- An unsupported claim costs one extra model call.
 
 - A plan restored after a reload with edits made before the reload is replaced by a later chat
   replan without asking.

@@ -538,8 +538,10 @@ describe("attachments reach the coordinator", () => {
       restore: () => spy.mockRestore(),
 
       lastHuman: () => {
-        const messages = (spy.mock.calls.at(-1)?.[0] ?? []) as { content: unknown }[];
-        return messages.at(-1)?.content;
+        const coordinatorCalls = spy.mock.calls
+          .map((call) => (call[0] ?? []) as { content: unknown }[])
+          .filter((messages) => !String(messages.at(-1)?.content).includes('"draftReply"'));
+        return coordinatorCalls.at(-1)?.at(-1)?.content;
       },
     };
   }
