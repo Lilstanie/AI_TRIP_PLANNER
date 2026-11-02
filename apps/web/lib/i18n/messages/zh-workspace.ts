@@ -220,7 +220,6 @@ export const zhWorkspace = {
   thisStayNeedsANew: "这家住宿需要重新选。",
   checkIn: "入住",
   checkOut: "退房",
-  roomsNights: "房间数 / 晚数",
   takeV0InsteadV1: "换成 {v0}，{v1}",
   thisFlightNeedsANew: "这趟航班需要重新选。",
   travellers: "出行人数",

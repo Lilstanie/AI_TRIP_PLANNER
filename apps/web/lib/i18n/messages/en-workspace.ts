@@ -223,7 +223,6 @@ export const enWorkspace = {
   thisStayNeedsANew: "This stay needs a new selection.",
   checkIn: "Check-in",
   checkOut: "Check-out",
-  roomsNights: "Rooms / nights",
   takeV0InsteadV1: "Take {v0} instead, {v1}",
   thisFlightNeedsANew: "This flight needs a new selection.",
   travellers: "Travellers",

@@ -106,3 +106,7 @@
     padding-left: 0;
   }
 }
+
+.trip-home-ideas-bookings__meta-part {
+  white-space: nowrap;
+}

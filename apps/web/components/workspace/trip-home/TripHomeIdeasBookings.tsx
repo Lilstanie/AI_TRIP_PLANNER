@@ -125,7 +125,7 @@ export function TripHomeIdeas({
 type BookingEntry = {
   id: string;
   title: string;
-  meta: string;
+  meta: string | string[];
 };
 
 function BookingGroup({
@@ -153,7 +153,18 @@ function BookingGroup({
         {entries.map((entry) => (
           <li key={entry.id}>
             <strong>{entry.title}</strong>
-            {entry.meta && <small>{entry.meta}</small>}
+            {typeof entry.meta === "string"
+              ? entry.meta && <small>{entry.meta}</small>
+              : entry.meta.length > 0 && (
+                  <small>
+                    {entry.meta.map((part, index) => (
+                      <span key={index}>
+                        {index ? " · " : ""}
+                        <span className="trip-home-ideas-bookings__meta-part">{part}</span>
+                      </span>
+                    ))}
+                  </small>
+                )}
           </li>
         ))}
       </ul>
@@ -212,9 +223,9 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       title: `${selection.from} → ${selection.to} · ${candidate.carrier}`,
       meta: [
         selection.depart,
-        `${selection.passengers} ${t("travellers").toLocaleLowerCase()}`,
+        t("countTravellers", { count: selection.passengers }),
         money(candidate.price),
-      ].join(" · "),
+      ],
     })),
     ...legacyFlights.map((item, index) => ({
       id: item.id ?? `flight-${index}`,
@@ -229,9 +240,10 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       meta: [
         `${t("checkIn")} ${selection.checkIn}`,
         `${t("checkOut")} ${selection.checkOut}`,
-        `${selection.rooms} / ${selection.nights} ${t("roomsNights").toLocaleLowerCase()}`,
+        t("countNights", { count: selection.nights }),
+        t("stayRoomRate", { price: money(candidate.pricePerNight), rooms: selection.rooms }),
         money(candidate.pricePerNight * selection.rooms * selection.nights),
-      ].join(" · "),
+      ],
     })),
     ...legacyStays.map((item, index) => ({
       id: item.id ?? `stay-${index}`,
