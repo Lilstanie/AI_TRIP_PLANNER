@@ -149,3 +149,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Trip home Ideas tab (390px, zh, dark and light, mock Bali trip): every idea carried seven large grey pill buttons in two rows, so three ideas filled the screen. The generic button rule in `forms.css` (pill radius, grey fill, padding) out-specified the component's bordered day cards, the same cause as TP-293.
 - `TripHomeIdeasBookings.tsx`: day buttons get `trip-home-ideas-bookings__day`, which both generic button rules in `forms.css` now exclude, so the designed 8px bordered cards show. `trip-home-ideas-bookings.css`: at ≤520px the day buttons sit in one horizontally scrolling row (edge to edge), and the idea row gets `min-width: 0` so the scroller does not widen the list.
 - Validation: phone screenshots in dark and light, desktop drawer unchanged in layout; computed `border-radius: 8px` on the day buttons. No machine check: the class is "generic rule overrides a component rule", which only a cascade-aware check could catch; the structural fix (`:where()` around the generic rule's `:not()` list) remains the open follow-up from TP-293.
+
+## Round 20 — TP-307 phone Settings row
+
+- Scanned every visible button on home, Trips/Mine, trip page and the five trip-home tabs (390px and 1440px) for the generic `forms.css` pill overriding a designed shape. Most pills are intended; the phone Mine tab's 设置与账户 row was not: `phone/polish.css` designs it as a white card (`--radius-xl`, `--phone-card`, bold) matching the trip and chat rows, but it rendered as a grey pill (computed `border-radius: 999px`, `rgba(120,120,128,.1)`).
+- `forms.css`: both generic button rules exclude `.phone-mine__settings`. After: `26px`, `rgb(255,255,255)` light / `rgb(28,28,30)` dark.
+- Validation: light and dark phone screenshots. No machine check, same cascade class as TP-293 and TP-306; the `:where()` restructure of the generic rule is still the open follow-up that would remove the class.
