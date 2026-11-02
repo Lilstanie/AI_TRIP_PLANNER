@@ -27,6 +27,15 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `tsc --noEmit` in apps/web: clean.
 - No machine check: copy and spacing, not a bug class a lint or type can catch.
 
+## Round 3: TP-290 placeholder chat titles in Chinese
+
+- `apps/web/lib/workspace/catalog.ts`: `conversationTitle` translates the stored placeholder titles
+  "New chat" and "New trip" unless the traveller renamed the chat. The top bar showed "New chat" in
+  Chinese because only `ChatsPanel` translated them.
+- Check: `tests/lib/workspace/catalog.test.ts` asserts the zh title; on the old code it fails with
+  `expected 'New chat' to be '新聊天'`.
+- Local dev at 1440 px and 390 px, zh: header reads 新聊天.
+
 ## Notes for the next person
 
 - The sign-in page copy is English only; the workspace language setting does not reach it yet.
