@@ -174,3 +174,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Phone trip panel (390px, en, mock Bali trip): the five tabs need 371px but the row was 300px wide, because the phone rule set the switcher to `width: 100%` of the title box beside the close button. "Calendar" sat off-screen with no scroll hint; on the Ideas tab "Itinerary" had scrolled out of view.
 - `trip-home-actions.css` (≤520px): drop the phone `width: 100%` override so the switcher keeps the desktop `calc(100% + 44px)` and runs under the close button (344px), and tighten tab padding to 6px and the gap to 2px. English tabs now measure 344/344px; Chinese tabs keep their spacing with room to spare.
 - Validation: en and zh drawer-head crops before and after (scroll width 371 → 344 in a 300 → 344 row). No machine check: fitting depends on rendered text width.
+
+## Round 24 — TP-311 phone map attribution
+
+- Planned mock trips from the example chips (phone zh, desktop en) and read the replies and day cards: no layout fault. Phone Map tab (390px): the map credit ("OpenFreeMap © OpenMapTiles Data from OpenStreetMap") is a top-left control that ran 364px wide under the locate, layers and zoom buttons (top-right, 194px), so most of the credit was hidden.
+- `phone/map.css`: the top-left control area on the phone Map panel stops 214px from the right edge, so the credit wraps beside the buttons and stays readable (attribution box 364×24 → 156×64).
+- Validation: phone map crops before and after; measured boxes no longer overlap. No machine check: the overlap depends on rendered control widths.
