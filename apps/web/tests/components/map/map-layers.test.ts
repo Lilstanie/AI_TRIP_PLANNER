@@ -123,6 +123,11 @@ describe("drawItineraryRoutes", () => {
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("ab");
     expect(runtime.maps.geometry.encoding.decodePath).toHaveBeenCalledWith("xy");
     expect(lines).toHaveLength(4);
+    expect(lines[0]!.options.path).toEqual([
+      { lat: 0.1, lng: 0.1 },
+      { lat: 9, lng: 9 },
+      { lat: 0.2, lng: 0.2 },
+    ]);
     expect(markers).toHaveLength(1);
     expect(markers[0]!.options.title).toBe("Walk");
     expect((markers[0]!.options.position as { lat: number }).lat).toBeCloseTo(0.15);

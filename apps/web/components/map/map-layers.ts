@@ -125,7 +125,7 @@ export function drawItineraryRoutes({
     const color = active ? colors.day(line.day) : colors.muted;
     for (const leg of line.legs) {
       const path = leg.polyline
-        ? maps.geometry.encoding.decodePath(leg.polyline)
+        ? [leg.from.position, ...maps.geometry.encoding.decodePath(leg.polyline), leg.to.position]
         : curvedPath(leg.from.position, leg.to.position);
       if (!active) {
         drawn.push(
