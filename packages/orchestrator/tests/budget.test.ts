@@ -118,8 +118,8 @@ describe("accommodation integration with negotiation", () => {
   it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
     expect(plan.round).toBe(1);
-    expect(plan.estTotal).toBe(3499.92);
-    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(249.92);
+    expect(plan.estTotal).toBe(3559.84);
+    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(219.84);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
 
     expect(plan.conflicts).toEqual([]);
@@ -131,7 +131,7 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.round).toBe(1);
     expect(plan.conflicts).toHaveLength(1);
     expect(plan.conflicts![0]!.reason).toContain("infeasible budget");
-    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2,810.00");
+    expect(plan.conflicts![0]!.constraints[0]).toContain("AUD 2,900.00");
   });
 
   it("fits a budget just below the old plan by allocating what flights and the stay left", async () => {

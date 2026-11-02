@@ -121,7 +121,15 @@ export function splitStay(
   });
 }
 
-function hopNights(cities: string[], nights: number, hops: ScheduledHop[]): number[] | undefined {
+function hopNights(
+  cities: string[],
+  nights: number,
+  scheduled: ScheduledHop[],
+): number[] | undefined {
+  const hops =
+    scheduled.length === cities.length && scheduled.at(-1)?.to === cities[0]
+      ? scheduled.slice(0, -1)
+      : scheduled;
   if (cities.length < 2 || hops.length !== cities.length - 1) return undefined;
   const arrivals = [1];
   for (const [index, hop] of hops.entries()) {

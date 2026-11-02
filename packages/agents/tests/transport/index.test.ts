@@ -49,7 +49,7 @@ describe("transport planner", () => {
     const result = await transportAgent.invoke({ brief, context: ctx });
     expect(AgentProposal.safeParse(result).success).toBe(true);
     expect(result.summary).not.toContain("STUB");
-    expect(result.items.map((item) => item.estCost)).toEqual([1600, 90]);
+    expect(result.items.map((item) => item.estCost)).toEqual([1600, 90, 90]);
     expect(result.source).toMatchObject({ kind: "mock", label: "Mock booking and route data" });
     expect(result.items[1]).toMatchObject({ day: 3, startTime: "09:00", endTime: "11:20" });
     expect(searchFlights).toHaveBeenCalledWith(
@@ -214,7 +214,7 @@ describe("B transport reliability", () => {
     expect(result.items[1]).not.toHaveProperty("estCost");
 
     expect(result.conflictsWith.join(" ")).not.toContain("not a free trip");
-    expect(result.summary).toContain("1 leg unpriced");
+    expect(result.summary).toContain("2 legs unpriced");
     expect(result.assumptions.join(" ")).toContain("known estimate is a floor");
     expect(AgentProposal.safeParse(result).success).toBe(true);
   });
@@ -238,8 +238,9 @@ describe("B transport reliability", () => {
       expect.objectContaining({ from: "Tokyo", to: "Kyoto" }),
     );
 
-    expect(result.items.filter((item) => item.kind === "transport")).toHaveLength(2);
+    expect(result.items.filter((item) => item.kind === "transport")).toHaveLength(3);
     expect(result.items.some((item) => item.location === "Tokyo → Kyoto")).toBe(true);
+    expect(result.items.some((item) => item.location === "Kyoto → Tokyo")).toBe(true);
     expect(result.conflictsWith.join(" ")).not.toContain("cannot fit inside one planning day");
   });
 
