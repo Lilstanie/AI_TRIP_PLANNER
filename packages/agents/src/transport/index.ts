@@ -37,7 +37,7 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { plural, summaryCopy } from "../summary-copy";
 import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
-const CLOSING_GROUND_MAX_MINUTES = 6 * 60;
+const LONG_GROUND_MAX_MINUTES = 6 * 60;
 
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
@@ -167,23 +167,18 @@ async function gatherTransportEvidence(
   ctx.signal?.throwIfAborted();
 
   const startMinutes = scheduleRevision ? EARLY_DEPARTURE_MINUTES : DEFAULT_DEPARTURE_MINUTES;
-  const promoted = groundResults.filter(({ query, legs: hop }) => {
+  const mustFly = new Set<string>();
+  const candidates = groundResults.filter(({ query, legs: hop }) => {
     if (!hop.length) return false;
 
     if (query.chosenMode) return false;
     const duration = hopDuration(hop);
     if (!Number.isFinite(duration)) return false;
-    const closing = legs.find(
-      (leg) => leg.from === query.from && leg.to === query.to && leg.day === query.day,
-    )?.closing;
-    return (
-      !fitsInPlanningDay(duration, startMinutes) ||
-      (closing === "to-first-city" && duration > CLOSING_GROUND_MAX_MINUTES)
-    );
+    if (!fitsInPlanningDay(duration, startMinutes)) mustFly.add(`${query.from}|${query.to}`);
+    return duration > LONG_GROUND_MAX_MINUTES || mustFly.has(`${query.from}|${query.to}`);
   });
-  const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
-  const promotedFlights = await Promise.all(
-    promoted.map(({ query }) => {
+  const pricedCandidates = await Promise.all(
+    candidates.map(({ query }) => {
       const leg = legs.find(
         (candidate) => candidate.from === query.from && candidate.to === query.to,
       );
@@ -202,6 +197,21 @@ async function gatherTransportEvidence(
     }),
   );
   ctx.signal?.throwIfAborted();
+  const keptGround = new Set(
+    pricedCandidates
+      .filter(({ leg, options }) => !options.length && !mustFly.has(`${leg.from}|${leg.to}`))
+      .map(({ leg }) => `${leg.from}|${leg.to}`),
+  );
+  const promotedFlights = pricedCandidates.filter(
+    ({ leg }) => !keptGround.has(`${leg.from}|${leg.to}`),
+  );
+  for (const key of keptGround) {
+    const [from, to] = key.split("|");
+    const hop = `${from} → ${to}`;
+    for (let index = conflicts.length - 1; index >= 0; index -= 1)
+      if (conflicts[index]!.includes(hop)) conflicts.splice(index, 1);
+  }
+  const promotedKeys = new Set(promotedFlights.map(({ leg }) => `${leg.from}|${leg.to}`));
 
   const routed = groundResults.filter(
     ({ query }) => !promotedKeys.has(`${query.from}|${query.to}`),
