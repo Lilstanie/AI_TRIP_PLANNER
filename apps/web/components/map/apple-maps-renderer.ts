@@ -155,6 +155,12 @@ class AppleMap {
     const box = this.element.getBoundingClientRect();
     const visible = box.width > 0 && box.height > 0 && this.element.isConnected;
     const canvas = this.element.closest(".trip-map-canvas")?.getBoundingClientRect() ?? box;
+    const sheet = document.querySelector<HTMLElement>(".phone-map-sheet");
+    const sheetTop =
+      sheet && getComputedStyle(sheet).visibility !== "hidden"
+        ? sheet.getBoundingClientRect().top
+        : Infinity;
+    const floor = Math.max(Math.min(canvas.bottom, sheetTop), box.top + box.height / 2);
     const occluders = visible
       ? [...document.querySelectorAll<HTMLElement>(OCCLUDERS)]
           .filter((node) => !node.contains(this.element) && !this.element.contains(node))
@@ -167,7 +173,7 @@ class AppleMap {
       frame: rectOf(box),
       inset: {
         top: Math.max(0, Math.round(canvas.top - box.top)),
-        bottom: Math.max(0, Math.round(box.bottom - canvas.bottom)),
+        bottom: Math.max(0, Math.round(box.bottom - floor)),
         left: Math.max(0, Math.round(canvas.left - box.left)),
         right: Math.max(0, Math.round(box.right - canvas.right)),
       },

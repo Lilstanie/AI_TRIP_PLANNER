@@ -69,6 +69,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     private var selected: Set<String> = []
     private var lines: [String: TripLine] = [:]
     private var pendingCamera: (CLLocationCoordinate2D, Double)?
+    private var pendingFit: (() -> Void)?
     private var inset = UIEdgeInsets.zero
     private var changing = false
     private var applying = false
@@ -105,6 +106,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         selected.removeAll()
         lines.removeAll()
         pendingCamera = nil
+        pendingFit = nil
     }
 
     private func hide() {
@@ -131,6 +133,10 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         webView.mapFrame = frame
         webView.occluders = occluders
         if pendingCamera != nil { applyPendingCamera() }
+        if let fit = pendingFit {
+            pendingFit = nil
+            fit()
+        }
     }
 
     private func applyPendingCamera() {
@@ -144,6 +150,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         let center = CLLocationCoordinate2D(latitude: lat ?? current.latitude, longitude: lng ?? current.longitude)
         let level = zoom ?? currentZoom
         if map.bounds.width == 0 {
+            pendingFit = nil
             pendingCamera = (center, level)
             return
         }
@@ -151,7 +158,14 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     }
 
     func fit(north: Double, south: Double, east: Double, west: Double, padding: CGFloat, maxZoom: Double?) {
-        guard map.bounds.width > 0, north >= south else { return }
+        guard north >= south else { return }
+        guard map.bounds.width > 0 else {
+            pendingCamera = nil
+            pendingFit = { [weak self] in
+                self?.fit(north: north, south: south, east: east, west: west, padding: padding, maxZoom: maxZoom)
+            }
+            return
+        }
         let a = MKMapPoint(CLLocationCoordinate2D(latitude: north, longitude: west))
         let b = MKMapPoint(CLLocationCoordinate2D(latitude: south, longitude: east))
         var target = MKMapRect(
@@ -182,16 +196,20 @@ final class TripMapController: NSObject, MKMapViewDelegate {
             select(current, wantsSelection)
             return
         }
+        applying = true
         if let current = markers[id] { map.removeAnnotation(current) }
         markers[id] = next
         map.addAnnotation(next)
+        applying = false
         select(next, wantsSelection)
     }
 
     func removeMarker(id: String) {
         guard let current = markers.removeValue(forKey: id) else { return }
         selected.remove(id)
+        applying = true
         map.removeAnnotation(current)
+        applying = false
     }
 
     private func select(_ annotation: StopAnnotation, _ wanted: Bool) {

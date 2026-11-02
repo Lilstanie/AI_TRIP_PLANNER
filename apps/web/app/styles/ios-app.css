@@ -250,3 +250,11 @@ html[data-shell="ios-app"] body::after {
   content: "";
   pointer-events: none;
 }
+
+html[data-shell="ios-app"]
+  .workspace-shell[data-mobile-view="map"]
+  .trip-map:not(:has(.gm-style))
+  > .phone-map-details {
+  bottom: var(--ios-map-bleed-bottom);
+  max-height: calc(100% - var(--ios-map-bleed) - var(--ios-map-bleed-bottom) - 72px);
+}
