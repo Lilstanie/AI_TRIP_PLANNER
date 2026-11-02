@@ -49,6 +49,9 @@ Done: no duplicate PR exists, or you are working on the existing one.
   earlier the same day, restate the whole final shape in one sentence and wait for a yes before the
   next PR. The data-mode switch shipped three times on 2026-11-01 (#874, #883, #887) because each
   round asked one of these alone.
+- A bug fix also adds a machine check that fails on the old code (lint rule, type, verify script, or
+  deleting the helper that made the mistake easy), per `docs/development.md` § Lock a fixed bug. Run it
+  on the old code and quote the red output in Evidence; when no check can catch the class, say why.
 - Write the failure modes first (a `*.failures.md` next to the E2E), then the E2E.
 - Prove red then green with `DATA_MODE=mock node scripts/redgreen.mjs <e2e> -- <source paths>`; quote its before/after counts.
 - A behaviour change under `packages/*/src` or `apps/web/lib` with only Vitest tests needs either a redgreen record or a stated reason no E2E can cover it, in the PR Evidence section. The repository's CLAUDE.md prefers E2E tests as the sole mechanism.

@@ -227,7 +227,7 @@ function chooseCandidate(
     });
   }
 
-  settlePlan(plan, baseVersion, currency);
+  settlePlan(plan, baseVersion, currency, "traveller");
   return {
     plan: TripPlan.parse(plan),
     baseVersion,
@@ -700,8 +700,7 @@ export async function previewEdit(
         activityIds: [a.id!],
       })),
   ];
-  settlePlan(plan, baseVersion, currency);
-  if (operation.kind === "verify") plan.editVersion = baseVersion;
+  settlePlan(plan, baseVersion, currency, operation.kind === "verify" ? "background" : "traveller");
   const differences = activities.flatMap((a): EditDifference[] => {
     const old = before.find((b) => b.id === a.id);
 

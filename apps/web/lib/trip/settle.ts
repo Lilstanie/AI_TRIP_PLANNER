@@ -1,7 +1,12 @@
 import { TripPlan, type Currency } from "@trip/shared";
 import { detectConflicts, rollUpCost } from "@trip/orchestrator/plan-totals";
 
-export function settlePlan(plan: TripPlan, baseVersion: number, currency: Currency): void {
+export function settlePlan(
+  plan: TripPlan,
+  baseVersion: number,
+  currency: Currency,
+  write: "traveller" | "background",
+): void {
   plan.conflicts = detectConflicts(
     plan.sections.flatMap((s) => (s.proposal ? [s.proposal] : [])),
     plan.brief,
@@ -23,5 +28,5 @@ export function settlePlan(plan: TripPlan, baseVersion: number, currency: Curren
   plan.budgetTotal = plan.brief.budgetTotal;
 
   Object.assign(plan, rollUpCost(plan.sections, plan.budgetTotal));
-  plan.editVersion = baseVersion + 1;
+  plan.editVersion = write === "traveller" ? baseVersion + 1 : baseVersion;
 }

@@ -254,6 +254,25 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 修复缺陷时，先复现，用证据说明其原因，再修复该原因。不要用重试、加长超时、额外保护或特例来掩盖症状。若暂时只能采用变通方案，在 PR 和 session log 中说明，并写明它保留了哪个原因。
 
+<a id="lock-a-fixed-bug"></a>
+
+### 锁住修好的缺陷
+
+修好的缺陷要在同一个 PR 里加一条机器检查，让同样的错误回不来。选在旧代码上会失败的、成本最低的检查：
+
+- **Lint 规则**：禁止某个调用或写法。加到 `apps/web/.eslintrc.json`（web）或 `eslint.config.mjs`（packages），message 写明应该改用什么。
+- **类型**：调用方必须做选择时，用必填参数或联合类型，让每个新调用方都得决定。`settlePlan` 接收 `write: "traveller" | "background"`，因为路线检查曾被算成旅行者编辑（TP-247）。
+- **Verify 脚本**：仓库范围的事实，用 CI 运行的 `scripts/verify-*.mjs`。
+- **删除**：让错误容易发生、又没有别处使用的辅助函数，直接删掉。
+
+证明检查会触发：在旧代码上运行，并把报错输出贴进 PR 的 Evidence。若没有机器检查能挡住这类缺陷（模型措辞、地图时序），在 PR 中说明原因。现有规则：
+
+| 规则                                     | 位置                          | 锁住的缺陷                               |
+| ---------------------------------------- | ----------------------------- | ---------------------------------------- |
+| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`     | 手写金额格式                             |
+| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`     | 聊天追问时弹出错误的编辑确认框（TP-257） |
+| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts` | 后台写入被算成编辑（TP-247）             |
+
 <a id="verification"></a>
 
 ## 验证

@@ -52,6 +52,7 @@ export function useTripUndo(plan: TripPlan | undefined) {
             restored,
             next.editVersion ?? 0,
             effectiveCurrency(restored.brief, settings.displayCurrency),
+            "traveller",
           );
         } else if (step.operation.kind === "undo") {
           for (const item of step.operation.activities) enrich(item);

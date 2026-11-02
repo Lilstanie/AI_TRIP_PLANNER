@@ -49,14 +49,6 @@ export function detectCurrency(text: string): Currency | undefined {
   return undefined;
 }
 
-export function moneyIn(amount: number, currency: Currency): string {
-  return new Intl.NumberFormat("en-AU", {
-    style: "currency",
-    currency,
-    currencyDisplay: "narrowSymbol",
-  }).format(amount);
-}
-
 const MINOR_DIGITS: Record<Currency, number> = { AUD: 2, CNY: 2, USD: 2, JPY: 0 };
 
 export type MoneyStyle = "cents" | "whole" | "plain";

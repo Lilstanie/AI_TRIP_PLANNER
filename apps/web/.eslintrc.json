@@ -7,6 +7,39 @@
         "selector": "CallExpression[callee.property.name='toFixed'][arguments.0.value=2]",
         "message": "Format amounts with the Money module (@/lib/money): useLocale().money / fare / delta, labMoney in Agent Lab, or plannerAud for the planner sentence."
       }
+    ],
+    "no-restricted-properties": [
+      "error",
+      {
+        "object": "window",
+        "property": "confirm",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      },
+      {
+        "object": "window",
+        "property": "alert",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      },
+      {
+        "object": "window",
+        "property": "prompt",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      }
+    ],
+    "no-restricted-globals": [
+      "error",
+      {
+        "name": "confirm",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      },
+      {
+        "name": "alert",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      },
+      {
+        "name": "prompt",
+        "message": "No blocking browser dialogs: apply the change and offer Undo (decision 2026-10-08, TP-257)."
+      }
     ]
   }
 }
