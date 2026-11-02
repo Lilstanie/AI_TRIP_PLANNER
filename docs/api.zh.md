@@ -115,6 +115,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `mentions`：旅客点名的 specialist id（`itinerary`、`transport`、`accommodation`、`destination-guide`、`dining`），最多五个且互不相同。缺省时本轮仍交给协调员。带 `plan` 时，只有这些 specialist 运行并修改自己的部分，随后进行冲突检查和定向修订，响应的 `assistant` 为第一个被提及的 id。没有 `plan` 时，被提及的 specialist 只作答，不创建任何内容，并通过 `needs_info` 帧（同样带可选的 `assistant`）向旅客收集行程信息。
 
+可选的 `history`：本对话之前最多 20 轮，按时间先后排列，每轮为 `{ role: "user" | "assistant", content }`，`content` 最多 8,000 个字符（`ChatHistoryTurn`）。网页端在每条聊天消息和追问回答中发送当前可见的对话。只有服务器自己的该行程短期记忆为空时（例如请求落到另一个无服务器实例）才使用它；否则以服务器存储的对话为准。
+
 可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
 只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。
