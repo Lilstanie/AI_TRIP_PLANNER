@@ -201,7 +201,8 @@ describe("POST /api/agent-lab/runs live gate", () => {
     return frames[0];
   };
 
-  it("refuses live on a deployment that has not enabled it, before any run or external call", async () => {
+  it("refuses live on a deployment that has turned it off, before any run or external call", async () => {
+    vi.stubEnv("AGENT_LAB_LIVE_ENABLED", "false");
     const spy = network();
     const response = await post(live);
     expect(response.status).toBe(503);

@@ -312,7 +312,7 @@ Trip 行程不再显示 specialist 卡片（Day plan、Getting around、Stay、D
 ## Agent Lab
 
 `/agent-lab` 是公开的工程演示路由，即使 Clerk 保护主工作区时也可访问。它不共用工作区外壳，
-也不读写工作区的浏览器存储。工具栏提供一个已注册场景、策略选择和 Data mode 控件；
+也不写入工作区的浏览器存储，只读取已保存的 Trip data 偏好。工具栏提供一个已注册场景、策略选择和 Data mode 控件；
 NDJSON 响应活动期间，Run experiment 按钮会变为 Cancel run。Compare all strategies 会先后运行单 agent 基线、
 五 specialist 无修订策略和定向修订策略，并打开对比视图。场景列表还提供预算紧张的东京行程，其第一版计划会超支，
 且只有 transport 被修订；一趟预算无论如何都放不下的巴黎家庭行程；以及一趟七晚的东京与京都行程，每个策略都必须保持城市间移动的一致。
@@ -366,7 +366,7 @@ Fold rounds 会隐藏属于某一轮的所有行，只为每一轮保留一个�
 被故障终止的运行保留其轨迹且不显示计划，因为没有组装出计划。结果仅从产物读取并在状态区域播报，因此实时运行、下载文件及其回放读起来完全一致。
 每张卡片都提供 Download artifact（包括失败的运行），回放故障产物会打开这个视图。
 
-Data mode 默认是 Fixture data。只有部署启用后才能选择 Live data，未启用时页面会事先说明。选择 Live data 会把脚本化基线标为仅 fixture，并只运行 specialist 策略。
+调用方可以使用实时运行且 Trip data 偏好不是示例数据时，Data mode 默认是 Live data，否则是 Fixture data。只有部署上已登录、且部署没有关闭实时运行时才能选择 Live data，不可用时页面会事先说明（需要登录或未启用）。选择 Live data 会把脚本化基线标为仅 fixture，并只运行 specialist 策略。
 服务器拒绝的请求（实时未启用，或达到并发或每小时限额）会显示 Live run not started 和一条警示，说明触及了哪个限额、需要等待多久以及没有运行任何东西；它从不被显示为失败的运行，且 fixture 数据始终可用。
 轨迹、指标、对比和每个产物都会标明 Fixture data 或 Live data。已测量的用量显示提供方返回的 token 数并说明未报告成本；未测量的用量显示 Unavailable，绝不是 0。
 

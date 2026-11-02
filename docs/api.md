@@ -301,8 +301,8 @@ message or a provider payload.
 that request, so it makes no external call and spends no quota whatever keys or data-mode default the
 deployment holds. It needs no credential, and neither it nor a live run persists chats, trips or lab results.
 
-On a deployment, a live run requires a signed-in traveller; without configured authentication it is refused. Local development without authentication may still run live. A live run uses the deployment's own models and providers, and exists only where the deployment sets
-`AGENT_LAB_LIVE_ENABLED=true` (see [development](development.md)). Only the two specialist strategies have a live
+On a deployment, a live run requires a signed-in traveller; without configured authentication it is refused. Local development without authentication may still run live. A live run uses the deployment's own models and providers, and exists unless the deployment sets
+`AGENT_LAB_LIVE_ENABLED=false` (see [development](development.md)). Only the two specialist strategies have a live
 implementation; the single-agent baseline replays a recording, so asking for it live is refused. A request that
 cannot start is answered with one typed `rejected` frame and no run, never an artifact: 401 `live_disabled` when authentication is required or unavailable, 503 `live_disabled`, 400
 `live_unsupported`, or 429 `concurrency_limit` or `rate_limit` with a `Retry-After` header and
