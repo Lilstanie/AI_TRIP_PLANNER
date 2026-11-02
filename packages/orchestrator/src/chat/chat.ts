@@ -1,5 +1,6 @@
 import { createRoutedChatModel, replyLanguageRule } from "@trip/agents";
 import { COORDINATOR_PROMPT } from "./coordinator-prompt";
+import { reusedPlacesNote } from "./reused-places";
 import { memory } from "@trip/services";
 import {
   effectiveCurrency,
@@ -378,13 +379,7 @@ function planDigest(plan: TripPlan, currency: Currency, amounts = true) {
 function fallbackReplyFor(plan: TripPlan, currency: Currency, language: InterfaceLanguage): string {
   const itineraryItems =
     plan.sections.find((section) => section.id === "itinerary")?.proposal?.items ?? [];
-  const reusedPlaceNotes = reusedActivityPlaces(itineraryItems).map(({ location, days }) =>
-    language === "zh"
-      ? `行程在${days.map((day) => `第 ${day} 天`).join("、")}重复使用了同一站点 ${location}，这是同一个地方，不是不同的活动。`
-      : `The plan reuses the same stop, ${location}, on ${days
-          .map((day) => `Day ${day}`)
-          .join(", ")}; this is one place repeated, not distinct activities.`,
-  );
+  const reusedNote = reusedPlacesNote(reusedActivityPlaces(itineraryItems), language);
   const summaries = plan.conflicts?.some(isInfeasible)
     ? []
     : plan.sections
@@ -392,9 +387,9 @@ function fallbackReplyFor(plan: TripPlan, currency: Currency, language: Interfac
         .filter(Boolean)
         .slice(0, 2)
         .map((summary) => asSentence(summary, language));
-  return [...summaries, costLine(plan, currency, language), ...reusedPlaceNotes].join(
-    language === "zh" ? "" : " ",
-  );
+  return [...summaries, costLine(plan, currency, language), reusedNote]
+    .filter(Boolean)
+    .join(language === "zh" ? "" : " ");
 }
 
 function asSentence(text: string, language: InterfaceLanguage): string {

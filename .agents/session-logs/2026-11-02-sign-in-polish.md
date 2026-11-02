@@ -3,7 +3,7 @@ date: 2026-11-02
 author: Claude Code (for Joey)
 branch: fix/TP-289-sign-in-polish
 pr: none
-area: apps/web, packages/agents
+area: apps/web, packages/agents, packages/orchestrator
 contract-impact: none
 ---
 
@@ -61,6 +61,15 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - No machine check here; the cause is the generic rule's specificity. Wrapping its `:not()` list
   in `:where()` would let every component rule win, but it touches every button in the app and
   needs a full visual pass, so it is left as a follow-up.
+
+## Round 7: TP-294 fallback reply listed every repeated stop
+
+- `packages/orchestrator/src/chat/reused-places.ts`: `reusedPlacesNote` keeps the one-stop sentence
+  and folds several repeated stops into one sentence (count, first three with days, "and N more").
+  `chat.ts` fallback reply uses it. An 8-day mock trip printed nine near-identical sentences.
+- Failure inventory `tests/reused-places-note.failures.md` written first; check
+  `tests/reused-places-note.test.ts`. On the old code the note module does not exist, so the check
+  fails at import. Orchestrator suite: 435 passed.
 
 ## Notes for the next person
 
