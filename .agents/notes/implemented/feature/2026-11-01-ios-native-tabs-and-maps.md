@@ -1,6 +1,6 @@
 # Agent Note: native tab bar and Apple Maps in the iOS app
 
-Status: proposed
+Status: implemented
 Owner: C (@HeadmasterEggy)
 
 ## Problem
@@ -9,7 +9,7 @@ The [iOS app shell](../../implemented/feature/2026-11-01-ios-app-shell.md) shows
 web view, so its tab bar and map are web imitations of iOS. The owner asked for a hybrid instead: the
 system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat and the trip staying web.
 
-## Proposal
+## Decision
 
 - The site does not bundle `@capacitor/core`, so `Capacitor.Plugins` is never filled in the app.
   `components/pwa/native-shell.ts` calls the bridge Capacitor injects (`Capacitor.nativePromise` and
@@ -41,24 +41,18 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
 - **Ask the page at touch time whether a point is covered**: JavaScript cannot answer synchronously
   inside native hit-testing, so the page reports panels ahead of time.
 
-## Acceptance criteria
+## Consequences
 
-- Tapping a native tab switches the web page; web tab changes, new tabs, badge dots and hidden states
-  update the native bar.
-- An app build without the native plugins keeps the web tab bar and the web map.
-- The Map tab shows the trip's stops and routes on Apple Maps, and tapping a pin opens that stop as on
-  the web map.
-- `apps/web/tests/e2e/ios-app-shell.e2e.mjs` passes with a fake native plugin: tab mirroring, relayed
-  taps, the Map tab's frame, pins and routes, a cleared backdrop, and a pin tap opening the stop.
-
-## Risks
-
-- The native parts need a new Xcode build and have not been compiled yet; the web parts need a
-  production deploy. An app built before this change keeps the web tab bar and map.
+- The native parts need a new Xcode build and the web parts a production deploy. An app built before
+  this change keeps the web tab bar and map; Safari and the PWA never see either.
+- The Swift code compiled on the owner's Mac with no warnings and the app launched in the iOS
+  Simulator; the native tab bar and Apple Maps still need a check against the deployed site.
 - A web panel missing from the reported list lets touches through to the map; add its selector to
   `OCCLUDERS` in `apple-maps-renderer.ts`.
 - Satellite view works on Apple Maps; the animated route dashes are Google-only.
-- Browser emulation cannot show MapKit; check the map on the iOS Simulator.
+- `apps/web/tests/e2e/ios-app-shell.e2e.mjs` checks the bridge with a fake native plugin: tab mirroring,
+  relayed taps, the Map tab's frame, pins and routes, a cleared backdrop, and a pin tap opening the
+  stop. Browser emulation cannot show MapKit.
 
 ## Sources
 

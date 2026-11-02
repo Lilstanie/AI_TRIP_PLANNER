@@ -194,7 +194,7 @@ pnpm --filter @trip/ios open
 然后在 iPhone 的 设置 → 通用 → VPN 与设备管理 里信任这个开发者。
 
 App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地图；见
-[原生标签栏与 Apple 地图说明](../.agents/notes/proposed/feature/2026-11-01-ios-native-tabs-and-maps.md)。
+[原生标签栏与 Apple 地图说明](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md)。
 
 <a id="licence-and-third-party-code"></a>
 
