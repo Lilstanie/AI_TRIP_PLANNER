@@ -532,7 +532,7 @@
 }
 @media (max-width: 520px) {
   .trip-home__scroll {
-    padding: var(--space-5) var(--space-4) var(--space-6);
+    padding: calc(env(safe-area-inset-top) + var(--space-5)) var(--space-4) var(--space-6);
   }
   .trip-home__composer {
     padding-inline: var(--space-4);
