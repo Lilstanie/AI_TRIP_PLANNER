@@ -12,7 +12,6 @@ import {
   type StaySelection,
   type InterfaceLanguage,
   type TripPace,
-  TRIP_PACES,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -24,7 +23,6 @@ import { avoidBlockedWindows } from "./revision";
 import { mealsByCityFrom, withGrounded, withMeals } from "./meals";
 import { dietaryPreferencesForBrief } from "../dining";
 import {
-  arrivalSlots,
   beforeLanding,
   departureFor,
   departureNote,
@@ -38,16 +36,19 @@ import { PACE_MAX, sightsByDay, trimToPace } from "./pace-cap";
 import {
   TIME,
   activityFitsTransferWindows,
+  blockedAllDay,
   transferWindowsByDay,
   type TransferSegment,
   type TransferWindow,
 } from "./transfer-windows";
 import { mockEnabled } from "@trip/tools";
-import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembered-preferences";
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 import { interestQueries, interleave, namedPlaces } from "./interest-places";
+import { fallbackDraft, planningPace } from "./fallback";
+
+export { planningPace };
 
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
 
@@ -199,10 +200,28 @@ function citiesForStayNights(
   });
 }
 
-const blockedAllDay = (windows: ReadonlyMap<number, TransferWindow[]>, day: number) =>
-  (windows.get(day) ?? []).some(
-    (window) => window.startTime === "00:00" && window.endTime === "23:59",
+function withoutRepeatedPlaces(
+  draft: ItineraryDraft,
+  places: readonly Place[],
+  placesByCity: ReadonlyMap<string, readonly Place[]>,
+  dayCities: string[][],
+): ItineraryDraft {
+  const key = (name: string) => name.trim().toLocaleLowerCase();
+  const used = new Set(draft.activities.map(({ location }) => key(location)));
+  const seen = new Map<string, number>();
+  const ordered = [...draft.activities].sort((a, b) => a.day - b.day);
+  const repeats = new Set(
+    ordered.filter(({ day, location }) => {
+      const first = seen.get(key(location)) ?? day;
+      seen.set(key(location), first);
+      if (first === day || draft.activities.filter((other) => other.day === day).length < 2)
+        return false;
+      const cityPlaces = (dayCities[day - 1] ?? []).flatMap((city) => placesByCity.get(city) ?? []);
+      return (cityPlaces.length ? cityPlaces : places).some(({ name }) => !used.has(key(name)));
+    }),
   );
+  return { ...draft, activities: draft.activities.filter((activity) => !repeats.has(activity)) };
+}
 
 function validateDraft(
   draft: ItineraryDraft,
@@ -299,130 +318,12 @@ function isGenericPlace(place: Place, near: string, destination: string): boolea
     .includes(name);
 }
 
-const DAY_SLOTS = [
-  { startTime: "09:30", endTime: "12:00" },
-  { startTime: "14:00", endTime: "16:30" },
-] as const;
-
-const SINGLE_SLOT = { startTime: "13:00", endTime: "16:00" } as const;
-
-const PACKED_SLOTS = [
-  { startTime: "08:30", endTime: "10:00" },
-  { startTime: "10:45", endTime: "12:00" },
-  { startTime: "14:30", endTime: "15:45" },
-  { startTime: "16:30", endTime: "17:45" },
-] as const;
-
 const PACE_ACTIVITIES: Record<TripPace, string> = {
   relaxed: "1-2 activities a day",
   balanced: "2-3 activities a day",
   packed:
     "4-6 sights a day from morning to evening, plus lunch and dinner when restaurantsByCity is given",
 };
-
-export function planningPace(brief: TripBrief, preferences: UserPreference[]): TripPace {
-  const { pace } = rememberedPlanningPreferences(preferences, brief.intent);
-  return TRIP_PACES.find((option) => pace.includes(option)) ?? "balanced";
-}
-
-function fallbackDraft(
-  brief: TripBrief,
-  days: number,
-  places: Place[],
-  preferences: UserPreference[],
-  placesByCity?: ReadonlyMap<string, readonly Place[]>,
-  dayCities?: string[][],
-  transferWindows: ReadonlyMap<number, TransferWindow[]> = new Map(),
-  language?: InterfaceLanguage,
-  landing?: Landing,
-): ItineraryDraft {
-  const candidates = places;
-  const { interests, accessibility } = rememberedPlanningPreferences(preferences, brief.intent);
-  const pace = planningPace(brief, preferences);
-
-  const cityNames = cities(brief.destination);
-  const citiesByDay = dayCities ?? cityForDay(cityNames, days).map((city) => [city]);
-  const placesForCity = (city: string): readonly Place[] => {
-    const inCity = placesByCity?.get(city) ?? [];
-    return placesByCity && placesByCity.size > 1 ? inCity : inCity.length ? inCity : candidates;
-  };
-
-  const scarcest = Math.min(
-    ...Array.from(
-      { length: days },
-      (_, day) => placesForCity(citiesByDay[day]?.at(-1) ?? cityNames[0]!).length,
-    ),
-  );
-  const daySlots = pace === "packed" && !accessibility ? PACKED_SLOTS : DAY_SLOTS;
-  const perDay =
-    accessibility || pace === "relaxed"
-      ? 1
-      : Math.min(daySlots.length, Math.max(1, Math.floor(scarcest / 2) || 1));
-
-  const slots = perDay === 1 ? [SINGLE_SLOT, ...DAY_SLOTS] : daySlots;
-  const activities: ItineraryDraft["activities"] = [];
-  const incompleteDays: number[] = [];
-  const visits = new Map<string, number>();
-  for (let dayIndex = 0; dayIndex < days; dayIndex += 1) {
-    const day = dayIndex + 1;
-    const dayWindows = transferWindows.get(day) ?? [];
-    const dayCitiesForActivities = citiesByDay[dayIndex] ?? [cityNames[0]!];
-    if (landing && (day < landing.day || (day === landing.day && !landing.earliestStart))) continue;
-    if (blockedAllDay(transferWindows, day)) continue;
-    const openSlots = landing?.day === day ? arrivalSlots(slots, landing) : slots;
-    let added = 0;
-    for (const slot of openSlots) {
-      const city = dayCitiesForActivities.find((candidate) => {
-        const cityPlaces = placesForCity(candidate);
-        if (!cityPlaces.length) return false;
-        return activityFitsTransferWindows(slot, candidate, dayWindows);
-      });
-      if (!city) continue;
-      const cityPlaces = rankPlacesByInterests(placesForCity(city), interests);
-      const visit = visits.get(city) ?? 0;
-      visits.set(city, visit + 1);
-      const place = cityPlaces[visit % cityPlaces.length]!;
-      activities.push({
-        day,
-        ...slot,
-        location: place.name,
-        detail: summaryCopy(language).suggestedStop(place.name, place.category),
-      });
-      added += 1;
-      if (added === perDay) break;
-    }
-    if (!added) incompleteDays.push(day);
-  }
-  return {
-    summary: summaryCopy(language).itinerary(days, brief.destination, perDay),
-    activities,
-    assumptions: [
-      "Opening hours and live availability must be confirmed before plans are finalised.",
-      perDay === 1
-        ? "One grounded activity is scheduled each day; the rest of each day is left open."
-        : perDay > 2
-          ? `Up to ${perDay} grounded stops a day for a packed pace, with lunch and dinner between them.`
-          : "Two anchored stops a day, with the middle of the day left for a meal and the journey between them.",
-      ...(pace === "relaxed"
-        ? ["The remembered relaxed pace is reflected in the one-activity daily schedule."]
-        : []),
-      ...(interests.length
-        ? [
-            `Grounded candidates matching remembered interests (${interests.join(", ")}) are preferred when available.`,
-          ]
-        : []),
-      ...(accessibility
-        ? [
-            `The schedule is limited to one grounded activity per day for the remembered ${accessibility} need; place access and routes are not verified.`,
-          ]
-        : []),
-      ...incompleteDays.map(
-        (day) =>
-          `Day ${day} is incomplete because no grounded activity fits the existing slots and scheduled transfer window; no late activity time was invented.`,
-      ),
-    ],
-  };
-}
 
 function validatedFallbackDraft(
   brief: TripBrief,
@@ -483,7 +384,7 @@ function createDeepSeekGenerator(): ItineraryGenerator | undefined {
         name: "itinerary_specialist",
         model,
         tools: [evidence],
-        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day the traveller is not flying with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; visit each candidate at most once in the whole trip while unused candidates remain for that city; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When schedule is given, it lists every trip day: a day marked travelling gets no activities at all, and a day with earliestStart gets none that start before it. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When departure is given, the traveller flies home then: every stop on departure.day must end by departure.latestEnd, and plan nothing that day when latestEnd is missing. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
+        systemPrompt: `You are the itinerary specialist. Always call read_itinerary_evidence before drafting. Use only its facts and candidate place names. Cover every trip day the traveller is not flying with non-overlapping activities using 24-hour HH:mm times, as many as pace asks: relaxed 1-2, balanced 2-3, packed 4-6 sights a day; visit each candidate at most once in the whole trip while unused candidates remain for that city; start night markets, bars, clubs, live music and shows at 18:00 or later; pace comes from the traveller and wins over any other count, allow time for the route plus a 15-minute arrival buffer between different locations; route durations are checked after drafting and are not yet verified, and treat activityBudget, what flights and the stay left for activities, as a guide to how many paid attractions to include. Do not state activity prices: no evidence has them. When dayCities is given, every activity on a day must be a candidate from one of that day's cities in candidatesByCity; a transfer day may include departure and arrival cities, but departure-city activities must end before the transfer and arrival-city activities must start after it ends. When otherSections names where the traveller sleeps, build each day around that stay and keep long trips away from it rare. Apply confirmed preferences supplied in the evidence where candidate data allows, especially remembered pace, interests and accessibility needs. On a revision, start from previous and change only what the revision asks. Never claim live hours, availability, safety, visa or weather facts. Address a supplied revision exactly. When schedule is given, it lists every trip day: a day marked travelling gets no activities at all, and a day with earliestStart gets none that start before it. When arrival is given, the traveller is still flying until then: plan nothing before arrival.day, start nothing on that day before arrival.earliestStart, and plan nothing that day when earliestStart is missing; every later day still needs activities. When departure is given, the traveller flies home then: every stop on departure.day must end by departure.latestEnd, and plan nothing that day when latestEnd is missing. When restaurantsByCity is given, add one lunch or dinner a day (both lunch and dinner for a packed pace) at a restaurant listed for that day's city, each restaurant at most once while others remain, between the day's other stops; never name a restaurant that is not listed. Return the requested structured itinerary draft.\n\nEach activity location must be a candidate's name copied character for character. Do not append its category, rating or district, and do not reword it: an activity whose location is not an exact candidate name is discarded and the whole draft is thrown away.\n\n${TRAVELLER_PREFERENCES_RULE}${replyLanguageRule(input.language)}`,
         responseFormat: ItineraryDraft,
       });
       const result = await specialist.invoke({
@@ -726,7 +627,7 @@ async function planItinerary(
             : {}),
         });
         const valid = validateDraft(
-          generated,
+          withoutRepeatedPlaces(generated, grounded.places, grounded.byCity, dayCities),
           days,
           grounded.places,
           dayCities,
