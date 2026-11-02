@@ -41,9 +41,7 @@ function CategoryIcon({ category, size }: { category: CalendarCategory; size: nu
 
 function statusLabel(entry: CalendarEntry, locale: AppLocale) {
   if (entry.allDay) {
-    return entry.category === "activity"
-      ? translate(locale, "untimed")
-      : translate(locale, "allDay");
+    return entry.category === "activity" ? translate(locale, "untimed") : entry.detail;
   }
   return [entry.startTime, entry.endTime].filter(Boolean).join("–");
 }

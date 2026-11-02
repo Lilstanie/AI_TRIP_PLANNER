@@ -348,6 +348,7 @@ button.trip-home-calendar__event:hover {
   min-width: 0;
   overflow: hidden;
   overflow-wrap: anywhere;
+  word-break: keep-all;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }

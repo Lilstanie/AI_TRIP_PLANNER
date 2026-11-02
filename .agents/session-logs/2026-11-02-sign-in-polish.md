@@ -94,3 +94,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `lib/trip/timeline.ts` gains `flightRoute(flight, role)`; the calendar and `BookingRow` both call it.
 - Machine check: `tests/lib/trip/flight-route.test.ts` (inventory `flight-route.failures.md` written first). On the old code it fails with `TypeError: flightRoute is not a function`.
 - Validation: calendar screenshot shows "巴厘岛 → 珀斯" on the last day; `tsc --noEmit`, eslint on changed files, `tests/lib/trip` pass.
+
+## Round 11 — TP-298 calendar all-day flight chips
+
+- Week calendar (1440px, zh and en): flight chips sit under the "All day" heading but their meta line said "All day" again, and the 110px columns broke "巴厘岛" as "巴厘" / "岛".
+- `TripHomeCalendar.tsx`: an untimed flight or stay shows its own detail ("Flight", "Return flight", night index) instead of repeating "All day"; untimed activities keep "Untimed".
+- `trip-home-calendar.css`: event titles use `word-break: keep-all`, so CJK place names wrap between words; `overflow-wrap: anywhere` still breaks a word that cannot fit.
+- Validation: zh and en calendar screenshots; `tsc --noEmit`, eslint, `check-ui-copy` pass. No machine check: wrapping depends on rendered width, and the label change is copy.
