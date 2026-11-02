@@ -24,6 +24,8 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   name, selected), route lines and travel-mode badges to the `TripMap` plugin in `TripMap.swift`, which
   draws them on an `MKMapView` placed under the web view's content. Pins use `MKMarkerAnnotationView`,
   so MapKit lays out and hides crowded names.
+- Only the Map tab's map uses it. Other phone maps, such as the trip home preview, keep Google Maps or
+  MapLibre, because the cleared backgrounds above a small native map turned the whole page black.
 - While the map is visible the web marks the map's ancestors with `data-native-map-hole` and clears
   their backgrounds, and reports the map's frame and the web panels over it (top bar, tab bar, day
   sheet, popup, controls). The web view sends a touch to the map only when it is inside the frame and

@@ -115,7 +115,10 @@ export async function loadRenderer(
   settings: { forceOsm?: boolean; allowFallback?: boolean; signal?: AbortSignal } = {},
 ): Promise<MapRuntime> {
   const { forceOsm = false, allowFallback = true, signal } = settings;
-  if (root.closest(".workspace-app[data-phone] .trip-map-canvas") && nativePlugin("TripMap")) {
+  if (
+    root.closest(".workspace-app[data-phone] .workspace-panel--map .trip-map-canvas") &&
+    nativePlugin("TripMap")
+  ) {
     const { appleMapsRenderer } = await import("./apple-maps-renderer");
     signal?.throwIfAborted();
     return create(root, appleMapsRenderer(), options, "apple");

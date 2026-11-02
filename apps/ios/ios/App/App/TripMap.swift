@@ -175,10 +175,15 @@ final class TripMapController: NSObject, MKMapViewDelegate {
             top: padding + inset.top, left: padding + inset.left,
             bottom: padding + inset.bottom, right: padding + inset.right
         )
+        let stops = MKMapPoint(x: target.midX, y: target.midY)
         target = map.mapRectThatFits(target, edgePadding: edges)
         if let maxZoom, zoom(of: target) > maxZoom {
-            let center = MKMapPoint(x: target.midX, y: target.midY).coordinate
-            target = rect(center: center, zoom: maxZoom)
+            let scale = pow(2, 20 - maxZoom)
+            let width = Double(map.bounds.width) * scale
+            let height = Double(map.bounds.height) * scale
+            let x = stops.x - Double(edges.left - edges.right) / 2 * scale
+            let y = stops.y - Double(edges.top - edges.bottom) / 2 * scale
+            target = MKMapRect(x: x - width / 2, y: y - height / 2, width: width, height: height)
         }
         apply { map.setVisibleMapRect(target, animated: false) }
     }
