@@ -76,7 +76,9 @@ step.
 3. Progress events stream to the browser as NDJSON; the final frame carries `{ reply, plan }`.
 4. After intake, the traveller changes a plan by saying so in chat or editing the itinerary,
    without an approval checkpoint. Map lookups and itinerary
-   edit previews use the map routes in `apps/web` and never re-run the planner.
+   edit previews use the map routes in `apps/web` and never re-run the planner. A chat change that
+   reruns only the itinerary replaces the plan's itinerary section in place, so the plan never holds
+   two (`planning/workflow.ts`).
 
 ## Web map providers
 
@@ -317,7 +319,7 @@ Specialist proposals, the brief and the final plan are re-validated at the graph
   The failure cases and decision are recorded in the
   [multi-city transfer-day Agent Note](../.agents/notes/implemented/bug-fix/2026-10-19-multicity-transfer-windows.md).
 - Transport searches and prices every planned flight leg, including traveller-selected inter-city flights; each available fare carries its route and selection into the proposal. A flight without a valid fare remains unpriced.
-- The journey closes on the last day (`journeyLegs` in `transport/legs.ts`). When the trip flies in and ends in a different city from the first, a closing hop takes the traveller back to the first city, where the round-trip flight leaves; any inter-city ground hop over six hours (the traveller has not chosen its mode) is priced as a flight and flown when a fare exists, otherwise it stays on the ground, and the model is told to arrive three hours before the return flight. When the traveller arrived by ground (drive, train or coach), a closing leg takes them home by the same mode, and the itinerary blocks that day from the leg's departure. The ground leg in on the first day is blocked the same way: no stop in the destination starts before it arrives. Accommodation ignores the closing hop when it splits nights.
+- The journey closes on the last day (`journeyLegs` in `transport/legs.ts`). When the trip flies in and ends in a different city from the first, a closing hop takes the traveller back to the first city, where the round-trip flight leaves; any inter-city ground hop over six hours (the traveller has not chosen its mode) is priced as a flight and flown when a fare exists, otherwise it stays on the ground, and the model is told to arrive three hours before the return flight. When the traveller arrived by ground (drive, train or coach), a closing leg takes them home by the same mode, and the itinerary blocks that day from the leg's departure. The ground leg in on the first day is blocked the same way: no stop in the destination starts before it arrives, and a leg from home starts the day's city chain wherever the traveller is (`citiesForStayNights` in `itinerary/index.ts`). Accommodation ignores the closing hop when it splits nights.
 - The itinerary reads the selected outbound flight the same way `detect_conflicts` does (`outboundArrival` in `packages/shared/src/arrival.ts`). It plans nothing before landing day, and on that day it starts stops 90 minutes after landing. A landing after 16:00 leaves that day empty. Days in the air are noted as travel days, not as incomplete days.
 - Accommodation reads the same arrival: when the outbound flight lands after day 1, the first city's check-in moves to the landing date, so nights spent travelling are not booked.
 - The itinerary also asks the place tools for each city's restaurants. If the traveller has a dietary requirement, it uses the same text query as dining. It then adds one lunch or dinner a day at a found restaurant, rotating so a restaurant repeats only after the others are used. Restaurants never replace sights; a failed restaurant lookup is reported and leaves the sights in place.

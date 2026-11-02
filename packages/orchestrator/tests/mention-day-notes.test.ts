@@ -45,4 +45,20 @@ describe("day notes through a mention revision", () => {
     const plan = await mentionPlan(["2027-06-15", "2027-06-16"]);
     expect(plan.dayNotes).toBeUndefined();
   });
+
+  it("keeps a single itinerary section after a change to one day", async () => {
+    const seed = await run(
+      { tripId: brief.tripId, message: "plan it", brief },
+      scriptedModel([{ name: "replan_trip", args: {}, id: "c1" }]),
+      memoryStore().mem,
+    );
+    const result = await run(
+      { tripId: brief.tripId, message: "rework day 2", brief, plan: seed.plan },
+      scriptedModel([
+        { name: "change_itinerary", args: { change: "Rework day 2", days: [2] }, id: "c2" },
+      ]),
+      memoryStore().mem,
+    );
+    expect(result.plan.sections.filter(({ id }) => id === "itinerary")).toHaveLength(1);
+  });
 });
