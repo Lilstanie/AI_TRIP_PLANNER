@@ -37,10 +37,11 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
 - The renderer's camera state updates only from native region reports, so it can lag behind a fit made
   while the map was hidden. It drops a camera field that matches that state, so re-centring on the
   current centre after a resize never replaces a pending fit.
-- The native map centres and reports the centre of the area the web leaves visible (inside the layout
-  insets for the top bar and the Day stops sheet or an open stop's details), not of its full frame. When those insets change before
-  the traveller touches the map, it repeats its last fit or camera move, so stops stay framed above the
-  sheet as it settles.
+- The layout insets (top bar, and the Day stops sheet or an open stop's details) become the map's
+  `layoutMargins`. MapKit fits `setVisibleMapRect` into the area inside them and reports
+  `visibleMapRect` for that area, so the native code sizes rects and zoom levels by that inner area
+  and never offsets the centre itself. When the insets change before the traveller touches the map,
+  it repeats its last fit or camera move, so stops stay framed above the sheet as it settles.
 - The app asks for location while in use, so the map's location button works in the web view.
 
 ## Alternatives considered
