@@ -55,6 +55,15 @@ describe("specialist summary copy", () => {
       "2 transport options for Sydney ↔ Tokyo → Kyoto · known estimate A$900",
     );
     expect(
+      en.transport({
+        ...transport,
+        origin: " tokyo",
+        unpriced: 0,
+        unavailable: 0,
+        incomplete: false,
+      }),
+    ).toBe("2 transport options for Tokyo → Kyoto · known estimate A$900");
+    expect(
       en.weather("Tokyo", "2027-06-18", { horizon: "forecast", summary: "Rain, 8–14°C." }),
     ).toBe("Tokyo, Fri, 18 June (forecast): Rain, 8–14°C.");
     expect(en.weather("Tokyo", "2027-06-18", { horizon: "climate", summary: "Mild." })).toBe(

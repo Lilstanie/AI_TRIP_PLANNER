@@ -3,7 +3,7 @@ date: 2026-11-02
 author: Claude Code (for Joey)
 branch: fix/TP-289-sign-in-polish
 pr: none
-area: apps/web
+area: apps/web, packages/agents
 contract-impact: none
 ---
 
@@ -43,6 +43,14 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   At 44 px an hour, a 60-minute lunch with a two-line title showed only the top half of "12:15–13:15".
 - Local dev week view at 1440 px, zh: lunch blocks show one title line and the full time.
 - No machine check: clipping depends on rendered text height, which no lint or type sees.
+
+## Round 5: TP-292 transport route repeated the first city
+
+- `packages/agents/src/summary-copy.ts`: the transport line drops "origin ↔" when the origin is the
+  first destination (the fallback when no origin is known), so "东京 ↔ 东京 → 京都" reads "东京 → 京都".
+- Failure inventory added to `packages/agents/tests/summary-copy.failures.md` before the code.
+- Check: `summary-copy.test.ts` expects "2 transport options for Tokyo → Kyoto" with origin
+  " tokyo"; on the old code it received "for  tokyo ↔ Tokyo → Kyoto". Agents suite: 211 passed.
 
 ## Notes for the next person
 

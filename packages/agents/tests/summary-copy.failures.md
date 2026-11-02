@@ -31,3 +31,13 @@ Written before the code (#492). Each line is a way the change could fail.
 - The provider's weather summary or the city name is dropped or translated.
 - A date is shifted by the server's time zone, so the day name is one day off.
 - A guide with no reply language crashes instead of using English.
+
+## Transport route without a separate origin (TP-292)
+
+Written before the code. The origin falls back to the first destination when the brief and
+preferences name none.
+
+- The route repeats the first city ("Tokyo ↔ Tokyo → Kyoto", "东京 ↔ 东京 → 京都").
+- A real origin that differs from the first destination loses its "↔" leg.
+- The same city written with other case or spacing ("tokyo", " Tokyo") still repeats.
+- A single-city trip whose origin is that city prints an empty route.
