@@ -1,4 +1,4 @@
-import type { TripBrief } from "@trip/shared";
+import type { Place, TripBrief } from "@trip/shared";
 
 const INTEREST_QUERY: Partial<Record<string, string>> = {
   temples: "famous temples and shrines",
@@ -27,4 +27,21 @@ export function interleave<T>(lists: readonly (readonly T[])[]): T[] {
   return Array.from({ length: longest }, (_, index) =>
     lists.flatMap((list) => (index < list.length ? [list[index]!] : [])),
   ).flat();
+}
+
+export async function namedPlaces(
+  names: readonly string[],
+  cities: readonly string[],
+  read: (category: string, near: string, textQuery?: string) => Promise<Place[]>,
+): Promise<Map<string, Place[]>> {
+  const found = new Map<string, Place[]>();
+  for (const name of names) {
+    for (const city of cities) {
+      const [match] = await read("sight", city, name);
+      if (!match) continue;
+      found.set(city, [...(found.get(city) ?? []), match]);
+      break;
+    }
+  }
+  return found;
 }

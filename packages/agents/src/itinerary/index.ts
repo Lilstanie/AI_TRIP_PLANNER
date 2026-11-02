@@ -47,7 +47,7 @@ import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembe
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
-import { interestQueries, interleave } from "./interest-places";
+import { interestQueries, interleave, namedPlaces } from "./interest-places";
 
 const MODEL_ACTIVITY_BUDGET_SHARE = 0.4;
 
@@ -597,15 +597,7 @@ async function planItinerary(
     Promise.all(cityNames.map(readMeals)),
   ]);
   ctx.signal?.throwIfAborted();
-  const askedFor = new Map<string, Place[]>();
-  for (const name of revision?.places ?? []) {
-    for (const [city] of byCity) {
-      const [match] = await readPlaces("sight", city, name);
-      if (!match) continue;
-      askedFor.set(city, [...(askedFor.get(city) ?? []), match]);
-      break;
-    }
-  }
+  const askedFor = await namedPlaces(revision?.places ?? [], cityNames, readPlaces);
   const pace = planningPace(brief, preferences);
   const placesByCity = new Map(
     byCity.map(([city, { spots, neighborhoods }]) => [
