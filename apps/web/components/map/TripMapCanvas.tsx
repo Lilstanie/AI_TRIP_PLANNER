@@ -45,7 +45,7 @@ export function TripMapCanvas({
   tripPlaces: TripPlaces;
   selectedActivity?: string;
   onSelectActivity(id: string): void;
-  onClearActivity?(): void;
+  onClearActivity: (() => void) | undefined;
   routes: RouteResult[];
 
   showPhotos?: boolean;

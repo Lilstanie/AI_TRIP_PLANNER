@@ -862,6 +862,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     tripPlaces={tripPlaces}
                     selectedActivity={selectedActivity}
                     onSelectActivity={selectMapStop}
+                    onClearActivity={undefined}
                     routes={mapRoutes}
                     focusedDay={layout.mapDay}
                     focusRequest={layout.mapFocus}
