@@ -146,6 +146,7 @@ function CalendarEntries({
   locale,
   allDayOnly = false,
   staysAsBars = false,
+  continuedStays = [],
   selectedActivity,
   onSelectActivity,
 }: {
@@ -153,11 +154,14 @@ function CalendarEntries({
   locale: AppLocale;
   allDayOnly?: boolean;
   staysAsBars?: boolean;
+  continuedStays?: string[];
   selectedActivity?: string;
   onSelectActivity(activityId: string, day: number): void;
 }) {
   const allDay = day.entries.filter(
-    (entry) => entry.allDay && !(staysAsBars && entry.category === "stay"),
+    (entry) =>
+      entry.allDay &&
+      !(entry.category === "stay" && (staysAsBars || continuedStays.includes(entry.title))),
   );
   const timed = allDayOnly ? [] : day.entries.filter((entry) => !entry.allDay);
   return (
@@ -438,6 +442,11 @@ export function TripHomeCalendar({
               const time = visibleMonth + index * DAY_MS;
               const day = tripDay(plan, time);
               const entry = day === undefined ? undefined : days[day - 1];
+              const previous =
+                entry && index > 0 && (leading + index) % 7 !== 0 ? days[entry.day - 2] : undefined;
+              const continuedStays = (previous?.entries ?? [])
+                .filter((item) => item.category === "stay")
+                .map((item) => item.title);
               if (!entry)
                 return (
                   <span className="trip-home-calendar__blank" key={index + 1}>
@@ -459,6 +468,7 @@ export function TripHomeCalendar({
                   <CalendarEntries
                     day={entry}
                     locale={locale}
+                    continuedStays={continuedStays}
                     selectedActivity={selectedActivity}
                     onSelectActivity={onSelectActivity}
                   />

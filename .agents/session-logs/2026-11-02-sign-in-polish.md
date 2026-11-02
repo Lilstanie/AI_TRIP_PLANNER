@@ -107,3 +107,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Month view at 390px (zh, mock Perth → Bali trip): every event was a 44px-tall chip whose text was cut to "M…" or "珀…", so the trip week was a tall column of unreadable boxes.
 - `trip-home-calendar.css` (≤520px only): month events become 7px dots in their category colour, laid out in a wrapped row under the date; titles stay in the accessibility tree (visually hidden), and the dots take no taps, so the 44px date button stays the way into a day. Desktop month view is unchanged.
 - Validation: phone month screenshots in light and dark. The existing phone hit-area check in `trip-home-calendar.e2e.mjs` measures the week view, which is unchanged. No new machine check: the change is layout at one breakpoint.
+
+## Round 13 — TP-300 month view repeats the hotel
+
+- Desktop month view (1440px, zh, mock Bali trip): the hotel chip was drawn on every night, so each trip day started with the same "Mock 巴厘岛 Standard" chip.
+- `TripHomeCalendar.tsx`: month cells pass `continuedStays` (stay titles the previous visible day in the same week row already showed) to `CalendarEntries`, which leaves those out. A stay shows where it starts, on each Monday and on the first day of a month page.
+- Validation: November and December month screenshots (hotel on 28 Nov, 30 Nov and 1 Dec only); `tsc --noEmit`, eslint pass. No machine check: rendering rule in one view, covered by the screenshot.
