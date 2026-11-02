@@ -1,10 +1,6 @@
 import { TripPlan, type Currency } from "@trip/shared";
 import { detectConflicts, rollUpCost } from "@trip/orchestrator/plan-totals";
 
-/**
- * Recomputes conflicts, statuses and totals. `write` decides the edit version: a traveller edit
- * counts as an edit, a background write (a route check, a place match) keeps the version.
- */
 export function settlePlan(
   plan: TripPlan,
   baseVersion: number,

@@ -152,7 +152,7 @@ export function useWorkspaceTransport({
       !unedited(plan);
     if (!hasDirectEdits) return true;
     const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
-    // eslint-disable-next-line no-restricted-properties -- a form replan discards direct edits and has no Undo yet (TP-283)
+    // eslint-disable-next-line no-restricted-properties
     return window.confirm(message);
   }
 
