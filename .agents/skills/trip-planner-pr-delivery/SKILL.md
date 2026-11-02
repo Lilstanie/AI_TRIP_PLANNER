@@ -7,6 +7,8 @@ description: "Deliver an AI_TRIP_PLANNER change as a pull request and drive it t
 
 The repeatable loop for Lilstanie/AI_TRIP_PLANNER. Each step ends on its stated **done** condition. Below, `R=repos/Lilstanie/AI_TRIP_PLANNER`.
 
+Some steps stop at an automatic safety check until the user says so in the thread, even with standing permission in memory or project instructions: creating a Jira story, merging your own PR, and deleting files on the user's Mac. When the work will need any of them, ask once in your first reply or decision card, in one sentence the user can repeat, for example 回一句"允许建 Jira，CI 绿后合并". On 2026-11-02 three threads each stopped on one of these steps for 13 to 34 minutes.
+
 Rules come from `origin/main`: checking out an older PR branch also swaps in that branch's `AGENTS.md`/`CLAUDE.md`. When they disagree, read `git show origin/main:AGENTS.md`.
 
 ## 0. Jira story
