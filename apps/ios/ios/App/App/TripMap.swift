@@ -73,6 +73,8 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     private var inset = UIEdgeInsets.zero
     private var changing = false
     private var applying = false
+    private var gesture = false
+    private var lastZoom = 2.0
 
     init(webView: PassthroughWebView) {
         self.webView = webView
@@ -90,6 +92,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     func create(center: CLLocationCoordinate2D, zoom: Double, dark: Bool) {
         clear()
         style(dark: dark, type: nil)
+        lastZoom = zoom
         pendingCamera = (center, zoom)
         if map.bounds.width > 0 { applyPendingCamera() }
     }
@@ -148,12 +151,12 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     func camera(lat: Double?, lng: Double?, zoom: Double?, animated: Bool) {
         let current = map.region.center
         let center = CLLocationCoordinate2D(latitude: lat ?? current.latitude, longitude: lng ?? current.longitude)
-        let level = zoom ?? currentZoom
         if map.bounds.width == 0 {
             pendingFit = nil
-            pendingCamera = (center, level)
+            pendingCamera = (center, zoom ?? pendingCamera?.1 ?? lastZoom)
             return
         }
+        let level = zoom ?? currentZoom
         apply { map.setVisibleMapRect(rect(center: center, zoom: level), animated: animated) }
     }
 
@@ -275,8 +278,13 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     }
 
     private func report() {
+        guard map.bounds.width > 0 else { return }
         let region = map.region
+        lastZoom = currentZoom
+        let byUser = gesture
+        gesture = false
         plugin?.notifyListeners("region", data: [
+            "gesture": byUser,
             "lat": region.center.latitude,
             "lng": region.center.longitude,
             "zoom": currentZoom,
@@ -289,10 +297,11 @@ final class TripMapController: NSObject, MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
         changing = true
-        let gesture = mapView.subviews.first?.gestureRecognizers?.contains {
+        let touched = mapView.subviews.first?.gestureRecognizers?.contains {
             $0.state == .began || $0.state == .changed
         } ?? false
-        plugin?.notifyListeners("regionStart", data: ["gesture": gesture])
+        if touched { gesture = true }
+        plugin?.notifyListeners("regionStart", data: ["gesture": touched])
     }
 
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
