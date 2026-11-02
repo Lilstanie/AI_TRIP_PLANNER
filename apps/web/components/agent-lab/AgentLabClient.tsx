@@ -31,6 +31,7 @@ import { FailureLab } from "./FailureLab";
 import { MetricsList } from "./MetricsPanel";
 import { OutcomeBadge } from "./OutcomeBadge";
 import { PlanSections, PlanSummary } from "./PlanSections";
+import { readLocalSettings } from "../account/SettingsProvider";
 import { RunTimeline } from "./RunTimeline";
 
 interface ScenarioSummary {
@@ -52,6 +53,8 @@ interface AgentLabClientProps {
   faultProfiles: readonly FaultProfileSummary[];
 
   liveEnabled: boolean;
+
+  liveUnavailable?: "sign-in" | "off";
 }
 
 type View = "inspect" | "compare" | "failures" | "architecture";
@@ -104,6 +107,7 @@ export function AgentLabClient({
   strategies,
   faultProfiles,
   liveEnabled,
+  liveUnavailable = "off",
 }: AgentLabClientProps) {
   const [scenarioId, setScenarioId] = useState<AgentLabScenarioId>(scenarios[0]!.id);
   const [strategyId, setStrategyId] = useState<AgentLabStrategyId>(strategies[0]!.id);
@@ -138,6 +142,25 @@ export function AgentLabClient({
         [key]: typeof change === "function" ? change(run) : { ...run, ...change },
       };
     });
+
+  const chooseMode = (next: AgentLabDataMode) => {
+    setDataMode(next);
+    setRuns((current) =>
+      Object.fromEntries(Object.entries(current).filter(([key]) => key.startsWith("fault:"))),
+    );
+    setNotice(undefined);
+    setReplayError(undefined);
+    setStrategyId((id) =>
+      next === "live" && !strategies.find((strategy) => strategy.id === id)?.live
+        ? (strategies.find((strategy) => strategy.live)?.id ?? id)
+        : id,
+    );
+  };
+
+  useEffect(() => {
+    if (liveEnabled && readLocalSettings().dataMode !== "mock") chooseMode("live");
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [liveEnabled]);
 
   const available = strategies.filter((strategy) => dataMode === "fixture" || strategy.live);
 
@@ -431,27 +454,13 @@ export function AgentLabClient({
             <span>Data mode</span>
             <select
               value={dataMode}
-              onChange={(event) => {
-                const next = event.target.value as AgentLabDataMode;
-                setDataMode(next);
-                setRuns((current) =>
-                  Object.fromEntries(
-                    Object.entries(current).filter(([key]) => key.startsWith("fault:")),
-                  ),
-                );
-                setNotice(undefined);
-                setReplayError(undefined);
-                const current = strategies.find((strategy) => strategy.id === strategyId);
-                if (next === "live" && current && !current.live) {
-                  setStrategyId(strategies.find((strategy) => strategy.live)?.id ?? strategyId);
-                }
-              }}
+              onChange={(event) => chooseMode(event.target.value as AgentLabDataMode)}
               disabled={locked}
             >
               <option value="fixture">{modeLabel.fixture}</option>
               <option value="live" disabled={!liveEnabled}>
                 {modeLabel.live}
-                {liveEnabled ? "" : " (not enabled)"}
+                {liveEnabled ? "" : liveUnavailable === "sign-in" ? " (sign in)" : " (not enabled)"}
               </option>
             </select>
           </label>
@@ -460,7 +469,9 @@ export function AgentLabClient({
               ? "Uses this deployment's own models and providers, within its limits."
               : liveEnabled
                 ? "No external calls."
-                : "No external calls. Live runs are not enabled on this deployment."}
+                : liveUnavailable === "sign-in"
+                  ? "No external calls. Sign in to run live experiments."
+                  : "No external calls. Live runs are not enabled on this deployment."}
           </small>
         </div>
         <div className="agent-lab__actions">
@@ -625,7 +636,7 @@ export function AgentLabClient({
             ) : (
               <div className="agent-lab__empty">
                 <strong>No run yet</strong>
-                <p>Start the fixture experiment to see each validated event in order.</p>
+                <p>Start the experiment to see each validated event in order.</p>
               </div>
             )}
           </section>

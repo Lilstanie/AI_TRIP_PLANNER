@@ -21,7 +21,7 @@ function limit(value: string | undefined, fallback: number, cap: number): number
 
 export function readLiveConfig(env: Env = process.env): AgentLabLiveConfig {
   return {
-    enabled: env.AGENT_LAB_LIVE_ENABLED === "true",
+    enabled: env.AGENT_LAB_LIVE_ENABLED !== "false",
     maxConcurrent: limit(
       env.AGENT_LAB_LIVE_MAX_CONCURRENT,
       DEFAULT_MAX_CONCURRENT,
