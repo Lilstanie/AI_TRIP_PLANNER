@@ -99,14 +99,24 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     );
   });
 
+  const closing = itemsOf(plan, "transport").find((item) => {
+    const text = normal(item.detail);
+    const last = cities.at(-1)!;
+    return (
+      item.day === days &&
+      text.indexOf(last) >= 0 &&
+      text.indexOf(cities[0]!) > text.indexOf(last)
+    );
+  });
   const activities = itemsOf(plan, "itinerary").filter((item) => item.kind === "activity");
   const cityOfDay = (day: number) => cities[hopDays.filter((hop) => hop! <= day).length]!;
   const itineraryByCity =
     hopsValid &&
     activities.every((item) => item.day !== undefined && item.day >= 1 && item.day <= days) &&
     Array.from({ length: days }, (_, index) => index + 1).every((day) => {
-      const transferIndex = hopDays.findIndex((hopDay) => hopDay === day);
-      const transfer = transferIndex < 0 ? undefined : hops[transferIndex];
+      const closesHere = closing !== undefined && day === days;
+      const transferIndex = closesHere ? -1 : hopDays.findIndex((hopDay) => hopDay === day);
+      const transfer = closesHere ? closing : transferIndex < 0 ? undefined : hops[transferIndex];
       const stops = activities.filter((item) => item.day === day);
       if (stops.length === 0) return false;
       if (!transfer) {
@@ -118,8 +128,8 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
         );
       }
 
-      const departureCity = cities[transferIndex]!;
-      const arrivalCity = cities[transferIndex + 1]!;
+      const departureCity = closesHere ? cities.at(-1)! : cities[transferIndex]!;
+      const arrivalCity = closesHere ? cities[0]! : cities[transferIndex + 1]!;
       if (!transfer.startTime || !transfer.endTime || transfer.startTime >= transfer.endTime)
         return false;
       return stops.every((item) => {

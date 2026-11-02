@@ -37,6 +37,8 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { plural, summaryCopy } from "../summary-copy";
 import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
+const CLOSING_GROUND_MAX_MINUTES = 6 * 60;
+
 function clock(totalMinutes: number): string {
   if (totalMinutes < 0 || totalMinutes >= 24 * 60) {
     throw new Error("A transport leg cannot fit inside one planning day.");
@@ -163,8 +165,14 @@ async function gatherTransportEvidence(
 
     if (query.chosenMode) return false;
     const duration = hopDuration(hop);
-
-    return Number.isFinite(duration) && !fitsInPlanningDay(duration, startMinutes);
+    if (!Number.isFinite(duration)) return false;
+    const closing = legs.find(
+      (leg) => leg.from === query.from && leg.to === query.to && leg.day === query.day,
+    )?.closing;
+    return (
+      !fitsInPlanningDay(duration, startMinutes) ||
+      (closing === "to-first-city" && duration > CLOSING_GROUND_MAX_MINUTES)
+    );
   });
   const promotedKeys = new Set(promoted.map(({ query }) => `${query.from}|${query.to}`));
   const promotedFlights = await Promise.all(
@@ -702,6 +710,7 @@ async function planTransport(
             flightId: `flight-${leg.index}-${index}`,
             legIndex: leg.index,
             hop: `${leg.from} → ${leg.to}`,
+            ...(leg.closing ? { closing: leg.closing } : {}),
             carrier: option.carrier,
             totalCost: option.price,
             note: option.note,
@@ -716,6 +725,9 @@ async function planTransport(
           to: query.to,
           day: query.day,
           date: query.date,
+          closing: evidence!.legs.find(
+            (leg) => leg.from === query.from && leg.to === query.to && leg.day === query.day,
+          )?.closing,
           totalMinutes: legs.reduce((sum, leg) => sum + Math.ceil(leg.durationMin), 0),
           modes: [...new Set(legs.map((leg) => leg.mode))],
         })),
@@ -733,7 +745,7 @@ async function planTransport(
     model,
     tools: [search],
     systemPrompt:
-      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Saved accessibility preferences are requirements to consider, not evidence that a route, station, vehicle, or carrier is accessible; state that accessibility is unverified when the evidence does not establish it. Return the requested structured selection. " +
+      "You are the transport specialist. Call search_transport_evidence, then decide which flight candidate to take and the local departure time for each hop. The evidence assigns each hop its canonical travel day and date; repeat that day exactly and never move the hop to another day. Weigh cost against the traveller's budget, and schedule hops so they leave enough of the day to be worth arriving for. A budget revision means prefer the cheapest flight; a schedule revision means move departures earlier. A leg marked closing to-first-city brings the traveller back to the city the return flight leaves from: choose a departure that arrives at least three hours before that flight leaves. A leg marked closing home is the trip home on the last day. Refer to flights and hops only by the ids you were given. Never state a fare, a duration or a carrier of your own. Saved accessibility preferences are requirements to consider, not evidence that a route, station, vehicle, or carrier is accessible; state that accessibility is unverified when the evidence does not establish it. Return the requested structured selection. " +
       REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE,
     responseFormat: TransportSelection,

@@ -4,7 +4,7 @@ import type { AgentContext, TripBrief } from "@trip/shared";
 type Evidence = {
   planningDays: number;
   flights: { flightId: string; legIndex: number; carrier: string; totalCost: number }[];
-  hops: { hopId: string; from: string; to: string }[];
+  hops: { hopId: string; from: string; to: string; day: number; closing?: string }[];
 };
 type Tool = () => Promise<Evidence>;
 
@@ -79,7 +79,11 @@ const choose = (carrier: string, day: number, startTime: string) => (evidence: E
     const forHop = evidence.flights.filter((flight) => flight.legIndex === legIndex);
     return (forHop.find((flight) => flight.carrier === carrier) ?? forHop[0]!).flightId;
   }),
-  schedule: evidence.hops.map((hop) => ({ hopId: hop.hopId, day, startTime })),
+  schedule: evidence.hops.map((hop) => ({
+    hopId: hop.hopId,
+    day: hop.closing ? hop.day : day,
+    startTime,
+  })),
   guidance: [`Leaving at ${startTime} keeps the afternoon free.`],
 });
 
