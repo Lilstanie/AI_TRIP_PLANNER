@@ -299,7 +299,7 @@ describe("multi-city transfer-day activities", () => {
     });
     expect(fallback.items.filter(({ day }) => day === 1).map(({ location }) => location)).toEqual([
       "Sydney Museum",
-      "Wollongong Gallery",
+      "Wollongong Museum",
     ]);
   });
 

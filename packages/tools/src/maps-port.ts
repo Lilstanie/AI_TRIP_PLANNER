@@ -389,14 +389,53 @@ async function osmPlaces(q: PlaceQuery): Promise<Place[]> {
   }));
 }
 
+const GOOGLE_CATEGORY_QUERY: Record<string, string> = {
+  sight: "top tourist attractions",
+  museum: "museums",
+  neighborhood: "best neighbourhoods to walk around",
+};
+
+const NOT_A_SIGHT = new Set([
+  "lodging",
+  "hotel",
+  "hostel",
+  "travel_agency",
+  "tour_agency",
+  "real_estate_agency",
+  "corporate_office",
+  "consultant",
+  "store",
+  "clothing_store",
+  "locality",
+  "administrative_area_level_1",
+  "administrative_area_level_2",
+  "country",
+  "political",
+]);
+
+const AREA_TYPES = new Set(["neighborhood", "sublocality", "sublocality_level_1"]);
+
+function fitsCategory(category: string | undefined, types: readonly string[] | undefined): boolean {
+  if (!types?.length) return true;
+  if (category === "neighborhood")
+    return types.some((type) => AREA_TYPES.has(type) || type === "tourist_attraction");
+  if (category === "sight" || category === "museum")
+    return !types.some((type) => NOT_A_SIGHT.has(type));
+  return true;
+}
+
 async function googlePlaces(q: PlaceQuery): Promise<Place[]> {
   if (!toolRuntimeConfig().mapsApiKey)
     throw new Error("Google Maps provider requires MAPS_API_KEY.");
+  const listed = q.category !== undefined && q.category in GOOGLE_CATEGORY_QUERY;
   const results = await searchGooglePlacesText(
-    q.textQuery ?? `${q.category ?? "attraction"} in ${q.near}`,
+    q.textQuery ??
+      `${(q.category && GOOGLE_CATEGORY_QUERY[q.category]) ?? q.category ?? "attraction"} in ${q.near}`,
     "places.displayName,places.types,places.rating,places.location,places.websiteUri",
+    listed ? 20 : 5,
   );
   return results
+    .filter((place) => fitsCategory(q.category, place.types))
     .map((place) => ({
       name: place.displayName?.text?.trim() ?? "",
       category: q.category ?? place.types?.[0] ?? "place",
