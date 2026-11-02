@@ -103,6 +103,12 @@ export const LegModeChoice = z.object({
 });
 export type LegModeChoice = z.infer<typeof LegModeChoice>;
 
+export const CityNights = z.object({
+  city: z.string().trim().min(1),
+  nights: z.number().int().positive(),
+});
+export type CityNights = z.infer<typeof CityNights>;
+
 export const TripBrief = z
   .object({
     tripId: z.string(),
@@ -134,6 +140,8 @@ export const TripBrief = z
     excludeFlights: z.boolean().optional(),
 
     legModes: z.array(LegModeChoice).max(12).optional(),
+
+    cityNights: z.array(CityNights).max(12).optional(),
 
     bookedStay: BookedStay.optional(),
     noAccommodation: z.boolean().optional(),
@@ -363,6 +371,8 @@ export const RevisionRequest = z.object({
   constraints: z.array(z.string()),
 
   targetSaving: z.number().nonnegative().optional(),
+
+  places: z.array(z.string().trim().min(1)).max(8).optional(),
 });
 export type RevisionRequest = z.infer<typeof RevisionRequest>;
 

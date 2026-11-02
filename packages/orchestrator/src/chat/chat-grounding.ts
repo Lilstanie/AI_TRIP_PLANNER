@@ -235,7 +235,7 @@ export function ungroundedClaim(
 }
 
 function ungroundedFallback(request: ChatRequest): string {
-  return request.interfaceLanguage === "zh"
+  return replyLanguage(request.message, request.interfaceLanguage) === "zh"
     ? "我无法从更新后的行程确认这项修改已生效。"
     : "I can’t verify that requested change from the resulting itinerary.";
 }
