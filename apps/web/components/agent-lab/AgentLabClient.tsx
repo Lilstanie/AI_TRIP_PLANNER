@@ -158,9 +158,14 @@ export function AgentLabClient({
   };
 
   useEffect(() => {
-    if (liveEnabled && readLocalSettings().dataMode !== "mock") chooseMode("live");
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [liveEnabled]);
+    if (!liveEnabled || readLocalSettings().dataMode === "mock") return;
+    setDataMode("live");
+    setStrategyId((id) =>
+      strategies.find((strategy) => strategy.id === id)?.live
+        ? id
+        : (strategies.find((strategy) => strategy.live)?.id ?? id),
+    );
+  }, [liveEnabled, strategies]);
 
   const available = strategies.filter((strategy) => dataMode === "fixture" || strategy.live);
 
