@@ -583,7 +583,7 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
     open(snapshot, conversationId);
     const sentSnapshot = { ...snapshot, messages: [prepared.change.message] };
     setCatalog((current) => upsertCurrent(current, sentSnapshot, sentSnapshot.messages));
-    if (!run(prepared.task, true, prepared.change)) return undefined;
+    if (!run(prepared.task, prepared.change)) return undefined;
     if (navigate) layout({ type: "chat-started" });
     if (navigate) {
       requestAnimationFrame(() =>

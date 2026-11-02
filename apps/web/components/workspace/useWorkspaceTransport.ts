@@ -144,25 +144,24 @@ export function useWorkspaceTransport({
       originalPlan.current = { tripId: next.tripId, snapshot: editSnapshot(next) };
   }
 
-  function confirmReplacingEditedPlan(currentPlan = plan) {
-    if (!currentPlan) return true;
+  function confirmReplacingEditedPlan() {
+    if (!plan) return true;
     const hasDirectEdits =
-      (currentPlan.editVersion ?? 0) > 0 &&
-      originalPlan.current?.tripId === currentPlan.tripId &&
-      !unedited(currentPlan);
+      (plan.editVersion ?? 0) > 0 &&
+      originalPlan.current?.tripId === plan.tripId &&
+      !unedited(plan);
     if (!hasDirectEdits) return true;
     const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
+    // eslint-disable-next-line no-restricted-properties -- a form replan discards direct edits and has no Undo yet (TP-283)
     return window.confirm(message);
   }
 
   function run(
     task: Task,
-    replacementConfirmed = false,
     change?: { message: Message; brief?: boolean; rewindIndex?: number },
     resumeRunId?: string,
   ): boolean {
     if (!canStart(task.request.tripId)) return false;
-    if (!replacementConfirmed && !confirmReplacingEditedPlan()) return false;
     const controller = new AbortController();
     const id = start(task, controller, change);
     if (!id) return false;
@@ -247,7 +246,6 @@ export function useWorkspaceTransport({
       !answered &&
       run(
         pending.task,
-        true,
         missing && pending.message ? { message: pending.message } : undefined,
         pending.runId,
       );
@@ -312,7 +310,6 @@ export function useWorkspaceTransport({
             : {}),
         },
       },
-      true,
       {
         message: { role: "user", text: message, at: Date.now() },
         brief: true,
@@ -325,11 +322,7 @@ export function useWorkspaceTransport({
     const currentDraft = context?.draft ?? draft;
     const message = (override ?? (context ? "" : input)).trim();
     const files = context ? (context.attachments ?? []) : attachments;
-    if (
-      (!message && files.length === 0) ||
-      !canStart(currentPlan?.tripId ?? freshTripId.current) ||
-      !confirmReplacingEditedPlan(currentPlan)
-    )
+    if ((!message && files.length === 0) || !canStart(currentPlan?.tripId ?? freshTripId.current))
       return;
     const sent: Attachment[] = files.map(({ name, mediaType, kind, data }) => ({
       name,
@@ -379,7 +372,7 @@ export function useWorkspaceTransport({
   function send(override?: string, rewindIndex?: number, context?: ChatSendContext) {
     const prepared = prepareChat(override, context);
     if (!prepared) return false;
-    const started = run(prepared.task, true, {
+    const started = run(prepared.task, {
       ...prepared.change,
       ...(rewindIndex === undefined ? {} : { rewindIndex }),
     });
@@ -389,7 +382,6 @@ export function useWorkspaceTransport({
 
   function answer(answers: QuestionAnswer[]) {
     if (!ask || !canStart((ask.plan ?? plan)?.tripId ?? freshTripId.current)) return;
-    if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
     const history = chatHistory(shownMessages());
     const current = ask.plan ?? plan;
@@ -421,7 +413,6 @@ export function useWorkspaceTransport({
           ...(location ? { destinationLocation: location } : {}),
         },
       },
-      true,
       { message: { role: "user", text: message, at: Date.now() } },
     );
   }

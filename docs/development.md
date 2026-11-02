@@ -331,6 +331,29 @@ When a bug is fixed, reproduce it, name its cause with evidence, and fix that ca
 symptom with a retry, a longer timeout, an extra guard or a special case. If a workaround is the only
 option for now, say so in the pull request and the session log, with the cause it leaves in place.
 
+### Lock a fixed bug
+
+A fixed bug gets a machine check in the same pull request, so the same mistake cannot return. Pick
+the cheapest check that fails on the old code:
+
+- **Lint rule** for a banned call or pattern: add it to `apps/web/.eslintrc.json` (web) or
+  `eslint.config.mjs` (packages) with a message that names what to use instead.
+- **Type** when callers must make a choice: a required parameter or a union, so every new caller
+  has to decide. `settlePlan` takes `write: "traveller" | "background"` because route checks once
+  counted as traveller edits (TP-247).
+- **Verify script** for repository-wide facts: a `scripts/verify-*.mjs` run by CI.
+- **Delete** the helper that made the mistake easy when nothing else uses it.
+
+Prove the check fires: run it on the old code and quote the red output in the pull request's
+Evidence section. When no machine check can catch the bug class (model wording, map timing), say
+why in the pull request. Current rules:
+
+| Rule                                     | Where                         | Bug it locks                                  |
+| ---------------------------------------- | ----------------------------- | --------------------------------------------- |
+| No `toFixed(2)` for amounts              | `apps/web/.eslintrc.json`     | Hand-formatted money                          |
+| No `window.confirm`, `alert` or `prompt` | `apps/web/.eslintrc.json`     | False edit dialog on chat follow-ups (TP-257) |
+| `settlePlan` names the write             | `apps/web/lib/trip/settle.ts` | Background writes counted as edits (TP-247)   |
+
 ## Verification
 
 For documentation changes, also run the local pairing check after reviewing and recording the

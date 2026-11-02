@@ -185,6 +185,11 @@ export function applyItemAction(
       break;
     }
   }
-  settlePlan(next, plan.editVersion ?? 0, effectiveCurrency(plan.brief, displayCurrency ?? "AUD"));
+  settlePlan(
+    next,
+    plan.editVersion ?? 0,
+    effectiveCurrency(plan.brief, displayCurrency ?? "AUD"),
+    "traveller",
+  );
   return TripPlan.parse(next);
 }
