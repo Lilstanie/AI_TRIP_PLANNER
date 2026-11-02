@@ -10,13 +10,17 @@ export function scopedItineraryEdit(
   const edited = new Set(days);
   const kept = before.items.filter((item) => item.day === undefined || !edited.has(item.day));
   const keptPlaces = new Set(kept.map((item) => placeKey(item.location)).filter(Boolean));
-  const items = [
-    ...kept,
-    ...after.items.filter(
-      (item) =>
-        item.day !== undefined && edited.has(item.day) && !keptPlaces.has(placeKey(item.location)),
-    ),
-  ].sort(
+  const added = after.items.filter(
+    (item) =>
+      item.day !== undefined && edited.has(item.day) && !keptPlaces.has(placeKey(item.location)),
+  );
+  const unchanged = before.items.filter(
+    (item) =>
+      item.day !== undefined &&
+      edited.has(item.day) &&
+      !added.some((next) => next.day === item.day),
+  );
+  const items = [...kept, ...unchanged, ...added].sort(
     (left, right) =>
       (left.day ?? 0) - (right.day ?? 0) ||
       (left.startTime ?? "").localeCompare(right.startTime ?? ""),
