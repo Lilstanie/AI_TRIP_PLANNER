@@ -25,6 +25,7 @@ export function TripMapCanvas({
   tripPlaces,
   selectedActivity,
   onSelectActivity,
+  onClearActivity,
   routes,
   showPhotos = false,
   userLocation,
@@ -44,6 +45,7 @@ export function TripMapCanvas({
   tripPlaces: TripPlaces;
   selectedActivity?: string;
   onSelectActivity(id: string): void;
+  onClearActivity?(): void;
   routes: RouteResult[];
 
   showPhotos?: boolean;
@@ -156,6 +158,7 @@ export function TripMapCanvas({
           const activityId = markers.find((marker) => marker.place.id === placeId)?.activityId;
           if (activityId) onSelectActivity(activityId);
         }}
+        onDeselect={onClearActivity}
         routes={dayRoutes}
         viewKey={focusedDay === undefined ? viewKey : `${viewKey}:day:${focusedDay}`}
         showPhotos={showPhotos}

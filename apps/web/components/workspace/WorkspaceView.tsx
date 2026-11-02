@@ -888,6 +888,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
                     tripPlaces={tripPlaces}
                     selectedActivity={selectedActivity}
                     onSelectActivity={session.showStop}
+                    onClearActivity={phone ? () => session.selectStop(undefined) : undefined}
                     routes={mapRoutes}
                     focusedDay={phone ? layout.mapDay : undefined}
                     focusRequest={phone ? layout.mapFocus : undefined}
