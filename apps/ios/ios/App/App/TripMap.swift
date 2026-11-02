@@ -135,6 +135,7 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         webView.scrollView.backgroundColor = .clear
         map.frame = frame
         map.layoutMargins = inset
+        map.layoutIfNeeded()
         map.isHidden = false
         webView.mapFrame = frame
         webView.occluders = occluders
@@ -182,15 +183,14 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         var target = MKMapRect(
             x: min(a.x, b.x), y: min(a.y, b.y), width: max(abs(a.x - b.x), 1), height: max(abs(a.y - b.y), 1)
         )
-        let edges = UIEdgeInsets(
-            top: padding + inset.top, left: padding + inset.left,
-            bottom: padding + inset.bottom, right: padding + inset.right
+        let area = inner
+        let perPoint = max(
+            target.size.width / Double(max(area.width - 2 * padding, 1)),
+            target.size.height / Double(max(area.height - 2 * padding, 1))
         )
-        let stops = MKMapPoint(x: target.midX, y: target.midY)
-        target = map.mapRectThatFits(target, edgePadding: edges)
-        if let maxZoom, zoom(of: target) > maxZoom {
-            target = rect(center: stops.coordinate, zoom: maxZoom)
-        }
+        var level = 20 - log2(perPoint)
+        if let maxZoom { level = min(level, maxZoom) }
+        target = rect(center: MKMapPoint(x: target.midX, y: target.midY).coordinate, zoom: level)
         lastMove = { [weak self] in
             self?.fit(north: north, south: south, east: east, west: west, padding: padding, maxZoom: maxZoom)
         }
@@ -265,8 +265,15 @@ final class TripMapController: NSObject, MKMapViewDelegate {
 
     private var currentZoom: Double { zoom(of: map.visibleMapRect) }
 
+    private var inner: CGSize {
+        CGSize(
+            width: max(map.bounds.width - inset.left - inset.right, 1),
+            height: max(map.bounds.height - inset.top - inset.bottom, 1)
+        )
+    }
+
     private func zoom(of rect: MKMapRect) -> Double {
-        20 - log2(rect.size.width / Double(max(map.bounds.width, 1)))
+        20 - log2(rect.size.width / Double(inner.width))
     }
 
     private func remember(center: CLLocationCoordinate2D, zoom: Double) {
@@ -277,21 +284,15 @@ final class TripMapController: NSObject, MKMapViewDelegate {
 
     private func rect(center: CLLocationCoordinate2D, zoom: Double) -> MKMapRect {
         let scale = pow(2, 20 - zoom)
-        let width = Double(map.bounds.width) * scale
-        let height = Double(map.bounds.height) * scale
+        let width = Double(inner.width) * scale
+        let height = Double(inner.height) * scale
         let point = MKMapPoint(center)
-        let x = point.x - Double(inset.left - inset.right) / 2 * scale
-        let y = point.y - Double(inset.top - inset.bottom) / 2 * scale
-        return MKMapRect(x: x - width / 2, y: y - height / 2, width: width, height: height)
+        return MKMapRect(x: point.x - width / 2, y: point.y - height / 2, width: width, height: height)
     }
 
     private var visibleCenter: CLLocationCoordinate2D {
         let visible = map.visibleMapRect
-        let scale = visible.size.width / Double(max(map.bounds.width, 1))
-        return MKMapPoint(
-            x: visible.midX + Double(inset.left - inset.right) / 2 * scale,
-            y: visible.midY + Double(inset.top - inset.bottom) / 2 * scale
-        ).coordinate
+        return MKMapPoint(x: visible.midX, y: visible.midY).coordinate
     }
 
     private func apply(_ change: () -> Void) {
