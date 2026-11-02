@@ -176,19 +176,24 @@ async function departureForGoogle(q: RouteQuery): Promise<string> {
     return new Date(parseDepartureTime(q.departureTime)).toISOString();
   if (q.date === undefined)
     throw new Error("Google transit route requires a date or explicit departureTime.");
-  const dateTimestamp = parseDate(q.date);
-
-  const roughDelta = dateTimestamp - toolNow().getTime();
-  if (
-    roughDelta < -(transitWindowMs.past + 86400000) ||
-    roughDelta > transitWindowMs.future + 86400000
-  )
-    throw new Error("Transit departure is outside Google's supported date window.");
+  const dateTimestamp = sameWeekdayInWindow(parseDate(q.date));
+  const date = new Date(dateTimestamp).toISOString().slice(0, 10);
   const localTime = q.localTime ?? "09:00";
   if (!localTimePattern.test(localTime))
     throw new Error("Google transit route requires localTime in HH:MM format.");
   const zone = await originTimeZone(q, dateTimestamp);
-  return localInstant(q.date, localTime, zone);
+  return localInstant(date, localTime, zone);
+}
+
+const WEEK_MS = 7 * 86400000;
+
+function sameWeekdayInWindow(dateTimestamp: number): number {
+  const delta = dateTimestamp - toolNow().getTime();
+  if (delta > transitWindowMs.future - WEEK_MS)
+    return dateTimestamp - (Math.floor(delta / WEEK_MS) - 1) * WEEK_MS;
+  if (delta < -transitWindowMs.past + 86400000)
+    return dateTimestamp + Math.ceil(-delta / WEEK_MS + 1) * WEEK_MS;
+  return dateTimestamp;
 }
 
 const isMockPlace = (name: string) => name.startsWith("Mock ");

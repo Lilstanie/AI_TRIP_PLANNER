@@ -37,7 +37,7 @@ export async function namedPlaces(
   const found = new Map<string, Place[]>();
   for (const name of names) {
     for (const city of cities) {
-      const [match] = await read("sight", city, name);
+      const [match] = await read("attraction", city, name);
       if (!match) continue;
       found.set(city, [...(found.get(city) ?? []), match]);
       break;
