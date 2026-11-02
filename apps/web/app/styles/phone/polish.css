@@ -80,6 +80,9 @@ html:has(.workspace-app[data-phone]) body {
   background: var(--phone-card) !important;
   font-size: var(--font-size-body);
 }
+.workspace-app[data-phone] .chat__facts .fact-chip::before {
+  display: none;
+}
 .workspace-app[data-phone] .chat__facts .fact-chip[data-empty="true"] {
   color: var(--text-dim);
 }
