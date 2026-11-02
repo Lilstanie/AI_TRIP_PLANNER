@@ -8,9 +8,14 @@ export function scopedItineraryEdit(
   if (after.source?.kind === "fallback" && before.source?.kind !== "fallback") return before;
   if (!days?.length) return after;
   const edited = new Set(days);
+  const kept = before.items.filter((item) => item.day === undefined || !edited.has(item.day));
+  const keptPlaces = new Set(kept.map((item) => placeKey(item.location)).filter(Boolean));
   const items = [
-    ...before.items.filter((item) => item.day === undefined || !edited.has(item.day)),
-    ...after.items.filter((item) => item.day !== undefined && edited.has(item.day)),
+    ...kept,
+    ...after.items.filter(
+      (item) =>
+        item.day !== undefined && edited.has(item.day) && !keptPlaces.has(placeKey(item.location)),
+    ),
   ].sort(
     (left, right) =>
       (left.day ?? 0) - (right.day ?? 0) ||
@@ -36,3 +41,5 @@ const dayOf = (reason: string) => {
   const day = /\bday (\d+)\b/.exec(reason)?.[1];
   return day === undefined ? undefined : Number(day);
 };
+
+const placeKey = (location: string | undefined) => location?.trim().toLocaleLowerCase() ?? "";
