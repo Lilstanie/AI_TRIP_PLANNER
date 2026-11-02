@@ -1,7 +1,9 @@
 "use client";
 import { formatDuration } from "@/lib/trip/timeline";
 import { translate, type AppLocale } from "@/lib/i18n/locale";
-import { type FlightAnswer } from "@trip/shared";
+import { type FlightAnswer, type FlightPriceInsight } from "@trip/shared";
+import { enFares } from "@/lib/i18n/messages/en-fares";
+import { zhFares } from "@/lib/i18n/messages/zh-fares";
 import { useLocale } from "../account/LocaleProvider";
 import { FlightItineraryCard } from "./FlightItineraryCard";
 
@@ -16,6 +18,69 @@ function duration(minutes: number | undefined, locale: AppLocale): string | unde
 function stops(count: number | undefined, locale: AppLocale): string | undefined {
   if (count === undefined) return undefined;
   return count === 0 ? translate(locale, "nonstop") : translate(locale, "countStops", { count });
+}
+
+function fareText(
+  locale: AppLocale,
+  key: keyof typeof enFares,
+  params: Record<string, string | number> = {},
+): string {
+  const template: string = (locale === "zh" ? zhFares : enFares)[key];
+  return template.replace(/\{(\w+)\}/g, (match, name: string) => String(params[name] ?? match));
+}
+
+function PriceTrend({
+  history,
+  label,
+}: {
+  history: NonNullable<FlightPriceInsight["history"]>;
+  label: string;
+}) {
+  const width = 96;
+  const height = 24;
+  const prices = history.map((point) => point.price);
+  const low = Math.min(...prices);
+  const span = Math.max(...prices) - low || 1;
+  const points = history.map((point, index) => [
+    (index / (history.length - 1)) * (width - 4) + 2,
+    height - 2 - ((point.price - low) / span) * (height - 4),
+  ]);
+  const last = points[points.length - 1]!;
+  return (
+    <svg
+      className="flight-results__trend"
+      viewBox={`0 0 ${width} ${height}`}
+      width={width}
+      height={height}
+      role="img"
+      aria-label={label}
+    >
+      <polyline points={points.map((point) => point.join(",")).join(" ")} />
+      <circle cx={last[0]} cy={last[1]} r="2.5" />
+    </svg>
+  );
+}
+
+function PriceInsight({ insight }: { insight: FlightPriceInsight }) {
+  const { money, locale } = useLocale();
+  return (
+    <div className="flight-results__insight" data-level={insight.level}>
+      <span className="flight-results__level">{fareText(locale, insight.level)}</span>
+      {insight.typicalRange && (
+        <span className="flight-results__meta">
+          {fareText(locale, "usual", {
+            range: `${money(insight.typicalRange[0])}–${money(insight.typicalRange[1])}`,
+          })}
+        </span>
+      )}
+      {insight.history && (
+        <PriceTrend
+          history={insight.history}
+          label={fareText(locale, "trend", { count: insight.history.length })}
+        />
+      )}
+    </div>
+  );
 }
 
 export function FlightResults({ answer }: { answer: FlightAnswer }) {
@@ -37,6 +102,7 @@ export function FlightResults({ answer }: { answer: FlightAnswer }) {
           {answer.return ? ` – ${answer.return}` : ""} · {party}
         </span>
       </header>
+      {answer.priceInsight && <PriceInsight insight={answer.priceInsight} />}
 
       {answer.options.some((option) => option.outbound) && (
         <div className="flight-results__itineraries">

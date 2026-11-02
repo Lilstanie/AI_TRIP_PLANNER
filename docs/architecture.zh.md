@@ -431,7 +431,9 @@ false 时保留原有行为。
 航班问题不经过规划即可回答。带路线、航班词和日期的消息直接进入 `answerFlightQuery`
 （`parseFlightQuery`）；其他说法交给协调器，由它的 `search_flights` 工具执行同样的查询并抛出
 `FlightAnswerReady`。两条路径都流式发送 `FlightAnswer` 帧（`type: "flight_answer"`），
-客户端的计划保持不变。
+客户端的计划保持不变。Google Flights 返回 `price_insights` 时，帧里带 `priceInsight`（价格水平、
+常见区间、每日历史）；回复按价格水平加一句"现在订还是再等等"，卡片显示价格水平、常见区间和走势线
+（[价格参考说明](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)）。
 
 缺少密钥、模型调用失败或输出不符合 schema 时，该步骤会回退到经过验证的确定性输出，
 因此规划请求仍能完成。汇总前，每个提案都必须通过 schema、预算、日程和路线检查。

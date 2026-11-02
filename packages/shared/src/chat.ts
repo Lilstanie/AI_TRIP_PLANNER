@@ -295,6 +295,13 @@ export const FlightAnswerOption = z.object({
 });
 export type FlightAnswerOption = z.infer<typeof FlightAnswerOption>;
 
+export const FlightPriceInsight = z.object({
+  level: z.enum(["low", "typical", "high"]),
+  typicalRange: z.tuple([z.number().nonnegative(), z.number().nonnegative()]).optional(),
+  history: z.array(z.object({ date: z.string(), price: z.number().nonnegative() })).optional(),
+});
+export type FlightPriceInsight = z.infer<typeof FlightPriceInsight>;
+
 export const FlightAnswer = z.object({
   type: z.literal("flight_answer"),
   reply: z.string(),
@@ -305,6 +312,8 @@ export const FlightAnswer = z.object({
   passengers: z.number().int().positive(),
 
   options: z.array(FlightAnswerOption),
+
+  priceInsight: FlightPriceInsight.optional(),
 
   source: z.object({ kind: z.string(), label: z.string(), freshness: z.string() }).optional(),
 });

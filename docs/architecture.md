@@ -542,7 +542,10 @@ question card in the composer's place and sends the traveller's answers as the n
 A flight question is answered without planning. A message with a route, a flight word and a date goes
 straight to `answerFlightQuery` (`parseFlightQuery`); any other wording reaches the coordinator, whose
 `search_flights` tool runs the same search and throws `FlightAnswerReady`. Both stream a `FlightAnswer`
-frame (`type: "flight_answer"`), and the client's plan is unchanged.
+frame (`type: "flight_answer"`), and the client's plan is unchanged. When Google Flights returns
+`price_insights`, the frame carries `priceInsight` (level, typical range, daily history); the reply adds
+one buy-or-wait sentence from the level and the card shows the level, the range and a trend line
+([price insight note](../.agents/notes/implemented/feature/2026-11-02-flight-price-insight.md)).
 
 When a key is missing, a model call fails or output is off-schema, the step falls back to validated
 deterministic output, so planning requests still complete. Schema, budget, schedule and route checks

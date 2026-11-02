@@ -4,6 +4,7 @@ import {
   moneyIn,
   type BookingPort,
   type FlightAnswer,
+  type FlightPriceInsight,
 } from "@trip/shared";
 import type { FlightQuery } from "./flight-query";
 
@@ -18,6 +19,7 @@ export async function answerFlightQuery(
 
   let options: (FlightAnswer["options"][number] & { returnToken?: string })[] = [];
   let failure: string | undefined;
+  let priceInsight: FlightPriceInsight | undefined;
   try {
     const found = await booking.searchFlights({
       from,
@@ -26,6 +28,7 @@ export async function answerFlightQuery(
       ...(query.return ? { return: query.return } : {}),
       passengers,
     });
+    priceInsight = found.find((option) => option.priceInsight)?.priceInsight;
     options = found
       .filter(
         (option) => Number.isFinite(option.price) && option.price >= 0 && option.carrier.trim(),
@@ -72,14 +75,37 @@ export async function answerFlightQuery(
 
   const cheapest = options[0];
   const chinese = query.language ? query.language === "zh" : /\p{Script=Han}/u.test(`${from}${to}`);
+  const range = priceInsight?.typicalRange?.map((price) => moneyIn(price, BASE_CURRENCY)).join("–");
+
   const reply = chinese ? chineseReply() : englishReply();
+
+  function chineseAdvice() {
+    if (!priceInsight) return "";
+    const usual = range ? `Google 常见的 ${range}` : "这条航线的常见价位";
+    if (priceInsight.level === "low") return `这个价比 ${usual} 低，合适的话可以早点订。`;
+    if (priceInsight.level === "high")
+      return `这个价比 ${usual} 高，日期灵活的话可以换相近日期，或者再等等看。`;
+    return range ? `这个价在 Google 常见的 ${range} 之内，属于正常价位。` : "这个价属于正常价位。";
+  }
+
+  function englishAdvice() {
+    if (!priceInsight) return "";
+    const usual = range ? `Google's usual ${range}` : "the usual fare for this route";
+    if (priceInsight.level === "low")
+      return ` That is below ${usual}, so booking soon is reasonable.`;
+    if (priceInsight.level === "high")
+      return ` That is above ${usual}; if your dates are flexible, try nearby days or wait for a drop.`;
+    return range
+      ? ` That is within Google's usual ${range}.`
+      : " That is a typical fare for this route.";
+  }
 
   function chineseReply() {
     const route = `${from} → ${to} ${depart}`;
     if (failure) return `暂时查不到 ${route} 的票价：${failure}`;
     if (!cheapest) return `${route} 没有查到票价，可以换个相近的日期或城市试试。`;
     const count = options.length > 1 ? `，共找到 ${options.length} 个票价` : "";
-    return `${route}，${passengers} 位旅客最便宜的是 ${cheapest.carrier}，${moneyIn(cheapest.price, BASE_CURRENCY)}${count}。价格是全体旅客的总价，随时可能变动，这里不会预订。`;
+    return `${route}，${passengers} 位旅客最便宜的是 ${cheapest.carrier}，${moneyIn(cheapest.price, BASE_CURRENCY)}${count}。${chineseAdvice()}价格是全体旅客的总价，随时可能变动，这里不会预订。`;
   }
 
   function englishReply() {
@@ -88,7 +114,7 @@ export async function answerFlightQuery(
     if (!cheapest)
       return `No fares came back for ${trip}. Try a nearby date, or a different pair of cities.`;
     const count = options.length > 1 ? `, out of ${options.length} fares found` : "";
-    return `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${moneyIn(cheapest.price, BASE_CURRENCY)}${count}. Prices are whole-party totals and change without notice; nothing here is booked.`;
+    return `Cheapest ${trip} for ${party}: ${cheapest.carrier} at ${moneyIn(cheapest.price, BASE_CURRENCY)}${count}.${englishAdvice()} Prices are whole-party totals and change without notice; nothing here is booked.`;
   }
 
   return FlightAnswerSchema.parse({
@@ -100,6 +126,7 @@ export async function answerFlightQuery(
     ...(query.return ? { return: query.return } : {}),
     passengers,
     options,
+    ...(cheapest && priceInsight ? { priceInsight } : {}),
     ...(cheapest?.note
       ? {
           source: {
