@@ -229,8 +229,7 @@ class AppleMap {
     this.move({ lat: p.lat, lng: p.lng }, false);
   }
   getCenter() {
-    const { lat, lng } = this.region;
-    return { lat: () => lat, lng: () => lng };
+    return { lat: () => this.region.lat, lng: () => this.region.lng };
   }
   getBounds() {
     const { north, south, east, west } = this.region;
