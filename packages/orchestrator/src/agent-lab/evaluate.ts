@@ -103,9 +103,7 @@ function multiCityChecks(scenario: AgentLabScenario, plan: TripPlan): AgentLabCh
     const text = normal(item.detail);
     const last = cities.at(-1)!;
     return (
-      item.day === days &&
-      text.indexOf(last) >= 0 &&
-      text.indexOf(cities[0]!) > text.indexOf(last)
+      item.day === days && text.indexOf(last) >= 0 && text.indexOf(cities[0]!) > text.indexOf(last)
     );
   });
   const activities = itemsOf(plan, "itinerary").filter((item) => item.kind === "activity");
