@@ -32,6 +32,11 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   outside every panel.
 - Native events come back as the Google-style events `TripMap` already listens to: `dragstart`,
   `zoom_changed`, `center_changed`, `idle` and `click`, and a pin tap fires the web marker's `gmp-click`.
+  Only a touch gesture fires `zoom_changed` and `center_changed`, so layout moves never count as the
+  traveller's own.
+- The renderer's camera state updates only from native region reports, so it can lag behind a fit made
+  while the map was hidden. It drops a camera field that matches that state, so re-centring on the
+  current centre after a resize never replaces a pending fit.
 - The app asks for location while in use, so the map's location button works in the web view.
 
 ## Alternatives considered

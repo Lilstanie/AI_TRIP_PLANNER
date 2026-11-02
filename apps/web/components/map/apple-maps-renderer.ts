@@ -198,7 +198,11 @@ class AppleMap {
     }
   }
 
-  private move(camera: Omit<Camera, "animated">, animated: boolean) {
+  private move(target: Omit<Camera, "animated">, animated: boolean) {
+    const camera = Object.fromEntries(
+      Object.entries(target).filter(([key, value]) => this.region[key as keyof Region] !== value),
+    ) as Omit<Camera, "animated">;
+    if (!Object.keys(camera).length) return;
     const pending = this.camera;
     this.camera = { ...pending, ...camera, animated: animated || !!pending?.animated };
     Object.assign(this.region, camera);
