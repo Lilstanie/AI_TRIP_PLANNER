@@ -168,3 +168,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Scanned team panel, trip menu, Trajectory and Trips calendar (1440px and 390px) for generic-rule buttons: only the desktop example chips differ from their CSS (grey fill instead of an outlined chip), left for the `:where()` decision. The English phone trip page (390px) showed the suggestion banner breaking the destination: "5 unscheduled ideas in 巴厘 / 岛"; in Chinese it broke "没排 / 进日程".
 - `trip-home-actions.css`: the banner text uses `word-break: keep-all` (with the existing `overflow-wrap: anywhere` as the overflow fallback), so it breaks at spaces: "5 unscheduled ideas in / 巴厘岛", "巴厘岛还有 5 / 个备选地点没排进日程".
 - Validation: en and zh banner crops before and after. No machine check: wrapping depends on rendered width.
+
+## Round 23 — TP-310 phone trip panel tabs
+
+- Phone trip panel (390px, en, mock Bali trip): the five tabs need 371px but the row was 300px wide, because the phone rule set the switcher to `width: 100%` of the title box beside the close button. "Calendar" sat off-screen with no scroll hint; on the Ideas tab "Itinerary" had scrolled out of view.
+- `trip-home-actions.css` (≤520px): drop the phone `width: 100%` override so the switcher keeps the desktop `calc(100% + 44px)` and runs under the close button (344px), and tighten tab padding to 6px and the gap to 2px. English tabs now measure 344/344px; Chinese tabs keep their spacing with room to spare.
+- Validation: en and zh drawer-head crops before and after (scroll width 371 → 344 in a 300 → 344 row). No machine check: fitting depends on rendered text width.
