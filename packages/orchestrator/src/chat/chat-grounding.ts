@@ -1,4 +1,6 @@
+import type { BaseChatModel } from "@langchain/core/language_models/chat_models";
 import type { ChatRequest, TripPlan } from "@trip/shared";
+import { replyLanguageRule } from "@trip/agents";
 import { replyLanguage } from "../reply-language";
 
 function materialPlan(plan: TripPlan): unknown {
@@ -45,12 +47,12 @@ function materialPlan(plan: TripPlan): unknown {
   return normalize(plan);
 }
 
+function samePlan(left: TripPlan, right: TripPlan): boolean {
+  return JSON.stringify(materialPlan(left)) === JSON.stringify(materialPlan(right));
+}
+
 export function unchangedPlanReply(request: ChatRequest, planned: TripPlan): string | undefined {
-  if (
-    !request.plan ||
-    JSON.stringify(materialPlan(request.plan)) !== JSON.stringify(materialPlan(planned))
-  )
-    return undefined;
+  if (!request.plan || !samePlan(request.plan, planned)) return undefined;
   return replyLanguage(request.message, request.interfaceLanguage) === "zh"
     ? "我重新检查了行程，但没有应用任何变化。请告诉我想修改的内容。"
     : "I rechecked the itinerary, but no changes were applied. Tell me what you would like changed.";
@@ -155,8 +157,7 @@ function requestedPlanChangeApplied(request: ChatRequest, planned: TripPlan): bo
     const beforeItems = itineraryItems(planned);
     return beforeItems.length > 0 || planned.sections.some((section) => Boolean(section.proposal));
   }
-  if (JSON.stringify(materialPlan(previous)) === JSON.stringify(materialPlan(planned)))
-    return false;
+  if (samePlan(previous, planned)) return false;
 
   const fact = briefFactApplied(request, planned, message);
   const beforeItems = itineraryItems(previous);
@@ -213,23 +214,72 @@ function hasFlightBookingEvidence(request: ChatRequest): boolean {
   return USER_FLIGHT_BOOKING_EVIDENCE.test(request.message);
 }
 
+/**
+ * Names what a reply claims that the resulting plan or the traveller's own words do not show.
+ * Returns undefined when the reply is grounded.
+ */
+export function ungroundedClaim(
+  request: ChatRequest,
+  planned: TripPlan | undefined,
+  reply: string,
+): string | undefined {
+  if (FLIGHT_BOOKING_CLAIM.test(reply) && !hasFlightBookingEvidence(request))
+    return "Nothing was booked or paid: the planner cannot book flights, it only shows fares.";
+  if (BOOKING_CLAIM.test(reply) && !hasBookingEvidence(request, planned))
+    return "Nothing was booked or reserved: the planner cannot make bookings.";
+  if (INFORMATION_QUESTION.test(request.message.trim()) || !PLAN_SUCCESS_CLAIM.test(reply))
+    return undefined;
+  const resultingPlan = planned ?? request.plan;
+  if (!resultingPlan) return undefined;
+  if (request.plan && samePlan(request.plan, resultingPlan))
+    return "The itinerary did not change in this turn: no stop, day, date or budget changed.";
+  if (!requestedPlanChangeApplied(request, resultingPlan))
+    return "The resulting itinerary does not show the change the traveller asked for.";
+  return undefined;
+}
+
+function ungroundedFallback(request: ChatRequest): string {
+  return request.interfaceLanguage === "zh"
+    ? "我无法从更新后的行程确认这项修改已生效。"
+    : "I can’t verify that requested change from the resulting itinerary.";
+}
+
 export function groundedReply(
   request: ChatRequest,
   planned: TripPlan | undefined,
   reply: string,
 ): string {
-  const resultingPlan = planned ?? request.plan;
-  const bookingUngrounded =
-    (FLIGHT_BOOKING_CLAIM.test(reply) && !hasFlightBookingEvidence(request)) ||
-    (BOOKING_CLAIM.test(reply) && !hasBookingEvidence(request, planned));
-  const changeUngrounded =
-    !INFORMATION_QUESTION.test(request.message.trim()) &&
-    PLAN_SUCCESS_CLAIM.test(reply) &&
-    (request.plan
-      ? !resultingPlan || !requestedPlanChangeApplied(request, resultingPlan)
-      : Boolean(resultingPlan) && !requestedPlanChangeApplied(request, resultingPlan!));
-  if (!bookingUngrounded && !changeUngrounded) return reply;
-  return request.interfaceLanguage === "zh"
-    ? "我无法从更新后的行程确认这项修改已生效。"
-    : "I can’t verify that requested change from the resulting itinerary.";
+  return ungroundedClaim(request, planned, reply) ? ungroundedFallback(request) : reply;
+}
+
+/**
+ * Asks the model to rewrite a reply whose claim the plan does not support, given the fact that
+ * contradicts it. Falls back to the fixed sentence when the model fails or its rewrite still claims
+ * something the plan does not show.
+ */
+export async function truthfulReply(
+  model: BaseChatModel,
+  request: ChatRequest,
+  planned: TripPlan | undefined,
+  reply: string,
+  fact: string,
+  fallback = ungroundedFallback(request),
+): Promise<string> {
+  try {
+    const result = await model.invoke([
+      [
+        "system",
+        "You are the trip planner replying to a traveller. Your draft reply claims something the trip does not show. " +
+          "Rewrite it so every statement is true given the fact below: say plainly what did not happen, keep anything in the draft that is still true, " +
+          "and offer the next step in one short sentence. Reply with the rewritten message only." +
+          replyLanguageRule(replyLanguage(request.message, request.interfaceLanguage)),
+      ],
+      ["human", JSON.stringify({ travellerMessage: request.message, draftReply: reply, fact })],
+    ]);
+    const text = typeof result.content === "string" ? result.content.trim() : "";
+    if (text && !ungroundedClaim(request, planned, text)) return text;
+  } catch {
+    return fallback;
+  }
+  return fallback;
 }

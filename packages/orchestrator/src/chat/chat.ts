@@ -56,7 +56,7 @@ import { createFlightSearchTool, FlightAnswerReady, type FlightSearch } from "./
 import { judgeHandoff } from "./mention-handoff";
 import { stopChanges } from "./stop-changes";
 import { ROLE_NAMES } from "../planning/progress-copy";
-import { groundedReply, unchangedPlanReply } from "./chat-grounding";
+import { truthfulReply, unchangedPlanReply, ungroundedClaim } from "./chat-grounding";
 import { isInfeasible } from "../planning/conflicts";
 import { budgetText, costLine } from "./cost-line";
 import type { WorkflowDecision } from "../planning/decisions";
@@ -437,9 +437,7 @@ function plannedReply(request: ChatRequest, plan: TripPlan, reply: string): stri
   const language = turnLanguage(request);
   const currency = replyCurrency(request, plan.brief);
   if (!reply) return fallbackReplyFor(plan, currency, language);
-  return [groundedReply(request, plan, reply), costLine(plan, currency, language)].join(
-    language === "zh" ? "" : " ",
-  );
+  return [reply, costLine(plan, currency, language)].join(language === "zh" ? "" : " ");
 }
 
 function lastMessageText(result: unknown): string {
@@ -884,12 +882,21 @@ async function runConversationAgent(
   const done = (response: ChatResponse): ChatResponse =>
     lasting ? { ...response, lastingPreferences: lasting } : response;
 
+  const checked = async (resulting: TripPlan | undefined, fallback?: string): Promise<string> => {
+    const fact = reply ? ungroundedClaim(request, resulting, reply) : undefined;
+    return fact ? truthfulReply(model, request, resulting, reply, fact, fallback) : reply;
+  };
+
   const noChangeReply = planned ? unchangedPlanReply(request, planned) : undefined;
-  if (planned && noChangeReply) return done({ reply: noChangeReply, plan: planned });
+  if (planned && noChangeReply)
+    return done({
+      reply: reply ? await checked(planned, noChangeReply) : noChangeReply,
+      plan: planned,
+    });
 
   if (planned)
     return done({
-      reply: plannedReply(request, planned, reply),
+      reply: plannedReply(request, planned, await checked(planned)),
       plan: planned,
     });
 
@@ -904,18 +911,18 @@ async function runConversationAgent(
       questions: asked,
       known: understood.success ? understood.data : {},
       ...(request.plan ? { plan: request.plan } : {}),
-      ...(reply ? { reply: request.plan ? groundedReply(request, undefined, reply) : reply } : {}),
+      ...(reply ? { reply: request.plan ? await checked(undefined) : reply } : {}),
     });
   }
 
   if (request.plan)
     return done({
-      reply: reply ? groundedReply(request, request.plan, reply) : "",
+      reply: reply ? await checked(request.plan) : "",
       plan: request.plan,
     });
 
   const plan = await orchestrate(intake.requireReady(reply || undefined));
-  return done({ reply: plannedReply(request, plan, reply), plan });
+  return done({ reply: plannedReply(request, plan, await checked(plan)), plan });
 }
 
 const OFFLINE_NO_CHANGE: Record<InterfaceLanguage, string> = {
