@@ -32,6 +32,7 @@ export function useWorkspaceTripEditor({
   locale,
   editPending,
   busy,
+  chatWriting,
   selectedActivity,
   mapRoutes,
   mapDay,
@@ -57,6 +58,7 @@ export function useWorkspaceTripEditor({
   locale: "en" | "zh";
   editPending: boolean;
   busy: boolean;
+  chatWriting: boolean;
   selectedActivity?: string;
   mapRoutes: RouteResult[];
   mapDay?: number;
@@ -85,7 +87,7 @@ export function useWorkspaceTripEditor({
   const undo = useTripUndo(editorPlan);
   const revisions = usePlanRevision({
     plan: editorPlan,
-    held: editPending,
+    held: editPending || chatWriting,
     dataMode: dataMode.mode,
     onApply: (next, backgroundBase) => {
       if (backgroundBase) undo.preserveBackground(backgroundBase, next);
