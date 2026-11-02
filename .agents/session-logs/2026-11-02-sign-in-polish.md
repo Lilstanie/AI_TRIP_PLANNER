@@ -101,3 +101,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `TripHomeCalendar.tsx`: an untimed flight or stay shows its own detail ("Flight", "Return flight", night index) instead of repeating "All day"; untimed activities keep "Untimed".
 - `trip-home-calendar.css`: event titles use `word-break: keep-all`, so CJK place names wrap between words; `overflow-wrap: anywhere` still breaks a word that cannot fit.
 - Validation: zh and en calendar screenshots; `tsc --noEmit`, eslint, `check-ui-copy` pass. No machine check: wrapping depends on rendered width, and the label change is copy.
+
+## Round 12 — TP-299 phone month calendar
+
+- Month view at 390px (zh, mock Perth → Bali trip): every event was a 44px-tall chip whose text was cut to "M…" or "珀…", so the trip week was a tall column of unreadable boxes.
+- `trip-home-calendar.css` (≤520px only): month events become 7px dots in their category colour, laid out in a wrapped row under the date; titles stay in the accessibility tree (visually hidden), and the dots take no taps, so the 44px date button stays the way into a day. Desktop month view is unchanged.
+- Validation: phone month screenshots in light and dark. The existing phone hit-area check in `trip-home-calendar.e2e.mjs` measures the week view, which is unchanged. No new machine check: the change is layout at one breakpoint.

@@ -540,7 +540,28 @@ button.trip-home-calendar__event:hover {
     width: 44px;
     height: 44px;
   }
+  .trip-home-calendar__month-day .trip-home-calendar__entries,
+  .trip-home-calendar__month-day .trip-home-calendar__row {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 3px;
+  }
   .trip-home-calendar__month-day .trip-home-calendar__event {
-    min-height: 44px;
+    width: 7px;
+    height: 7px;
+    min-height: 0;
+    padding: 0;
+    border: 0;
+    border-radius: 50%;
+    background: currentColor;
+    pointer-events: none;
+  }
+  .trip-home-calendar__month-day .trip-home-calendar__event-head {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    overflow: hidden;
+    clip-path: inset(50%);
   }
 }
