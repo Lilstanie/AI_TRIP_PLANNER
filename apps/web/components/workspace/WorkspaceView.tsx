@@ -198,6 +198,7 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
     locale,
     editPending,
     busy,
+    chatWriting: !!editorPlan && session.writingTripIds.includes(editorPlan.tripId),
     selectedActivity,
     mapRoutes,
     mapDay: layout.mapDay,

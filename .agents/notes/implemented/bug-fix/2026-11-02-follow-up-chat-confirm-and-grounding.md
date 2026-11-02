@@ -33,6 +33,12 @@ showed two faults on every follow-up message.
   can check, the change claim stands. An unchanged plan, a parsed move/add/remove that did not
   happen, and booking claims are still replaced.
 
+- Follow-up (TP-258): background saves are held while a chat turn writes the trip
+  (`useWorkspaceTripEditor` `held: editPending || chatWriting`). The production re-test after the
+  first fix showed the turn-1 plan's automatic saves landing while turn 2 ran; `finish` saw a
+  different `editVersion`, treated it as a traveller edit (`planConflict`), kept the auto-saved
+  turn-1 plan and dropped the chat result, so turn 3 still saw the stop turn 2 removed.
+
 ## Alternatives considered
 
 **Remove the confirm.** The itinerary walkthrough decision keeps it for real edits; only the false
