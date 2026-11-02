@@ -27,8 +27,10 @@ describe("journeyLegs", () => {
       "Melbourne → Tokyo",
       "Tokyo → Kyoto",
       "Kyoto → Osaka",
+      "Osaka → Tokyo",
     ]);
-    expect(legs.map((leg) => leg.index)).toEqual([0, 1, 2]);
+    expect(legs.map((leg) => leg.index)).toEqual([0, 1, 2, 3]);
+    expect(legs.at(-1)).toMatchObject({ day: 8, closing: "to-first-city" });
 
     const days = legs.map((leg) => leg.day);
     expect(days).toEqual([...days].sort((a, b) => a - b));
@@ -75,6 +77,6 @@ describe("legMode", () => {
       destinations: ["Tokyo", "Kyoto"],
     });
     expect(flightLegs(legs).map((l) => l.to)).toEqual(["Tokyo"]);
-    expect(groundLegs(legs).map((l) => l.to)).toEqual(["Kyoto"]);
+    expect(groundLegs(legs).map((l) => l.to)).toEqual(["Kyoto", "Tokyo"]);
   });
 });
