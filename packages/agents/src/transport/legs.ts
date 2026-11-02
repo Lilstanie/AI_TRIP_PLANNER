@@ -132,11 +132,6 @@ export function journeyLegs(input: {
 export const flightLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "flight");
 export const groundLegs = (legs: JourneyLeg[]) => legs.filter((leg) => leg.mode === "ground");
 
-/**
- * The day each city is reached. Without `cityNights` the trip is split evenly. Named cities get
- * the nights the traveller asked for and the others share what is left; an impossible request
- * (more nights than the trip has, or a city left with none) falls back to the even split.
- */
 export function cityStartDays(
   cities: readonly string[],
   days: number,

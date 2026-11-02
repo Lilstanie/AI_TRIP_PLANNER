@@ -1,10 +1,5 @@
 import type { AgentProposal } from "@trip/shared";
 
-/**
- * Applies a traveller's itinerary edit without letting it spread: a deterministic fallback never
- * replaces a model-drafted itinerary (the edit is reported as not made instead), and when the edit
- * names its days, every other day keeps the stops it had before.
- */
 export function scopedItineraryEdit(
   before: AgentProposal,
   after: AgentProposal,
