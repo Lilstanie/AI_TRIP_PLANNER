@@ -214,10 +214,6 @@ function hasFlightBookingEvidence(request: ChatRequest): boolean {
   return USER_FLIGHT_BOOKING_EVIDENCE.test(request.message);
 }
 
-/**
- * Names what a reply claims that the resulting plan or the traveller's own words do not show.
- * Returns undefined when the reply is grounded.
- */
 export function ungroundedClaim(
   request: ChatRequest,
   planned: TripPlan | undefined,
@@ -252,11 +248,6 @@ export function groundedReply(
   return ungroundedClaim(request, planned, reply) ? ungroundedFallback(request) : reply;
 }
 
-/**
- * Asks the model to rewrite a reply whose claim the plan does not support, given the fact that
- * contradicts it. Falls back to the fixed sentence when the model fails or its rewrite still claims
- * something the plan does not show.
- */
 export async function truthfulReply(
   model: BaseChatModel,
   request: ChatRequest,
