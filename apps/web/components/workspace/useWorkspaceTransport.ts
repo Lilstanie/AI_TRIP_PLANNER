@@ -2,8 +2,10 @@
 import { resolveMentions } from "../chat/mentions";
 import { useEffect, useRef, type MutableRefObject } from "react";
 import {
+  MAX_CHAT_HISTORY_TURNS,
   TripPlan,
   type AssistantSettings,
+  type ChatHistoryTurn,
   type Attachment,
   type Currency,
   type InterfaceLanguage,
@@ -75,6 +77,16 @@ type WorkspaceTransportOptions = {
   planDestinationLocation?: Draft["destinationLocation"];
 };
 
+function chatHistory(messages: Message[]): ChatHistoryTurn[] {
+  return messages
+    .filter((item) => item.text.trim())
+    .slice(-MAX_CHAT_HISTORY_TURNS)
+    .map((item) => ({
+      role: item.role === "user" ? "user" : "assistant",
+      content: item.text.slice(0, 8000),
+    }));
+}
+
 type ChatSendContext = {
   plan: TripPlan;
   draft: Draft;
@@ -105,10 +117,9 @@ export function useWorkspaceTransport({
   displayCurrency,
   planDestinationLocation,
 }: WorkspaceTransportOptions) {
-  const originalPlan = useRef<string | undefined>(undefined);
+  const originalPlan = useRef<{ tripId: string; snapshot: string } | undefined>(undefined);
   const editSnapshot = (value: TripPlan) =>
     JSON.stringify({
-      tripId: value.tripId,
       brief: value.brief,
       dayNotes: value.dayNotes,
       sections: value.sections.map((section) => ({
@@ -122,13 +133,23 @@ export function useWorkspaceTransport({
           : undefined,
       })),
     });
-  if (plan && (plan.editVersion ?? 0) === 0) originalPlan.current = editSnapshot(plan);
+  const unedited = (value: TripPlan) =>
+    originalPlan.current?.tripId === value.tripId &&
+    originalPlan.current.snapshot === editSnapshot(value);
+  if (plan && (plan.editVersion ?? 0) === 0)
+    originalPlan.current = { tripId: plan.tripId, snapshot: editSnapshot(plan) };
+
+  function settleBackground(base: TripPlan, next: TripPlan) {
+    if (unedited(base))
+      originalPlan.current = { tripId: next.tripId, snapshot: editSnapshot(next) };
+  }
 
   function confirmReplacingEditedPlan(currentPlan = plan) {
     if (!currentPlan) return true;
     const hasDirectEdits =
       (currentPlan.editVersion ?? 0) > 0 &&
-      (originalPlan.current === undefined || editSnapshot(currentPlan) !== originalPlan.current);
+      originalPlan.current?.tripId === currentPlan.tripId &&
+      !unedited(currentPlan);
     if (!hasDirectEdits) return true;
     const message = translate(interfaceLanguage, "replaceYourEditedPlanYour");
     return window.confirm(message);
@@ -317,6 +338,7 @@ export function useWorkspaceTransport({
       data,
     }));
     const mentions = resolveMentions(message, assistant?.names);
+    const history = context ? [] : chatHistory(shownMessages());
     const destination = currentPlan?.brief.destination ?? currentDraft.destination;
     const location = destinationLocationFor(
       destination,
@@ -337,6 +359,7 @@ export function useWorkspaceTransport({
               }
             : { tripId: freshTripId.current, message, known: knownFromDraft(currentDraft) }),
           ...(mentions.length ? { mentions } : {}),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
           ...(sent.length ? { attachments: sent } : {}),
         },
@@ -368,6 +391,7 @@ export function useWorkspaceTransport({
     if (!ask || !canStart((ask.plan ?? plan)?.tripId ?? freshTripId.current)) return;
     if (!confirmReplacingEditedPlan()) return;
     const message = formatAskAnswers(ask.questions, answers);
+    const history = chatHistory(shownMessages());
     const current = ask.plan ?? plan;
     const known = current ? undefined : { ...knownFromDraft(draft), ...ask.known };
     const destination = current?.brief.destination ?? known?.destination;
@@ -393,6 +417,7 @@ export function useWorkspaceTransport({
                 message,
                 known,
               }),
+          ...(history.length ? { history } : {}),
           ...(location ? { destinationLocation: location } : {}),
         },
       },
@@ -405,5 +430,5 @@ export function useWorkspaceTransport({
   useEffect(() => {
     resumeOnLoad.current(activeConversation.current);
   }, [activeConversation]);
-  return { run, resumePending, submit, prepareChat, send, answer };
+  return { run, resumePending, submit, prepareChat, send, answer, settleBackground };
 }

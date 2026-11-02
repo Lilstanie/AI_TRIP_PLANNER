@@ -1,4 +1,5 @@
 import type { ChatTurn, FlightLeg, TravelMode, UserPreference } from "./contracts";
+import type { FlightPriceInsight } from "./chat";
 
 export type { TravelMode };
 
@@ -106,6 +107,8 @@ export interface FlightOption {
   carrier: string;
   price: number;
   note?: string;
+
+  priceInsight?: FlightPriceInsight;
 
   stops?: number;
 

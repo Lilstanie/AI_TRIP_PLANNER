@@ -1,5 +1,5 @@
 import { durableStoreConfigured, jsonStore } from "@trip/services";
-import type { FlightLeg, FlightOption, StayOption } from "@trip/shared";
+import type { FlightLeg, FlightOption, FlightPriceInsight, StayOption } from "@trip/shared";
 import { airportCodeFor } from "./airports";
 import { legFrom, isRoundTrip, departureToken, type RawItinerary } from "./flight-itinerary";
 import { toolFetch, toolNow, toolRuntimeConfig } from "./runtime-context";
@@ -113,6 +113,7 @@ interface SerpApiRaw {
   best_flights?: unknown[];
   other_flights?: unknown[];
   directions?: unknown[];
+  price_insights?: unknown;
 }
 
 async function serpApiSearch(params: Record<string, string>): Promise<SerpApiRaw> {
@@ -237,6 +238,49 @@ function airportCode(city: string): string {
   return code;
 }
 
+const PRICE_LEVELS = new Set(["low", "typical", "high"]);
+
+function priceInsightFrom(raw: unknown): FlightPriceInsight | undefined {
+  if (!raw || typeof raw !== "object") return undefined;
+  const insight = raw as {
+    price_level?: unknown;
+    typical_price_range?: unknown;
+    price_history?: unknown;
+  };
+  const level = typeof insight.price_level === "string" ? insight.price_level.toLowerCase() : "";
+  if (!PRICE_LEVELS.has(level)) return undefined;
+
+  const range = insight.typical_price_range;
+  const typicalRange =
+    Array.isArray(range) &&
+    range.length === 2 &&
+    range.every((value) => Number.isFinite(value) && value >= 0) &&
+    range[0] <= range[1]
+      ? ([range[0], range[1]] as [number, number])
+      : undefined;
+
+  const history = Array.isArray(insight.price_history)
+    ? insight.price_history
+        .filter(
+          (point): point is [number, number] =>
+            Array.isArray(point) &&
+            Number.isFinite(point[0]) &&
+            Number.isFinite(point[1]) &&
+            point[1] >= 0,
+        )
+        .map(([seconds, price]) => ({
+          date: new Date(seconds * 1000).toISOString().slice(0, 10),
+          price,
+        }))
+    : [];
+
+  return {
+    level: level as FlightPriceInsight["level"],
+    ...(typicalRange ? { typicalRange } : {}),
+    ...(history.length > 1 ? { history } : {}),
+  };
+}
+
 export async function searchFlightsSerpApi(q: {
   from: string;
   to: string;
@@ -257,6 +301,7 @@ export async function searchFlightsSerpApi(q: {
     });
     const queriedAt = toolNow().toISOString();
     const flights = [...(data.best_flights ?? []), ...(data.other_flights ?? [])];
+    const priceInsight = priceInsightFrom(data.price_insights);
     const options: FlightOption[] = flights
       .map((raw): FlightOption => {
         const flight = raw as RawItinerary & { flights?: Array<{ airline?: unknown }> };
@@ -274,6 +319,7 @@ export async function searchFlightsSerpApi(q: {
           ...(isRoundTrip(flight) ? { roundTrip: true } : {}),
 
           ...(token ? { returnToken: token } : {}),
+          ...(priceInsight ? { priceInsight } : {}),
           provenance: {
             kind: "live",
             provider: "SerpApi Google Flights",

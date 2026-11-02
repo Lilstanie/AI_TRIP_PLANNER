@@ -115,6 +115,8 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 
 可选的 `mentions`：旅客点名的 specialist id（`itinerary`、`transport`、`accommodation`、`destination-guide`、`dining`），最多五个且互不相同。缺省时本轮仍交给协调员。带 `plan` 时，只有这些 specialist 运行并修改自己的部分，随后进行冲突检查和定向修订，响应的 `assistant` 为第一个被提及的 id。没有 `plan` 时，被提及的 specialist 只作答，不创建任何内容，并通过 `needs_info` 帧（同样带可选的 `assistant`）向旅客收集行程信息。
 
+可选的 `history`：本对话之前最多 20 轮，按时间先后排列，每轮为 `{ role: "user" | "assistant", content }`，`content` 最多 8,000 个字符（`ChatHistoryTurn`）。网页端在每条聊天消息和追问回答中发送当前可见的对话。只有服务器自己的该行程短期记忆为空时（例如请求落到另一个无服务器实例）才使用它；否则以服务器存储的对话为准。
+
 可选的 `interfaceLanguage`：`en` 或 `zh`（`packages/shared/src/chat/chat.ts` 中的 `InterfaceLanguage`），
 即旅行者界面当前显示的语言。网页端在每次聊天请求中发送当前的界面语言。协调器始终使用旅行者最新一条消息的语言回复；
 只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。
@@ -255,7 +257,7 @@ Upstash/Vercel KV 时用它，否则用进程内存），保留一小时，归�
 `dataMode` 为 `fixture`（默认）或 `live`。fixture 运行对该请求使用 mock 工具且不使用模型，因此无论部署持有什么密钥、默认数据模式是什么，
 它都不发起外部调用、不消耗额度。它不需要任何凭据，并且它和实时运行都不会持久化聊天、行程或实验结果。
 
-部署环境中的实时运行需要登录；未配置认证的部署会拒绝实时运行。本地未配置认证时仍可实时运行。实时运行使用部署自己的模型和提供方，且只在部署设置了 `AGENT_LAB_LIVE_ENABLED=true` 时存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
+部署环境中的实时运行需要登录；未配置认证的部署会拒绝实时运行。本地未配置认证时仍可实时运行。实时运行使用部署自己的模型和提供方，除非部署设置了 `AGENT_LAB_LIVE_ENABLED=false`，否则实时运行存在（见 [development](development.zh.md)）。只有两个 specialist 策略有实时实现；
 单 agent 基线回放的是一份录制结果，因此请求它的实时运行会被拒绝。无法开始的请求只会收到一个带类型的 `rejected` 帧，没有运行，也绝不会有产物：
 认证需要登录或未配置时返回 401 `live_disabled`、503 `live_disabled`、400 `live_unsupported`，或带有 `Retry-After` 头和 `retryAfterSeconds` 的 429 `concurrency_limit` / `rate_limit`。
 这些都不是实验的失败，且消息不会点出任何设置或限额。实时产物的 `dataMode`，以及每个事件上的同名字段，都是 `live`。

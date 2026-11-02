@@ -124,13 +124,13 @@ the project's Root Directory is `apps/web`. Any other database, such as a local 
 needs `db:migrate` by hand; settings shows "Could not load remembered preferences" when it is
 missing the `account_memories` table from `0002_adorable_namor.sql`.
 
-Agent Lab live runs are off unless the deployment enables them (these names are not in `.env.example`):
+Agent Lab live runs are on unless the deployment turns them off (these names are not in `.env.example`):
 
-| Setting                            | Purpose                                                                                                                                                                         |
-| ---------------------------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `AGENT_LAB_LIVE_ENABLED`           | Exactly `true` enables live runs, which use the model and provider keys above; deployments also require sign-in. Anything else leaves live off; fixture data is never affected. |
-| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | Live runs in flight at once. Default `1`; `0` allows none; capped at `20`.                                                                                                      |
-| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | Live runs that may start in a rolling hour. Default `6`; `0` allows none; capped at `1000`.                                                                                     |
+| Setting                            | Purpose                                                                                                                                                           |
+| ---------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| `AGENT_LAB_LIVE_ENABLED`           | Exactly `false` turns live runs off. Otherwise live runs use the model and provider keys above; deployments also require sign-in. Fixture data is never affected. |
+| `AGENT_LAB_LIVE_MAX_CONCURRENT`    | Live runs in flight at once. Default `1`; `0` allows none; capped at `20`.                                                                                        |
+| `AGENT_LAB_LIVE_MAX_RUNS_PER_HOUR` | Live runs that may start in a rolling hour. Default `6`; `0` allows none; capped at `1000`.                                                                       |
 
 An unusable value falls back to the default, never to no limit. The counts are kept in one server process, so a
 deployment that runs several instances applies the limits to each; size them for that.
@@ -426,8 +426,8 @@ A malformed `requires-env` line stops the runner with an error instead of runnin
 
 `output/`, `apps/web/output/`, `tmp/` and `.scratch/` are Git-ignored scratch directories, and `output/` grows by gigabytes. Run `pnpm clean:output` once the evidence has been quoted in the pull request; `pnpm clean:output --dry-run` lists sizes first. It refuses to run if any tracked file lives under those directories. After a pull request is merged or closed, delete its remote branch (see [pre-push-checks](../.agents/skills/pre-push-checks/SKILL.md#5-after-the-merge)). `node scripts/worktrees.mjs` lists worktrees and leftovers by category: clean worktrees, `.next` and `.turbo` build output in kept worktrees, directories under `~/.codex/worktrees` that hold only the worktree-name marker, and unregistered clean clones of the same `origin`. It is a dry run until `--apply`, which moves them to the Trash and runs `git worktree prune`; it keeps anything with changes, a stash, unpushed or unreachable commits, a lock, the main worktree and the one it runs from, and never deletes a branch. Without `--worktree` it also keeps any worktree or clone whose Git index, `HEAD` or reflog changed within `--idle-hours` (default 24), so it does not pull a worktree from under another session. `--worktree <path>` limits it to the named worktrees, which is how a run removes its own worktree when it ends. `--root <dir>` replaces the scan root, `--trash <dir>` the Trash, and `--sizes` sizes only the listed entries; use it instead of `du` over the whole disk or `git status --untracked-files=all`. Its failure inventory is [scripts/worktrees.failures.md](../scripts/worktrees.failures.md). Each script's header lists the failure inventory it was written from and
 any server environment it needs. Fixture runs are isolated from the deployment's keys and data-mode default, so the
-Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled
-(see its header). `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
+Agent Lab scripts pass whatever the environment holds; `agent-lab-live-gate` also uses two servers with live enabled,
+and its main server needs `AGENT_LAB_LIVE_ENABLED=false`. `agent-lab-release` walks the whole public flow and writes the release evidence: raw NDJSON,
 versioned artifacts, a comparison summary, a report and a screenshot matrix (light and dark, desktop and narrow,
 reduced motion). Release smoke keeps `provider-empty-result` as the representative fault journey;
 `agent-lab-failures` owns all five registered fault profiles, their outcomes, downloads and offline replay,

@@ -2,12 +2,12 @@ import { describe, expect, it } from "vitest";
 import { createLiveLimiter, readLiveConfig } from "@/lib/agent-lab/live-gate";
 
 describe("readLiveConfig", () => {
-  it("is disabled unless the deployment says exactly true", () => {
-    expect(readLiveConfig({}).enabled).toBe(false);
-    for (const value of ["", "1", "yes", "TRUE", "True", "on", " true"]) {
-      expect(readLiveConfig({ AGENT_LAB_LIVE_ENABLED: value }).enabled).toBe(false);
+  it("is enabled unless the deployment says exactly false", () => {
+    expect(readLiveConfig({}).enabled).toBe(true);
+    for (const value of ["", "true", "0", "no", "FALSE", " false"]) {
+      expect(readLiveConfig({ AGENT_LAB_LIVE_ENABLED: value }).enabled).toBe(true);
     }
-    expect(readLiveConfig({ AGENT_LAB_LIVE_ENABLED: "true" }).enabled).toBe(true);
+    expect(readLiveConfig({ AGENT_LAB_LIVE_ENABLED: "false" }).enabled).toBe(false);
   });
 
   it("uses safe defaults for a missing or unusable limit, never no limit", () => {

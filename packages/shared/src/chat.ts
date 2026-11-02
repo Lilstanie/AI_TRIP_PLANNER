@@ -129,6 +129,14 @@ export const INTERFACE_LANGUAGES = ["en", "zh"] as const;
 export const InterfaceLanguage = z.enum(INTERFACE_LANGUAGES);
 export type InterfaceLanguage = z.infer<typeof InterfaceLanguage>;
 
+export const MAX_CHAT_HISTORY_TURNS = 20;
+
+export const ChatHistoryTurn = z.object({
+  role: z.enum(["user", "assistant"]),
+  content: z.string().max(8000),
+});
+export type ChatHistoryTurn = z.infer<typeof ChatHistoryTurn>;
+
 export const ChatRequest = z
   .object({
     tripId: z.string(),
@@ -142,6 +150,8 @@ export const ChatRequest = z
     plan: TripPlan.optional(),
 
     mode: z.enum(["chat", "plan", "start"]).optional(),
+
+    history: z.array(ChatHistoryTurn).max(MAX_CHAT_HISTORY_TURNS).optional(),
 
     attachments: z.array(Attachment).max(MAX_ATTACHMENTS_PER_MESSAGE).optional(),
     assistant: AssistantSettings.optional(),
@@ -285,6 +295,13 @@ export const FlightAnswerOption = z.object({
 });
 export type FlightAnswerOption = z.infer<typeof FlightAnswerOption>;
 
+export const FlightPriceInsight = z.object({
+  level: z.enum(["low", "typical", "high"]),
+  typicalRange: z.tuple([z.number().nonnegative(), z.number().nonnegative()]).optional(),
+  history: z.array(z.object({ date: z.string(), price: z.number().nonnegative() })).optional(),
+});
+export type FlightPriceInsight = z.infer<typeof FlightPriceInsight>;
+
 export const FlightAnswer = z.object({
   type: z.literal("flight_answer"),
   reply: z.string(),
@@ -295,6 +312,8 @@ export const FlightAnswer = z.object({
   passengers: z.number().int().positive(),
 
   options: z.array(FlightAnswerOption),
+
+  priceInsight: FlightPriceInsight.optional(),
 
   source: z.object({ kind: z.string(), label: z.string(), freshness: z.string() }).optional(),
 });
