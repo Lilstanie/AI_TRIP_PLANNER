@@ -597,15 +597,26 @@ async function planItinerary(
     Promise.all(cityNames.map(readMeals)),
   ]);
   ctx.signal?.throwIfAborted();
+  const askedFor = new Map<string, Place[]>();
+  for (const name of revision?.places ?? []) {
+    for (const [city] of byCity) {
+      const [match] = await readPlaces("sight", city, name);
+      if (!match) continue;
+      askedFor.set(city, [...(askedFor.get(city) ?? []), match]);
+      break;
+    }
+  }
   const pace = planningPace(brief, preferences);
   const placesByCity = new Map(
     byCity.map(([city, { spots, neighborhoods }]) => [
       city,
       [
         ...new Map(
-          [...spots, ...(spots.length < days * PACE_MAX[pace] ? neighborhoods : [])].map(
-            (place) => [place.name.trim().toLowerCase(), place],
-          ),
+          [
+            ...(askedFor.get(city) ?? []),
+            ...spots,
+            ...(spots.length < days * PACE_MAX[pace] ? neighborhoods : []),
+          ].map((place) => [place.name.trim().toLowerCase(), place]),
         ).values(),
       ],
     ]),

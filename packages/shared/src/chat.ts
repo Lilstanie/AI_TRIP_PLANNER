@@ -6,6 +6,7 @@ import {
   FlightLeg,
   isTripDate,
   LegModeChoice,
+  CityNights,
   TravellerParty,
   TripBrief,
   TripIntent,
@@ -40,6 +41,7 @@ export const PartialTripBrief = z.object({
   excludeFlights: z.boolean().optional(),
 
   legModes: z.array(LegModeChoice).max(12).optional(),
+  cityNights: z.array(CityNights).max(12).optional(),
   bookedStay: BookedStay.optional(),
   noAccommodation: z.boolean().optional(),
 });
