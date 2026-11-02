@@ -225,6 +225,11 @@ html:has(.workspace-app[data-phone]) body {
   border-radius: var(--radius-pill) !important;
   color: var(--accent);
   font-weight: 600;
+  width: auto;
+  gap: var(--space-1);
+}
+.workspace-app[data-phone] .phone-mine .chats-panel__action .icon {
+  color: currentColor;
 }
 .workspace-app[data-phone] .phone-mine .trip-card {
   aspect-ratio: 16 / 10;

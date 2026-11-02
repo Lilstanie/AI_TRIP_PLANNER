@@ -193,3 +193,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `agent-lab/shell.css`: the toolbar aligns its columns to the top. The selects now share one line (top 319/319/319 at 1440px; the 900px two-column layout keeps its rows).
 - Validation: desktop dark crops before and after, 900px light after. No machine check: alignment depends on rendered column heights.
 - Also seen: the Agent Lab view buttons and secondary buttons are designed as outlined surface pills but render with the generic grey fill, the fifth instance of the `forms.css` cascade class, left for the `:where()` decision. Agent Lab copy stays English in Chinese locale (left as is).
+
+## Round 27 — TP-314 phone Mine section actions
+
+- Phone home in en dark and zh light, and the Mine tab with the seeded Bali trip. On Mine, "New trip" and "New chat" kept the sidebar row style (`width: 100%` in `workspace/trips.css`). They stretched to 257px and sat just after the Trips and Chats titles, with a grey icon 32px away from a blue label, instead of sitting at the right like the iOS section actions they are styled as.
+- `phone/polish.css`: on phone Mine the action sizes to its content (`width: auto`), with a 4px icon gap and the icon in the label's accent colour. Both actions now end at the right edge (x 260–362 en, 275–362 zh).
+- Validation: Mine tab before (en dark) and after (en dark, zh light), plus measured boxes. No machine check: placement depends on rendered widths.
+- Also checked: the phone top bar's grey band in dark mode is the designed glass bar.
