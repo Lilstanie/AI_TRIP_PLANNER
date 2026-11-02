@@ -83,6 +83,41 @@
   color: var(--text-mut);
   font-size: 12px;
 }
+.flight-results__insight {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: var(--space-2);
+  margin-bottom: var(--space-2);
+}
+.flight-results__level {
+  padding: 1px 8px;
+  border-radius: 999px;
+  background: var(--surface-2);
+  font-size: 12px;
+  font-weight: 600;
+}
+.flight-results__insight[data-level="low"] .flight-results__level {
+  color: var(--ok);
+  background: var(--ok-bg);
+}
+.flight-results__insight[data-level="high"] .flight-results__level {
+  color: var(--warn-strong);
+  background: var(--warn-bg);
+}
+.flight-results__trend {
+  margin-left: auto;
+  overflow: visible;
+}
+.flight-results__trend polyline {
+  fill: none;
+  stroke: var(--text-mut);
+  stroke-width: 1.5;
+  stroke-linejoin: round;
+}
+.flight-results__trend circle {
+  fill: var(--accent);
+}
 .flight-results__list {
   margin: 0;
   padding: 0;
