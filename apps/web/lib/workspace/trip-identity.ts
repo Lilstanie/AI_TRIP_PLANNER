@@ -42,19 +42,27 @@ export function tripDays(trip: TripRecord): number {
   return Math.max(1, Math.round((end! - start!) / 86_400_000) + 1);
 }
 
-export function tripMeta(
+export function tripMetaParts(
   trip: TripRecord,
   locale: AppLocale,
   displayCurrency: Currency,
   t: (text: "countDays", params: { count: number }) => string,
-): string {
+): string[] {
   const { brief, estTotal } = trip.snapshot.plan;
-  const length = tripDays(trip);
   const dateRange = dateRangeLabel(brief.dates[0], brief.dates[1], locale);
   const total = moneyDisplay({ currency: effectiveCurrency(brief, displayCurrency), locale }).money(
     estTotal,
   );
-  return `${brief.destination} · ${dateRange ? `${dateRange} · ` : ""}${t("countDays", { count: length })} · ${total}`;
+  return [
+    brief.destination,
+    ...(dateRange ? [dateRange] : []),
+    t("countDays", { count: tripDays(trip) }),
+    total,
+  ];
+}
+
+export function tripMeta(...args: Parameters<typeof tripMetaParts>): string {
+  return tripMetaParts(...args).join(" · ");
 }
 
 export function tripTags(

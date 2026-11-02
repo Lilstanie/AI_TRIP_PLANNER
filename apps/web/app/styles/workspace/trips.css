@@ -293,6 +293,9 @@
   color: rgb(255 255 255 / 80%);
   font-size: var(--font-size-meta);
 }
+.trip-card__meta-part {
+  white-space: nowrap;
+}
 @media (prefers-reduced-motion: reduce) {
   .trip-card,
   .trip-card:hover {

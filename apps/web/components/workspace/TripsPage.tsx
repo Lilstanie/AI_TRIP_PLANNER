@@ -2,7 +2,7 @@
 import { keyForText, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
-import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripMetaParts, tripName } from "@/lib/workspace/trip-identity";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { PlusIcon } from "../ui/icons";
@@ -199,7 +199,12 @@ function TripCards({
                 <span className="trip-card__text">
                   <span className="trip-card__title">{titles.get(trip.id)}</span>
                   <span className="trip-card__meta">
-                    {tripMeta(trip, locale, settings.displayCurrency, t)}
+                    {tripMetaParts(trip, locale, settings.displayCurrency, t).map((part, index) => (
+                      <span key={index}>
+                        {index ? " · " : ""}
+                        <span className="trip-card__meta-part">{part}</span>
+                      </span>
+                    ))}
                   </span>
                 </span>
               </button>
