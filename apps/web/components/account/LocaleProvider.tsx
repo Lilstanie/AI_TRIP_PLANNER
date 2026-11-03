@@ -7,7 +7,7 @@ import {
   intlLocale,
   MESSAGES,
   translate,
-  withVisiblePlaceholders,
+  fillMessage,
   type AppLocale,
   type MessageKey,
   type MessageParams,
@@ -77,9 +77,11 @@ function LocaleValue({
     () => ({
       locale,
       t: (text, params = {}) =>
-        (translations as (key: string, values: MessageParams) => string)(
+        fillMessage(
+          locale,
+          translations as (key: string, values: MessageParams) => string,
           text,
-          withVisiblePlaceholders(text, params),
+          params,
         ),
       currency,
       notice: (notice) => localNotice(locale, notice),
