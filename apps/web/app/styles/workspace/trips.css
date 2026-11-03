@@ -325,9 +325,12 @@
   inset-inline-end: var(--space-2);
 }
 .trip-cards .history-item__more {
-  background: rgb(0 0 0 / 40%) !important;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 22%) !important;
   color: #fff;
   opacity: 1;
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
 }
 .trip-undo {
   margin-block: var(--space-2);

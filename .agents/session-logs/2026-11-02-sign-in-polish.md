@@ -252,3 +252,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `phone/polish.css` drops the heading's inline padding and pulls the action out by the same `--space-2` with a negative end margin, so its padded hit area stays 44px tall and its text ends at the content edge.
 - Evidence: headings x=28 and link text right=361 after, in en light and zh dark; before/after crops.
 - Machine check: none. It is one alignment value on one screen; a style test would restate the CSS rather than catch a bug class.
+
+## Round 36 — TP-323 trip card menu button
+
+- Problem: the "⋮" button on trip cover cards was a 40% black rounded square (8px radius). On the phone Mine tab it is 44px, so it read as a heavy dark block on the cover gradient.
+- Fix: `workspace/trips.css` makes it a pill-radius circle at 22% black with a 12px backdrop blur, like the app's other floating controls. Phone (44px) and desktop (28px) both change.
+- Evidence: before/after crops on phone en light, phone zh dark and desktop en dark; computed radius 8px -> 999px, background 0.4 -> 0.22 alpha.
+- Machine check: none. A visual weight choice for one control; no rule can tell a good fill from a heavy one.
