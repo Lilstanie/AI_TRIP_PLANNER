@@ -107,10 +107,7 @@ function outcomeFor(
 ): string {
   const copy = progressCopy(language);
   if (!revision) return copy.produced(proposal.agent);
-  const reason = revision.constraints.length
-    ? `${revision.reason} (${revision.constraints.join("; ")})`
-    : revision.reason;
-  return copy.revised(proposal.agent, reason);
+  return copy.revised(proposal.agent, revision.reason);
 }
 
 const DelegationRequest = z.object({

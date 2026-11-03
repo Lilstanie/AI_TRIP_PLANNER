@@ -341,3 +341,16 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   AssertionError: expected '[{"title":"Flight 珀斯 → 巴厘岛","selected…' not to match /Flight|Stay in|total|Nonstop|stop|Can…/
   ```
 - Not changed: hotel areas from mock data ("Central", "Outer district") are data, not copy.
+
+## Round 45 — TP-332 Chinese revision reasons in the Think trace
+
+- Problem: a revised 日程规划 row in the zh Think trace read "修正：geography conflict on day 1: Mock attraction near 纽约 to Mock Corner Bistro, 纽约 needs 35 minutes including a 15-minute buffer but only 15 are available；…" and the same English inside "根据“…”修改了「日程规划」部分。".
+- Cause: conflict reasons are English sentences written by `packages/orchestrator/src/planning/conflicts.ts` and the specialists (`packages/agents/src/itinerary/travel.ts`, `itinerary/index.ts`, `transport/index.ts`); the Chinese `copy.fix` / `copy.revised` quoted them unchanged. The delegated path's `outcomeFor` also appended the English constraints, which the row already lists (translated by TP-329).
+- Fix: `progress-copy.ts` rewrites each "; "-separated part of a reason through Chinese patterns for every reason template (infeasible budget, over budget, arrival, time overlap, route timing, route provider failed or unavailable, overnight city, no grounded places); unknown text passes through. `outcomeFor` passes only the reason.
+- Evidence: a fresh local mock plan in zh dark shows "修正：第 1 天从 … 到 … 需要 35 分钟（含 15 分钟缓冲），但只有 15 分钟；…"; before/after crop. Orchestrator tests: 437 passed.
+- Machine check: `packages/orchestrator/tests/progress-copy.test.ts` feeds one example of every template and expects no Latin text besides the currency code. Red on the old code:
+  ```
+  AssertionError: expected '修正：infeasible budget: the cheapest fl…' not to match /[A-Za-z]/
+  ```
+  A new reason template is not caught by it; the open-ideas list notes that the reasons could become structured data instead.
+- Not changed: place names from mock data stay English; a five-day route conflict still repeats the full reason in both the request and the result line (open idea).
