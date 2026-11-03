@@ -290,3 +290,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Evidence: "11月2日 18:39" (zh dark) and "2 Nov 18:39" (en light) after; before/after crops.
 - Machine check: none. The fix removes a second formatter in favour of the shared one; a test would pin copy, not a bug class.
 - Also looked at: phone Chat tab with the plan reply (fine apart from the dev-only Next.js badge over the Chat tab).
+
+## Round 40 — TP-327 Chinese day labels
+
+- Problem: `dayLabel` in `lib/trip/timeline.ts` formats `{ weekday, day, month }` in one `Intl.DateTimeFormat`; zh-CN returns "11月28日周六" with no separator, so chat day cards, itinerary day headings, the editor's day picker and the Bookings tab ran date and weekday together.
+- Fix: for zh, format the date and the weekday separately and join them with a space ("11月28日 周六"); en keeps "Sat, 28 Nov".
+- Evidence: chat day cards before/after in zh dark and en light; `tests/lib/trip` (53 tests) still pass.
+- Machine check: none. A locale's joined output is a copy choice for one helper; a test would pin the string, not a bug class.
