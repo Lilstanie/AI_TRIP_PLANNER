@@ -135,24 +135,31 @@
 }
 
 .plan-days-scroller {
+  --edge-fade: 24px;
   position: relative;
   max-width: 100%;
 }
 
+@media (hover: hover) {
+  .plan-days-scroller {
+    --edge-fade: 52px;
+  }
+}
+
 .plan-days-scroller[data-more-end] .plan-days {
-  mask-image: linear-gradient(to right, #000 calc(100% - 24px), transparent);
+  mask-image: linear-gradient(to right, #000 calc(100% - var(--edge-fade)), transparent);
 }
 
 .plan-days-scroller[data-more-start] .plan-days {
-  mask-image: linear-gradient(to right, transparent, #000 24px);
+  mask-image: linear-gradient(to right, transparent, #000 var(--edge-fade));
 }
 
 .plan-days-scroller[data-more-start][data-more-end] .plan-days {
   mask-image: linear-gradient(
     to right,
     transparent,
-    #000 24px,
-    #000 calc(100% - 24px),
+    #000 var(--edge-fade),
+    #000 calc(100% - var(--edge-fade)),
     transparent
   );
 }

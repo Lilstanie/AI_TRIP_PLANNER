@@ -43,6 +43,8 @@ const state = (page) =>
       const style = getComputedStyle(node);
       return {
         shown: style.display !== "none" && box.width > 0,
+        left: Math.round(box.left),
+        right: Math.round(box.right),
         label: node.getAttribute("aria-label"),
         tabIndex: node.tabIndex,
       };
@@ -97,6 +99,24 @@ try {
       ...(journey.reducedMotion ? { reducedMotion: journey.reducedMotion } : {}),
       ...(journey.phone ? { isMobile: true, hasTouch: true } : {}),
     });
+    await context.addInitScript(() => {
+      if (sessionStorage.getItem("seeded")) return;
+      localStorage.setItem(
+        "trip.settings.v1",
+        JSON.stringify({
+          version: 1,
+          travel: { homeCity: "", preferences: [], interests: [], dietary: [] },
+          memberships: [],
+          assistant: { style: "neutral", memory: true },
+          dataMode: "mock",
+          appearance: "system",
+          displayCurrency: "AUD",
+          updatedAt: new Date().toISOString(),
+        }),
+      );
+      localStorage.setItem("trip.dataMode", "mock");
+      sessionStorage.setItem("seeded", "1");
+    });
     const page = await context.newPage();
     const pageErrors = [];
     page.on("pageerror", (error) => pageErrors.push(String(error)));
@@ -135,6 +155,12 @@ try {
       first.end,
     );
     check(first.end?.tabIndex === -1, `${tag}: the button stays out of the tab order`, first.end);
+    const fadeEnd = Number(/calc\(100% - (\d+(?:\.\d+)?)px\)/.exec(first.mask)?.[1] ?? 0);
+    check(
+      first.strip && first.end && fadeEnd >= first.strip.right - first.end.left,
+      `${tag}: card text fades out before it reaches the later-days button`,
+      { fadeEnd, strip: first.strip, button: first.end },
+    );
 
     const strip = page.locator(".msg-item--agent .plan-days").last();
     await strip.hover();
