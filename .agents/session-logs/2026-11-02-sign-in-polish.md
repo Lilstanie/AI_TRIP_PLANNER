@@ -226,3 +226,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `forms.css`: both rules are now `button:where(:not(.a, .b, …))`, with the same exclusion lists, at the weight of `button`. Agent Note `.agents/notes/implemented/bug-fix/2026-11-03-generic-button-specificity.md`; `docs/design/dsh-thinking-ui.md` and its `.zh.md` pair describe the new weight.
 - Validation: computed-style census of every visible button in 20 desktop and phone states before and after (`padding`, fill, border, radius, size, weight). The changed classes all move to their own CSS: Agent Lab views and secondary buttons, the "5 ideas" chip, "Day map", trip panel tabs and cards, sidebar rows (38 → 40px), weights 500 → 600 where a component sets 600. Before/after screenshots of Agent Lab, the phone Itinerary tab, the desktop trip panel and the phone home looked right.
 - Machine check: `apps/web/tests/styles/forms-button-specificity.test.ts`. On the old `forms.css` it fails with `expected 'button:not(.cl-button):not(.section__…' to match /^button:where\(:not\([^()]*\)\)$/`.
+
+## Round 32 — TP-319 preference checkbox
+
+- Re-ran the button census in zh dark (desktop and phone, 20 states) after TP-318: no button lost its styling, and the dark Agent Lab, trip panel, Trips, Calendar, Mine and Trip preferences screens look right.
+- Trip preferences tab: the "不用住宿" checkbox was the 13px browser default, and when ticked in dark mode it was a washed-out system blue. `workspace/trip-facts.css`: `.preference-check input` is 20px with the app accent (`accent-color: var(--accent)`); the 44px label row is unchanged.
+- Validation: unticked and ticked crops in light and dark before and after (box 13 → 20px). No machine check: size and colour are design choices.
