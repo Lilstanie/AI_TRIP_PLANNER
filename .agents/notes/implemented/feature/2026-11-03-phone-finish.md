@@ -52,6 +52,24 @@ verified against the live page with this bundle option and stylesheet injected, 
 its secret key to render locally. The [phone empty screens note](2026-10-27-phone-empty-states.md)
 still names the sheet Trajectory; its copy is unchanged.
 
+## Follow-up (TP-354)
+
+The final simulator pass after merge found four leftovers, fixed at their causes:
+
+- The sheet title showed a ring in WebKit: the global focus rule in `base.css` covered every
+  `[tabindex]`, including `tabindex="-1"` targets that only code focuses, and WebKit treats focus
+  moved by code after a tap as `:focus-visible`. The rule now skips `tabindex="-1"`, and those
+  non-interactive targets drop the outline. Native controls and roving tab stops keep their ring.
+- Revealed reply words stayed blurred in WebKit: `animation-fill-mode: both` left
+  `filter: blur(0)` on every word, and WebKit did not repaint some of those filtered spans after
+  their last blurred frame. In the simulator the same words were still blurred 20 seconds later;
+  with `backwards` fill no filter remains after a word finishes and a new reply was sharp at 25
+  seconds.
+- The phone stop sheet repeated its place search as an orange hint; the hint is not rendered on a
+  phone while the search shows.
+- A two-city day's weather note took five lines; on a phone it is a one-line disclosure.
+- Mine trip rows put title, dates and total on their own lines, so none is cut.
+
 ## Sources
 
-- Plan "iOS App 界面优化方案" (2026-11-03), approved by Joey; Jira TP-353.
+- Plan "iOS App 界面优化方案" (2026-11-03), approved by Joey; Jira TP-353 and TP-354.

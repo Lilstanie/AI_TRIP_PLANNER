@@ -32,6 +32,9 @@ over a custom rebuild, and remove ARIA rather than add it.
   `box-shadow: var(--ring)` beside a `2px solid transparent` outline. Use that rule and do not style
   focus per component. Forced-colors mode (Windows High Contrast) drops box shadows but draws the
   transparent outline in a system colour, so keep that outline whenever you change the ring.
+  A non-interactive element with `tabindex="-1"`, such as a sheet or day title that code focuses,
+  gets no ring and no outline: WebKit treats focus moved by code after a tap as `:focus-visible`,
+  so a ring there reads as a selection. Give such targets `tabindex="-1"` and no focus style.
 - **Reduced motion.** `base.css` has a global `prefers-reduced-motion: reduce` switch, and each
   stylesheet with its own animation adds a `reduce` block. Follow that pattern. Do not convert the
   codebase to opt-in `no-preference` blocks.

@@ -22,12 +22,12 @@ const COPY = {
   zh: { title: "规划进度", toCheck: "待确认", trip: /^行程/, mine: /^我的/ },
 };
 
-async function open(browser, { width, height, language }) {
+async function open(browser, { width, height, language, motion = false }) {
   const context = await browser.newContext({
     viewport: { width, height },
     deviceScaleFactor: 2,
     ...(width <= 520 ? { isMobile: true, hasTouch: true } : {}),
-    reducedMotion: "reduce",
+    reducedMotion: motion ? "no-preference" : "reduce",
   });
   await context.addInitScript((language) => {
     localStorage.setItem(
@@ -74,10 +74,30 @@ const orangeTexts = (page) =>
       .map((node) => node.className);
   });
 
-async function phoneRun(browser, { width, height, language }) {
+async function phoneRun(browser, { width, height, language, motion }) {
   const label = `${language}-${width}`;
   const copy = COPY[language];
-  const { context, page, errors } = await open(browser, { width, height, language });
+  const { context, page, errors } = await open(browser, { width, height, language, motion });
+
+  await settle(page, 1500);
+  const reveal = await page.evaluate(async () => {
+    const word = document.createElement("span");
+    word.className = "msg-reveal__word";
+    word.textContent = "probe";
+    document.querySelector(".chat__stream").append(word);
+    await new Promise((done) => setTimeout(done, 600));
+    const probe = getComputedStyle(word).filter;
+    word.remove();
+    const reply = [...document.querySelectorAll(".msg-reveal__word")]
+      .map((node) => getComputedStyle(node).filter)
+      .filter((value) => value !== "none").length;
+    return { probe, reply };
+  });
+  check(
+    !motion || (reveal.probe === "none" && reveal.reply === 0),
+    `${label}: revealed reply words keep no filter once the reveal ends`,
+    reveal,
+  );
 
   await page.locator(".phone-topbar__team").click();
   const sheet = page.locator("dialog.phone-trajectory[open]");
@@ -142,6 +162,26 @@ async function phoneRun(browser, { width, height, language }) {
   }
   await page.keyboard.press("Escape");
   await sheet.waitFor({ state: "hidden" });
+  await page.locator(".phone-topbar__team").focus();
+  await page.keyboard.press("Enter");
+  await sheet.waitFor();
+  await settle(page);
+  const ring = await page.evaluate(() => {
+    const title = document.querySelector("#phone-trajectory-title");
+    const style = getComputedStyle(title);
+    return {
+      focused: document.activeElement === title,
+      shadow: style.boxShadow,
+      outline: style.outlineStyle === "none" ? "none" : style.outlineColor,
+    };
+  });
+  check(
+    ring.focused && ring.shadow === "none" && /none|rgba\(0, 0, 0, 0\)/.test(ring.outline),
+    `${label}: the focused sheet title paints no focus ring`,
+    ring,
+  );
+  await page.keyboard.press("Escape");
+  await sheet.waitFor({ state: "hidden" });
 
   await page.locator(".phone-tabbar").getByRole("tab", { name: copy.trip }).click();
   await settle(page, 800);
@@ -186,8 +226,91 @@ async function phoneRun(browser, { width, height, language }) {
     check(false, `${label}: the example plan has open items`);
   }
 
+  const innerWidth = width;
+  const weather = page.locator(".workspace-panel--trip .timeline-day__weather").first();
+  if (await weather.count()) {
+    await weather.scrollIntoViewIfNeeded();
+    const folded = await weather.evaluate((node) => {
+      const summary = node.querySelector("summary");
+      return {
+        tag: node.tagName,
+        height: Math.round(node.getBoundingClientRect().height),
+        right: Math.round(node.getBoundingClientRect().right),
+        stop: Math.round(
+          document
+            .querySelector(".workspace-panel--trip button.timeline-stop__main")
+            ?.getBoundingClientRect().right ?? 0,
+        ),
+        clipped: summary
+          ? summary.lastElementChild.scrollWidth > summary.lastElementChild.clientWidth
+          : false,
+      };
+    });
+    check(
+      folded.tag === "DETAILS" &&
+        folded.height <= 64 &&
+        folded.right <= innerWidth &&
+        folded.stop <= innerWidth,
+      `${label}: the day weather note is one line`,
+      folded,
+    );
+    const summary = weather.locator("summary");
+    if (await summary.count()) await summary.click();
+    const opened = await weather.evaluate((node) => {
+      const text = node.querySelector("summary > span") ?? node.querySelector("span");
+      return { open: Boolean(node.open), clipped: text.scrollWidth > text.clientWidth + 1 };
+    });
+    check(
+      opened.open && !opened.clipped,
+      `${label}: tapping the weather line shows the whole note`,
+      opened,
+    );
+  } else {
+    check(false, `${label}: the example plan has a weather note`);
+  }
+
+  const stop = page.locator(".workspace-panel--trip button.timeline-stop__main").first();
+  await stop.scrollIntoViewIfNeeded();
+  await stop.click();
+  const card = page.locator(".workspace-panel--trip .stop-place-card");
+  await card.waitFor();
+  await settle(page);
+  const details = await card.evaluate((node) => {
+    const probe = document.createElement("span");
+    probe.style.color = "var(--warn)";
+    node.append(probe);
+    const warn = getComputedStyle(probe).color;
+    probe.remove();
+    return {
+      orange: [...node.querySelectorAll("p, span")]
+        .filter((child) => child.checkVisibility() && getComputedStyle(child).color === warn)
+        .map((child) => child.textContent.trim()),
+      search: Boolean(node.querySelector('input[type="search"], input')?.checkVisibility()),
+    };
+  });
+  check(
+    details.orange.length === 0 && details.search,
+    `${label}: the stop sheet has no orange paragraph and keeps its place search`,
+    details,
+  );
+  await page.screenshot({ path: resolve(OUT, `${label}-stop.png`) });
+  await page.locator(".stop-place-card__close").first().click();
+
   await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();
   await settle(page, 800);
+  const rows = await page.evaluate(() =>
+    [...document.querySelectorAll(".phone-mine .trip-card")].map((card) =>
+      [".trip-card__title", ".trip-card__meta", ".trip-card__total"].map((selector) => {
+        const node = card.querySelector(selector);
+        return node ? node.scrollWidth <= node.clientWidth + 1 : true;
+      }),
+    ),
+  );
+  check(
+    rows.length > 0 && rows.every((row) => row.every(Boolean)),
+    `${label}: Mine trip rows show their title, dates and total uncut`,
+    rows,
+  );
   await page.locator(".trip-card").first().click();
   await page.locator(".trip-home__composer .composer").waitFor();
   await settle(page, 800);
@@ -247,7 +370,7 @@ const browser = await chromium.launch({
   ...(process.env.CHANNEL ? { channel: process.env.CHANNEL } : {}),
 });
 try {
-  await phoneRun(browser, { width: 390, height: 844, language: "en" });
+  await phoneRun(browser, { width: 390, height: 844, language: "en", motion: true });
   await phoneRun(browser, { width: 360, height: 800, language: "zh" });
   await desktopRun(browser);
 } finally {
