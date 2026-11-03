@@ -373,3 +373,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `ChatsPanel` marks its content `data-empty` when nothing is saved; `app/styles/phone/polish.css` then shows the two heading rows as one inset card (phone card surface and shadow, divider between rows, 44px rows, 17px semibold titles, no section gap).
 - Evidence: local phone 390x844, zh light and en dark, before/after crop. `phone-empty-chat-hint.e2e.mjs`: 80 ok, 0 failed (screenshots under `apps/web/output/playwright/phone-empty-chat-hint/run`).
 - Machine check: none added. This is a visual grouping with no wrong state to detect; the existing E2E still guards the content rule.
+
+## Round 48 — TP-335 desktop Trips page compact card grid (suggestion 3 of 5)
+
+- Problem: at 1440px the Your trips page held three cards per row inside an 860px column with wide empty margins; each card's solid label covered most of the cover (the destination glyph was cut off) and its meta wrapped onto two lines, one ending in a stray " ·" ("巴厘岛 · 11月28日 – 12月4日 · 7 天 · / AUD 3,506.62"), repeating the destination already in the title.
+- Fix: `.trips-page__inner` widens to 1120px (four cards per row at 1440px; the existing `minmax(240px, 1fr)` grid is unchanged). `TripsPage` puts the total beside the title and the dates · days on one ellipsised line, dropping the destination when the title already contains it. `glass.css` makes the label frosted (80% surface, blur) with dimmed meta. `docs/workspace-ui.md` and `.zh.md` describe the new card line.
+- Evidence: local 1440 zh light (six seeded trips), 1440 en dark, the Calendar tab at the new width and phone Mine; before/after crop. `trip-rename-delete.e2e.mjs`: 17 ok, 0 failed.
+- Machine check: none added; this is layout and visual hierarchy with no wrong state to detect.

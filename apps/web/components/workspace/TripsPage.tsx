@@ -187,6 +187,10 @@ function TripCards({
       <ul className="trip-cards">
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
+          const title = titles.get(trip.id)!;
+          const [place, ...rest] = tripMetaParts(trip, locale, settings.displayCurrency, t);
+          const total = rest.pop();
+          const meta = title.includes(place!) ? rest : [place!, ...rest];
           return (
             <li key={trip.id}>
               <button
@@ -197,19 +201,13 @@ function TripCards({
               >
                 <TripCover destination={destination} size="card" />
                 <span className="trip-card__text">
-                  <span className="trip-card__title">{titles.get(trip.id)}</span>
-                  <span className="trip-card__meta">
-                    {tripMetaParts(trip, locale, settings.displayCurrency, t).map((part, index) => (
-                      <span key={index}>
-                        {index ? " · " : ""}
-                        <span className="trip-card__meta-part">{part}</span>
-                      </span>
-                    ))}
-                  </span>
+                  <span className="trip-card__title">{title}</span>
+                  <span className="trip-card__total">{total}</span>
+                  <span className="trip-card__meta">{meta.join(" · ")}</span>
                 </span>
               </button>
               <HistoryMenu
-                title={titles.get(trip.id)!}
+                title={title}
                 onRename={() => onRenameTrip(trip.id)}
                 onDelete={() => onDeleteTrip(trip.id)}
               />
