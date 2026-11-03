@@ -52,6 +52,10 @@ sheet, its scrim and the trajectory dialog. Brief sheets end at `62px + --phone-
 floating tab bar no longer covers their last row; Mine section titles do not shrink; the document
 and the chat stream contain overscroll so a swipe never drags the page.
 
+Partly superseded on 2026-11-03 (TP-350) by the [phone grouped lists note](2026-11-03-phone-grouped-lists.md):
+on phones the day strip is a vertical list, a stop is one row, a tapped stop opens as a sheet and
+Mine's trips are rows.
+
 ## Sources
 
 - Thread "大幅美化手机端界面" (2026-10-30); [phone shell note](2026-10-05-phone-shell.md).
