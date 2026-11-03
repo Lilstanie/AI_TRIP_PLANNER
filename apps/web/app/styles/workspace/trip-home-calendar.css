@@ -472,6 +472,7 @@ button.trip-home-calendar__event:hover {
 }
 
 .trip-home-calendar__grid {
+  --month-date: 26px;
   grid-auto-rows: minmax(76px, auto);
   gap: 1px;
   overflow: hidden;
@@ -491,6 +492,7 @@ button.trip-home-calendar__event:hover {
 .trip-home-calendar__blank {
   color: var(--text-mut);
   font-size: var(--font-size-meta);
+  line-height: var(--month-date);
   font-variant-numeric: tabular-nums;
   text-align: center;
 }
@@ -498,8 +500,8 @@ button.trip-home-calendar__event:hover {
   padding: 4px;
 }
 .trip-home-calendar__month-day .trip-home-calendar__date {
-  width: 26px;
-  height: 26px;
+  width: var(--month-date);
+  height: var(--month-date);
   margin-bottom: 4px;
   font-weight: 500;
 }
@@ -533,9 +535,8 @@ button.trip-home-calendar__event:hover {
   white-space: nowrap;
 }
 @media (max-width: 520px) {
-  .trip-home-calendar__month-day .trip-home-calendar__date {
-    width: 44px;
-    height: 44px;
+  .trip-home-calendar__grid {
+    --month-date: 44px;
   }
   .trip-home-calendar__month-day .trip-home-calendar__entries,
   .trip-home-calendar__month-day .trip-home-calendar__row {

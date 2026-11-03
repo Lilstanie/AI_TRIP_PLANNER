@@ -470,3 +470,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `.trips-calendar__open` in `trips.css` sets `font-size: var(--font-size-meta)`.
 - Machine check: `trip-rename-delete.e2e.mjs` checks that the chip and the button share one computed font size. Red on the old CSS: `FAIL calendar trip chip and View trip use one type size ["12px","14px"]`. After the fix: 18 ok.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp346-before-after.png`.
+
+## Round 60 — TP-347 month dates line up across Trip days and other days
+
+- Problem: in the calendar month view, a Trip day's date is a 26px button (44px at ≤520px), and any other day's date is plain text in `.trip-home-calendar__blank` at the normal line height. In a week with both, the plain dates sat about 4.5px higher than the Trip dates.
+- Fix: `trip-home-calendar.css` adds a `--month-date` size on `.trip-home-calendar__grid` (26px, or 44px at ≤520px). The Trip date button uses it for width and height, and the plain date uses it as `line-height`, so both centre on the same line.
+- Machine check: `trip-home-calendar.e2e.mjs` compares date centres within each month week. Red on the old CSS: `FAIL Month date numbers line up across each week … [0,0,0,0,4.5,0]`. After the fix the spreads are at most 0.5px, with 47 PASS and 0 FAIL.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp347-before-after.png`.

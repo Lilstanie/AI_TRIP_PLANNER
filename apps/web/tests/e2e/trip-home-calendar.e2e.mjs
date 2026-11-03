@@ -471,6 +471,28 @@ try {
     "Month header keeps Monday-first weekday labels when the first Trip week starts mid-week",
     monthWeekdays,
   );
+  const dateOffsets = await calendarDrawer.locator(".trip-home-calendar__grid").evaluate((grid) => {
+    const centre = (rect) => rect.top + rect.height / 2;
+    const rows = new Map();
+    for (const cell of grid.children) {
+      const number = cell.querySelector(".trip-home-calendar__date");
+      let middle;
+      if (number) middle = centre(number.getBoundingClientRect());
+      else if (cell.textContent.trim()) {
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        middle = centre(range.getBoundingClientRect());
+      } else continue;
+      const top = Math.round(cell.getBoundingClientRect().top);
+      rows.set(top, [...(rows.get(top) ?? []), middle - top]);
+    }
+    return [...rows.values()].map((offsets) => Math.max(...offsets) - Math.min(...offsets));
+  });
+  check(
+    dateOffsets.length > 0 && dateOffsets.every((spread) => spread <= 1),
+    "Month date numbers line up across each week, Trip days and other days alike",
+    dateOffsets,
+  );
   await calendarDrawer.getByRole("button", { name: "Week", exact: true }).click();
 
   await selectedDate(calendarDrawer, "30 December 2030").click();
