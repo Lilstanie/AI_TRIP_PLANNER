@@ -125,6 +125,20 @@ try {
     const first = await state(page);
     results[tag] = { first };
     await page.screenshot({ path: resolve(out, `${tag}-start.png`) });
+    if (journey.phone) {
+      const reply = await page.evaluate(() => ({
+        strip: document.querySelectorAll(".chat .plan-days").length,
+        open: document.querySelector(".msg-open-trip")?.textContent ?? null,
+      }));
+      check(
+        reply.strip === 0 && /\d/.test(reply.open ?? ""),
+        `${tag}: the phone reply has one itinerary button instead of the day strip`,
+        reply,
+      );
+      check(pageErrors.length === 0, `${tag}: no page errors`, pageErrors);
+      await context.close();
+      continue;
+    }
     check(first.overflow > 0, `${tag}: the day cards overflow the chat column`, first.overflow);
     check(!fadesLeft(first.mask), `${tag}: no left fade before scrolling`, first.mask);
     check(
@@ -132,17 +146,6 @@ try {
       `${tag}: the right edge fades while later days are hidden`,
       first.mask,
     );
-
-    if (journey.phone) {
-      check(
-        !first.end?.shown && !first.start?.shown,
-        `${tag}: no scroll buttons on a touch phone`,
-        { start: first.start, end: first.end },
-      );
-      check(pageErrors.length === 0, `${tag}: no page errors`, pageErrors);
-      await context.close();
-      continue;
-    }
 
     check(
       first.end?.shown && !first.start?.shown,

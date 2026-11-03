@@ -33,3 +33,11 @@ Added 2026-11-03 for the grouped-list redesign (TP-350):
   sheet hides behind the tab bar.
 - Hiding the duplicate "Your trip" heading also removes it from assistive technology.
 - Mine's trips stay half-screen cover cards instead of rows with a small cover.
+
+Added 2026-11-03 for the chat redesign (TP-352):
+
+- A new phone chat leaves the space above the composer empty while example trips crowd the composer.
+- The Where, When, Who, Budget and Preferences row cuts its last chip at the right edge.
+- A planned reply on a phone still ends in a sideways Day strip instead of one itinerary button.
+- The thinking row grows into several lines before the traveller opens it.
+- The small print stays under the phone composer.

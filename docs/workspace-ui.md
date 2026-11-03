@@ -363,9 +363,12 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     carries the exact visit to the other, including later visits to the same place. A revision keeps
     a valid day and Stop, clears a removed Stop, and moves a removed day to the nearest remaining day.
     Each saved trip restores its own browsing position when reopened.
-  - A blank Chat shows at most two example prompts. Planning progress stays in Chat while the
-    request runs. When the Plan is ready, Chat stays open and the reply adds an explicit Open trip
-    action; opening it selects Trip. An initial failure restores the submitted text and shows an
+  - A blank Chat lists three example trips, stacked in the open space above the composer, with one
+    row of Where, When, Who, Budget and an icon-only Preferences chip that fits without cutting a chip.
+    Planning progress stays in Chat while the request runs. When the Plan is ready, Chat stays open
+    and the reply ends with one "Itinerary · N days" button instead of the Day strip; opening it selects
+    Trip. The estimates footer is not shown in the phone chat; Settings shows it under every section
+    ([Agent Note](../.agents/notes/implemented/feature/2026-11-03-phone-chat-redesign.md)). An initial failure restores the submitted text and shows an
     explicit Retry update action, while a failed revision leaves the previous Plan readable.
   - Mine places search first, then saved Trips as the primary collection and chats below. New trip
     sits with Trips, New chat with chats, and one Settings & account entry follows both collections.
@@ -591,7 +594,7 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     (paragraphs, lists, bold, links opening in a new tab). Both carry a small clock underneath, in
     `HH:mm` for today and a short date otherwise, and long URLs or mixed Chinese/English text wrap
     within the chat column.
-  - The latest reply that produced a plan ends with one card per trip day (day, date and up to two
+  - Outside the phone shell, the latest reply that produced a plan ends with one card per trip day (day, date and up to two
     stop names; without stops, Flight on a day with a flight, Booked on a day with only bookings, else
     Free day), in a row that scrolls sideways and fades in card by card. A card opens
     the trip on that day; on a phone it switches to the Trip view. Older replies and replies that only
@@ -893,7 +896,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   [empty map Agent Note](../.agents/notes/implemented/feature/2026-10-27-phone-map-empty-hint.md).
 - **Empty phone screens.** Empty phone screens avoid repeated instructions; Chat, the empty day and the
   empty Trajectory keep one primary action, while Mine keeps one action for each collection. Chat keeps
-  the composer prompt and example chips and drops the estimates footer until a message exists. Mine with
+  the composer prompt and the example trips and shows no estimates footer. Mine with
   no trips and no saved chat shows the Trips and Chats headings with their New trip and New chat actions;
   the search field, the Trips and Calendar switch and history rows appear once there is a trip, a
   Chat with content or a rename, or a search to act on. An untouched blank Chat titled New chat does

@@ -95,6 +95,32 @@ async function phoneRun(browser, { width, height, language, scheme }) {
   );
   check(Math.max(...heights) <= 44, `${label}: every chip label stays on one line`, heights);
   check(await noSideScroll(page), `${label}: no sideways page scroll on a new chat`);
+  const blank = await page.evaluate(() => {
+    const list = document.querySelector(".chat__stream > .chat-empty__suggestions");
+    const facts = document.querySelector(".chat__facts .fact-chips__scroller");
+    const rows = list
+      ? [...list.querySelectorAll("button")].map((node) => node.getBoundingClientRect().toJSON())
+      : [];
+    return {
+      inStream: Boolean(list),
+      inForm: Boolean(document.querySelector(".chat__form .chat-empty__suggestions")),
+      rows: rows.map((row) => [Math.round(row.left), Math.round(row.top), Math.round(row.width)]),
+      factsClipped: facts ? facts.scrollWidth > facts.clientWidth + 1 : null,
+      disclaimer: document.querySelectorAll(".chat .disclaimer").length,
+    };
+  });
+  check(
+    blank.inStream &&
+      !blank.inForm &&
+      blank.rows.length === 3 &&
+      blank.rows.every(
+        (row, i) => i === 0 || (row[0] === blank.rows[0][0] && row[1] > blank.rows[i - 1][1]),
+      ),
+    `${label}: three example trips stack in the open space, not by the composer`,
+    blank,
+  );
+  check(blank.factsClipped === false, `${label}: the fact chip row fits without cutting a chip`);
+  check(blank.disclaimer === 0, `${label}: the phone chat carries no small print`);
 
   const tabbar = await box(page.locator(".phone-tabbar"));
   check(
@@ -166,6 +192,23 @@ async function phoneRun(browser, { width, height, language, scheme }) {
     `${label}: the chip row leaves once the chat has a plan`,
   );
   await shot("03-planned");
+  const reply = await page.evaluate(() => ({
+    strip: document.querySelectorAll(".chat .plan-days").length,
+    open: document.querySelector(".msg-open-trip")?.textContent ?? null,
+    think: [...document.querySelectorAll(".thinking-turn .thinking-row__line")].map((node) =>
+      Math.round(node.getBoundingClientRect().height),
+    ),
+  }));
+  check(
+    reply.strip === 0 && /\d/.test(reply.open ?? ""),
+    `${label}: a planned reply links to the whole itinerary instead of a day strip`,
+    reply,
+  );
+  check(
+    reply.think.length === 1 && reply.think[0] <= 48,
+    `${label}: the thinking row stays one line`,
+    reply.think,
+  );
   const overscroll = await page.evaluate(() => ({
     html: getComputedStyle(document.documentElement).overscrollBehaviorY,
     body: getComputedStyle(document.body).overscrollBehaviorY,
