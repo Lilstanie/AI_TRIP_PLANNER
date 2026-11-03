@@ -407,6 +407,12 @@ try {
       (await calendarDrawer.getByText("All day", { exact: true }).count()) >= 1,
     "an untimed activity is explicit in the All day region",
   );
+  check(
+    (await calendarDrawer
+      .locator(".trip-home-calendar__week-day .trip-home-calendar__row--all-day h4")
+      .count()) === 0,
+    "week columns do not repeat an All day heading above their all-day items",
+  );
   const stayBars = await calendarDrawer.locator(".trip-home-calendar__week").evaluate((week) => {
     const columns = [...week.querySelectorAll(".trip-home-calendar__week-day")].map(
       (day) => day.getBoundingClientRect().left,

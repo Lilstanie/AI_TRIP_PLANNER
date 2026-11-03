@@ -425,3 +425,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: the rule is now scoped to `.workspace-panel--map`, so the trip home card uses the base centred grid.
 - Machine check: `apps/web/tests/styles/phone-empty-map-scope.test.ts` is red on the old CSS (`expected '.workspace-app[data-phone] .trip-map-…' to contain '.workspace-panel--map'`).
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp340-before-after.png`.
+
+## Round 54 — TP-341 no repeated "All day" heading in week columns
+
+- Problem: in the calendar week view (desktop, en dark), each day column that had a flight or another all-day item printed its own "ALL DAY" heading. The label showed in some columns and not others, and it made the header row taller.
+- Fix: `TripHomeCalendar.tsx` `CalendarEntries` leaves out the `h4` when it renders the week header (`allDayOnly`). The section keeps its `aria-label`, and untimed activities keep their own "All day" tag. The month view is unchanged.
+- Machine check: `trip-home-calendar.e2e.mjs` now checks that week columns have no all-day `h4`. It is red on the old code: `FAIL week columns do not repeat an All day heading above their all-day items`.
+- Known, not from this change: `en/zh Calendar selected controls and event titles remain visible` fails both with and without this change, and with origin/main's `trip-home-calendar.css`. The fixture's overlapping "Harbour walk" titles measure 21px wide against a 40px floor. Left for a later round.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp341-before-after.png`.

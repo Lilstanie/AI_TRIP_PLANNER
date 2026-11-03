@@ -186,7 +186,7 @@ function CalendarEntries({
           className="trip-home-calendar__row trip-home-calendar__row--all-day"
           aria-label={translate(locale, "allDayActivities")}
         >
-          <h4>{translate(locale, "allDay")}</h4>
+          {!allDayOnly && <h4>{translate(locale, "allDay")}</h4>}
           {allDay.map((entry) => (
             <CalendarEvent
               key={entry.key}
