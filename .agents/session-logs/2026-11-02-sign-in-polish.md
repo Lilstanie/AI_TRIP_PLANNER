@@ -232,3 +232,9 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Re-ran the button census in zh dark (desktop and phone, 20 states) after TP-318: no button lost its styling, and the dark Agent Lab, trip panel, Trips, Calendar, Mine and Trip preferences screens look right.
 - Trip preferences tab: the "不用住宿" checkbox was the 13px browser default, and when ticked in dark mode it was a washed-out system blue. `workspace/trip-facts.css`: `.preference-check input` is 20px with the app accent (`accent-color: var(--accent)`); the 44px label row is unchanged.
 - Validation: unticked and ticked crops in light and dark before and after (box 13 → 20px). No machine check: size and colour are design choices.
+
+## Round 33 — TP-320 map credit theme
+
+- Phone zh dark: Map tab, Ideas, Bookings, Calendar tabs and the trip page. The MapLibre credit kept the library's solid white box with black text and a black ⓘ, the only bright element on the dark map beside the dark map buttons.
+- `map.css`: the credit uses `--glass-tint`, `--text-dim` and the `--glass-edge` hairline like the map buttons; links inherit the colour; the ⓘ icon is inverted in dark mode (both the system and the `data-theme="dark"` selectors). Light: `rgb(255,255,255)` → `rgba(255,255,255,.88)`; dark: white → `rgba(30,30,32,.88)` with `rgb(161,161,166)` text.
+- Validation: phone Map tab crops in light and dark before and after. No machine check: the colour is a design choice for a third-party control.
