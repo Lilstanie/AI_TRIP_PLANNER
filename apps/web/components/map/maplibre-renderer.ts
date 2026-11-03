@@ -2,6 +2,8 @@
 import * as maplibre from "maplibre-gl";
 import type { StyleSpecification } from "maplibre-gl";
 import { decodePath } from "@/lib/map/polyline";
+import { enMapControls } from "@/lib/i18n/messages/en-map-controls";
+import { zhMapControls } from "@/lib/i18n/messages/zh-map-controls";
 import type { Coordinate, MapsSDK, MapMarker } from "./google-maps-sdk";
 
 maplibre.setWorkerUrl(new URL("maplibre-gl/dist/maplibre-gl-worker.mjs", import.meta.url).href);
@@ -50,6 +52,7 @@ class LibreMap {
       zoom: o.zoom,
       style: styleFor(!!o.dark, this.mock),
       attributionControl: false,
+      locale: document.documentElement.lang.startsWith("zh") ? zhMapControls : enMapControls,
     });
     this.native.addControl(
       new maplibre.AttributionControl({

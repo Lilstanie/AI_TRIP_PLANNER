@@ -72,6 +72,9 @@ is never left behind.
   & region, or Mine on a phone. Check wrapping and untranslated English labels.
   When the change shows money, also pick a non-AUD display currency in Settings (JPY has no decimals).
   `ui-language.e2e.mjs` and `trip-display-currency.e2e.mjs` cover the existing paths.
+  `zh-latin-scan.e2e.mjs` plans a mock trip, walks the desktop and phone screens in Chinese and fails
+  on any English word outside the trip's own place, stay and carrier names; run it after copy or
+  layout changes instead of hunting leaks by eye.
 - Keyboard: Tab order, visible focus, Escape closes dialogs and returns focus to the trigger.
 - Watch the browser console for errors and React warnings.
 - What "right" looks like is owned by [better-accessibility](../better-accessibility/SKILL.md),
@@ -162,6 +165,20 @@ load, the selector matches nothing or the phone view scrolls sideways. Set `PLAY
 Playwright module path when the repository's copy wants a browser build that is not installed. Its
 failure inventory is [snap.failures.md](scripts/snap.failures.md). Attach the shots to the reply;
 name any view you did not capture.
+
+For a sweep of every main screen, or before and after a polish round, run the tour against a running
+dev server (`MOCK_PLACES=multi`, no Clerk keys):
+
+```bash
+node .agents/skills/ui-verification/scripts/tour.mjs [--name <label>] [--views desktop,phone] [--langs zh,en] [--dark]
+```
+
+It seeds complete mock-data Settings, plans the first example trip and saves one shot per screen
+(chat, Think, trip panel, Trips, calendar week and month, trajectory, Settings tabs; phone Chat, Map,
+Trip, Mine, Settings) under `output/playwright/tour/<label>/<view>-<lang>-<theme>/`. It exits 1 when
+the server is down or a screen cannot be opened. The screen list lives in
+[`ui-tour.mjs`](../../../apps/web/tests/e2e/support/ui-tour.mjs), shared with `zh-latin-scan`; its
+failure inventory is [tour.failures.md](scripts/tour.failures.md).
 
 To look at a change yourself, screenshot only the element (`locator.screenshot()`); a full-page image
 costs far more context and shows nothing extra. Keep full-page shots for the PR's evidence.
