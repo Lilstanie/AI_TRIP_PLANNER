@@ -189,6 +189,9 @@
   background: var(--surface-2);
   color: var(--text);
 }
+.auth-form .auth-social-button {
+  border-color: color-mix(in srgb, var(--text) 14%, transparent);
+}
 .auth-form .auth-primary-button {
   min-height: 44px;
   background: var(--accent-fill);

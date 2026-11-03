@@ -382,9 +382,10 @@ seniors` (pets are never counted as travellers) on every change; `groupSize` sta
     the Trip tab. Widening from Mine shows Your trips, widening from Trip opens the dedicated Trip workspace over
     Chat (unless a chip editor is open), and Chat and Map stay as they are. Settings and chip
     editors stay open across the crossing; Trip details closes when the phone top bar goes away.
-  - Map fills the space between the bars. Its day-stops sheet has collapsed, half and full heights,
+  - Map fills the space between the bars. Its day-stops sheet has collapsed, one-third, half and full heights and rests at one third,
     selected by dragging or using its handle with pointer or keyboard; the handle's name states the
-    current height, so a screen reader hears each step. Changing day filters the map's
+    current height, so a screen reader hears each step. Stop rows are one grouped list with hairline
+    separators ([Agent Note](../.agents/notes/implemented/feature/2026-11-03-phone-finish.md)). Changing day filters the map's
     markers and routes to that day's stops, so a place visited on several days appears on each of
     them with its trip-wide number; selecting a stop, in the sheet or on the map, focuses that day's
     visit. Each row leads with the stop's place name, as the Trip tab does, with its start time below;
@@ -474,10 +475,11 @@ the departed Chat’s snapshot identity, messages, draft input or pending questi
     as input, so the live turn and a saved reply's run share it, and [`teamModel`](../apps/web/lib/chat/team-model.ts) derives everything from the
     streamed events, nothing invented.
     At 520 px and below the top bar keeps one row: the same capsule (three stacked avatars, working first, and a compact count while planning), at least 44 px tall, sits right of the
-    trip title, which truncates. It opens a full-screen Trajectory
-    ([`PhoneTeamButton`](../apps/web/components/workspace/phone/PhoneTeamButton.tsx)). The ledger fills the
-    viewport, and a Specialist team fold keeps the same team cards, filters and focus navigation
-    reachable above it. The modal owns focus while open; Close, Escape or Browser Back restores the
+    trip title, which truncates. It opens a full-screen Planning progress sheet
+    ([`PhoneTeamButton`](../apps/web/components/workspace/phone/PhoneTeamButton.tsx)) that focuses its
+    title. The Specialist team list opens above the ledger with one row per agent: icon, name, status and
+    the latest objective on one line; the Assignments cards and Decided markers stay on desktop
+    ([Agent Note](../.agents/notes/implemented/feature/2026-11-03-phone-finish.md)). Pressing a row still filters the ledger. The modal owns focus while open; Close, Escape or Browser Back restores the
     originating Chat, Map, Trip or Mine view and returns focus to the button. It shares the layout
     `sheet` slot, so it never opens together with Trip details, and it closes when the viewport grows
     past phone width.
@@ -765,7 +767,9 @@ The budget row is the first row of the Trip panel. The panel does not repeat the
 and travellers, because the trip fact chips above it already show them; the open items badge and the
 itinerary menu sit at the right of the budget row without covering its figures
 (`pnpm --filter @trip/web e2e trip-panel-head`).
-A count badge at the top of the Trip panel lists open items: scheduled overlaps,
+A count badge at the top of the Trip panel lists open items (on a phone it is a full-width row, the
+count plus "To check", and the page's only orange mark: "N unpriced", "needs a place" and "Not found
+on the map" are grey there): scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
 there are none. Tapping it opens a glass

@@ -36,6 +36,8 @@ export const enWorkspace = {
   budgetBreakdown: "Budget breakdown",
   tripBudgetSummary: "Trip budget summary",
   openItems: "Open items",
+  openItemsToCheck: "To check",
+  planningProgress: "Planning progress",
   openItemsCount: "Open items, {count}",
   timeConflict: "Time conflict",
   itineraryIssue: "Itinerary issue",

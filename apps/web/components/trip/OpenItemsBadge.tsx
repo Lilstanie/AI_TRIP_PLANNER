@@ -70,6 +70,9 @@ export function OpenItemsBadge({
         onClick={() => setOpen((value) => !value)}
       >
         <span className="open-items__count">{items.length}</span>
+        <span className="open-items__label" aria-hidden="true">
+          {t("openItemsToCheck")}
+        </span>
       </button>
       {open && (
         <div

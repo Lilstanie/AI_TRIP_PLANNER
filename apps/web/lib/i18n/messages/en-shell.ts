@@ -9,6 +9,7 @@ export const enShell = {
   settingsAccount: "Settings & account",
   dayStops: "Day stops",
   resizeDayStopsCollapsed: "Resize day stops, collapsed",
+  resizeDayStopsThirdHeight: "Resize day stops, one third height",
   resizeDayStopsHalfHeight: "Resize day stops, half height",
   resizeDayStopsFullHeight: "Resize day stops, full height",
   chooseMapDay: "Choose map day",

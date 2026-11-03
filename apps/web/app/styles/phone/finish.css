@@ -1,0 +1,238 @@
+.workspace-app[data-phone] .phone-trip__head {
+  justify-content: stretch;
+  padding: var(--space-2) calc(var(--space-4) + var(--space-1)) 0;
+}
+.workspace-app[data-phone] .phone-trip__head .open-items {
+  flex: 1 1 auto;
+}
+.workspace-app[data-phone] .open-items__badge {
+  justify-content: flex-start;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 48px !important;
+  padding: 0 var(--space-4) !important;
+  border-radius: var(--radius-xl) !important;
+  background: var(--phone-card) !important;
+  box-shadow: var(--phone-card-shadow);
+  color: var(--text);
+  font-size: var(--font-size-body);
+  font-weight: 500;
+}
+.workspace-app[data-phone] .open-items__badge::after {
+  content: "";
+  width: 8px;
+  height: 8px;
+  margin-inline-start: auto;
+  border-block-start: 1.5px solid var(--text-mut);
+  border-inline-end: 1.5px solid var(--text-mut);
+  rotate: 45deg;
+}
+.workspace-app[data-phone] .open-items__count {
+  color: var(--warn);
+}
+.workspace-app[data-phone] .open-items__label {
+  display: inline;
+}
+.workspace-app[data-phone]
+  :is(.trip-panel__budget-unknown, .day-strip__flag, .timeline-tag--warn, .day-strip__flag *) {
+  color: var(--text-dim) !important;
+}
+.workspace-app[data-phone] .timeline-tag--warn {
+  background: var(--fill-hover) !important;
+}
+
+.workspace-app[data-phone] dialog.phone-trajectory,
+.workspace-app[data-phone] .phone-trajectory > .trajectory-tab {
+  background: var(--page);
+}
+.workspace-app[data-phone] .phone-trajectory__head h2:focus {
+  outline: none;
+}
+.workspace-app[data-phone] .phone-trajectory__close {
+  width: 32px;
+  height: 32px;
+  min-width: 44px;
+  min-height: 44px !important;
+  background: transparent !important;
+  box-shadow: none !important;
+  outline: none;
+  color: var(--text-dim);
+}
+.workspace-app[data-phone] .phone-trajectory__close svg {
+  padding: 6px;
+  border-radius: var(--radius-pill);
+  background: var(--fill-hover);
+  box-sizing: content-box;
+}
+.workspace-app[data-phone] .phone-trajectory__close:focus-visible svg {
+  outline: 2px solid var(--accent);
+  outline-offset: 1px;
+}
+.workspace-app[data-phone] .phone-trajectory__team {
+  margin: 0 var(--space-4) var(--space-3);
+  padding: 0;
+  background: transparent;
+}
+.workspace-app[data-phone] .phone-trajectory__team[open] {
+  max-height: 55%;
+}
+.workspace-app[data-phone] .phone-trajectory__team > summary {
+  padding: 0 var(--space-1);
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  font-weight: 500;
+  list-style: none;
+}
+.workspace-app[data-phone] .phone-trajectory__team > summary::-webkit-details-marker {
+  display: none;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel {
+  padding: 0;
+  border: 0;
+  background: transparent;
+  box-shadow: none;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel h3,
+.workspace-app[data-phone] .phone-trajectory .team-panel section:has(> ol),
+.workspace-app[data-phone] .phone-trajectory .team-panel__marker {
+  display: none;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel ul {
+  display: block;
+  margin: 0;
+  padding: 0;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+  overflow: hidden;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__row + .team-panel__row {
+  border-block-start: 0.5px solid var(--border);
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__row > .team-panel__press {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  width: 100%;
+  min-height: 60px;
+  padding: var(--space-2) var(--space-4);
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  text-align: start;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__press > span:last-child {
+  display: grid;
+  flex: 1;
+  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-areas: "name status" "task task";
+  align-items: center;
+  gap: 2px var(--space-2);
+  min-width: 0;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__press > span:last-child > :first-child {
+  grid-area: name;
+  font-weight: 600;
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__press small {
+  grid-area: status;
+  color: var(--text-dim);
+}
+.workspace-app[data-phone] .phone-trajectory .team-panel__press [data-tone] {
+  grid-area: task;
+  overflow: hidden;
+  max-width: none;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: var(--text-dim);
+  font-size: var(--font-size-meta);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.phone-map-sheet[data-snap="third"] {
+  height: 34%;
+}
+.workspace-app[data-phone] .phone-map-sheet__stops {
+  border-radius: var(--radius-lg);
+  background: var(--phone-card);
+  overflow: hidden;
+}
+.workspace-app[data-phone] .phone-map-sheet__stops li + li {
+  border-block-start: 0.5px solid var(--border);
+}
+.workspace-app[data-phone] .phone-map-sheet__stops button {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+.workspace-app[data-phone] .trip-home__composer .composer {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0;
+  margin-top: var(--space-2);
+  padding: 6px;
+}
+.workspace-app[data-phone] .trip-home__composer .composer > :not(.composer__input, .composer__row) {
+  grid-column: 1 / -1;
+}
+.workspace-app[data-phone] .trip-home__composer .composer__row {
+  display: contents;
+}
+.workspace-app[data-phone] .trip-home__composer .composer__tools {
+  grid-row: -2;
+  grid-column: 1;
+}
+.workspace-app[data-phone] .trip-home__composer .composer__input {
+  grid-row: -2;
+  grid-column: 2;
+  align-self: center;
+  min-height: 0;
+  max-height: 120px;
+  padding: 0 var(--space-2);
+}
+.workspace-app[data-phone] .trip-home__composer .composer__trailing {
+  grid-row: -2;
+  grid-column: 3;
+}
+.workspace-app[data-phone] .trip-home__composer :is(.composer__add, .composer__primary) {
+  width: 44px;
+  min-width: 44px;
+  height: 44px;
+  min-height: 44px;
+}
+
+html[data-shell="ios-app"] :is(.auth-eyebrow, .auth-description, .auth-benefits) {
+  display: none;
+}
+html[data-shell="ios-app"] .auth-copy h1 {
+  margin: var(--space-3) 0 0;
+  font-size: 1.375rem;
+  line-height: 1.3;
+}
+html[data-shell="ios-app"] .auth-layout {
+  gap: var(--space-4);
+}
+@media (max-width: 520px) {
+  :is(.auth-eyebrow, .auth-description) {
+    display: none;
+  }
+  .auth-copy h1 {
+    margin: var(--space-3) 0 0;
+    font-size: 1.375rem;
+    line-height: 1.3;
+  }
+}
+.workspace-app[data-phone] .phone-trajectory [data-trajectory-simple] {
+  background: transparent;
+}
+@media (max-width: 520px) {
+  .auth-form .cl-socialButtons {
+    display: grid !important;
+    grid-template-columns: minmax(0, 1fr) !important;
+    gap: var(--space-2);
+  }
+}

@@ -7,6 +7,7 @@ import { PasscodeForm } from "./PasscodeForm";
 import { useAuthCopy } from "./useAuthCopy";
 
 const appearance = {
+  options: { socialButtonsVariant: "blockButton" as const },
   variables: {
     colorPrimary: "var(--accent-fill)",
     colorForeground: "var(--text)",
