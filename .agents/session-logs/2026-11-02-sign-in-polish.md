@@ -417,3 +417,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: in `zh-workspace.ts`, `countUnscheduledIdeasInDestination` and `n1UnscheduledIdeaInDestination` now join the count and "个" with ` `, so the line breaks before the number.
 - Machine check: `apps/web/tests/lib/i18n/count-wrap.test.ts` is red on the old copy (`expected '巴厘岛还有 5 个…' to be '巴厘岛还有 5 个…'`).
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp339-before-after.png`.
+
+## Round 53 — TP-340 centred empty-map message on the phone trip home
+
+- Problem: on a 390px phone, when the trip home map could not show the destination, "巴厘岛暂时还没法显示在地图上" sat at the top of a 340px empty card. The composer did not cover it; the trip home scrolls and the card sits fully above the composer.
+- Cause: `phone/map.css` had `.workspace-app[data-phone] .trip-map-canvas--empty { place-items: start center }`. That rule is for the full-screen Map tab, but it also matched the trip home map card.
+- Fix: the rule is now scoped to `.workspace-panel--map`, so the trip home card uses the base centred grid.
+- Machine check: `apps/web/tests/styles/phone-empty-map-scope.test.ts` is red on the old CSS (`expected '.workspace-app[data-phone] .trip-map-…' to contain '.workspace-panel--map'`).
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp340-before-after.png`.
