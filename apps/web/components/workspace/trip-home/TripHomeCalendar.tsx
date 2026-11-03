@@ -46,6 +46,21 @@ function statusLabel(entry: CalendarEntry, locale: AppLocale) {
   return [entry.startTime, entry.endTime].filter(Boolean).join("–");
 }
 
+function weekRangeLabel(start: number, end: number, locale: AppLocale) {
+  const sameYear = new Date(start).getUTCFullYear() === new Date(end).getUTCFullYear();
+  const format = (time: number, year: boolean) =>
+    new Intl.DateTimeFormat(intlLocale(locale), {
+      day: "numeric",
+      month: "short",
+      ...(year ? { year: "numeric" } : {}),
+      timeZone: "UTC",
+    }).format(time);
+  if (!sameYear) return `${format(start, true)} – ${format(end, true)}`;
+  return locale === "zh"
+    ? `${format(start, true)} – ${format(end, false)}`
+    : `${format(start, false)} – ${format(end, true)}`;
+}
+
 function CalendarEvent({
   entry,
   locale,
@@ -263,12 +278,6 @@ export function TripHomeCalendar({
     year: "numeric",
     timeZone: "UTC",
   });
-  const weekLabel = new Intl.DateTimeFormat(intl, {
-    day: "numeric",
-    month: "short",
-    year: "numeric",
-    timeZone: "UTC",
-  });
   const weekIndex = Math.max(0, weeks.indexOf(visibleWeek));
   const monthIndex = Math.max(0, months.indexOf(visibleMonth));
   const weekDays = Array.from({ length: 7 }, (_, index) => visibleWeek + index * DAY_MS);
@@ -334,7 +343,7 @@ export function TripHomeCalendar({
         </button>
         <h3>
           {view === "week"
-            ? `${weekLabel.format(weekDays[0])} – ${weekLabel.format(weekDays.at(-1)!)}`
+            ? weekRangeLabel(weekDays[0]!, weekDays.at(-1)!, locale)
             : monthLabel.format(visibleMonth)}
         </h3>
         <button

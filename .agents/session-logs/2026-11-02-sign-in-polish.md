@@ -238,3 +238,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Phone zh dark: Map tab, Ideas, Bookings, Calendar tabs and the trip page. The MapLibre credit kept the library's solid white box with black text and a black ⓘ, the only bright element on the dark map beside the dark map buttons.
 - `map.css`: the credit uses `--glass-tint`, `--text-dim` and the `--glass-edge` hairline like the map buttons; links inherit the colour; the ⓘ icon is inverted in dark mode (both the system and the `data-theme="dark"` selectors). Light: `rgb(255,255,255)` → `rgba(255,255,255,.88)`; dark: white → `rgba(30,30,32,.88)` with `rgb(161,161,166)` text.
 - Validation: phone Map tab crops in light and dark before and after. No machine check: the colour is a design choice for a third-party control.
+
+## Round 34 — TP-321 calendar week range
+
+- Problem: the trip Calendar week heading repeated the year on both ends. In Chinese ("2026年11月28日 – 2026年12月4日") it measured 308px in a 257px heading and was cut off with "…" in the desktop drawer.
+- Fix: `TripHomeCalendar.tsx` formats the range itself and shows the year once when both ends share it ("2026年11月28日 – 12月4日", "28 Nov – 4 Dec 2026"); a week that crosses a year keeps both years. `Intl.DateTimeFormat.formatRange` was not used because zh gives numeric dates ("2026/11/28 – 2026/12/4").
+- Evidence: zh heading 257/257 after the fix, before/after crops in zh dark and en light.
+- Machine check: none. This is date copy for one heading; a test would pin the exact wording rather than a bug class, and Joey asked for few tests.
