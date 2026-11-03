@@ -556,8 +556,9 @@ disabled.
 
 The composer's two controls own their size — the 28px circle and the 34px send — and
 `apps/web/app/styles/forms.css` is what has to know that: it puts a 36px `min-height` on every
-button in the app, and its `button:not(...)` chains are more specific than a plain class, so a
-composer rule cannot cancel it. Both controls are listed in those chains. The field itself draws no
+button in the app that is not on its exclusion list. The list sits inside `:where()`, so the rule
+weighs no more than a bare `button` selector and any class rule overrides it. Both controls are on the
+list. The field itself draws no
 focus ring, because `base.css` rings every focusable element and inside the card that would be a
 second highlight nested in the card's own accent border.
 
@@ -701,8 +702,8 @@ stays: 20 stay options` with 20 rows) plus one stay choice with 19 alternatives;
   (development only, `apps/web/app/debug/question/page.tsx`) seats the question card against a fixed
   `PendingAsk` without a provider call. One trap both pages catch: `apps/web/app/styles/forms.css`
   styles every button not on its exclusion list as a secondary button, so a new control inside the
-  transcript, the composer or the question card arrives with a border, a surface and a padding that
-  shift its grid columns. `.thinking-line`, `.thinking-control`, `.thinking-choice__toggle`,
+  transcript, the composer or the question card that does not set its own border, surface and padding
+  inherits them and shifts its grid columns. `.thinking-line`, `.thinking-control`, `.thinking-choice__toggle`,
   `.composer__add`, `.composer__primary`, `.question__icon-button`, `.question__option` and
   `.question__button` are on that list.
 - `/debug/thinking` (`apps/web/app/debug/thinking/page.tsx` with `apps/web/lib/dev/thinking-fixtures.ts`)

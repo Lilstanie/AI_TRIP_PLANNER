@@ -357,7 +357,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 卡片填充使用 `--surface-2` 而非 `--surface`：DSH 输入框使用 `--dsw-specific-input-major`，在深色调色板中为 `rgb(44, 44, 46)`，比页面高一级，是灰色胶囊而非页面颜色。本应用 `--surface-2` 对应同一级，已表示「放在页面上的表面」（浅色中为白色，深色中为灰色），因此两个主题与 DSH 一样朝相反方向变化。附件圆形按钮使用 `--border` 填充，图标采用主要文字色，因为比灰色卡片低一级的选择器填充看起来像禁用状态。
 
-输入框的两个控件自行确定尺寸：28px 圆形和 34px 发送按钮；`apps/web/app/styles/forms.css` 必须了解这一点。该文件给应用每个按钮设置 36px `min-height`，而其 `button:not(...)` 链的优先级高于普通类，因此输入框规则无法覆盖它。两个控件都已加入这些排除链。字段本身不绘制焦点环，因为 `base.css` 给每个可聚焦元素添加焦点环，卡片内部再加会在卡片自身强调边框内嵌套第二层高亮。
+输入框的两个控件自行确定尺寸：28px 圆形和 34px 发送按钮；`apps/web/app/styles/forms.css` 必须了解这一点。该文件给应用里不在排除列表中的每个按钮设置 36px `min-height`。排除列表写在 `:where()` 里，所以这条规则的优先级与单独的 `button` 选择器相同，任何类规则都能覆盖它。两个控件都已加入排除列表。字段本身不绘制焦点环，因为 `base.css` 给每个可聚焦元素添加焦点环，卡片内部再加会在卡片自身强调边框内嵌套第二层高亮。
 
 值得保留的三个行为：
 
@@ -414,7 +414,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 - `packages/orchestrator/tests/reasoning-sink.test.ts` 固定验证同一 sink 的每次刷新携带相同块索引，同轮两个 episode 保持分离；`chat.test.ts` 固定验证 `ask_user_question`，包括记录的问题与选项、删除空值并为两类列表设置上限，以及提问以 `AskUserError` 结束轮次且原样携带客户端计划；`progress-tools.test.ts` 固定验证有界结果行、其 `kind`（地点关键词匹配、旅行方式、固定的住宿 / 航班 / 天气类型），以及提供方错误不会进入 transcript。`packages/shared/tests/chat.test.ts` 固定验证 `ChatAskUser` 和 `ToolResultRow.kind` schema，包括问题和选项上限。
 - 本次变更前已使用实时提供方检查端到端形态：三天悉尼请求流式输出 19 个推理事件、15 个工具结果及各自的行（包括带 20 行的 `Search
 stays: 20 stay options`），还有一个住宿选择及 19 个备选项；含糊的「Sydney in March」请求让协调者给出一句普通提问。重新对实时提供方验证合并推理 transcript 与 `ask_user_question` 卡片需要 `DEEPSEEK_API_KEY`，作为后续事项记录，此处不声称已完成。
-- 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中的新控件会附带边框、表面与内边距，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
+- 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中没有自己设置边框、表面与内边距的新控件会继承这些样式，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
 - `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于确定性的模拟事件渲染 Settled、Mid-flight、Replay 和 Failed 模式。
 
 <a id="7-sources"></a>

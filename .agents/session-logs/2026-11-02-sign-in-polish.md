@@ -219,3 +219,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - `trip-home-ideas-bookings.css`: the group heading is bold (400 → 700), like the other section headings ("Chats · 1").
 - Validation: computed weights and desktop zh dark / phone en dark crops before and after. No machine check: the weight is a design choice; the rule only lacked it.
 - Also seen: the desktop trip page's five panel tiles leave Calendar alone on a third row, and the map column stays an empty box for mock places; both left as design calls.
+
+## Round 31 — TP-318 generic button rule yields
+
+- Joey chose the root fix on the decision card (2026-11-03 00:02 UTC). The two generic button rules in `forms.css` were `button:not(.a):not(.b)…` chains heavy enough to beat every single-class component rule (five cases this loop).
+- `forms.css`: both rules are now `button:where(:not(.a, .b, …))`, with the same exclusion lists, at the weight of `button`. Agent Note `.agents/notes/implemented/bug-fix/2026-11-03-generic-button-specificity.md`; `docs/design/dsh-thinking-ui.md` and its `.zh.md` pair describe the new weight.
+- Validation: computed-style census of every visible button in 20 desktop and phone states before and after (`padding`, fill, border, radius, size, weight). The changed classes all move to their own CSS: Agent Lab views and secondary buttons, the "5 ideas" chip, "Day map", trip panel tabs and cards, sidebar rows (38 → 40px), weights 500 → 600 where a component sets 600. Before/after screenshots of Agent Lab, the phone Itinerary tab, the desktop trip panel and the phone home looked right.
+- Machine check: `apps/web/tests/styles/forms-button-specificity.test.ts`. On the old `forms.css` it fails with `expected 'button:not(.cl-button):not(.section__…' to match /^button:where\(:not\([^()]*\)\)$/`.
