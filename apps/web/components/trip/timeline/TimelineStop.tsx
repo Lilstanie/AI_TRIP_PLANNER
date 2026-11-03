@@ -493,7 +493,7 @@ export function TimelineStop({
               </button>
             </div>
           )}
-          {!confirmed && status === "unconfirmed" && (
+          {!confirmed && status === "unconfirmed" && !(phone && searching) && (
             <p className="stop-editor__hint">{t("theMapCouldNotFind")}</p>
           )}
           {matched && saveState === "failed" && (

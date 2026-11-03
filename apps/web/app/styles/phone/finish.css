@@ -45,9 +45,6 @@
 .workspace-app[data-phone] .phone-trajectory > .trajectory-tab {
   background: var(--page);
 }
-.workspace-app[data-phone] .phone-trajectory__head h2:focus {
-  outline: none;
-}
 .workspace-app[data-phone] .phone-trajectory__close {
   width: 32px;
   height: 32px;
@@ -235,4 +232,40 @@ html[data-shell="ios-app"] .auth-layout {
     grid-template-columns: minmax(0, 1fr) !important;
     gap: var(--space-2);
   }
+}
+.workspace-app[data-phone] .timeline-day__weather--fold {
+  display: block;
+  min-width: 0;
+}
+.workspace-app[data-phone] .timeline-day__weather--fold > summary {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: var(--space-2);
+  min-height: 44px;
+  list-style: none;
+  cursor: pointer;
+}
+.workspace-app[data-phone] .timeline-day__weather--fold > summary::-webkit-details-marker {
+  display: none;
+}
+.workspace-app[data-phone] .timeline-day__weather--fold > summary > span {
+  flex: 1;
+  min-width: 0;
+}
+.workspace-app[data-phone] .timeline-day__weather--fold:not([open]) > summary > span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.workspace-app[data-phone] .phone-mine .trip-card__meta,
+.workspace-app[data-phone] .phone-mine .trip-card__total {
+  grid-column: 1 / -1;
+}
+.workspace-app[data-phone] .phone-mine :is(.trip-card__title, .trip-card__meta) {
+  white-space: normal;
+}
+.workspace-app[data-phone] .phone-mine .trip-card__total {
+  grid-row: 3;
+  font-size: var(--font-size-meta);
 }

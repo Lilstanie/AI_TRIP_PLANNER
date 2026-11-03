@@ -642,7 +642,7 @@ export function TripEditorView({
           />
         )}
         {dayEntry?.note && <p className="timeline-day__note">{dayEntry.note}</p>}
-        {weather && <TripWeather text={weather} />}
+        {weather && <TripWeather text={weather} phone={phone} />}
         {staying && (
           <p className="timeline-day__staying">
             <FlowStayIcon size={13} /> {t("stayingAtPlace", { place: staying })}

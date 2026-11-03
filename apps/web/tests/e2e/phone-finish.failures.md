@@ -15,3 +15,12 @@ user agent and Joey's simulator screenshots. Each line is a way the change could
 - The composer's add or send button falls below 44 px.
 - In Chinese the badge line or the team title wraps.
 - At 1440 px the open-items badge grows a label or the trip home composer changes.
+
+Added 2026-11-03 for the leftovers (TP-354), from the final simulator pass:
+
+- In WebKit the Planning progress title shows the blue focus ring once the sheet focuses it.
+- Words in a revealed reply stay blurred after the reveal ends, because each word keeps a filter.
+- The stop sheet still shows an orange "The map could not find this place" paragraph above the search.
+- A two-city day's weather note fills five lines above the stops.
+- A Mine trip row cuts its dates ("2 – 8 Jan 2027 · 7 …") or its title.
+- The weather line no longer opens to the whole note, or the stop sheet loses its place search.

@@ -769,7 +769,8 @@ itinerary menu sit at the right of the budget row without covering its figures
 (`pnpm --filter @trip/web e2e trip-panel-head`).
 A count badge at the top of the Trip panel lists open items (on a phone it is a full-width row, the
 count plus "To check", and the page's only orange mark: "N unpriced", "needs a place" and "Not found
-on the map" are grey there): scheduled overlaps,
+on the map" are grey there, and a stop sheet for an unfound place shows that grey line with its
+place search instead of an orange hint): scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
 there are none. Tapping it opens a glass
@@ -847,7 +848,7 @@ include every section. Why: [Agent Note](../.agents/notes/implemented/feature/20
   names no date shows on every day, and a day with no matching line has no row. A small animated
   icon leads the row (sun, sun behind a cloud, cloud, fog, rain, snow or storm), chosen from the
   weather words in that day's text; with no match it shows the sun behind a cloud. Reduced motion
-  stops the animation.
+  stops the animation. On a phone the row is one line that opens to the whole note.
 - **Travel tips.** The destination guide's advice (customs and etiquette, safety, entry and health,
   packing, and places to explore) is a collapsible block at the bottom of the Trip panel, below the days. It
   starts collapsed unless this viewer has saved an expanded preference for that trip in this browser

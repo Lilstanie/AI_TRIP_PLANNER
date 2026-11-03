@@ -111,7 +111,16 @@ export function weatherForDay(text: string, start: string, day: number, days: nu
     .join(" ");
 }
 
-export function TripWeather({ text }: { text: string }) {
+export function TripWeather({ text, phone = false }: { text: string; phone?: boolean }) {
+  if (phone)
+    return (
+      <details className="timeline-day__weather timeline-day__weather--fold">
+        <summary>
+          <WeatherIcon sky={weatherSky(text)} />
+          <span>{text}</span>
+        </summary>
+      </details>
+    );
   return (
     <p className="timeline-day__weather">
       <WeatherIcon sky={weatherSky(text)} />
