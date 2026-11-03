@@ -441,3 +441,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Machine check: the existing e2e check is red before (`FAIL en/zh Calendar selected controls and event titles remain visible`, "Harbour walk" width 21.4 / 23.5) and green after (45 PASS, 0 FAIL). The e2e now also saves `overlap-day.png` as a repeatable artifact.
 - Docs: `workspace-ui.md` and `.zh.md` describe the stacking.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp342-before-after.png`.
+
+## Round 56 — TP-343 selected Settings section stands out
+
+- Problem: in the Settings dialog (desktop, en dark), every section in the left list used `var(--text)`. The selected section showed only through weight 600 against 500 and a 2px bar on the divider, and `:hover` set `var(--text-dim)`, so hovering made an item look less active.
+- Fix: in `settings.css`, unselected `button.settings-tab` is `var(--text-dim)`, and hover and `[aria-selected="true"]` are `var(--text)`. The bar and the weight stay.
+- Machine check: `settings.e2e.mjs` checks that the selected tab's computed colour differs from every other tab's. Red on the old CSS: `FAIL desktop: the selected Settings section stands out from the others`. After the fix: 36 ok, 0 FAIL.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp343-before-after.png`.

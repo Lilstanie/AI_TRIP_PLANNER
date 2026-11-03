@@ -26,15 +26,16 @@ button.settings-tab {
   padding: 6px var(--space-3) 6px 0;
   border: 0;
   background: transparent;
-  color: var(--text);
+  color: var(--text-dim);
   font-size: 14px;
   font-weight: 500;
   text-align: left;
   white-space: nowrap;
   cursor: pointer;
 }
-button.settings-tab:hover {
-  color: var(--text-dim);
+button.settings-tab:hover,
+button.settings-tab[aria-selected="true"] {
+  color: var(--text);
 }
 button.settings-tab[aria-selected="true"] {
   font-weight: 600;

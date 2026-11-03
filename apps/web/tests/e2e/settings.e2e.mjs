@@ -78,6 +78,18 @@ async function run(browser, { width, height, tag }) {
       "true",
     `${tag}: Settings opens on Personalization`,
   );
+  const tabColors = await dialog
+    .getByRole("tab")
+    .evaluateAll((tabs) =>
+      tabs.map((tab) => [tab.getAttribute("aria-selected"), getComputedStyle(tab).color]),
+    );
+  check(
+    tabColors
+      .filter(([selected]) => selected !== "true")
+      .every(([, color]) => color !== tabColors.find(([selected]) => selected === "true")?.[1]),
+    `${tag}: the selected Settings section stands out from the others`,
+    tabColors,
+  );
   check(
     await dialog.getByText("Any dietary restrictions or allergies?", { exact: false }).isVisible(),
     `${tag}: an empty fact asks its question`,
