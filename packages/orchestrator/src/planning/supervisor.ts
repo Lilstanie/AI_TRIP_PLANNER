@@ -107,7 +107,7 @@ function outcomeFor(
 ): string {
   const copy = progressCopy(language);
   if (!revision) return copy.produced(proposal.agent);
-  return copy.revised(proposal.agent, revision.reason);
+  return copy.revised(proposal.agent);
 }
 
 const DelegationRequest = z.object({

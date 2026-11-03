@@ -20,8 +20,7 @@ const ENGLISH = {
   objective: (agent: AgentName) => `Produce the ${ROLE_NAMES.en[agent]} section for this trip.`,
   fix: (reason: string) => `Fix: ${reason}`,
   produced: (agent: AgentName) => `Produced ${ROLE_NAMES.en[agent]} section.`,
-  revised: (agent: AgentName, reason: string) =>
-    `Revised ${ROLE_NAMES.en[agent]} after: ${reason}.`,
+  revised: (agent: AgentName) => `Revised the ${ROLE_NAMES.en[agent]} section.`,
   mentioned: (labels: string[]) => `Asking ${labels.join(" and ")} to handle your request.`,
   flightTitle: (from: string, to: string) => `Flight ${from} → ${to}`,
   stayTitle: (city: string) => `Stay in ${city}`,
@@ -95,8 +94,7 @@ const CHINESE: typeof ENGLISH = {
   objective: (agent) => `为本次行程生成「${ROLE_NAMES.zh[agent]}」部分。`,
   fix: (reason) => `修正：${chineseReason(reason)}`,
   produced: (agent) => `已生成「${ROLE_NAMES.zh[agent]}」部分。`,
-  revised: (agent, reason) =>
-    `根据“${chineseReason(reason)}”修改了「${ROLE_NAMES.zh[agent]}」部分。`,
+  revised: (agent) => `已修改「${ROLE_NAMES.zh[agent]}」部分。`,
   mentioned: (labels) => `请${labels.join("和")}处理你的请求。`,
   flightTitle: (from, to) => `航班 ${from} → ${to}`,
   stayTitle: (city) => `${city}住宿`,

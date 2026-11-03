@@ -1,6 +1,13 @@
 "use client";
 import { useLocale } from "@/components/account/LocaleProvider";
-import { useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
+import {
+  useLayoutEffect,
+  useRef,
+  useState,
+  type CSSProperties,
+  type HTMLAttributes,
+  type ReactNode,
+} from "react";
 import type { ToolResultKind, ToolResultRow } from "@trip/shared";
 import { cn } from "@/lib/utils";
 import { constraintCopy } from "@/lib/chat/constraint-copy";
@@ -266,6 +273,34 @@ function ChoiceBlock({
   );
 }
 
+function ClampedSummary({ text }: { text: string }) {
+  const { t } = useLocale();
+  const ref = useRef<HTMLParagraphElement>(null);
+  const [expanded, setExpanded] = useState(false);
+  const [overflows, setOverflows] = useState(false);
+  useLayoutEffect(() => {
+    const element = ref.current;
+    if (element && !expanded) setOverflows(element.scrollHeight > element.clientHeight + 1);
+  }, [text, expanded]);
+  return (
+    <>
+      <p ref={ref} className="thinking-note__summary" data-clamped={expanded ? undefined : ""}>
+        {text}
+      </p>
+      {(overflows || expanded) && (
+        <button
+          type="button"
+          className="thinking-choice__toggle"
+          aria-expanded={expanded}
+          onClick={() => setExpanded((value) => !value)}
+        >
+          {t(expanded ? "showLess" : "showMore")}
+        </button>
+      )}
+    </>
+  );
+}
+
 function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }) {
   const { t, locale } = useLocale();
   const hasNotes = Boolean(
@@ -278,6 +313,10 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
   );
   if (!hasNotes) return null;
   const choiceId = `choice:${model.round}:${model.name}`;
+  const constraints =
+    model.constraints?.join("\n") === model.coordinator?.constraints?.join("\n")
+      ? undefined
+      : model.constraints;
   return (
     <div className="thinking-subagent__body">
       {model.coordinator && (
@@ -292,18 +331,16 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
           )}
         </div>
       )}
-      {model.objective && (
-        <p className="thinking-note__summary">{t("askedForV0", { v0: model.objective })}</p>
-      )}
-      {model.constraints && (
+      {model.objective && <ClampedSummary text={t("askedForV0", { v0: model.objective })} />}
+      {constraints && (
         <ul className="thinking-note__list">
-          {model.constraints.map((constraint, index) => (
+          {constraints.map((constraint, index) => (
             <li key={`${constraint}-${index}`}>{constraintCopy(constraint, locale)}</li>
           ))}
         </ul>
       )}
       {model.error && <p className="thinking-error">{model.error}</p>}
-      {model.outcome && <p className="thinking-note__summary">{model.outcome}</p>}
+      {model.outcome && <ClampedSummary text={model.outcome} />}
       {model.choice && (
         <ChoiceBlock
           choice={model.choice}

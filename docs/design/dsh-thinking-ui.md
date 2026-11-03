@@ -324,6 +324,9 @@ The Rocks · 2026-11-10`, with any other argument as a `key value` chip — rath
   The constraints are written in English for the specialists; `apps/web/lib/chat/constraint-copy.ts`
   rewrites each known template from `packages/orchestrator/src/planning/conflicts.ts` in Chinese
   for a Chinese reader, so a new constraint template needs a pattern there too.
+  A revised specialist row says the reason once: its request line quotes the revision reason, its
+  result line only names the section, and it skips a constraint list identical to the coordinator's.
+  Request and result lines longer than three lines are clamped with Show more.
 - **Thinking belongs to the model that decides.** The supervisor and the coordinator run with
   DeepSeek thinking on and publish `reasoning_content` deltas. Specialists ask for structured output
   through a forced tool call, which DeepSeek refuses while thinking ("Thinking mode does not support

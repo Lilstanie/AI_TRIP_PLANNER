@@ -211,9 +211,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       const proposal = AgentProposalSchema.parse(await specialist.invoke(request));
       onProgress?.({
         summary: proposal.summary,
-        outcome: request.revision
-          ? copy.revised(proposal.agent, request.revision.reason)
-          : copy.produced(proposal.agent),
+        outcome: request.revision ? copy.revised(proposal.agent) : copy.produced(proposal.agent),
         ...(choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)
           ? { choice: choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)! }
           : {}),

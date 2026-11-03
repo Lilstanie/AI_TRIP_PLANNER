@@ -380,3 +380,13 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `.trips-page__inner` widens to 1120px (four cards per row at 1440px; the existing `minmax(240px, 1fr)` grid is unchanged). `TripsPage` puts the total beside the title and the dates · days on one ellipsised line, dropping the destination when the title already contains it. `glass.css` makes the label frosted (80% surface, blur) with dimmed meta. `docs/workspace-ui.md` and `.zh.md` describe the new card line.
 - Evidence: local 1440 zh light (six seeded trips), 1440 en dark, the Calendar tab at the new width and phone Mine; before/after crop. `trip-rename-delete.e2e.mjs`: 17 ok, 0 failed.
 - Machine check: none added; this is layout and visual hierarchy with no wrong state to detect.
+
+## Round 49 — TP-336 revision reason said once in the Think trace (suggestion 4 of 5)
+
+- Problem: a revised 日程规划 row printed the full multi-day reason twice (about 12 lines in all): once in "你要的是：修正：…" and again in "根据“…”修改了「日程规划」部分。"; it also listed "让路线在地理上走得通" twice, under the coordinator summary and again under the request.
+- Fix: `progressCopy().revised` takes only the agent ("已修改「日程规划」部分。" / "Revised the Day plan section."), so the reason stays in the request line. `ThinkingRows` clamps the request and result lines to three lines with a Show more / Show less toggle (`showMore` / `showLess` keys already existed) and skips the specialist's constraint list when it equals the coordinator's. `docs/design/dsh-thinking-ui.md` and `.zh.md` describe this.
+- Evidence: a fresh local zh dark mock plan; before/after crop of the same row (about 14 lines -> 6). Orchestrator tests 437 passed; web `tests/components/chat` 80 passed.
+- Machine check: the type. `revised` now takes one argument, so quoting the reason again fails `tsc`:
+  ```
+  src/planning/workflow.ts(214,66): error TS2554: Expected 1 arguments, but got 2.
+  ```

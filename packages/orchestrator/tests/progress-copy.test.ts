@@ -15,7 +15,7 @@ describe("progressCopy zh revision reasons", () => {
       "geography conflict: no grounded places available; itinerary requires new evidence",
     ].join("; ");
     const copy = progressCopy("zh");
-    const text = `${copy.fix(reason)} ${copy.revised("accommodation", reason)}`;
+    const text = copy.fix(reason);
     expect(text.replaceAll("AUD", "")).not.toMatch(/[A-Za-z]/);
   });
 });

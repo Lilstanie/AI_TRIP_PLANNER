@@ -505,6 +505,14 @@
   margin: 0;
 }
 
+.thinking-note__summary[data-clamped] {
+  display: -webkit-box;
+  overflow: hidden;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 3;
+  line-clamp: 3;
+}
+
 .thinking-error {
   color: var(--warn);
   font-size: 12px;
