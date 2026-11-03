@@ -259,3 +259,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `workspace/trips.css` makes it a pill-radius circle at 22% black with a 12px backdrop blur, like the app's other floating controls. Phone (44px) and desktop (28px) both change.
 - Evidence: before/after crops on phone en light, phone zh dark and desktop en dark; computed radius 8px -> 999px, background 0.4 -> 0.22 alpha.
 - Machine check: none. A visual weight choice for one control; no rule can tell a good fill from a heavy one.
+
+## Round 37 — TP-324 Trips page calendar alignment
+
+- Problem: the Trips page Calendar tab embeds the trip calendar, which kept its drawer padding (`var(--space-4) var(--space-5) var(--space-5)`). Its toolbar and grid ran 438-1250 inside a 414-1274 page column on desktop and 40-350 inside 28-362 on phone, out of line with the tabs, trip chip and View trip button.
+- Fix: `workspace/trips.css` sets `.trips-calendar .trip-home-calendar { padding: 0 }`; the grid gap above already spaces it. The drawer calendar is unchanged.
+- Evidence: toolbar and grid now 414-1274 (desktop en light, zh dark) and 28-362 (phone zh light); the phone week grid gains 24px and flight chips fit on one line. Before/after crops.
+- Machine check: none. One container's padding in one context; a rule could not tell intended insets from stray ones.
+- Also looked at: the Settings page card is full height with little content on "Your account"; left as the page-style settings design.

@@ -558,6 +558,9 @@
   display: grid;
   gap: var(--space-4);
 }
+.trips-calendar .trip-home-calendar {
+  padding: 0;
+}
 .trips-calendar__head {
   display: flex;
   align-items: center;
