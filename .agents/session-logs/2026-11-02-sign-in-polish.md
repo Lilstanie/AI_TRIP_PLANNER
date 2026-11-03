@@ -462,3 +462,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `.trips-calendar__trip[aria-pressed="true"]` in `trips.css` now uses `--segment-thumb`, `--text` and the same shadow as the calendar views switch.
 - Machine check: `tests/styles/selected-segment-fill.test.ts` adds a rule that no selected-state rule (pseudo-element indicator bars excluded) uses `var(--text)` as its fill. Red on the old CSS: `expected [ "workspace/trips.css: .trips-calendar__trip[aria-pressed=\"true\"]" ] to deeply equal []`.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp345-before-after.png` (light top, dark bottom; before left, after right).
+
+## Round 59 — TP-346 View trip button matches the calendar trip chip
+
+- Checked: the en dark chat after a fresh mock plan, the Trajectory simple view, and the desktop Trips calendar month view in zh light. The month view had the most visible problem.
+- Problem: in the Trips calendar head, "查看行程 / View trip" used the 14px default button size. The trip chip on the same row and the switches below it use the 12px meta size, so the one button looked oversized.
+- Fix: `.trips-calendar__open` in `trips.css` sets `font-size: var(--font-size-meta)`.
+- Machine check: `trip-rename-delete.e2e.mjs` checks that the chip and the button share one computed font size. Red on the old CSS: `FAIL calendar trip chip and View trip use one type size ["12px","14px"]`. After the fix: 18 ok.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp346-before-after.png`.

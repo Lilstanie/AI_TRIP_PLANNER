@@ -612,4 +612,5 @@
 }
 .trips-calendar__open {
   flex: none;
+  font-size: var(--font-size-meta);
 }
