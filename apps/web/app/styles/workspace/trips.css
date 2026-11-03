@@ -604,8 +604,11 @@
   color: var(--text);
 }
 .trips-calendar__trip[aria-pressed="true"] {
-  background: var(--text) !important;
-  color: var(--page);
+  background: var(--segment-thumb) !important;
+  color: var(--text);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 12%),
+    0 0 0 0.5px var(--glass-edge);
 }
 .trips-calendar__open {
   flex: none;

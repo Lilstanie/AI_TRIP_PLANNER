@@ -455,3 +455,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: the ≤520px rule in `trip-home-calendar.css` keeps only the 44px tap height. The switch now uses the base inline-flex sizing (72px minimum per option).
 - Machine check: `trip-home-calendar.e2e.mjs` checks that the phone switch takes under 60% of the calendar width. Red on the old CSS: `FAIL phone Week/Month control is sized to its options … {"viewsShare":0.938}`. After the fix it is 0.387, with 46 PASS and 0 FAIL.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp344-before-after.png`.
+
+## Round 58 — TP-345 selected calendar trip chip uses the segment thumb
+
+- Problem: on the Trips calendar (phone, zh, both themes), the selected trip chip used `background: var(--text)` and `color: var(--page)`. That is a bright white pill in dark mode and a black pill in light mode. It outshone the page and did not match the two segmented controls on the same screen, which use `--segment-thumb`.
+- Fix: `.trips-calendar__trip[aria-pressed="true"]` in `trips.css` now uses `--segment-thumb`, `--text` and the same shadow as the calendar views switch.
+- Machine check: `tests/styles/selected-segment-fill.test.ts` adds a rule that no selected-state rule (pseudo-element indicator bars excluded) uses `var(--text)` as its fill. Red on the old CSS: `expected [ "workspace/trips.css: .trips-calendar__trip[aria-pressed=\"true\"]" ] to deeply equal []`.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp345-before-after.png` (light top, dark bottom; before left, after right).

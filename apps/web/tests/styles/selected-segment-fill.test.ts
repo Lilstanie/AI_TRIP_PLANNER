@@ -35,4 +35,12 @@ describe("selected segment fill", () => {
       .map((rule) => `${rule.file}: ${rule.selector}`);
     expect(offenders).toEqual([]);
   });
+
+  it("does not invert a selected chip to the text colour, which glares as a white pill in dark mode", () => {
+    const offenders = selectedRules()
+      .filter((rule) => !/::(after|before)/.test(rule.selector))
+      .filter((rule) => /background(-color)?:\s*var\(--text\)/.test(rule.body))
+      .map((rule) => `${rule.file}: ${rule.selector}`);
+    expect(offenders).toEqual([]);
+  });
 });
