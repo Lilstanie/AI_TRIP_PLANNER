@@ -1,4 +1,4 @@
-import type { RevisionRequest } from "@trip/shared";
+import { planIssue, type RevisionRequest } from "@trip/shared";
 import type { ItineraryDraft } from "./index";
 
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3));
@@ -33,9 +33,7 @@ export function avoidBlockedWindows(
     }
 
     if (start + duration > 20 * 60 && start !== minutes(activity.startTime)) {
-      conflicts.push(
-        `time conflict on day ${activity.day}: requested clear window leaves no daytime slot`,
-      );
+      conflicts.push(planIssue("noDaytimeSlot", { day: activity.day! }));
       continue;
     }
     activity.startTime = clock(start);

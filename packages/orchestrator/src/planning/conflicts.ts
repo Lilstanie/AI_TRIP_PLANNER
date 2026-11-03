@@ -1,4 +1,4 @@
-import { formatMoney, outboundArrival } from "@trip/shared";
+import { formatMoney, outboundArrival, planIssue } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
 import { assessBudget, costOf, moneyDifference, NEGOTIATION_OVERRUN_PCT, sumMoney } from "./budget";
 
@@ -58,10 +58,11 @@ export function detectConflicts(
           tripId: brief.tripId,
           targetAgent: largest.agent,
           kind: "infeasible",
-          reason: `${INFEASIBLE_BUDGET}: the cheapest flights and stays found already cost ${aud(floor)}, above the ${aud(brief.budgetTotal)} budget`,
-          constraints: [
-            `raise the budget to at least ${aud(floor)} (from the options found, before activities and meals), or change dates, origin or destination`,
-          ],
+          reason: planIssue("budgetInfeasible", {
+            floor: aud(floor),
+            budget: aud(brief.budgetTotal),
+          }),
+          constraints: [planIssue("raiseBudget", { floor: aud(floor) })],
         },
       ];
     }
@@ -82,8 +83,12 @@ export function detectConflicts(
       add(
         proposal.agent,
         "budget",
-        `plan is ${overrunPct.toFixed(2)}% (${aud(overrun)}) over budget`,
-        `cut ${proposal.agent} cost by ${aud(saving)}, to at most ${aud(moneyDifference(costOf(proposal), saving))}`,
+        planIssue("overBudget", { percent: overrunPct.toFixed(2), overrun: aud(overrun) }),
+        planIssue("cutCost", {
+          agent: proposal.agent,
+          saving: aud(saving),
+          limit: aud(moneyDifference(costOf(proposal), saving)),
+        }),
         saving,
       );
     }
@@ -91,7 +96,7 @@ export function detectConflicts(
 
   for (const proposal of proposals) {
     for (const reason of proposal.conflictsWith) {
-      add(proposal.agent, "geography", reason, "make the route geographically feasible");
+      add(proposal.agent, "geography", reason, planIssue("makeRouteFeasible", {}));
     }
   }
 
@@ -118,8 +123,8 @@ export function detectConflicts(
       add(
         "itinerary",
         "time",
-        `activity on day ${item.day} starts before the flight arrives on day ${arrivalDay} at ${arrivalTime}`,
-        `schedule destination activities after arrival on day ${arrivalDay} at ${arrivalTime}`,
+        planIssue("beforeArrival", { day: item.day, arrivalDay, time: arrivalTime }),
+        planIssue("afterArrival", { day: arrivalDay, time: arrivalTime }),
       );
     }
   }
@@ -152,16 +157,26 @@ export function detectConflicts(
         left.agent === "itinerary" || right.agent === "itinerary"
           ? (["itinerary"] as const)
           : ([left.agent, right.agent] as const);
-      const reason = `time overlap on day ${left.item.day}: ${left.item.startTime}-${left.item.endTime} conflicts with ${right.item.startTime}-${right.item.endTime}`;
+      const reason = planIssue("timeOverlap", {
+        day: left.item.day!,
+        start: left.item.startTime!,
+        end: left.item.endTime!,
+        otherStart: right.item.startTime!,
+        otherEnd: right.item.endTime!,
+      });
       for (const target of new Set<AgentName>(targets)) {
         const blocker = target === left.agent ? right : left;
         add(
           target,
           "time",
           reason,
-          `on day ${left.item.day} keep clear of ${blocker.item.startTime}-${blocker.item.endTime}, held by ${blocker.agent}${
-            blocker.item.location ? ` (${blocker.item.location})` : ""
-          }; reschedule without changing trip dates`,
+          planIssue("keepClear", {
+            day: left.item.day!,
+            start: blocker.item.startTime!,
+            end: blocker.item.endTime!,
+            agent: blocker.agent,
+            ...(blocker.item.location ? { place: blocker.item.location } : {}),
+          }),
         );
       }
     }

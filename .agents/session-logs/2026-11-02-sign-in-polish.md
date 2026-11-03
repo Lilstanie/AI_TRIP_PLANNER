@@ -3,8 +3,8 @@ date: 2026-11-02
 author: Claude Code (for Joey)
 branch: fix/TP-289-sign-in-polish
 pr: none
-area: apps/web, packages/agents, packages/orchestrator
-contract-impact: none
+area: apps/web, packages/agents, packages/orchestrator, packages/shared
+contract-impact: packages/shared
 ---
 
 # Sign-in card names the app and the passcode block joins the card
@@ -390,3 +390,14 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   ```
   src/planning/workflow.ts(214,66): error TS2554: Expected 1 arguments, but got 2.
   ```
+
+## Round 50 — TP-337 plan issues written and translated from one table (suggestion 5 of 5)
+
+- Problem: conflict reasons and constraints were English sentences written by hand in five producer files and translated by two separate regex tables (web `constraint-copy.ts`, orchestrator `progress-copy.ts`). Sentences the tables did not know stayed English in the zh Think trace, for example "修正：Flight provider unavailable；required flight 珀斯 → 巴厘岛 remains unpriced."
+- Fix: new `packages/shared/src/plan-issues.ts` (contract-impact: packages/shared; [Agent Note](../notes/implemented/architecture/2026-11-03-plan-issue-templates.md)). One table of 21 issue kinds, each with the English writer, the read-back pattern and the Chinese writer. Producers in `conflicts.ts`, `itinerary/travel.ts`, `itinerary/index.ts`, `itinerary/revision.ts` and `transport/index.ts` call `planIssue(kind, params)`; the English text is unchanged. `planIssueCopy` replaces both regex tables. Wire fields stay strings. `docs/design/dsh-thinking-ui.md` / `.zh.md` point at the table.
+- Evidence: shared 58, agents 213, orchestrator 437 and web chat 100 tests pass; `tsc` and eslint clean on the changed files. The Think trace looks as in round 45 for the known sentences; flight, route-problem and time-conflict sentences now read in Chinese too.
+- Machine check: `packages/shared/tests/plan-issues.test.ts` needs one sample per `PlanIssueKind` (typed record) and checks each, and all joined, read back as Chinese. Red on the old code (the previous orchestrator copy on a flight issue):
+  ```
+  AssertionError: expected '修正：Flight provider unavailable；requir…' not to match /[A-Za-z]/
+  ```
+  A producer that writes an issue sentence by hand instead of calling `planIssue` is not caught.

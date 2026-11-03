@@ -9,6 +9,7 @@ import type {
   TravelMode,
   TripBrief,
 } from "@trip/shared";
+import { planIssue } from "@trip/shared";
 import { dateForDay, isDrivingEstimate, routeProblem } from "../transport/validation";
 import { minutes } from "./landing";
 import type { ItineraryDraft } from "./index";
@@ -77,16 +78,19 @@ export async function travelConflicts(
         legs = await ctx.tools.maps.route(query);
       } catch {
         ctx.signal?.throwIfAborted();
-        conflicts.push(
-          `geography conflict on day ${day}: route provider failed; connection unverified`,
-        );
+        conflicts.push(planIssue("routeFailed", { day }));
         continue;
       }
       ctx.signal?.throwIfAborted();
       const problem = routeProblem(legs, { acceptDrivingEstimates: true });
       if (problem) {
         conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location}: ${problem}`,
+          planIssue("stopRouteProblem", {
+            day,
+            from: previous.location!,
+            to: current.location!,
+            problem,
+          }),
         );
         continue;
       }
@@ -109,7 +113,13 @@ export async function travelConflicts(
       const available = minutes(current.startTime) - minutes(previous.endTime);
       if (required > available) {
         conflicts.push(
-          `geography conflict on day ${day}: ${previous.location} to ${current.location} needs ${required} minutes including a 15-minute buffer but only ${available} are available`,
+          planIssue("routeTiming", {
+            day,
+            from: previous.location!,
+            to: current.location!,
+            need: required,
+            have: available,
+          }),
         );
       }
     }

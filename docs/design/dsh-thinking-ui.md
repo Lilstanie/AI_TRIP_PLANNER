@@ -321,9 +321,10 @@ The Rocks · 2026-11-10`, with any other argument as a `key value` chip — rath
   is round 1, no round label renders at all; when a round above 1 exists it is headed by the
   coordinator's own summary and list of constraints, so the number always answers "what happened in
   this round".
-  The constraints are written in English for the specialists; `apps/web/lib/chat/constraint-copy.ts`
-  rewrites each known template from `packages/orchestrator/src/planning/conflicts.ts` in Chinese
-  for a Chinese reader, so a new constraint template needs a pattern there too.
+  Reasons and constraints are written in English for the specialists through `planIssue` in
+  `packages/shared/src/plan-issues.ts`, whose one table also reads each sentence back and writes it in
+  Chinese (`planIssueCopy`) for a Chinese reader; a new issue is added there with its Chinese form
+  ([Agent Note](../../.agents/notes/implemented/architecture/2026-11-03-plan-issue-templates.md)).
   A revised specialist row says the reason once: its request line quotes the revision reason, its
   result line only names the section, and it skips a constraint list identical to the coordinator's.
   Request and result lines longer than three lines are clamped with Show more.

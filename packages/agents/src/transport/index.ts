@@ -17,6 +17,7 @@ import {
   type TripBrief,
   type FlightOption,
   type InterfaceLanguage,
+  planIssue,
 } from "@trip/shared";
 import { createAgent, tool } from "langchain";
 import { z } from "zod/v4";
@@ -133,18 +134,13 @@ async function gatherTransportEvidence(
       })
       .catch(() => {
         ctx.signal?.throwIfAborted();
-        conflicts.push(
-          `Flight provider unavailable; required flight ${leg.from} → ${leg.to} remains unpriced.`,
-        );
+        conflicts.push(planIssue("flightUnavailable", { from: leg.from, to: leg.to }));
         return [] as FlightOption[];
       });
     const valid = options.filter(
       (option) => Number.isFinite(option.price) && option.price >= 0 && option.carrier.trim(),
     );
-    if (!valid.length)
-      conflicts.push(
-        `Required flight ${leg.from} → ${leg.to} has no valid fare; transport estimate is incomplete.`,
-      );
+    if (!valid.length) conflicts.push(planIssue("flightNoFare", { from: leg.from, to: leg.to }));
     return { leg, options: valid };
   };
 
@@ -220,7 +216,7 @@ async function gatherTransportEvidence(
   for (const { query, legs: hop } of routed) {
     if (!hop.length)
       conflicts.push(
-        `geography conflict on day ${query.day}: route provider unavailable for ${query.from} → ${query.to}`,
+        planIssue("routeUnavailable", { day: query.day, from: query.from, to: query.to }),
       );
   }
   const flights = [...pricedFlights, ...promotedFlights].sort(
@@ -310,15 +306,15 @@ function layOutHop(
   const hopLegs = scheduled.map((entry) => entry.leg);
   const problem = routeProblem(hopLegs);
   if (problem) {
-    conflicts.push(`geography conflict on day ${day}: ${query.from} → ${query.to}: ${problem}`);
+    conflicts.push(planIssue("hopRouteProblem", { day, from: query.from, to: query.to, problem }));
     return [];
   }
   let cursor = startMinutes;
   if (!fitsInPlanningDay(hopDuration(hopLegs), cursor)) {
     conflicts.push(
       query.chosenMode
-        ? `time conflict on day ${day}: ${query.from} → ${query.to} by ${query.chosenMode} cannot fit inside one planning day`
-        : `time conflict on day ${day}: route cannot fit inside one planning day`,
+        ? planIssue("hopTooLong", { day, from: query.from, to: query.to, mode: query.chosenMode })
+        : planIssue("routeTooLong", { day }),
     );
     return [];
   }
