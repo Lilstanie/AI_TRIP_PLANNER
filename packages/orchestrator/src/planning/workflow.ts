@@ -204,7 +204,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       }),
       objective: request.revision
         ? copy.fix(request.revision.reason)
-        : copy.objective(specialist.label),
+        : copy.objective(specialist.name),
       constraints: request.revision?.constraints,
     });
     try {

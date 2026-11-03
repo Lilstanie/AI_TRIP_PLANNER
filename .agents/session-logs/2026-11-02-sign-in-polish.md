@@ -316,3 +316,16 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   Error: Failed to resolve import "@/lib/chat/constraint-copy" from "tests/lib/chat/constraint-copy.test.ts". Does the file exist?
   ```
 - Also looked at: account menu popover (fine).
+
+## Round 43 — TP-330 assistant section names in the Think trace
+
+- Problem: an expanded assistant row in the zh Think trace read "你要的是：为本次行程生成Day plan部分。" and "已生成itinerary部分。".
+- Cause: `packages/orchestrator/src/planning/workflow.ts` passed `specialist.label` (the English role label) to `copy.objective` and the raw `proposal.agent` id to `copy.produced` / `copy.revised`, while `progress-copy.ts` took any string.
+- Fix: `progressCopy` now takes an `AgentName` and names the section itself from `ROLE_NAMES` in the copy's language; the objective call passes `specialist.name`. `ROLE_NAMES.zh` now matches the app's labels (日程规划, 交通出行, 住宿, 目的地指南, 美食餐饮) instead of 每日行程 / 出行交通 / 餐饮; `docs/workspace-ui.zh.md` lists the same names.
+- Evidence: a fresh local mock plan in zh dark shows "为本次行程生成「日程规划」部分。" / "已生成「日程规划」部分。"; before/after crop. Orchestrator tests: 435 passed.
+- Machine check: the type. With the new `AgentName` parameter, the old call site fails `tsc`:
+  ```
+  src/planning/workflow.ts(207,26): error TS2345: Argument of type 'string' is not assignable to parameter of type '"itinerary" | "transport" | "accommodation" | "destination-guide" | "dining"'.
+  ```
+  and the copy can no longer print a raw id because it looks the name up itself.
+- Not changed: revision reasons (`copy.fix` / `copy.revised`) still quote the English conflict reason; logged as an open idea.
