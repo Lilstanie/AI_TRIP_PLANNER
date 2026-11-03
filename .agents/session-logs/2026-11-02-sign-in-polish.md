@@ -448,3 +448,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: in `settings.css`, unselected `button.settings-tab` is `var(--text-dim)`, and hover and `[aria-selected="true"]` are `var(--text)`. The bar and the weight stay.
 - Machine check: `settings.e2e.mjs` checks that the selected tab's computed colour differs from every other tab's. Red on the old CSS: `FAIL desktop: the selected Settings section stands out from the others`. After the fix: 36 ok, 0 FAIL.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp343-before-after.png`.
+
+## Round 57 — TP-344 phone Week/Month switch sized to its options
+
+- Problem: on a 390px phone (zh dark, Mine > Calendar), the calendar's Week/Month switch filled the row (`width: 100%`, buttons `flex: 1 1 50%` at ≤520px). The Trips/Calendar switch right above it is sized to its options, so the screen had two differently shaped switches.
+- Fix: the ≤520px rule in `trip-home-calendar.css` keeps only the 44px tap height. The switch now uses the base inline-flex sizing (72px minimum per option).
+- Machine check: `trip-home-calendar.e2e.mjs` checks that the phone switch takes under 60% of the calendar width. Red on the old CSS: `FAIL phone Week/Month control is sized to its options … {"viewsShare":0.938}`. After the fix it is 0.387, with 46 PASS and 0 FAIL.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp344-before-after.png`.

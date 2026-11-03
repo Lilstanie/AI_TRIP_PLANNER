@@ -738,6 +738,18 @@ try {
     (await zh.page.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0,
     "phone Calendar has no horizontal page overflow",
   );
+  const viewsShare = await calendarDrawer
+    .locator(".trip-home-calendar")
+    .evaluate(
+      (root) =>
+        root.querySelector(".trip-home-calendar__views").getBoundingClientRect().width /
+        root.getBoundingClientRect().width,
+    );
+  check(
+    viewsShare < 0.6,
+    "phone Week/Month control is sized to its options, like the other segmented controls",
+    { viewsShare },
+  );
   const phoneButtons = await calendarDrawer
     .locator("[data-activity-id], .trip-home-calendar__date")
     .evaluateAll((nodes) =>

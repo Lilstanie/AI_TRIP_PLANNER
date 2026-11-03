@@ -416,11 +416,7 @@ button.trip-home-calendar__event:hover {
   .trip-home-calendar__toolbar {
     margin-bottom: var(--space-2);
   }
-  .trip-home-calendar__views {
-    width: 100%;
-  }
   .trip-home-calendar__views button {
-    flex: 1 1 50%;
     min-height: 44px;
   }
   .trip-home-calendar__period {
