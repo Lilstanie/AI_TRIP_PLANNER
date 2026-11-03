@@ -5,10 +5,6 @@ export const VIEWS = {
   phone: { width: 390, height: 844, isMobile: true, hasTouch: true },
 };
 
-/**
- * Seeds Settings before the first script runs: mock trip data, the given language and theme.
- * The object must be complete; a partial one fails the Settings schema and is replaced by defaults.
- */
 export async function seedSettings(context, { language, appearance }) {
   await context.addInitScript(
     ({ language, appearance }) => {
@@ -71,10 +67,6 @@ async function openSettings(page) {
   return page.getByRole("dialog");
 }
 
-/**
- * Plans the first example trip on mock data and waits for the reply.
- * Throws when the reply does not arrive within 90 s.
- */
 export async function planExampleTrip(page) {
   await page
     .getByRole("button", { name: /^(Not now|暂不)$/ })
@@ -88,10 +80,6 @@ export async function planExampleTrip(page) {
   await page.waitForTimeout(1500);
 }
 
-/**
- * Screens the tour visits, in order, for each view. Each `open` leaves the page on that screen;
- * a throw means the screen could not be reached, and callers report it as a failure.
- */
 export const SCREENS = {
   desktop: [
     { id: "new-chat", open: async () => {} },
@@ -162,10 +150,6 @@ export const SCREENS = {
   ],
 };
 
-/**
- * Visits every screen of one view in a fresh context and calls `onScreen(page, screen)` on each.
- * Returns the ids of screens that could not be opened, with the error message.
- */
 export async function walk(browser, { view, language, appearance, baseUrl }, onScreen) {
   const context = await browser.newContext({
     viewport: { width: VIEWS[view].width, height: VIEWS[view].height },
