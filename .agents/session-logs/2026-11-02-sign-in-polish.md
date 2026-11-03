@@ -410,3 +410,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Evidence: local phone 390x844 en dark, Map tab, before/after crop (map tiles did not load in the cloud container either way).
 - Machine check: none added. The class comes from MapLibre at runtime in a real browser; no lint rule or type can see it, and the repo's map E2E needs map tiles the cloud container cannot load.
 - Not done this round: the Clerk sign-in card in Chinese; it needs Clerk keys to verify, which the local cloud server does not have.
+
+## Round 52 — TP-339 count stays with its measure word
+
+- Problem: on a 390px phone in Chinese, the trip home banner wrapped as "巴厘岛还有 5 / 个备选地点没排进日程". Cause: the banner uses `word-break: keep-all` (TP-309), so Chinese text breaks only at spaces, and the space between `{count}` and "个" was one of those break points.
+- Fix: in `zh-workspace.ts`, `countUnscheduledIdeasInDestination` and `n1UnscheduledIdeaInDestination` now join the count and "个" with ` `, so the line breaks before the number.
+- Machine check: `apps/web/tests/lib/i18n/count-wrap.test.ts` is red on the old copy (`expected '巴厘岛还有 5 个…' to be '巴厘岛还有 5 个…'`).
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp339-before-after.png`.
