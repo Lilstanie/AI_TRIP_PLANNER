@@ -304,3 +304,15 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `chat/messages.css` gives `.msg-actions` `margin-inline: -6px`, pulling the row out by the icon's inset on both sides; the buttons keep their 28px hit area.
 - Evidence: agent icon now 268-284 (desktop zh dark) and 16-32 (phone en light), matching the text edge; before/after crops.
 - Machine check: none. Optical alignment of one row; no rule can tell an icon inset from an intended indent.
+
+## Round 42 — TP-329 Chinese revision constraints in the Think trace
+
+- Problem: in zh, the expanded Think trace showed "make the route geographically feasible" under "第 2 轮 · 正在修改受影响的部分。". Coordinator constraints are English instructions for the specialists, built from templates in `packages/orchestrator/src/planning/conflicts.ts`, and `ThinkingRows.tsx` printed them verbatim in three places (round heading, coordinator note, subagent constraints).
+- Fix: new `apps/web/lib/chat/constraint-copy.ts` rewrites each known template (route, budget cut, arrival time, time clash, raise budget) in Chinese for zh readers, naming agents with the existing role labels; English and unknown text pass through. `ThinkingRows.tsx` uses it at all three sites. `docs/design/dsh-thinking-ui.md` and `.zh.md` note that a new constraint template needs a pattern there.
+- Evidence: zh dark round heading now "让路线在地理上走得通"; en unchanged. Before/after crop.
+- Machine check: `apps/web/tests/lib/chat/constraint-copy.test.ts` feeds one string per orchestrator template and fails if the zh output still holds an English word. Written before the module; red on the old code:
+  ```
+  FAIL  tests/lib/chat/constraint-copy.test.ts
+  Error: Failed to resolve import "@/lib/chat/constraint-copy" from "tests/lib/chat/constraint-copy.test.ts". Does the file exist?
+  ```
+- Also looked at: account menu popover (fine).

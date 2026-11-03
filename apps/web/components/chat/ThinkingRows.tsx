@@ -3,6 +3,7 @@ import { useLocale } from "@/components/account/LocaleProvider";
 import { useState, type CSSProperties, type HTMLAttributes, type ReactNode } from "react";
 import type { ToolResultKind, ToolResultRow } from "@trip/shared";
 import { cn } from "@/lib/utils";
+import { constraintCopy } from "@/lib/chat/constraint-copy";
 import { SubagentOrbIcon } from "./ThinkingOrbIcon";
 import {
   FlowCheckIcon,
@@ -266,7 +267,7 @@ function ChoiceBlock({
 }
 
 function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   const hasNotes = Boolean(
     model.objective ||
     model.constraints ||
@@ -285,7 +286,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
           {model.coordinator.constraints && (
             <ul className="thinking-note__list">
               {model.coordinator.constraints.map((constraint, index) => (
-                <li key={`${constraint}-${index}`}>{constraint}</li>
+                <li key={`${constraint}-${index}`}>{constraintCopy(constraint, locale)}</li>
               ))}
             </ul>
           )}
@@ -297,7 +298,7 @@ function SubagentNotes({ model, open }: { model: SubagentModel; open: OpenRows }
       {model.constraints && (
         <ul className="thinking-note__list">
           {model.constraints.map((constraint, index) => (
-            <li key={`${constraint}-${index}`}>{constraint}</li>
+            <li key={`${constraint}-${index}`}>{constraintCopy(constraint, locale)}</li>
           ))}
         </ul>
       )}
@@ -376,7 +377,7 @@ export function RoundHeading({
   summary: string;
   constraints?: string[];
 }) {
-  const { t } = useLocale();
+  const { t, locale } = useLocale();
   return (
     <div className="thinking-round">
       <p className="thinking-round__title">
@@ -385,7 +386,7 @@ export function RoundHeading({
       {constraints && constraints.length > 0 && (
         <ul className="thinking-round__list">
           {constraints.map((constraint, index) => (
-            <li key={`${constraint}-${index}`}>{constraint}</li>
+            <li key={`${constraint}-${index}`}>{constraintCopy(constraint, locale)}</li>
           ))}
         </ul>
       )}
