@@ -4,6 +4,7 @@ import { ClerkFailed, ClerkLoading, SignIn, SignUp } from "@clerk/nextjs";
 import { BrandMark } from "../workspace/BrandMark";
 import { useAuthPointerFeedback } from "./useAuthPointerFeedback";
 import { PasscodeForm } from "./PasscodeForm";
+import { useAuthCopy } from "./useAuthCopy";
 
 const appearance = {
   variables: {
@@ -36,45 +37,43 @@ export function AuthScreen({
   passcodeError?: boolean;
 }) {
   const { pageRef, formRef } = useAuthPointerFeedback();
+  const copy = useAuthCopy();
   return (
     <main className="auth-page" ref={pageRef}>
       <div className="auth-layout">
         <section className="auth-intro" aria-labelledby="auth-title">
           <BrandMark />
           <div className="auth-copy">
-            <p className="auth-eyebrow">YOUR TRAVEL WORKSPACE</p>
-            <h1 id="auth-title">A good trip starts with a conversation.</h1>
-            <p className="auth-description">
-              Turn a few ideas into a trip that feels like you. Plan together, see each stop on the
-              map, and pick up where you left off.
-            </p>
+            <p className="auth-eyebrow">{copy.eyebrow}</p>
+            <h1 id="auth-title">{copy.title}</h1>
+            <p className="auth-description">{copy.description}</p>
           </div>
           <ol className="auth-benefits">
             <li>
-              <span aria-hidden="true">01</span> Tell us what you have in mind
+              <span aria-hidden="true">01</span> {copy.benefitIdea}
             </li>
             <li>
-              <span aria-hidden="true">02</span> Shape your itinerary as you go
+              <span aria-hidden="true">02</span> {copy.benefitShape}
             </li>
             <li>
-              <span aria-hidden="true">03</span> Keep your trips together, on any device
+              <span aria-hidden="true">03</span> {copy.benefitDevices}
             </li>
           </ol>
         </section>
         <section
           className="auth-form"
           ref={formRef}
-          aria-label={mode === "sign-in" ? "Sign in" : "Create account"}
+          aria-label={mode === "sign-in" ? copy.signIn : copy.createAccount}
         >
           <ClerkLoading>
             <p className="auth-status" role="status">
-              Loading sign in…
+              {copy.loading}
             </p>
           </ClerkLoading>
           <ClerkFailed>
             <div className="auth-status" role="alert">
-              <p>We couldn’t load sign in. Check your connection and try again.</p>
-              <a href={mode === "sign-in" ? "/sign-in" : "/sign-up"}>Try again</a>
+              <p>{copy.loadFailed}</p>
+              <a href={mode === "sign-in" ? "/sign-in" : "/sign-up"}>{copy.tryAgain}</a>
             </div>
           </ClerkFailed>
           {mode === "sign-in" ? (

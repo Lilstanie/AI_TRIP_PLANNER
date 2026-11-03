@@ -1,9 +1,13 @@
+"use client";
+
 import { signInWithPasscode } from "@/app/sign-in/actions";
+import { useAuthCopy } from "./useAuthCopy";
 
 export function PasscodeForm({ error }: { error: boolean }) {
+  const copy = useAuthCopy();
   return (
     <form action={signInWithPasscode} className="admin-fields">
-      <label htmlFor="admin-passcode">Admin passcode</label>
+      <label htmlFor="admin-passcode">{copy.passcode}</label>
       <input
         id="admin-passcode"
         name="passcode"
@@ -15,11 +19,11 @@ export function PasscodeForm({ error }: { error: boolean }) {
       />
       {error ? (
         <p id="admin-error" className="admin-error" role="alert">
-          That passcode is not right.
+          {copy.passcodeWrong}
         </p>
       ) : null}
       <button className="admin-button" type="submit">
-        Enter with passcode
+        {copy.passcodeSubmit}
       </button>
     </form>
   );

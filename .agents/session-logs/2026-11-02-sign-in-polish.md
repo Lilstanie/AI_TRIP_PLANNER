@@ -354,3 +354,13 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   ```
   A new reason template is not caught by it; the open-ideas list notes that the reasons could become structured data instead.
 - Not changed: place names from mock data stay English; a five-day route conflict still repeats the full reason in both the request and the result line (open idea).
+
+## Round 46 — TP-333 sign-in page in the reader's language (suggestion 1 of 5)
+
+- Context: Joey asked for all five design suggestions (2026-11-03 03:47 UTC); this is the first.
+- Problem: the sign-in page was English for every reader: the intro, the three benefits, the loading and failure text, and the admin passcode form ("Admin passcode", "That passcode is not right.", "Enter with passcode").
+- Cause: `apps/web/components/account/AuthScreen.tsx` and `PasscodeForm.tsx` held the text as JSX literals; the sign-in route sits outside the workspace's `LocaleProvider`.
+- Fix: new copy tables `lib/i18n/messages/en-auth.ts` / `zh-auth.ts` (kept out of `MessageKey`, as the example prompts are) and `components/account/useAuthCopy.ts`, which picks the saved interface language or the browser language and sets `<html lang>`. Both components read from it; `PasscodeForm` is now a client component. The no-auth sign-in page drops its English `aria-label` on the form section.
+- Evidence: local `/sign-in?passcode=wrong` in a zh-CN browser, desktop and phone: "管理员口令 / 口令不对。/ 用口令进入", `lang="zh-CN"`; before/after crop. `tsc` passes.
+- Machine check: the type. `zhAuth` is `Record<keyof typeof enAuth, string>`, so every English line needs a Chinese one or `tsc` fails. No check can catch a new JSX literal written straight into the page; the repo has no lint rule for untranslated JSX text.
+- Not changed: the Clerk card keeps Clerk's own English text; translating it needs `@clerk/localizations` and a locale known to the server-rendered `ClerkProvider`.
