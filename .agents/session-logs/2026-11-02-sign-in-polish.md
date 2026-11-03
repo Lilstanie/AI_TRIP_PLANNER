@@ -401,3 +401,12 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   AssertionError: expected '修正：Flight provider unavailable；requir…' not to match /[A-Za-z]/
   ```
   A producer that writes an issue sentence by hand instead of calling `planIssue` is not caught.
+
+## Round 51 — TP-338 map attribution starts collapsed
+
+- Problem: every map load showed MapLibre's attribution expanded; on the phone Map tab a two- to three-line credits box ("OpenFreeMap © OpenMapTiles Data from OpenStreetMap") sat at the top left beside and under the locate, layers and zoom buttons.
+- Cause: MapLibre's compact `AttributionControl` adds `maplibregl-compact-show` (expanded) when it first becomes compact and only removes it on the first map drag (`components/map/maplibre-renderer.ts`).
+- Fix: the renderer removes `maplibregl-compact-show` once on `load`, so the credits start as the (i) button, which still opens them.
+- Evidence: local phone 390x844 en dark, Map tab, before/after crop (map tiles did not load in the cloud container either way).
+- Machine check: none added. The class comes from MapLibre at runtime in a real browser; no lint rule or type can see it, and the repo's map E2E needs map tiles the cloud container cannot load.
+- Not done this round: the Clerk sign-in card in Chinese; it needs Clerk keys to verify, which the local cloud server does not have.

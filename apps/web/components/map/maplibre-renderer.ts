@@ -60,6 +60,11 @@ class LibreMap {
       }),
       "top-left",
     );
+    this.native.once("load", () => {
+      element
+        .querySelector(".maplibregl-compact-show")
+        ?.classList.remove("maplibregl-compact-show");
+    });
     this.native.on("idle", () => {
       element.dataset.mapReady = "true";
     });
