@@ -34,7 +34,6 @@ type Format = (key: string, values: MessageParams) => string;
 const VALUE_START = "\uE000";
 const VALUE_END = "\uE001";
 
-/** Fills a message; in Chinese, a Latin or digit value next to a Han character gets a space. */
 export function fillMessage(
   locale: AppLocale,
   format: Format,
