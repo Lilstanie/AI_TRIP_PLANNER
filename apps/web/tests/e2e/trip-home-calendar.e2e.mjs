@@ -401,6 +401,9 @@ try {
       (await activityButton(calendarDrawer, "walk-late").getAttribute("data-overlap")) === "true",
     "overlapping activities are marked as an overlap rather than collapsed",
   );
+  await activityButton(calendarDrawer, "walk-late")
+    .locator("xpath=ancestor::section[contains(@class, 'trip-home-calendar__timeline-day')]")
+    .screenshot({ path: resolve(OUT, "overlap-day.png") });
   check(
     (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "untimed" &&
       (await calendarDrawer.getByText("Untimed", { exact: true }).count()) >= 1 &&

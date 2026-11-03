@@ -217,8 +217,9 @@
 .trip-home-calendar__slot {
   position: absolute;
   top: calc(var(--start) / 60 * var(--calendar-hour));
-  left: calc(var(--lane) / var(--lanes) * 100%);
-  width: calc(100% / var(--lanes));
+  z-index: var(--lane);
+  left: calc(var(--lane) * min(100% / var(--lanes), 16px));
+  width: calc(100% - var(--lane) * min(100% / var(--lanes), 16px));
   height: calc(var(--length) / 60 * var(--calendar-hour));
   padding: 1px;
 }

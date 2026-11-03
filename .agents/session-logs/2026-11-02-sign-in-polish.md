@@ -433,3 +433,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Machine check: `trip-home-calendar.e2e.mjs` now checks that week columns have no all-day `h4`. It is red on the old code: `FAIL week columns do not repeat an All day heading above their all-day items`.
 - Known, not from this change: `en/zh Calendar selected controls and event titles remain visible` fails both with and without this change, and with origin/main's `trip-home-calendar.css`. The fixture's overlapping "Harbour walk" titles measure 21px wide against a 40px floor. Left for a later round.
 - Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp341-before-after.png`.
+
+## Round 55 — TP-342 overlapping week-view activities stay readable
+
+- Problem: in the calendar week view, two overlapping activities each got half of the day column (`left: lane / lanes`, `width: 100% / lanes`). Their titles were about 21px wide and showed as "Har b…". The existing `trip-home-calendar` e2e check "selected controls and event titles remain visible" was red for this reason, in en (desktop drawer) and zh (phone). It was already red with origin/main's calendar CSS.
+- Fix: `trip-home-calendar.css` stacks overlapping slots instead of splitting the column. Each later lane sits `min(100% / lanes, 16px)` further right, is that much narrower, and is drawn on top (`z-index: var(--lane)`).
+- Machine check: the existing e2e check is red before (`FAIL en/zh Calendar selected controls and event titles remain visible`, "Harbour walk" width 21.4 / 23.5) and green after (45 PASS, 0 FAIL). The e2e now also saves `overlap-day.png` as a repeatable artifact.
+- Docs: `workspace-ui.md` and `.zh.md` describe the stacking.
+- Evidence: `/mnt/project-files/ui-loop-2026-11-02/tp342-before-after.png`.
