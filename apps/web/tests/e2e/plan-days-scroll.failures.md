@@ -11,5 +11,7 @@ Written before the day cards under a planned reply got scroll buttons.
 - The buttons take keyboard focus between the cards, or appear on a touch phone where swiping works.
 - Scrolling with the buttons animates when the viewer asked for reduced motion.
 
+- On a phone the reply still shows the sideways strip instead of one itinerary button (TP-352).
+
 Evidence: `plan-days-scroll.e2e.mjs` reads the strip's scroll position, edge fades and buttons at
-1440 px, 390 px and in Chinese, and screenshots each state.
+1440 px and in Chinese, checks the single itinerary button at 390 px, and screenshots each state.

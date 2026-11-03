@@ -5,6 +5,7 @@ import type { Components } from "react-markdown";
 import type { TripPlan } from "@trip/shared";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { intlLocale, keyForText } from "@/lib/i18n/locale";
+import { dayCount } from "@/lib/trip/timeline";
 import { formatMessageClock, WELCOME_MESSAGE, type Message } from "@/lib/workspace";
 import { AttachmentChip } from "./AttachmentChip";
 import { FlightResults } from "./FlightResults";
@@ -207,7 +208,7 @@ export function MessageItem({
           {...(animate ? { animate } : {})}
         />
       </div>
-      {days && <PlanDays plan={days.plan} onOpenDay={days.onOpenDay} />}
+      {days && !onOpenTrip && <PlanDays plan={days.plan} onOpenDay={days.onOpenDay} />}
       {message.conflictNotice && (
         <p className="msg-item__notice" role="status">
           {localizeNotice(message.conflictNotice)}
@@ -242,7 +243,7 @@ export function MessageItem({
       {message.flights && <FlightResults answer={message.flights} />}
       {message.outcome === "planned" && onOpenTrip && (
         <button type="button" className="msg-open-trip" onClick={onOpenTrip}>
-          {t("openTrip")}
+          {days ? `${t("itinerary")} · ${dayCount(days.plan)} ${t("days")}` : t("openTrip")}
         </button>
       )}
       {clock}

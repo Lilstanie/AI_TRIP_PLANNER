@@ -211,6 +211,23 @@ export function ChatPanel({
     });
   }, [hero]);
 
+  const examples = (
+    <div className="chat-suggestions chat-empty__suggestions" aria-label={t("exampleTrips")}>
+      {prompts.slice(0, phone ? 3 : prompts.length).map(({ label, text, params }) => (
+        <button
+          key={label}
+          type="button"
+          className="chat-suggestions__chip"
+          title={exampleText(locale, label)}
+          disabled={busy || locked}
+          onClick={() => onSend(exampleText(locale, text, params))}
+        >
+          {exampleText(locale, label)}
+        </button>
+      ))}
+    </div>
+  );
+
   return (
     <section className={`panel chat${hero ? " chat--hero" : ""}`} aria-label={t("chat")}>
       {showTabs && !phone && <ChatViewTabs view={view} onChoose={choose} />}
@@ -229,6 +246,7 @@ export function ChatPanel({
           lastTop.current = event.currentTarget.scrollTop;
         }}
       >
+        {blankUntouched && phone && examples}
         <div role="log" aria-live="polite">
           {messages.map((m, i) => (
             <MessageItem
@@ -292,25 +310,7 @@ export function ChatPanel({
             if (!locked) onSend();
           }}
         >
-          {blankUntouched && (
-            <div
-              className="chat-suggestions chat-empty__suggestions"
-              aria-label={t("exampleTrips")}
-            >
-              {prompts.slice(0, phone ? 2 : prompts.length).map(({ label, text, params }) => (
-                <button
-                  key={label}
-                  type="button"
-                  className="chat-suggestions__chip"
-                  title={exampleText(locale, label)}
-                  disabled={busy || locked}
-                  onClick={() => onSend(exampleText(locale, text, params))}
-                >
-                  {exampleText(locale, label)}
-                </button>
-              ))}
-            </div>
-          )}
+          {blankUntouched && !phone && examples}
           <Composer
             value={input}
             placeholder={t(keys[placeholderAt] ?? keys[0]!)}
@@ -329,9 +329,7 @@ export function ChatPanel({
           />
         </form>
       )}
-      {!(phone && blankUntouched) && (
-        <p className="disclaimer">{t("estimatesRequireVerificationNothingHere")}</p>
-      )}
+      {!phone && <p className="disclaimer">{t("estimatesRequireVerificationNothingHere")}</p>}
     </section>
   );
 }

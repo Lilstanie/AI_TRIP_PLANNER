@@ -45,6 +45,10 @@ covers Chat, both Mine collection actions, the empty day and the Trajectory at 3
 both languages and saves screenshots and `result.json`; `trajectory-empty`,
 `progressive-empty-workspace` and `short-phone-empty-chat` follow the new copy and sizes.
 
+Partly superseded on 2026-11-03 (TP-352) by the [phone chat redesign note](2026-11-03-phone-chat-redesign.md):
+the phone chat lists three example trips in the open space and no longer shows the estimates footer,
+which Settings now shows.
+
 ## Sources
 
 - Spec #730, ticket #738 (TP-112); the [empty map note](2026-10-27-phone-map-empty-hint.md).

@@ -868,6 +868,7 @@ export function SettingsDialog({
         <p className="settings-sync" role="status">
           {t(SYNC_TEXT[syncState])}
         </p>
+        <p className="disclaimer">{t("estimatesRequireVerificationNothingHere")}</p>
       </div>
     </div>
   );
