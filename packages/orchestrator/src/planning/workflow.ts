@@ -214,8 +214,8 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         outcome: request.revision
           ? copy.revised(proposal.agent, request.revision.reason)
           : copy.produced(proposal.agent),
-        ...(choiceFor(proposal, currencyFor(request.brief))
-          ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
+        ...(choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)
+          ? { choice: choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)! }
           : {}),
         ...(proposal.source ? { source: proposal.source.kind } : {}),
         type: "agent_completed",

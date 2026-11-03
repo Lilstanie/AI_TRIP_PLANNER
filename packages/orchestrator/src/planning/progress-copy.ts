@@ -23,6 +23,15 @@ const ENGLISH = {
   revised: (agent: AgentName, reason: string) =>
     `Revised ${ROLE_NAMES.en[agent]} after: ${reason}.`,
   mentioned: (labels: string[]) => `Asking ${labels.join(" and ")} to handle your request.`,
+  flightTitle: (from: string, to: string) => `Flight ${from} → ${to}`,
+  stayTitle: (city: string) => `Stay in ${city}`,
+  total: (money: string) => `${money} total`,
+  nonstop: "Nonstop",
+  stops: (count: number) => `${count} stop${count === 1 ? "" : "s"}`,
+  duration: (hours: number, minutes: number) => `${hours}h ${minutes}m`,
+  cancellationUnknown: "Cancellation terms unknown",
+  freeCancellation: "Free cancellation",
+  noFreeCancellation: "No free cancellation",
 };
 
 const CHINESE: typeof ENGLISH = {
@@ -38,6 +47,15 @@ const CHINESE: typeof ENGLISH = {
   produced: (agent) => `已生成「${ROLE_NAMES.zh[agent]}」部分。`,
   revised: (agent, reason) => `根据“${reason}”修改了「${ROLE_NAMES.zh[agent]}」部分。`,
   mentioned: (labels) => `请${labels.join("和")}处理你的请求。`,
+  flightTitle: (from, to) => `航班 ${from} → ${to}`,
+  stayTitle: (city) => `${city}住宿`,
+  total: (money) => `共 ${money}`,
+  nonstop: "直飞",
+  stops: (count) => `经停 ${count} 次`,
+  duration: (hours, minutes) => `${hours} 小时 ${minutes} 分`,
+  cancellationUnknown: "取消政策未知",
+  freeCancellation: "可免费取消",
+  noFreeCancellation: "不可免费取消",
 };
 
 export function progressCopy(language: InterfaceLanguage | undefined): typeof ENGLISH {

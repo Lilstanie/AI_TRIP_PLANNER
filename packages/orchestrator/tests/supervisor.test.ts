@@ -2,6 +2,7 @@ import { FakeToolCallingModel } from "langchain";
 import { describe, expect, it, vi } from "vitest";
 import type { MemoryStore, Specialist, ToolGateway, TripBrief } from "@trip/shared";
 import {
+  choiceFor,
   createSupervisorTools,
   dispatchWithSupervisor,
   reviseWithSupervisor,
@@ -175,5 +176,54 @@ describe("LangChain supervisor", () => {
       revision: request,
     });
     expect(proposal!.summary).toBe(request.reason);
+  });
+});
+
+describe("choiceFor", () => {
+  it("writes Chinese choice cards for a Chinese interface", () => {
+    const flight = choiceFor(
+      {
+        agent: "transport",
+        summary: "",
+        flights: [
+          {
+            id: "f",
+            from: "珀斯",
+            to: "巴厘岛",
+            depart: "2026-12-01",
+            day: 1,
+            passengers: 2,
+            selectedId: "a",
+            candidates: [{ id: "a", carrier: "Qantas", price: 1680, stops: 0, durationMin: 215 }],
+          },
+        ],
+      } as never,
+      "AUD",
+      "zh",
+    );
+    const stay = choiceFor(
+      {
+        agent: "accommodation",
+        summary: "",
+        stays: [
+          {
+            id: "s",
+            city: "巴厘岛",
+            checkIn: "2026-12-01",
+            checkOut: "2026-12-03",
+            day: 1,
+            nights: 2,
+            rooms: 1,
+            selectedId: "h",
+            candidates: [{ id: "h", name: "Inn", area: "库塔", pricePerNight: 100, rating: 8 }],
+          },
+        ],
+      } as never,
+      "AUD",
+      "zh",
+    );
+    const text = JSON.stringify([flight, stay]);
+    expect(text).not.toMatch(/Flight|Stay in|total|Nonstop|stop|Cancellation|\d+h \d+m/);
+    expect(flight?.title).toBe("航班 珀斯 → 巴厘岛");
   });
 });

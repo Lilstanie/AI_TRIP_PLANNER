@@ -43,27 +43,35 @@ export function specialistBrief(brief: TripBrief): TripBrief {
 export function choiceFor(
   proposal: AgentProposal,
   currency: Currency = "AUD",
+  language?: InterfaceLanguage,
 ): ToolChoice | undefined {
+  const copy = progressCopy(language);
+  const cancellation = (free: boolean | undefined) =>
+    free === undefined
+      ? copy.cancellationUnknown
+      : free
+        ? copy.freeCancellation
+        : copy.noFreeCancellation;
   const flight = proposal.flights?.[0];
   if (flight) {
     const selected = flight.candidates.find((candidate) => candidate.id === flight.selectedId);
     if (!selected) return undefined;
     const describe = (candidate: (typeof flight.candidates)[number]) =>
       [
-        `${formatMoney(candidate.price, currency)} total`,
+        copy.total(formatMoney(candidate.price, currency)),
         candidate.stops === undefined
           ? undefined
           : candidate.stops === 0
-            ? "Nonstop"
-            : `${candidate.stops} stop${candidate.stops === 1 ? "" : "s"}`,
+            ? copy.nonstop
+            : copy.stops(candidate.stops),
         candidate.durationMin
-          ? `${Math.floor(candidate.durationMin / 60)}h ${candidate.durationMin % 60}m`
+          ? copy.duration(Math.floor(candidate.durationMin / 60), candidate.durationMin % 60)
           : undefined,
       ]
         .filter(Boolean)
         .join(" · ");
     return {
-      title: `Flight ${flight.from} → ${flight.to}`,
+      title: copy.flightTitle(flight.from, flight.to),
       selected: { label: selected.carrier, detail: describe(selected) },
       rationale: proposal.summary,
       alternatives: flight.candidates
@@ -75,47 +83,34 @@ export function choiceFor(
   if (!stay) return undefined;
   const selected = stay.candidates.find((candidate) => candidate.id === stay.selectedId);
   if (!selected) return undefined;
-  const cost = selected.pricePerNight * stay.nights * stay.rooms;
+  const describe = (candidate: (typeof stay.candidates)[number]) =>
+    [
+      candidate.area,
+      copy.total(formatMoney(candidate.pricePerNight * stay.nights * stay.rooms, currency)),
+      outOfFive(candidate.rating),
+      cancellation(candidate.freeCancellation),
+    ].join(" · ");
   return {
-    title: `Stay in ${stay.city}`,
-    selected: {
-      label: selected.name,
-      detail: [
-        selected.area,
-        `${formatMoney(cost, currency)} total`,
-        outOfFive(selected.rating),
-        selected.freeCancellation === undefined
-          ? "Cancellation terms unknown"
-          : selected.freeCancellation
-            ? "Free cancellation"
-            : "No free cancellation",
-      ].join(" · "),
-    },
+    title: copy.stayTitle(stay.city),
+    selected: { label: selected.name, detail: describe(selected) },
     rationale: proposal.summary,
     alternatives: stay.candidates
       .filter((candidate) => candidate.id !== stay.selectedId)
-      .map((candidate) => ({
-        label: candidate.name,
-        detail: [
-          candidate.area,
-          `${formatMoney(candidate.pricePerNight * stay.nights * stay.rooms, currency)} total`,
-          outOfFive(candidate.rating),
-          candidate.freeCancellation === undefined
-            ? "Cancellation terms unknown"
-            : candidate.freeCancellation
-              ? "Free cancellation"
-              : "No free cancellation",
-        ].join(" · "),
-      })),
+      .map((candidate) => ({ label: candidate.name, detail: describe(candidate) })),
   };
 }
 
-function outcomeFor(proposal: AgentProposal, revision: RevisionRequest | undefined): string {
-  if (!revision) return `Produced ${proposal.agent} section.`;
-  const constraints = revision.constraints.length
-    ? ` under ${revision.constraints.join("; ")}`
-    : "";
-  return `Revised ${proposal.agent} after: ${revision.reason}${constraints}.`;
+function outcomeFor(
+  proposal: AgentProposal,
+  revision: RevisionRequest | undefined,
+  language: InterfaceLanguage | undefined,
+): string {
+  const copy = progressCopy(language);
+  if (!revision) return copy.produced(proposal.agent);
+  const reason = revision.constraints.length
+    ? `${revision.reason} (${revision.constraints.join("; ")})`
+    : revision.reason;
+  return copy.revised(proposal.agent, reason);
 }
 
 const DelegationRequest = z.object({
@@ -202,8 +197,10 @@ export function createSupervisorTools(
         }
         options.onProgress?.({
           summary: proposal.summary,
-          outcome: outcomeFor(proposal, undefined),
-          ...(choiceFor(proposal, currency) ? { choice: choiceFor(proposal, currency)! } : {}),
+          outcome: outcomeFor(proposal, undefined, options.interfaceLanguage),
+          ...(choiceFor(proposal, currency, options.interfaceLanguage)
+            ? { choice: choiceFor(proposal, currency, options.interfaceLanguage)! }
+            : {}),
           ...(proposal.source ? { source: proposal.source.kind } : {}),
           type: "agent_completed",
           agent: specialist.name,
@@ -281,8 +278,10 @@ export function createRevisionTools(
           }
           options.onProgress?.({
             summary: proposal.summary,
-            outcome: outcomeFor(proposal, request),
-            ...(choiceFor(proposal, currency) ? { choice: choiceFor(proposal, currency)! } : {}),
+            outcome: outcomeFor(proposal, request, options.interfaceLanguage),
+            ...(choiceFor(proposal, currency, options.interfaceLanguage)
+              ? { choice: choiceFor(proposal, currency, options.interfaceLanguage)! }
+              : {}),
             ...(proposal.source ? { source: proposal.source.kind } : {}),
             type: "agent_completed",
             agent: specialist.name,

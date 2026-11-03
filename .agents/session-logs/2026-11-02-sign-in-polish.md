@@ -329,3 +329,15 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   ```
   and the copy can no longer print a raw id because it looks the name up itself.
 - Not changed: revision reasons (`copy.fix` / `copy.revised`) still quote the English conflict reason; logged as an open idea.
+
+## Round 44 — TP-331 Chinese flight and stay choice cards in the Think trace
+
+- Problem: an expanded 住宿 row in the zh Think trace showed the choice card "Stay in 河内" with "Outer district · AUD 400.00 total · 3.8/5 · Free cancellation"; flight cards read "Flight 珀斯 → 巴厘岛", "Nonstop", "1 stop", "3h 35m".
+- Cause: `choiceFor` in `packages/orchestrator/src/planning/supervisor.ts` built the card text with hard-coded English and never received the interface language. The delegated path's `outcomeFor` also printed "Produced accommodation section." with the raw agent id, bypassing the TP-330 copy.
+- Fix: the card words (flight and stay titles, total, nonstop, stops, duration, cancellation terms) are now in `progress-copy.ts`, whose shared shape forces a Chinese version of each. `choiceFor` takes the interface language from `workflow.ts` and both supervisor sites; `outcomeFor` uses `copy.produced` / `copy.revised`.
+- Evidence: a fresh local mock plan in zh dark shows 「大阪住宿」 and "Central · 共 AUD 900.00 · 4.3/5 · 可免费取消"; before/after crop. Orchestrator tests: 435 + 1 passed.
+- Machine check: `packages/orchestrator/tests/supervisor.test.ts` "writes Chinese choice cards for a Chinese interface". Red on the old code:
+  ```
+  AssertionError: expected '[{"title":"Flight 珀斯 → 巴厘岛","selected…' not to match /Flight|Stay in|total|Nonstop|stop|Can…/
+  ```
+- Not changed: hotel areas from mock data ("Central", "Outer district") are data, not copy.
