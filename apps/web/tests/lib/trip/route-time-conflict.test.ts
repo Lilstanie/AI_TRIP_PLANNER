@@ -22,7 +22,7 @@ describe("route time conflicts", () => {
       },
     });
     expect(noticeText("zh", notice!)).toBe(
-      "从Mock attraction near 巴厘岛到Mock Corner Bistro, 巴厘岛约需 35 分钟（含 15 分钟缓冲），但中间只空出 15 分钟。",
+      "从 Mock attraction near 巴厘岛到 Mock Corner Bistro, 巴厘岛约需 35 分钟（含 15 分钟缓冲），但中间只空出 15 分钟。",
     );
     expect(noticeText("en", notice!)).not.toContain("geography conflict");
   });

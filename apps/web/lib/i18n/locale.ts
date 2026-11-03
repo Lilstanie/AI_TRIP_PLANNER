@@ -29,11 +29,34 @@ export function withVisiblePlaceholders(text: MessageKey, params: MessageParams)
   return filled;
 }
 
-export function translate(locale: AppLocale, text: MessageKey, params: MessageParams = {}): string {
-  return (translators[locale] as (key: string, values: MessageParams) => string)(
-    text,
-    withVisiblePlaceholders(text, params),
+type Format = (key: string, values: MessageParams) => string;
+
+const VALUE_START = "\uE000";
+const VALUE_END = "\uE001";
+
+/** Fills a message; in Chinese, a Latin or digit value next to a Han character gets a space. */
+export function fillMessage(
+  locale: AppLocale,
+  format: Format,
+  text: MessageKey,
+  params: MessageParams,
+): string {
+  const values = withVisiblePlaceholders(text, params);
+  if (locale !== "zh") return format(text, values);
+  const marked = Object.fromEntries(
+    Object.entries(values).map(([name, value]) => [
+      name,
+      typeof value === "string" ? `${VALUE_START}${value}${VALUE_END}` : value,
+    ]),
   );
+  return format(text, marked)
+    .replace(/(\p{Script=Han})\uE000(?=[A-Za-z0-9])/gu, "$1 ")
+    .replace(/([A-Za-z0-9])\uE001(?=\p{Script=Han})/gu, "$1 ")
+    .replace(/[\uE000\uE001]/g, "");
+}
+
+export function translate(locale: AppLocale, text: MessageKey, params: MessageParams = {}): string {
+  return fillMessage(locale, translators[locale] as Format, text, params);
 }
 
 export type EnglishText = (typeof en)[MessageKey];
