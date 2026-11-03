@@ -282,3 +282,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
   +   "workspace/trip-home-calendar.css: .trip-home-calendar__views button[aria-pressed=\"true\"]",
   ```
 - Also looked at: Settings tabs (Edit profile, Personalisation, Language & region, Connected accounts); nothing worse found.
+
+## Round 39 — TP-326 trip page chat list times
+
+- Problem: the Chats list on a trip's page formatted `updatedAt` with `dateStyle: "medium"`, so a chat from yesterday read "2026年11月2日" / "2 Nov 2026", while the chat's own messages read "2 Nov 18:39".
+- Fix: `TripHomeChats.tsx` uses the existing `formatMessageClock` from `lib/workspace/message-chrome.ts` (time today, day + month + time this year, year only for other years) instead of its own formatter.
+- Evidence: "11月2日 18:39" (zh dark) and "2 Nov 18:39" (en light) after; before/after crops.
+- Machine check: none. The fix removes a second formatter in favour of the shared one; a test would pin copy, not a bug class.
+- Also looked at: phone Chat tab with the plan reply (fine apart from the dev-only Next.js badge over the Chat tab).
