@@ -365,3 +365,11 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Machine check: the type. `zhAuth` is `Record<keyof typeof enAuth, string>`, so every English line needs a Chinese one or `tsc` fails. No check can catch a new JSX literal written straight into the page; the repo has no lint rule for untranslated JSX text.
 - UI copy check: `auth-eyebrow` and `auth-description` were already on the page and are only translated; both are added to `ui-copy-allowlist.txt` because the sign-in intro is the page's content, not helper text.
 - Not changed: the Clerk card keeps Clerk's own English text; translating it needs `@clerk/localizations` and a locale known to the server-rendered `ClerkProvider`.
+
+## Round 47 — TP-334 phone Mine with no trips reads as one grouped card (suggestion 2 of 5)
+
+- Problem: phone Mine with no trips and no saved chat showed two large display headings ("行程", "聊天") floating with about 110px of empty space between them; it looked unfinished.
+- Constraint: the [phone empty states note](../notes/implemented/feature/2026-10-27-phone-empty-states.md) fixes the content (Trips and Chats headings with their own New trip and New chat actions, no extra sentence), and `phone-empty-chat-hint.e2e.mjs` checks it. Joey was asked whether to change that rule; this round keeps it (the recommended option) and changes only the look.
+- Fix: `ChatsPanel` marks its content `data-empty` when nothing is saved; `app/styles/phone/polish.css` then shows the two heading rows as one inset card (phone card surface and shadow, divider between rows, 44px rows, 17px semibold titles, no section gap).
+- Evidence: local phone 390x844, zh light and en dark, before/after crop. `phone-empty-chat-hint.e2e.mjs`: 80 ok, 0 failed (screenshots under `apps/web/output/playwright/phone-empty-chat-hint/run`).
+- Machine check: none added. This is a visual grouping with no wrong state to detect; the existing E2E still guards the content rule.

@@ -374,3 +374,39 @@ html:has(.workspace-app[data-phone]) body {
     animation: none;
   }
 }
+
+.workspace-app[data-phone] .phone-mine .chats-panel__content[data-empty] {
+  gap: 0;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+  overflow: hidden;
+}
+.workspace-app[data-phone] .phone-mine .chats-panel__content[data-empty] .chats-panel__section {
+  margin: 0;
+  padding: var(--space-2) var(--space-4);
+}
+.workspace-app[data-phone]
+  .phone-mine
+  .chats-panel__content[data-empty]
+  .chats-panel__section
+  + .chats-panel__section {
+  border-top: 1px solid var(--border);
+}
+.workspace-app[data-phone]
+  .phone-mine
+  .chats-panel__content[data-empty]
+  .chats-panel__section-head {
+  margin: 0;
+  min-height: 44px;
+}
+.workspace-app[data-phone]
+  .phone-mine
+  .chats-panel__content[data-empty]
+  .chats-panel__section-head
+  .sidebar-history__title {
+  font-family: var(--font-text);
+  font-size: 17px;
+  font-weight: 600;
+  letter-spacing: 0;
+}
