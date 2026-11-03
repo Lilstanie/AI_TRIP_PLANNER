@@ -53,7 +53,7 @@ export function ChatsPanel({
     collectionActions && !searching && !trips.length && chats.every((item) => item.untouched);
 
   return (
-    <div className="chats-panel__content">
+    <div className="chats-panel__content" data-empty={nothingSaved || undefined}>
       {!nothingSaved && (
         <div className="sidebar-search">
           <SearchIcon />

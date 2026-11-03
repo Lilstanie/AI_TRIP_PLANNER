@@ -467,6 +467,7 @@
 }
 .fact-popover.fact-popover--modal,
 .dialog {
+  --glass-fill: var(--surface);
   border-radius: 28px;
 }
 .fact-popover--modal .fact-popover__head h2 {
@@ -540,10 +541,12 @@
   padding: var(--space-2) var(--space-3);
   border-radius: calc(var(--radius-xl) - var(--space-2));
   color: var(--text);
-  background: var(--surface);
+  background: color-mix(in srgb, var(--surface) 80%, transparent);
+  -webkit-backdrop-filter: blur(16px) saturate(1.6);
+  backdrop-filter: blur(16px) saturate(1.6);
 }
 .trip-card__meta {
-  color: var(--text);
+  color: var(--text-dim);
 }
 
 @supports not ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {

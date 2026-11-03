@@ -204,18 +204,16 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
       }),
       objective: request.revision
         ? copy.fix(request.revision.reason)
-        : copy.objective(specialist.label),
+        : copy.objective(specialist.name),
       constraints: request.revision?.constraints,
     });
     try {
       const proposal = AgentProposalSchema.parse(await specialist.invoke(request));
       onProgress?.({
         summary: proposal.summary,
-        outcome: request.revision
-          ? copy.revised(proposal.agent, request.revision.reason)
-          : copy.produced(proposal.agent),
-        ...(choiceFor(proposal, currencyFor(request.brief))
-          ? { choice: choiceFor(proposal, currencyFor(request.brief))! }
+        outcome: request.revision ? copy.revised(proposal.agent) : copy.produced(proposal.agent),
+        ...(choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)
+          ? { choice: choiceFor(proposal, currencyFor(request.brief), options.interfaceLanguage)! }
           : {}),
         ...(proposal.source ? { source: proposal.source.kind } : {}),
         type: "agent_completed",

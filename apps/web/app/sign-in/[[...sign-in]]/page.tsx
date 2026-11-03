@@ -19,7 +19,7 @@ export default async function SignInPage({
         <section className="auth-intro">
           <BrandMark />
         </section>
-        <section className="auth-form" aria-label="Admin passcode">
+        <section className="auth-form">
           <PasscodeForm error={error} />
         </section>
       </div>

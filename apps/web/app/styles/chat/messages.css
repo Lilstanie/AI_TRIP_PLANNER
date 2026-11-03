@@ -303,6 +303,7 @@ button.plan-day:active {
   display: flex;
   gap: 2px;
   min-height: 28px;
+  margin-inline: -6px;
 }
 .msg-item--user .msg-actions {
   justify-content: flex-end;

@@ -140,6 +140,18 @@ try {
   const picker = page.locator(".trips-calendar__trip").first();
   await picker.waitFor();
   check((await picker.textContent()).trim() === NAME, "calendar picker shows the new name");
+  const headFonts = await page
+    .locator(".trips-calendar__head")
+    .evaluate((head) =>
+      [".trips-calendar__trip", ".trips-calendar__open"].map(
+        (selector) => getComputedStyle(head.querySelector(selector)).fontSize,
+      ),
+    );
+  check(
+    headFonts[0] === headFonts[1],
+    "calendar trip chip and View trip use one type size",
+    headFonts,
+  );
   await page.screenshot({ path: `${out}/calendar.png`, fullPage: true });
   await page.getByRole("tab", { name: "Trips", exact: true }).click();
 

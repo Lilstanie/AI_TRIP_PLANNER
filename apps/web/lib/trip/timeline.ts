@@ -42,6 +42,13 @@ export type BookingRow = {
   date?: string;
 };
 
+export function flightRoute(
+  flight: Pick<FlightSelection, "from" | "to">,
+  role: BookingRow["role"],
+) {
+  return role === "out" ? `${flight.to} → ${flight.from}` : `${flight.from} → ${flight.to}`;
+}
+
 export type StopRow<A> = { type: "stop"; activity: A };
 export type TimelineRow<A> = FixedRow | BookingRow | StopRow<A>;
 
@@ -56,12 +63,11 @@ export function dayCount(plan: TripPlan) {
 export function dayLabel(plan: TripPlan, day: number, locale: AppLocale = "en") {
   const time = Date.parse(`${plan.brief.dates[0]}T00:00:00Z`) + (day - 1) * 86400000;
   if (!Number.isFinite(time)) return translate(locale, "dayV0", { v0: day });
-  return new Intl.DateTimeFormat(intlLocale(locale), {
-    weekday: "short",
-    day: "numeric",
-    month: "short",
-    timeZone: "UTC",
-  }).format(time);
+  const format = (options: Intl.DateTimeFormatOptions) =>
+    new Intl.DateTimeFormat(intlLocale(locale), { ...options, timeZone: "UTC" }).format(time);
+  if (locale === "zh")
+    return `${format({ day: "numeric", month: "short" })} ${format({ weekday: "short" })}`;
+  return format({ weekday: "short", day: "numeric", month: "short" });
 }
 
 function transportRow(item: ProposalItem, index: number, locale: AppLocale): FixedRow {

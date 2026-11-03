@@ -154,7 +154,7 @@
   padding: 40px var(--space-5) 64px;
 }
 .trips-page__inner {
-  width: min(100%, 860px);
+  width: min(100%, 1120px);
   margin: 0 auto;
 }
 .trips-page__head {
@@ -277,7 +277,10 @@
 .trip-card__text {
   position: relative;
   display: grid;
-  gap: 2px;
+  grid-template-columns: minmax(0, 1fr) auto;
+  column-gap: var(--space-2);
+  row-gap: 2px;
+  align-items: baseline;
   width: 100%;
   padding: 40px var(--space-4) var(--space-3);
   background: linear-gradient(to top, rgb(0 0 0 / 55%), transparent);
@@ -289,9 +292,19 @@
   white-space: nowrap;
   text-overflow: ellipsis;
 }
+.trip-card__total {
+  font-size: var(--font-size-meta);
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
 .trip-card__meta {
+  grid-column: 1 / -1;
+  overflow: hidden;
   color: rgb(255 255 255 / 80%);
   font-size: var(--font-size-meta);
+  white-space: nowrap;
+  text-overflow: ellipsis;
 }
 @media (prefers-reduced-motion: reduce) {
   .trip-card,
@@ -322,9 +335,12 @@
   inset-inline-end: var(--space-2);
 }
 .trip-cards .history-item__more {
-  background: rgb(0 0 0 / 40%) !important;
+  border-radius: var(--radius-pill);
+  background: rgb(0 0 0 / 22%) !important;
   color: #fff;
   opacity: 1;
+  backdrop-filter: blur(12px) saturate(1.4);
+  -webkit-backdrop-filter: blur(12px) saturate(1.4);
 }
 .trip-undo {
   margin-block: var(--space-2);
@@ -552,6 +568,9 @@
   display: grid;
   gap: var(--space-4);
 }
+.trips-calendar .trip-home-calendar {
+  padding: 0;
+}
 .trips-calendar__head {
   display: flex;
   align-items: center;
@@ -585,9 +604,13 @@
   color: var(--text);
 }
 .trips-calendar__trip[aria-pressed="true"] {
-  background: var(--text) !important;
-  color: var(--page);
+  background: var(--segment-thumb) !important;
+  color: var(--text);
+  box-shadow:
+    0 1px 3px rgb(0 0 0 / 12%),
+    0 0 0 0.5px var(--glass-edge);
 }
 .trips-calendar__open {
   flex: none;
+  font-size: var(--font-size-meta);
 }

@@ -401,11 +401,20 @@ try {
       (await activityButton(calendarDrawer, "walk-late").getAttribute("data-overlap")) === "true",
     "overlapping activities are marked as an overlap rather than collapsed",
   );
+  await activityButton(calendarDrawer, "walk-late")
+    .locator("xpath=ancestor::section[contains(@class, 'trip-home-calendar__timeline-day')]")
+    .screenshot({ path: resolve(OUT, "overlap-day.png") });
   check(
     (await activityButton(calendarDrawer, "markets").getAttribute("data-time")) === "untimed" &&
       (await calendarDrawer.getByText("Untimed", { exact: true }).count()) >= 1 &&
       (await calendarDrawer.getByText("All day", { exact: true }).count()) >= 1,
     "an untimed activity is explicit in the All day region",
+  );
+  check(
+    (await calendarDrawer
+      .locator(".trip-home-calendar__week-day .trip-home-calendar__row--all-day h4")
+      .count()) === 0,
+    "week columns do not repeat an All day heading above their all-day items",
   );
   const stayBars = await calendarDrawer.locator(".trip-home-calendar__week").evaluate((week) => {
     const columns = [...week.querySelectorAll(".trip-home-calendar__week-day")].map(
@@ -461,6 +470,28 @@ try {
     monthWeekdays.join(",") === "Mon,Tue,Wed,Thu,Fri,Sat,Sun",
     "Month header keeps Monday-first weekday labels when the first Trip week starts mid-week",
     monthWeekdays,
+  );
+  const dateOffsets = await calendarDrawer.locator(".trip-home-calendar__grid").evaluate((grid) => {
+    const centre = (rect) => rect.top + rect.height / 2;
+    const rows = new Map();
+    for (const cell of grid.children) {
+      const number = cell.querySelector(".trip-home-calendar__date");
+      let middle;
+      if (number) middle = centre(number.getBoundingClientRect());
+      else if (cell.textContent.trim()) {
+        const range = document.createRange();
+        range.selectNodeContents(cell);
+        middle = centre(range.getBoundingClientRect());
+      } else continue;
+      const top = Math.round(cell.getBoundingClientRect().top);
+      rows.set(top, [...(rows.get(top) ?? []), middle - top]);
+    }
+    return [...rows.values()].map((offsets) => Math.max(...offsets) - Math.min(...offsets));
+  });
+  check(
+    dateOffsets.length > 0 && dateOffsets.every((spread) => spread <= 1),
+    "Month date numbers line up across each week, Trip days and other days alike",
+    dateOffsets,
   );
   await calendarDrawer.getByRole("button", { name: "Week", exact: true }).click();
 
@@ -728,6 +759,18 @@ try {
   check(
     (await zh.page.evaluate(() => document.documentElement.scrollWidth - innerWidth)) <= 0,
     "phone Calendar has no horizontal page overflow",
+  );
+  const viewsShare = await calendarDrawer
+    .locator(".trip-home-calendar")
+    .evaluate(
+      (root) =>
+        root.querySelector(".trip-home-calendar__views").getBoundingClientRect().width /
+        root.getBoundingClientRect().width,
+    );
+  check(
+    viewsShare < 0.6,
+    "phone Week/Month control is sized to its options, like the other segmented controls",
+    { viewsShare },
   );
   const phoneButtons = await calendarDrawer
     .locator("[data-activity-id], .trip-home-calendar__date")

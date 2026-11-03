@@ -234,7 +234,7 @@ DSH 的减少动效支持尚不完整：思考行、运行行、命令行、重�
 - **每个回答携带自己的 transcript。** 轮次运行时，行从请求范围内的 `activity` 实时渲染到聊天底部；轮次结束时，这些帧附加到结束该轮次的 agent 消息（`Message.activity`），Think 折叠区渲染在该回答上方，使每个回答都位于产生它的思考过程之下。帧随对话存储，加载时若不再符合 `AgentProgressEvent` 则丢弃；展开 / 收起状态不存储，因此仍没有折叠存储条目，也没有 `hidden="until-found"`。
 - **工具展开内容是结果自身的行，而非通用 IN/OUT 卡片。** 本项目工具返回领域数据——住宿候选、地点、路线段、航班——因此 transcript 将数据发布为有上限的行（`resultRows`，最多 `BOUNDED_RESULT_ROWS = 20`），而不是在两个 150px 滚动框中展示原始载荷。若提供方返回该行对应页面（`ToolResultRow.url`——地点或 Places 估算住宿使用 Google Places 的 `websiteUri`，SerpApi 住宿使用其自身详情链接），行以该网站图标开头；图标从 Google 公开 favicon 服务获取，仅使用主机名且不带 referrer。没有页面或图像加载失败时回退为类别图标。不会合成 URL。调用参数渲染为一条可换行文字——`Sydney Airport →
 The Rocks · 2026-11-10`，其他参数显示为 `key value` 标签——而非堆叠的定义列表。
-- **轮次要么解释，要么隐藏。** 轮次是修订循环：第 1 轮派发任务，后续轮次仅因冲突检测要求专职 agent 修复问题而存在。若所有事件都属于第 1 轮，不显示任何轮次标签；若存在大于 1 的轮次，则以协调者自己的摘要和约束列表为标题，使数字始终回答「本轮发生了什么」。
+- **轮次要么解释，要么隐藏。** 轮次是修订循环：第 1 轮派发任务，后续轮次仅因冲突检测要求专职 agent 修复问题而存在。若所有事件都属于第 1 轮，不显示任何轮次标签；若存在大于 1 的轮次，则以协调者自己的摘要和约束列表为标题，使数字始终回答「本轮发生了什么」。原因和约束通过 `packages/shared/src/plan-issues.ts` 的 `planIssue` 写成给专职 agent 看的英文；同一张表也能把每句读回来，并用 `planIssueCopy` 改写成中文给中文读者看，因此新增问题时在那里同时写好中文（[Agent Note](../../.agents/notes/implemented/architecture/2026-11-03-plan-issue-templates.md)）。修订过的专职 agent 行只说一次原因：请求行引用修订原因，结果行只写部分名称；与协调者相同的约束列表不再重复。超过三行的请求行和结果行收起，显示“展开”。
 - **思考归属作出决定的模型。** supervisor 与协调者启用 DeepSeek thinking 并发布 `reasoning_content` 增量。专职 agent 通过强制工具调用请求结构化输出，而 DeepSeek 在 thinking 模式下拒绝此操作（「Thinking mode does not support this tool_choice」），所以其工作以工具调用和自身选择（`agent_completed.choice`）呈现，而非私有推理。因此推理行归属 `itinerary` 行：它是本次运行的主干，不会在 `AGENT_NAMES` 外虚构伪 agent 来承载这些内容。一轮可能包含多个思考阶段——派发 supervisor 与各次修订——所以推理块以 `(agent, round, episode)` 标识；同一阶段的每个增量携带相同 `index`，客户端将其合并为一个不断增长的块（见 4.5a）。
 - **输入框没有模型选择器、权限标签或上下文计量器。** 本应用只有一个模型、一个用户，也没有需要展示的 token 预算，所以 DSH 的这三个标签在此会成为无效控件。输入框保留 DSH 的另一个控件：左下角附件按钮，点击打开文件选择器。
 - **附件以卡片内的标签呈现，与 DSH 相同。** 选择、拖到卡片上或粘贴的文件成为草稿上方的标签：图像显示缩略图，文本文件显示文件图标，每项都有名称、大小和移除控件。发送前准备在浏览器中完成（`apps/web/lib/chat/attachments.ts`）：图像以 1024px 重绘并重新编码，只要带透明度且载荷上限允许就保持 PNG；文本文件按约定的字节上限截断并附加截断标记。拒绝原因是标签下方的内联文字，不是未读就消失的 toast。
@@ -357,7 +357,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 
 卡片填充使用 `--surface-2` 而非 `--surface`：DSH 输入框使用 `--dsw-specific-input-major`，在深色调色板中为 `rgb(44, 44, 46)`，比页面高一级，是灰色胶囊而非页面颜色。本应用 `--surface-2` 对应同一级，已表示「放在页面上的表面」（浅色中为白色，深色中为灰色），因此两个主题与 DSH 一样朝相反方向变化。附件圆形按钮使用 `--border` 填充，图标采用主要文字色，因为比灰色卡片低一级的选择器填充看起来像禁用状态。
 
-输入框的两个控件自行确定尺寸：28px 圆形和 34px 发送按钮；`apps/web/app/styles/forms.css` 必须了解这一点。该文件给应用每个按钮设置 36px `min-height`，而其 `button:not(...)` 链的优先级高于普通类，因此输入框规则无法覆盖它。两个控件都已加入这些排除链。字段本身不绘制焦点环，因为 `base.css` 给每个可聚焦元素添加焦点环，卡片内部再加会在卡片自身强调边框内嵌套第二层高亮。
+输入框的两个控件自行确定尺寸：28px 圆形和 34px 发送按钮；`apps/web/app/styles/forms.css` 必须了解这一点。该文件给应用里不在排除列表中的每个按钮设置 36px `min-height`。排除列表写在 `:where()` 里，所以这条规则的优先级与单独的 `button` 选择器相同，任何类规则都能覆盖它。两个控件都已加入排除列表。字段本身不绘制焦点环，因为 `base.css` 给每个可聚焦元素添加焦点环，卡片内部再加会在卡片自身强调边框内嵌套第二层高亮。
 
 值得保留的三个行为：
 
@@ -414,7 +414,7 @@ episode)` 拼接增量，也会合并先前逐次刷新单独编号的记录帧�
 - `packages/orchestrator/tests/reasoning-sink.test.ts` 固定验证同一 sink 的每次刷新携带相同块索引，同轮两个 episode 保持分离；`chat.test.ts` 固定验证 `ask_user_question`，包括记录的问题与选项、删除空值并为两类列表设置上限，以及提问以 `AskUserError` 结束轮次且原样携带客户端计划；`progress-tools.test.ts` 固定验证有界结果行、其 `kind`（地点关键词匹配、旅行方式、固定的住宿 / 航班 / 天气类型），以及提供方错误不会进入 transcript。`packages/shared/tests/chat.test.ts` 固定验证 `ChatAskUser` 和 `ToolResultRow.kind` schema，包括问题和选项上限。
 - 本次变更前已使用实时提供方检查端到端形态：三天悉尼请求流式输出 19 个推理事件、15 个工具结果及各自的行（包括带 20 行的 `Search
 stays: 20 stay options`），还有一个住宿选择及 19 个备选项；含糊的「Sydney in March」请求让协调者给出一句普通提问。重新对实时提供方验证合并推理 transcript 与 `ask_user_question` 卡片需要 `DEEPSEEK_API_KEY`，作为后续事项记录，此处不声称已完成。
-- 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中的新控件会附带边框、表面与内边距，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
+- 浏览器检查：用 `/debug/thinking` 测量每个 transcript 行；`/debug/question`（仅开发环境，`apps/web/app/debug/question/page.tsx`）在固定 `PendingAsk` 下展示问题卡片，不调用提供方。这两个页面都能发现一个陷阱：`apps/web/app/styles/forms.css` 将不在排除列表中的每个按钮样式化为次要按钮，因此 transcript、输入框或问题卡片中没有自己设置边框、表面与内边距的新控件会继承这些样式，改变网格列位置。`.thinking-line`、`.thinking-control`、`.thinking-choice__toggle`、`.composer__add`、`.composer__primary`、`.question__icon-button`、`.question__option` 和 `.question__button` 均已列入排除列表。
 - `/debug/thinking`（`apps/web/app/debug/thinking/page.tsx` 配合 `apps/web/lib/dev/thinking-fixtures.ts`）无需调用提供方，基于确定性的模拟事件渲染 Settled、Mid-flight、Replay 和 Failed 模式。
 
 <a id="7-sources"></a>

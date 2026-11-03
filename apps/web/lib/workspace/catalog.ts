@@ -13,7 +13,7 @@ import {
   type Snapshot,
 } from "./workspace";
 import type { Notice } from "../i18n/notice";
-import type { AppLocale } from "../i18n/locale";
+import { translate, type AppLocale } from "../i18n/locale";
 import { dateRangeLabel } from "./trip-facts";
 
 export const CATALOG_KEY = "trip-workspace-catalog-v3";
@@ -111,7 +111,14 @@ const legacyTitleFor = (snapshot: Snapshot) => {
     : "Untitled trip";
 };
 
+const PLACEHOLDER_TITLES = { "New chat": "newChat", "New trip": "newTrip" } as const;
+
 export function conversationTitle(conversation: ConversationRecord, locale: AppLocale): string {
+  if (!conversation.renamed && Object.hasOwn(PLACEHOLDER_TITLES, conversation.title))
+    return translate(
+      locale,
+      PLACEHOLDER_TITLES[conversation.title as keyof typeof PLACEHOLDER_TITLES],
+    );
   const snapshot = conversation.snapshot;
   if (
     !snapshot ||

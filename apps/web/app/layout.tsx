@@ -39,6 +39,7 @@ export default function RootLayout({ children }: { children: ReactNode }) {
             signUpUrl="/sign-up"
             signInForceRedirectUrl="/"
             signUpForceRedirectUrl="/"
+            localization={{ signIn: { start: { title: "Sign in to AI Trip Planner" } } }}
           >
             {children}
           </ClerkProvider>

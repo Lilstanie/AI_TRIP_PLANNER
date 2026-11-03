@@ -31,3 +31,24 @@ Written before the code (#492). Each line is a way the change could fail.
 - The provider's weather summary or the city name is dropped or translated.
 - A date is shifted by the server's time zone, so the day name is one day off.
 - A guide with no reply language crashes instead of using English.
+
+## Transport route without a separate origin (TP-292)
+
+Written before the code. The origin falls back to the first destination when the brief and
+preferences name none.
+
+- The route repeats the first city ("Tokyo ↔ Tokyo → Kyoto", "东京 ↔ 东京 → 京都").
+- A real origin that differs from the first destination loses its "↔" leg.
+- The same city written with other case or spacing ("tokyo", " Tokyo") still repeats.
+- A single-city trip whose origin is that city prints an empty route.
+
+## Weather unavailable for a run of days (TP-305)
+
+Written before the code. With no forecast for the trip dates, the day card listed every date
+("巴厘岛，11月28日周六、11月29日周日、…、12月4日周五：暂无天气数据…").
+
+- A run of three or more consecutive days still lists each date instead of "first–last".
+- A one- or two-day gap is hidden inside a range, so a day with weather reads as unavailable.
+- A single missing day or two separate days change wording (they must stay as before).
+- A range across a month end (28 Nov–4 Dec) or a year end is split or misordered.
+- Unsorted dates produce a backwards range.

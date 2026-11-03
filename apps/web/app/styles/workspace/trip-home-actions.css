@@ -11,6 +11,7 @@
   flex: 1;
   min-width: 0;
   margin: 0;
+  word-break: keep-all;
   overflow-wrap: anywhere;
 }
 .trip-home-suggestion__action,
@@ -199,13 +200,14 @@
   .trip-home-suggestion {
     margin-bottom: var(--space-3);
   }
-  .trip-home-action-switcher {
-    width: 100%;
-  }
   .trip-home-action-switcher__tabs {
     flex-wrap: nowrap;
+    gap: 2px;
     overflow-x: auto;
     scrollbar-width: none;
+  }
+  .trip-home-action-switcher [role="tab"] {
+    padding: 0 6px !important;
   }
   .drawer.trip-home-action-surface {
     position: fixed;

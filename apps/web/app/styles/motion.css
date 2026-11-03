@@ -134,7 +134,7 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
   left: 0;
   width: var(--segment-w, 0);
   border-radius: var(--radius-pill);
-  background: var(--surface);
+  background: var(--segment-thumb);
   box-shadow:
     0 3px 8px rgb(0 0 0 / 12%),
     0 1px 1px rgb(0 0 0 / 4%),
@@ -149,14 +149,6 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
   transition:
     transform var(--duration) var(--ease-spring),
     width var(--duration) var(--ease-spring);
-}
-@media (prefers-color-scheme: dark) {
-  :root:not([data-theme="light"]) .segmented::before {
-    background: #636366;
-  }
-}
-:root[data-theme="dark"] .segmented::before {
-  background: #636366;
 }
 .segmented > :is(button, [role="tab"]) {
   position: relative;
@@ -190,7 +182,7 @@ html[data-transition="to-chat"]::view-transition-new(workspace-main) {
 
 .segmented:not([data-segmented]) > [aria-selected="true"],
 .segmented:not([data-segmented]) > [aria-pressed="true"] {
-  background: var(--surface) !important;
+  background: var(--segment-thumb) !important;
 }
 
 .trips-page__tabs.segmented {

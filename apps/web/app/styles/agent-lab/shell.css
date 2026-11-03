@@ -89,7 +89,7 @@
   display: grid;
   grid-template-columns: minmax(180px, 1fr) minmax(220px, 1fr) minmax(150px, auto) auto;
   gap: var(--space-3);
-  align-items: end;
+  align-items: start;
   padding: var(--space-4);
   border-radius: var(--radius-xl);
 }

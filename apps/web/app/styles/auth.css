@@ -230,9 +230,15 @@
   gap: var(--space-3);
   padding: calc(var(--space-5) * 1.5);
 }
+.auth-clerk + .admin-fields {
+  margin: 0 calc(var(--space-5) * 1.5);
+  padding: var(--space-5) 0 calc(var(--space-5) * 1.5);
+  border-top: 1px solid var(--border);
+}
 .admin-fields label {
-  color: var(--text-dim);
-  font-size: var(--font-size-meta);
+  color: var(--text);
+  font-size: 0.8125rem;
+  font-weight: 500;
 }
 .admin-fields input {
   min-height: 44px;

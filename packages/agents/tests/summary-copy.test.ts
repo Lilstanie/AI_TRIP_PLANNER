@@ -55,6 +55,15 @@ describe("specialist summary copy", () => {
       "2 transport options for Sydney ↔ Tokyo → Kyoto · known estimate A$900",
     );
     expect(
+      en.transport({
+        ...transport,
+        origin: " tokyo",
+        unpriced: 0,
+        unavailable: 0,
+        incomplete: false,
+      }),
+    ).toBe("2 transport options for Tokyo → Kyoto · known estimate A$900");
+    expect(
       en.weather("Tokyo", "2027-06-18", { horizon: "forecast", summary: "Rain, 8–14°C." }),
     ).toBe("Tokyo, Fri, 18 June (forecast): Rain, 8–14°C.");
     expect(en.weather("Tokyo", "2027-06-18", { horizon: "climate", summary: "Mild." })).toBe(
@@ -201,5 +210,46 @@ describe("specialist reply language", () => {
     const none = await agent.invoke({ brief, context: context() });
     expect(zh.summary).toBe("京都十月出行指南");
     expect(none.summary).toBe("京都 planning guidance for October");
+  });
+});
+
+describe("weather unavailable for a run of days", () => {
+  const trip = [
+    "2026-11-30",
+    "2026-11-28",
+    "2026-11-29",
+    "2026-12-01",
+    "2026-12-02",
+    "2026-12-03",
+    "2026-12-04",
+  ];
+
+  it("names a run of three or more days by its first and last day, across a month end", () => {
+    expect(summaryCopy("zh").weatherUnavailable("巴厘岛", trip)).toBe(
+      "巴厘岛，11月28日周六–12月4日周五：暂无天气数据，出行前请查看最新预报。",
+    );
+    expect(
+      summaryCopy("en").weatherUnavailable("Bali", ["2026-12-30", "2026-12-31", "2027-01-01"]),
+    ).toBe(
+      "Bali, Wed, 30 Dec–Fri, 1 Jan: weather unavailable; check a current forecast before travel.",
+    );
+  });
+
+  it("keeps gaps, single days and pairs as separate days", () => {
+    expect(
+      summaryCopy("zh").weatherUnavailable("巴厘岛", [
+        "2026-11-28",
+        "2026-11-29",
+        "2026-12-01",
+        "2026-12-03",
+        "2026-12-04",
+        "2026-12-05",
+      ]),
+    ).toBe(
+      "巴厘岛，11月28日周六、11月29日周日、12月1日周二、12月3日周四–12月5日周六：暂无天气数据，出行前请查看最新预报。",
+    );
+    expect(summaryCopy("en").weatherUnavailable("Tokyo", ["2027-06-16"])).toBe(
+      "Tokyo, Wed, 16 June: weather unavailable; check a current forecast before travel.",
+    );
   });
 });

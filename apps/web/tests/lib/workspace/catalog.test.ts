@@ -3,6 +3,7 @@ import { plan, snapshot } from "@/tests/fixtures/workspace";
 import { CURRENT_KEY, blankDraft } from "@/lib/workspace/workspace";
 import {
   CATALOG_KEY,
+  conversationTitle,
   createCatalog,
   parseCatalog,
   reusableBlankConversation,
@@ -87,6 +88,7 @@ describe("workspace catalog", () => {
       title: "New chat",
     });
     expect(renamed.conversations[0]?.title).toBe("New chat");
+    expect(conversationTitle(renamed.conversations[0]!, "zh")).toBe("新聊天");
   });
 
   it("searches destination, dates, titles and message text", () => {

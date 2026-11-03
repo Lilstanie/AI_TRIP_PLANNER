@@ -2,6 +2,7 @@
 import { useRef, useState } from "react";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { intlLocale } from "@/lib/i18n/locale";
+import { formatMessageClock } from "@/lib/workspace/message-chrome";
 import { ChevronIcon } from "../../ui/icons";
 import { Composer } from "../../chat/Composer";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
@@ -17,10 +18,9 @@ export function TripHomeChats({
   onOpen(id: string): void;
 }) {
   const { t, locale } = useLocale();
-  const date = new Intl.DateTimeFormat(intlLocale(locale), { dateStyle: "medium" });
   const formatDate = (value: string) => {
-    const parsed = new Date(value);
-    return Number.isNaN(parsed.getTime()) ? "" : date.format(parsed);
+    const time = Date.parse(value);
+    return Number.isNaN(time) ? "" : formatMessageClock(time, Date.now(), intlLocale(locale));
   };
   if (!chats.length) return null;
   return (

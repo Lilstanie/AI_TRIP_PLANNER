@@ -154,3 +154,21 @@
   width: 0.9rem;
   height: 0.9rem;
 }
+
+.maplibregl-ctrl.maplibregl-ctrl-attrib,
+.maplibregl-ctrl-attrib.maplibregl-compact {
+  background: var(--glass-tint);
+  color: var(--text-dim);
+  box-shadow: 0 0 0 0.5px var(--glass-edge);
+}
+.maplibregl-ctrl-attrib a {
+  color: inherit;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .maplibregl-ctrl-attrib-button {
+    filter: invert(1);
+  }
+}
+:root[data-theme="dark"] .maplibregl-ctrl-attrib-button {
+  filter: invert(1);
+}

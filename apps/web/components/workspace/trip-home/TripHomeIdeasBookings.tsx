@@ -14,6 +14,7 @@ import { tripIdeas } from "@/lib/trip/ideas";
 import { restaurantSuggestions } from "@/lib/trip/restaurants";
 import { dayCount, dayLabel } from "@/lib/trip/timeline";
 import { intlLocale } from "@/lib/i18n/locale";
+import { dateRangeLabel } from "@/lib/workspace/trip-facts";
 import type { Notice } from "@/lib/i18n/notice";
 
 const titleOf = (item: ProposalItem) => item.location ?? item.detail;
@@ -96,6 +97,7 @@ export function TripHomeIdeas({
                   <button
                     key={day}
                     type="button"
+                    className="trip-home-ideas-bookings__day"
                     disabled={disabled || busy}
                     aria-label={t("scheduleNameOnDayDay", { name: title, day })}
                     title={dayLabel(plan, day, locale)}
@@ -125,7 +127,7 @@ export function TripHomeIdeas({
 type BookingEntry = {
   id: string;
   title: string;
-  meta: string;
+  meta: string | string[];
 };
 
 function BookingGroup({
@@ -153,7 +155,18 @@ function BookingGroup({
         {entries.map((entry) => (
           <li key={entry.id}>
             <strong>{entry.title}</strong>
-            {entry.meta && <small>{entry.meta}</small>}
+            {typeof entry.meta === "string"
+              ? entry.meta && <small>{entry.meta}</small>
+              : entry.meta.length > 0 && (
+                  <small>
+                    {entry.meta.map((part, index) => (
+                      <span key={index}>
+                        {index ? " · " : ""}
+                        <span className="trip-home-ideas-bookings__meta-part">{part}</span>
+                      </span>
+                    ))}
+                  </small>
+                )}
           </li>
         ))}
       </ul>
@@ -162,7 +175,7 @@ function BookingGroup({
 }
 
 export function TripHomeBookings({ plan }: { plan: TripPlan }) {
-  const { t, money } = useLocale();
+  const { t, money, locale } = useLocale();
   const transport = plan.sections.find((section) => section.id === "transport")?.proposal;
   const accommodation = plan.sections.find((section) => section.id === "accommodation")?.proposal;
   const flights = transport?.flights ?? [];
@@ -211,10 +224,10 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: `flight-${selection.id}`,
       title: `${selection.from} → ${selection.to} · ${candidate.carrier}`,
       meta: [
-        selection.depart,
-        `${selection.passengers} ${t("travellers").toLocaleLowerCase()}`,
+        dateRangeLabel(selection.depart, selection.depart, locale) ?? selection.depart,
+        t("countTravellers", { count: selection.passengers }),
         money(candidate.price),
-      ].join(" · "),
+      ],
     })),
     ...legacyFlights.map((item, index) => ({
       id: item.id ?? `flight-${index}`,
@@ -227,11 +240,12 @@ export function TripHomeBookings({ plan }: { plan: TripPlan }) {
       id: `stay-${selection.id}`,
       title: candidate.name,
       meta: [
-        `${t("checkIn")} ${selection.checkIn}`,
-        `${t("checkOut")} ${selection.checkOut}`,
-        `${selection.rooms} / ${selection.nights} ${t("roomsNights").toLocaleLowerCase()}`,
+        dateRangeLabel(selection.checkIn, selection.checkOut, locale) ??
+          `${t("checkIn")} ${selection.checkIn} · ${t("checkOut")} ${selection.checkOut}`,
+        t("countNights", { count: selection.nights }),
+        t("stayRoomRate", { price: money(candidate.pricePerNight), rooms: selection.rooms }),
         money(candidate.pricePerNight * selection.rooms * selection.nights),
-      ].join(" · "),
+      ],
     })),
     ...legacyStays.map((item, index) => ({
       id: item.id ?? `stay-${index}`,

@@ -2,7 +2,7 @@
 import { keyForText, type MessageKey } from "@/lib/i18n/locale";
 import { useLocale } from "@/components/account/LocaleProvider";
 import { useSettings } from "@/components/account/SettingsProvider";
-import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
+import { distinctTripTitles, tripMetaParts, tripName } from "@/lib/workspace/trip-identity";
 import { useMemo, useRef, useState, type KeyboardEvent } from "react";
 import type { TripRecord } from "@/lib/workspace/catalog";
 import { PlusIcon } from "../ui/icons";
@@ -187,6 +187,10 @@ function TripCards({
       <ul className="trip-cards">
         {group.items.map((trip) => {
           const { destination } = trip.snapshot.plan.brief;
+          const title = titles.get(trip.id)!;
+          const [place, ...rest] = tripMetaParts(trip, locale, settings.displayCurrency, t);
+          const total = rest.pop();
+          const meta = title.includes(place!) ? rest : [place!, ...rest];
           return (
             <li key={trip.id}>
               <button
@@ -197,14 +201,13 @@ function TripCards({
               >
                 <TripCover destination={destination} size="card" />
                 <span className="trip-card__text">
-                  <span className="trip-card__title">{titles.get(trip.id)}</span>
-                  <span className="trip-card__meta">
-                    {tripMeta(trip, locale, settings.displayCurrency, t)}
-                  </span>
+                  <span className="trip-card__title">{title}</span>
+                  <span className="trip-card__total">{total}</span>
+                  <span className="trip-card__meta">{meta.join(" · ")}</span>
                 </span>
               </button>
               <HistoryMenu
-                title={titles.get(trip.id)!}
+                title={title}
                 onRename={() => onRenameTrip(trip.id)}
                 onDelete={() => onDeleteTrip(trip.id)}
               />

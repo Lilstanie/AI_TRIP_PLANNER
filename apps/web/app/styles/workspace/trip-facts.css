@@ -11,6 +11,12 @@
   min-height: 44px;
   cursor: pointer;
 }
+.preference-check input {
+  width: 20px;
+  height: 20px;
+  margin: 0;
+  accent-color: var(--accent);
+}
 .fact-chips__scroller {
   display: flex;
   max-width: 100%;

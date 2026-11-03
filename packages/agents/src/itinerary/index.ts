@@ -12,6 +12,7 @@ import {
   type StaySelection,
   type InterfaceLanguage,
   type TripPace,
+  planIssue,
 } from "@trip/shared";
 import { z } from "zod/v4";
 import { createAgent, tool } from "langchain";
@@ -552,9 +553,7 @@ async function planItinerary(
         ...evidenceIssues,
         "No grounded places available; no attraction, opening time or admission price has been invented.",
       ],
-      conflictsWith: [
-        "geography conflict: no grounded places available; itinerary requires new evidence",
-      ],
+      conflictsWith: [planIssue("noGroundedPlaces", {})],
       source: {
         kind: "unavailable",
         label: "Maps provider",
@@ -737,11 +736,7 @@ async function planItinerary(
   let conflicts = [
     ...adjusted.conflicts,
     ...dayCities.flatMap((allowed, index) =>
-      allowed.length
-        ? []
-        : [
-            `geography conflict: day ${index + 1} transport does not end in the selected overnight city; activities were omitted`,
-          ],
+      allowed.length ? [] : [planIssue("overnightCity", { day: index + 1 })],
     ),
     ...travel.conflicts,
     ...(usedFallback

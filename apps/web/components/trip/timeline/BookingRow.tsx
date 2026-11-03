@@ -2,7 +2,7 @@
 import { useId, useState } from "react";
 import type { AgentProposalSource, FlightSelection, StaySelection } from "@trip/shared";
 import type { BookingRow as BookingRowData } from "@/lib/trip/timeline";
-import { arrivalDayOffset } from "@/lib/trip/timeline";
+import { arrivalDayOffset, flightRoute } from "@/lib/trip/timeline";
 import { useLocale } from "../../account/LocaleProvider";
 import { FlowFlightIcon, FlowStayIcon } from "../../ui/flow-icons";
 import { FlightOffers } from "./FlightOffers";
@@ -120,9 +120,7 @@ export function BookingRow({
           onClick={() => setOpen((value) => !value)}
         >
           <span className="sr-only">{t("flight")}: </span>
-          <span className="timeline-fixed__title">
-            {out ? `${flight.to} → ${flight.from}` : `${flight.from} → ${flight.to}`}
-          </span>
+          <span className="timeline-fixed__title">{flightRoute(flight, row.role)}</span>
           <span className="timeline-row__meta">
             {[
               selected?.carrier,
