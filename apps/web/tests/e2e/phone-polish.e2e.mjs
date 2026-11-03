@@ -180,6 +180,54 @@ async function phoneRun(browser, { width, height, language, scheme }) {
   await tab(page, copy.trip).click();
   await settle(page, 800);
   await shot("04-trip");
+  const days = await page
+    .locator(".phone-trip-surface .day-strip__day")
+    .evaluateAll((nodes) => nodes.map((node) => node.getBoundingClientRect().toJSON()));
+  check(
+    days.length > 1 &&
+      days.every((day) => day.left === days[0].left && day.right <= width) &&
+      days.every((day, i) => i === 0 || day.top >= days[i - 1].bottom - 1),
+    `${label}: the Trip tab lists every day vertically, none cut off`,
+    days.map((day) => [Math.round(day.left), Math.round(day.right), Math.round(day.top)]),
+  );
+  const heading = await page.locator(".phone-trip__title").evaluate((node) => ({
+    width: node.getBoundingClientRect().width,
+    named: Boolean(node.textContent?.trim()),
+  }));
+  check(
+    heading.width <= 1 && heading.named,
+    `${label}: the duplicate Trip heading is hidden but still named`,
+    heading,
+  );
+  await page.locator("button.timeline-stop__main").first().click();
+  await settle(page, 600);
+  const stopSheet = await page.evaluate(() => {
+    const card = document.querySelector(".timeline-stop > .stop-place-card");
+    const body = document.querySelector(".timeline-stop__body");
+    const bar = document.querySelector(".phone-tabbar").getBoundingClientRect();
+    if (!card) return null;
+    const rect = card.getBoundingClientRect();
+    return {
+      position: getComputedStyle(card).position,
+      left: Math.round(rect.left),
+      bottom: Math.round(rect.bottom),
+      tabbarTop: Math.round(bar.top),
+      bodyFill: getComputedStyle(body).backgroundColor,
+    };
+  });
+  check(
+    stopSheet?.position === "fixed" &&
+      stopSheet.left === 0 &&
+      stopSheet.bottom <= stopSheet.tabbarTop + 1,
+    `${label}: a tapped stop opens as a sheet above the tab bar`,
+    stopSheet,
+  );
+  check(
+    stopSheet?.bodyFill === "rgba(0, 0, 0, 0)",
+    `${label}: a stop is one row, not a card inside a card`,
+    stopSheet?.bodyFill,
+  );
+  await shot("04b-stop-sheet");
   if (scheme === "dark")
     check(
       await surfaceIsDark(page, ".phone-trip-surface .trip-panel__budget-summary"),
@@ -203,6 +251,18 @@ async function phoneRun(browser, { width, height, language, scheme }) {
   if (scheme === "dark")
     check(await surfaceIsDark(page, ".phone-mine .history-list"), `${label}: Mine list is dark`);
   check(await noSideScroll(page), `${label}: no sideways page scroll on Mine`);
+  const tripRow = await page
+    .locator(".phone-mine .trip-card")
+    .first()
+    .evaluate((node) => ({
+      height: Math.round(node.getBoundingClientRect().height),
+      cover: Math.round(node.querySelector(".trip-cover").getBoundingClientRect().width),
+    }));
+  check(
+    tripRow.height <= 88 && tripRow.cover <= 56,
+    `${label}: Mine lists each trip as a row with a small cover`,
+    tripRow,
+  );
   const headings = await page
     .locator(".phone-mine .chats-panel__section-head .sidebar-history__title")
     .evaluateAll((nodes) =>

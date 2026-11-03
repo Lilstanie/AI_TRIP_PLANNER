@@ -1069,14 +1069,17 @@ checked by the server: time, place, leg, a drag, Remove, Move to ideas, Move to 
 - **Layout.** A day strip of tabs (`Day 2 · Sun, 18 Oct · 3 stops`, flagged when a stop needs a
   place; a day without stops says Flight, Booked or Free day as the chat day cards do) picks the day. Each tab has a unique ID and controls the single visible day panel; that
   panel is labelled by the selected tab and contains the day's heading and timeline. The "N ideas" chip
-  sits above the day strip, outside the day panel, on desktop and phone. The day is a vertical line in time order (`lib/trip/timeline.ts`): an
+  sits above the day strip, outside the day panel, on desktop and phone. On phones the day strip is a
+  vertical grouped list, one row per day, so no day is cut off; each stop is one row whose menu sits
+  inside it, and tapping a stop opens its details as a sheet above the tab bar
+  ([Agent Note](../.agents/notes/implemented/feature/2026-11-03-phone-grouped-lists.md)). The day is a vertical line in time order (`lib/trip/timeline.ts`): an
   flight in first (untimed flights and hops), timed inter-city hops and stops by start time, then one
   stay row per night, and on the last day the flight out, which ends the day. "Staying at …" shows on
   later nights. Narrow timeline containers use a 56 px time column so five-digit times fit before the aligned stop dots. Fixed rows show an icon, a title, one detail line and their cost ("Fare not published"
   or "Price unknown" rather than AUD 0). Flight and stay rows open to their card. Between two stops the
   journey is a leg (see Legs below): its mode and duration, marked "checked" when the provider verified
   it and "estimate" when it is the planner's `arriveBy` or a simulated fixture.
-- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally; it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll.
+- **Trip scroll.** A fresh Trip view starts above the budget. Revealing the selected day only scrolls the day strip horizontally (on phones the list needs no scroll); it does not move the surrounding Trip panel. Closing and reopening, or switching phone tabs, preserves a traveller’s deliberate vertical scroll.
 - **Prices.** Stops without a published price carry no `estCost` and show "Price unknown"; the
   budget line shows their count, avoiding the impression that the total covers every cost.
 - **Order and numbers.** A day's stops are listed in visiting order, and each stop's node shows its

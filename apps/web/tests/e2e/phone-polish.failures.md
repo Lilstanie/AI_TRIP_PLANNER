@@ -24,3 +24,12 @@ Added 2026-10-31 from Joey's iPhone screenshots:
   instead of a sheet above the tab bar.
 - A Trip details or fact sheet hides its last row under the floating tab bar.
 - Swiping up or down on a chat drags the whole page instead of only the message list.
+
+Added 2026-11-03 for the grouped-list redesign (TP-350):
+
+- The Trip tab's days stay a sideways strip, so later days are cut off at the right edge.
+- A stop keeps a card inside a card, with a white strip beside the stop behind its menu.
+- Tapping a stop opens its details inside the itinerary instead of a sheet above the tab bar, or the
+  sheet hides behind the tab bar.
+- Hiding the duplicate "Your trip" heading also removes it from assistive technology.
+- Mine's trips stay half-screen cover cards instead of rows with a small cover.

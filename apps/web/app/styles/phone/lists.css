@@ -1,0 +1,205 @@
+.workspace-app[data-phone] .phone-mine .trip-cards {
+  display: grid;
+  gap: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-mine .trip-cards > li + li {
+  box-shadow: inset 0 0.5px 0 var(--border);
+}
+.workspace-app[data-phone] .phone-mine .trip-card {
+  align-items: center;
+  gap: var(--space-3);
+  min-height: 72px;
+  aspect-ratio: auto;
+  padding: var(--space-2) 52px var(--space-2) var(--space-4) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+  color: var(--text);
+}
+.workspace-app[data-phone] .phone-mine .trip-card[aria-current="true"] {
+  box-shadow: none;
+}
+.workspace-app[data-phone] .phone-mine .trip-card[aria-current="true"] .trip-card__title {
+  color: var(--accent);
+}
+.workspace-app[data-phone] .phone-mine .trip-card:active {
+  background: var(--fill-press) !important;
+}
+.workspace-app[data-phone] .phone-mine .trip-cover--card {
+  position: relative;
+  inset: auto;
+  width: 48px;
+  height: 48px;
+  border-radius: var(--radius);
+}
+.workspace-app[data-phone] .phone-mine .trip-cover--card .trip-cover__initial {
+  font-size: 22px;
+  opacity: 0.9;
+  transform: none;
+}
+.workspace-app[data-phone] .phone-mine .trip-card__text {
+  margin: 0;
+  padding: 0;
+  border: 0;
+  background: none;
+  box-shadow: none;
+  -webkit-backdrop-filter: none;
+  backdrop-filter: none;
+}
+.workspace-app[data-phone] .phone-mine .trip-card__title {
+  grid-column: 1 / -1;
+}
+.workspace-app[data-phone] .phone-mine .trip-card__meta {
+  grid-column: 1;
+  grid-row: 2;
+  color: var(--text-dim);
+}
+.workspace-app[data-phone] .phone-mine .trip-card__total {
+  grid-column: 2;
+  grid-row: 2;
+  color: var(--text-dim);
+  font-weight: 500;
+}
+.workspace-app[data-phone] .phone-mine .trip-cards .history-item__menu-wrap {
+  inset-block: 0;
+  inset-inline-end: var(--space-1);
+  display: grid;
+  align-items: center;
+}
+.workspace-app[data-phone] .phone-mine .trip-cards .history-item__more {
+  background: transparent !important;
+  color: var(--text-dim);
+}
+
+.workspace-app[data-phone] .phone-trip__title {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip-path: inset(50%);
+  white-space: nowrap;
+}
+.workspace-app[data-phone] .phone-trip__head {
+  justify-content: flex-end;
+  min-height: 0;
+  padding: var(--space-2) 0 0;
+}
+.workspace-app[data-phone] .phone-trip__head:not(:has(.open-items__badge)) {
+  padding: 0;
+}
+
+.workspace-app[data-phone] .phone-trip-surface .budget-status {
+  color: var(--text-dim);
+}
+
+.workspace-app[data-phone] .phone-trip-surface .day-strip {
+  flex-direction: column;
+  gap: 0;
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+  border-radius: var(--radius-xl);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+  scroll-snap-type: none;
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day {
+  display: flex;
+  flex-wrap: wrap;
+  align-content: center;
+  align-items: baseline;
+  column-gap: var(--space-2);
+  min-width: 0;
+  min-height: 52px;
+  padding: var(--space-2) var(--space-4) !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day + .day-strip__day {
+  box-shadow: inset 0 0.5px 0 var(--border);
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__day[aria-selected="true"] {
+  background: var(--accent-bg) !important;
+  box-shadow: none;
+}
+.workspace-app[data-phone]
+  .phone-trip-surface
+  .day-strip__day[aria-selected="true"]
+  .day-strip__title {
+  color: var(--accent);
+}
+.workspace-app[data-phone] .phone-trip-surface .day-strip__meta {
+  margin-inline-start: auto;
+}
+
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop__body {
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none;
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop__head {
+  position: relative;
+}
+.workspace-app[data-phone] .phone-trip-surface button.timeline-stop__main {
+  padding-inline-end: 44px;
+  border: 0;
+  border-radius: var(--radius-lg);
+  background: var(--phone-card);
+  box-shadow: var(--phone-card-shadow);
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop__head > .action-menu {
+  position: absolute;
+  inset-block-start: 0;
+  inset-inline-end: 0;
+}
+.workspace-app[data-phone]
+  .phone-trip-surface
+  .timeline-stop.is-selected
+  button.timeline-stop__main {
+  background: var(--accent-bg);
+  box-shadow: inset 0 0 0 1.5px var(--accent);
+}
+
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop > .stop-place-card {
+  position: fixed;
+  inset-inline: 0;
+  inset-block-end: calc(64px + var(--phone-tabbar-gap));
+  z-index: 60;
+  max-block-size: min(60dvh, calc(100dvh - 160px));
+  padding: var(--space-4) var(--phone-gutter) var(--space-3);
+  overflow-y: auto;
+  overscroll-behavior: contain;
+  border-radius: var(--radius-xl);
+  background: var(--surface);
+  box-shadow: var(--shadow-lg);
+  animation: phone-sheet-up var(--duration-slow) var(--ease-out);
+}
+.workspace-app[data-phone] .phone-trip-surface .timeline-stop > .stop-place-card::before {
+  content: "";
+  position: absolute;
+  top: 6px;
+  left: 50%;
+  width: 36px;
+  height: 5px;
+  border-radius: var(--radius-pill);
+  background: var(--text-mut);
+  opacity: 0.35;
+  translate: -50% 0;
+}
+.workspace-app[data-phone] .phone-trip-surface .stop-place-card .place-preview,
+.workspace-app[data-phone] .phone-trip-surface .stop-place-card__bare {
+  border: 0;
+  padding-inline: 0;
+  background: transparent;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .workspace-app[data-phone] .phone-trip-surface .timeline-stop > .stop-place-card {
+    animation: none;
+  }
+}
