@@ -297,3 +297,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: for zh, format the date and the weekday separately and join them with a space ("11月28日 周六"); en keeps "Sat, 28 Nov".
 - Evidence: chat day cards before/after in zh dark and en light; `tests/lib/trip` (53 tests) still pass.
 - Machine check: none. A locale's joined output is a copy choice for one helper; a test would pin the string, not a bug class.
+
+## Round 41 — TP-328 message action icon alignment
+
+- Problem: message actions are 28px buttons around 16px icons, so the copy icon under an assistant reply started at x=274 against a text column at 268 (desktop) and 22 vs 16 (phone), and user-message actions stopped 6px short of the bubble edge.
+- Fix: `chat/messages.css` gives `.msg-actions` `margin-inline: -6px`, pulling the row out by the icon's inset on both sides; the buttons keep their 28px hit area.
+- Evidence: agent icon now 268-284 (desktop zh dark) and 16-32 (phone en light), matching the text edge; before/after crops.
+- Machine check: none. Optical alignment of one row; no rule can tell an icon inset from an intended indent.
