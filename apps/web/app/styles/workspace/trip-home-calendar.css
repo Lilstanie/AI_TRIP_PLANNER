@@ -39,7 +39,7 @@
   color: var(--text);
 }
 .trip-home-calendar__views button[aria-pressed="true"] {
-  background: var(--surface);
+  background: var(--segment-thumb);
   color: var(--text);
   font-weight: 600;
   box-shadow:

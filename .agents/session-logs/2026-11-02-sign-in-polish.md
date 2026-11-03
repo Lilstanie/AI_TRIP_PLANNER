@@ -267,3 +267,18 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Evidence: toolbar and grid now 414-1274 (desktop en light, zh dark) and 28-362 (phone zh light); the phone week grid gains 24px and flight chips fit on one line. Before/after crops.
 - Machine check: none. One container's padding in one context; a rule could not tell intended insets from stray ones.
 - Also looked at: the Settings page card is full height with little content on "Your account"; left as the page-style settings design.
+
+## Round 38 — TP-325 selected segment in dark mode
+
+- Problem: in dark mode the calendar Week/Month control filled the selected segment with `--surface` (#1c1c1e) on a `--fill-hover` track, so "Week"/"周" was barely distinguishable. The shared `.segmented` thumb had a dark override to #636366; the calendar views, the top-bar views and the `.segmented` no-JS fallback each repeated `var(--surface)` without it.
+- Cause: the selected-segment colour lived as a per-component dark override instead of a token.
+- Fix: new `--segment-thumb` token in `tokens.css` (white in light, #636366 in dark), used by the `.segmented` thumb and fallback in `motion.css`, `.topbar-views` in `layout.css` and `.trip-home-calendar__views` in `trip-home-calendar.css`; the duplicated dark overrides in `motion.css` are gone. `docs/design/ui-guidelines.md` and `.zh.md` list the token.
+- Evidence: calendar selected fill rgb(28,28,30) -> rgb(99,99,102) in phone zh dark and desktop en dark; light unchanged (white). Before/after crops.
+- Machine check: `apps/web/tests/styles/selected-segment-fill.test.ts` scans every stylesheet for `[aria-pressed="true"]` / `[aria-selected="true"]` rules filled with `var(--surface)`. Red on the old code:
+  ```
+  AssertionError: expected [ …(3) ] to deeply equal []
+  +   "motion.css: .segmented:not([data-segmented]) > [aria-selected=\"true\"], …",
+  +   "workspace/layout.css: .topbar-views button[aria-pressed=\"true\"]",
+  +   "workspace/trip-home-calendar.css: .trip-home-calendar__views button[aria-pressed=\"true\"]",
+  ```
+- Also looked at: Settings tabs (Edit profile, Personalisation, Language & region, Connected accounts); nothing worse found.

@@ -66,6 +66,7 @@ Use the semantic tokens in `apps/web/app/styles/tokens.css` as the only color co
 - `--border` is the 1px hairline between regions.
 - `--accent` (text and icons) and `--accent-bg` identify the primary action or current state; `--accent-fill` is the solid fill behind `--on-accent` text, deeper than `--accent` in dark mode so white labels stay AA.
 - `--fill-hover` and `--fill-press` are the quiet grey fills for capsule buttons, rows and fields.
+- `--segment-thumb` is the selected segment of a segmented control: white in light, `#636366` in dark, so the thumb stays visible on the dark track.
 - `--ok`/`--ok-bg` and `--warn`/`--warn-bg` communicate status alongside text or a shape; color is never the only status signal.
 
 Both light and dark token values are required. Native controls must follow the active system theme, and focus rings must remain visible.
