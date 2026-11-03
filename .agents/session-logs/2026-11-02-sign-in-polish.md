@@ -245,3 +245,10 @@ was wider than the Clerk form with a grey meta-size label, so it looked bolted o
 - Fix: `TripHomeCalendar.tsx` formats the range itself and shows the year once when both ends share it ("2026年11月28日 – 12月4日", "28 Nov – 4 Dec 2026"); a week that crosses a year keeps both years. `Intl.DateTimeFormat.formatRange` was not used because zh gives numeric dates ("2026/11/28 – 2026/12/4").
 - Evidence: zh heading 257/257 after the fix, before/after crops in zh dark and en light.
 - Machine check: none. This is date copy for one heading; a test would pin the exact wording rather than a bug class, and Joey asked for few tests.
+
+## Round 35 — TP-322 phone Mine heading alignment
+
+- Problem: on the phone Mine tab the large "Trips" / "Chats" headings started at x=36 while the search field, segment control and cards started at x=28, and the "New trip" / "New chat" link text ended at 353 against a card edge of 362. Both kept the desktop sidebar's `padding-inline: var(--space-2)`.
+- Fix: `phone/polish.css` drops the heading's inline padding and pulls the action out by the same `--space-2` with a negative end margin, so its padded hit area stays 44px tall and its text ends at the content edge.
+- Evidence: headings x=28 and link text right=361 after, in en light and zh dark; before/after crops.
+- Machine check: none. It is one alignment value on one screen; a style test would restate the CSS rather than catch a bug class.

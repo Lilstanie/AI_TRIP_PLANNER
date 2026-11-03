@@ -220,6 +220,7 @@ html:has(.workspace-app[data-phone]) body {
   font-weight: 700;
   letter-spacing: -0.02em;
   text-transform: none;
+  padding-inline: 0;
 }
 .workspace-app[data-phone] .phone-mine .chats-panel__action {
   border-radius: var(--radius-pill) !important;
@@ -227,6 +228,7 @@ html:has(.workspace-app[data-phone]) body {
   font-weight: 600;
   width: auto;
   gap: var(--space-1);
+  margin-inline-end: calc(-1 * var(--space-2));
 }
 .workspace-app[data-phone] .phone-mine .chats-panel__action .icon {
   color: currentColor;
