@@ -10,6 +10,7 @@ export const zhShell = {
   settingsAccount: "设置与账户",
   dayStops: "当天行程",
   resizeDayStopsCollapsed: "调整当天行程面板（已收起）",
+  resizeDayStopsThirdHeight: "调整当天行程面板（三分之一屏）",
   resizeDayStopsHalfHeight: "调整当天行程面板（半屏）",
   resizeDayStopsFullHeight: "调整当天行程面板（全屏）",
   chooseMapDay: "选择要看哪一天",

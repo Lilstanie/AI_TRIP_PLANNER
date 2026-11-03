@@ -115,6 +115,10 @@
   text-align: center;
 }
 
+.open-items__label {
+  display: none;
+}
+
 .open-items__popover {
   position: absolute;
   z-index: 30;

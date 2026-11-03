@@ -7,11 +7,15 @@ type Placeholders<Text extends string> = Text extends `${string}{${infer Name}}$
 
 export type NoticeValue = string | number | Notice;
 
-type KeyedNotice = {
-  [Key in MessageKey]: [Placeholders<(typeof en)[Key]>] extends [never]
-    ? { key: Key; params?: never }
-    : { key: Key; params: Record<Placeholders<(typeof en)[Key]>, NoticeValue> };
+type ParamKey = {
+  [Key in MessageKey]: [Placeholders<(typeof en)[Key]>] extends [never] ? never : Key;
 }[MessageKey];
+
+type KeyedNotice =
+  | { key: Exclude<MessageKey, ParamKey>; params?: never }
+  | {
+      [Key in ParamKey]: { key: Key; params: Record<Placeholders<(typeof en)[Key]>, NoticeValue> };
+    }[ParamKey];
 
 export type Notice = KeyedNotice | { raw: string };
 

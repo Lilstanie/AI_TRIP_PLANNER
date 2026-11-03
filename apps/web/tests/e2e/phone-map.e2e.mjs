@@ -121,10 +121,21 @@ try {
     await page.locator(".msg-item--agent .msg-item__body").first().waitFor({ timeout: 180000 });
     await tab("Map").click();
     await sheet.locator(".phone-map-sheet__stops button").first().waitFor();
+    const rest = await sheet.evaluate((node) => ({
+      snap: node.dataset.snap,
+      share:
+        node.getBoundingClientRect().height / node.parentElement.getBoundingClientRect().height,
+    }));
+    check(
+      rest.snap === "third" && rest.share > 0.28 && rest.share < 0.4,
+      `${width}: the sheet rests at about a third of the map ${JSON.stringify(rest)}`,
+    );
     await handle.press("Home");
     check((await sheet.getAttribute("data-snap")) === "handle", `${width}: Home collapses`);
     await handle.press("ArrowUp");
-    check((await sheet.getAttribute("data-snap")) === "half", `${width}: ArrowUp half`);
+    check((await sheet.getAttribute("data-snap")) === "third", `${width}: ArrowUp third`);
+    await handle.press("ArrowUp");
+    check((await sheet.getAttribute("data-snap")) === "half", `${width}: ArrowUp again half`);
     await handle.press("End");
     check((await sheet.getAttribute("data-snap")) === "full", `${width}: End expands`);
     await handle.click();
@@ -135,7 +146,7 @@ try {
     await page.mouse.down();
     await page.mouse.move(box.x + 30, box.y - 100, { steps: 8 });
     await page.mouse.up();
-    check((await sheet.getAttribute("data-snap")) === "half", `${width}: drag expands`);
+    check((await sheet.getAttribute("data-snap")) === "third", `${width}: drag expands`);
     check(
       await sheet.evaluate((node) => parseFloat(getComputedStyle(node).transitionDuration) <= 0.01),
       `${width}: reduced motion`,

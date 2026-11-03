@@ -17,6 +17,7 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
   const button = useRef<HTMLButtonElement>(null);
   const dialog = useRef<HTMLDialogElement>(null);
   const roster = useRef<HTMLDetailsElement>(null);
+  const title = useRef<HTMLHeadingElement>(null);
   const open = model.layout.surface.sheet === "team";
   const { team, select } = useTeamSurface(turn);
   const { messages, activity, busy } = model.session;
@@ -26,6 +27,8 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
     if (!surface || !open) return;
     const trigger = button.current;
     surface.showModal();
+    if (roster.current) roster.current.open = true;
+    title.current?.focus();
     return () => {
       surface.close();
       trigger?.focus({ preventScroll: true });
@@ -86,12 +89,14 @@ export function PhoneTeamButton({ model, turn }: { model: WorkspaceModel; turn: 
         }}
       >
         <header className="phone-trajectory__head">
-          <h2 id="phone-trajectory-title">{t("trajectory")}</h2>
+          <h2 ref={title} id="phone-trajectory-title" tabIndex={-1}>
+            {t("planningProgress")}
+          </h2>
           <button
             type="button"
             className="phone-trajectory__close"
             onClick={closeTeamSheet}
-            aria-label={t("closeV0", { v0: t("trajectory") })}
+            aria-label={t("closeV0", { v0: t("planningProgress") })}
           >
             <CloseIcon />
           </button>

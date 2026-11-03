@@ -37,6 +37,8 @@ export const zhWorkspace = {
   budgetBreakdown: "预算明细",
   tripBudgetSummary: "预算概览",
   openItems: "待处理",
+  openItemsToCheck: "待确认",
+  planningProgress: "规划进度",
   openItemsCount: "待处理 {count} 项",
   timeConflict: "时间冲突",
   itineraryIssue: "行程问题",

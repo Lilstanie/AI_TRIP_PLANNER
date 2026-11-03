@@ -4,10 +4,12 @@ import { useLocale } from "../../account/LocaleProvider";
 import { dayCount } from "@/lib/trip/timeline";
 import type { WorkspaceModel } from "../useWorkspace";
 
-type Snap = "handle" | "half" | "full";
-const snaps: Snap[] = ["handle", "half", "full"];
+type Snap = "handle" | "third" | "half" | "full";
+const snaps: Snap[] = ["handle", "third", "half", "full"];
+const last = snaps.length - 1;
 const names = {
   handle: "resizeDayStopsCollapsed",
+  third: "resizeDayStopsThirdHeight",
   half: "resizeDayStopsHalfHeight",
   full: "resizeDayStopsFullHeight",
 } as const;
@@ -25,9 +27,9 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
     : [];
   const stops = selectedDay === undefined ? [] : itinerary.stopsOn(selectedDay);
   const empty = stops.length === 0;
-  const snap = chosen ?? (empty ? "handle" : "half");
+  const snap = chosen ?? (empty ? "handle" : "third");
   const changeSnap = (step: number) =>
-    setSnap(snaps[Math.max(0, Math.min(2, snaps.indexOf(snap) + step))]!);
+    setSnap(snaps[Math.max(0, Math.min(last, snaps.indexOf(snap) + step))]!);
   if (!session.plan) return null;
   return (
     <section
@@ -79,7 +81,7 @@ export function PhoneMapSheet({ model }: { model: WorkspaceModel }) {
           ignoreClick.current = true;
           const delta = start.y - event.clientY;
           setSnap(
-            snaps[Math.max(0, Math.min(2, snaps.indexOf(start.snap) + (delta > 0 ? 1 : -1)))]!,
+            snaps[Math.max(0, Math.min(last, snaps.indexOf(start.snap) + (delta > 0 ? 1 : -1)))]!,
           );
         }}
         onPointerCancel={() => {
