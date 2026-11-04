@@ -255,6 +255,22 @@ press Run. On the iPhone, trust the developer under Settings → General → VPN
 The app also replaces the web tab bar with the system tab bar and shows the phone Map tab on Apple
 Maps; see the [native tab bar and Apple Maps note](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md).
 
+### macOS app
+
+`apps/macos/` is a native SwiftUI app whose `WKWebView` opens the deployed site, so it shows the
+desktop workspace and needs no web build of its own. It adds `TripPlannerMacApp` to its user agent;
+the web app does not style it yet, so it looks like the site in Safari. See the
+[Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md). On a Mac with the
+Xcode Command Line Tools:
+
+```bash
+apps/macos/scripts/build-app.sh
+```
+
+It builds `apps/macos/build/AI Trip Planner.app`, signed for this Mac only; drag it to Applications.
+Set `SIGN_IDENTITY` to a Developer ID to sign it for other Macs. To edit the Swift code in Xcode, open
+`apps/macos/Package.swift`.
+
 ## Licence and third-party code
 
 The repository is MIT licensed (see [LICENSE](../LICENSE)), and every `package.json` declares
