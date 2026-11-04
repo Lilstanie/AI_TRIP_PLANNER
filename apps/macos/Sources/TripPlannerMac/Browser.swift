@@ -4,7 +4,7 @@ import WebKit
 @MainActor
 final class Browser: NSObject, ObservableObject {
     static let home = URL(string: "https://elec5620-ai-trip-planner.vercel.app")!
-    static let appHosts: Set<String> = ["elec5620-ai-trip-planner.vercel.app", "more-puma-666.clerk.accounts.dev"]
+    static let links = LinkPolicy.bundled
     static let defaultTitle = "AI Trip Planner"
     private static let offlineErrors: Set<Int> = [
         NSURLErrorNotConnectedToInternet, NSURLErrorNetworkConnectionLost, NSURLErrorCannotFindHost,
@@ -74,17 +74,6 @@ final class Browser: NSObject, ObservableObject {
         window.backgroundColor = webView.underPageBackgroundColor
     }
 
-    static func opensInApp(_ url: URL) -> Bool {
-        switch url.scheme {
-        case "about", "blob", "data", "file":
-            return true
-        case "https":
-            return url.host.map(appHosts.contains) ?? false
-        default:
-            return false
-        }
-    }
-
     private func showOffline() {
         guard let page = Bundle.main.url(forResource: "offline", withExtension: "html") else { return }
         webView.loadFileURL(page, allowingReadAccessTo: page.deletingLastPathComponent())
@@ -102,7 +91,7 @@ extension Browser: WKNavigationDelegate {
     func webView(_ webView: WKWebView, decidePolicyFor navigationAction: WKNavigationAction) async -> WKNavigationActionPolicy {
         guard let url = navigationAction.request.url else { return .cancel }
         if navigationAction.shouldPerformDownload { return .download }
-        if Self.opensInApp(url) || navigationAction.targetFrame?.isMainFrame == false { return .allow }
+        if Self.links.opensInApp(url) || navigationAction.targetFrame?.isMainFrame == false { return .allow }
         NSWorkspace.shared.open(url)
         return .cancel
     }
@@ -137,7 +126,7 @@ extension Browser: WKUIDelegate {
         windowFeatures: WKWindowFeatures
     ) -> WKWebView? {
         guard let url = navigationAction.request.url else { return nil }
-        if Self.opensInApp(url) { webView.load(navigationAction.request) } else { NSWorkspace.shared.open(url) }
+        if Self.links.opensInApp(url) { webView.load(navigationAction.request) } else { NSWorkspace.shared.open(url) }
         return nil
     }
 

@@ -30,9 +30,16 @@ offline page and no control over which links leave the planner.
   overlay scrollbars.
 - The title bar is transparent and takes the web view's `underPageBackgroundColor`, which follows the
   page background, so it matches the light or dark page colour and a saved appearance override.
-- The deployed host and the Clerk host `more-puma-666.clerk.accounts.dev` stay in the app, with
-  `about:`, `blob:`, `data:`, `file:` and subframe loads. Every other link, including `window.open` and
-  `target="_blank"`, opens in the default browser.
+- `Resources/link-policy.json` lists what stays in the app, and `LinkPolicy.swift` reads it from the
+  bundle (the app stops at launch if it is missing). The deployed host and the Clerk host
+  `more-puma-666.clerk.accounts.dev` stay in the app, with `about:`, `blob:`, `data:`, `file:` and
+  subframe loads. Apple and GitHub sign-in stay in too, by path: `appleid.apple.com/auth/…`, and
+  `github.com/login…` and `github.com/session…`. A sign-in that left the app finished in Safari, so
+  the session cookie never reached the app. Every other link, including `window.open`,
+  `target="_blank"` and ordinary GitHub or Apple pages, opens in the default browser.
+- Google sign-in still opens in the default browser and does not sign the app in. Google's policy
+  forbids its OAuth in embedded web views, and the owner chose to leave Google out rather than load it
+  in the app or hide its button.
 - The web view needs native code for what Safari does itself: `alert`, `confirm` and `prompt` show
   `NSAlert`s (the workspace asks `confirm` before a new plan replaces the traveller's own edits), file inputs show `NSOpenPanel`
   (chat attachments, Agent Lab imports), and downloads such as `trip.ics` and replay artifacts ask
@@ -62,8 +69,14 @@ offline page and no control over which links leave the planner.
   not been compiled or launched yet. Build it on a Mac before relying on it.
 - An ad hoc signature runs only on the Mac that built it; another Mac needs a Developer ID signature
   and notarisation, or the user must allow it under System Settings → Privacy & Security.
-- Google blocks its sign-in inside embedded web views, and the app sends `accounts.google.com` to the
-  browser, so Google sign-in through Clerk will not complete in the app. Other sign-in methods are untried.
+- In the app, sign in with email and password, the admin passcode, Apple or GitHub. Google sign-in
+  completes only in the browser.
+- `apps/macos/tests/sign-in-links.e2e.mjs` drives the deployed sign-in page with the app's user agent
+  and the rules in `link-policy.json`. It checks that email and password and Sign up stay in, Apple
+  and GitHub reach their sign-in pages in the app, Google goes to the browser, and ordinary GitHub,
+  Apple and Google links do not stay in. It writes `result.json` and screenshots to
+  `output/playwright/mac-sign-in/`. It never enters credentials, so the steps after a provider's first
+  page (passwords, two-factor, the callback) are untested; they need the app on a Mac.
 - Browser emulation cannot run WKWebView or AppKit, so no E2E covers the native shell or the title bar
   tint. `apps/web/tests/e2e/mac-app-shell.e2e.mjs` checks the web layer at 1440 × 900 in light and
   dark: the marker in the server HTML, arrow cursors and unselectable labels in the sidebar and top
@@ -73,5 +86,5 @@ offline page and no control over which links leave the planner.
 
 ## Sources
 
-The owner's requests in the project thread on 2026-11-04 ("做一个 macapp 出来", then "给网页加上 Mac
-专属样式") and their choice of a native macOS shell over Mac Catalyst and Electron.
+The owner's requests in the project thread on 2026-11-04 ("做一个 macapp 出来", "给网页加上 Mac 专属样式",
+"测试一下登录") and their choice of a native macOS shell over Mac Catalyst and Electron.

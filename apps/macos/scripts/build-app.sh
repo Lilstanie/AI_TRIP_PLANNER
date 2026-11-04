@@ -17,7 +17,7 @@ rm -rf "$app"
 mkdir -p "$app/Contents/MacOS" "$app/Contents/Resources"
 cp "$binary" "$app/Contents/MacOS/TripPlannerMac"
 cp "$root/Resources/Info.plist" "$app/Contents/Info.plist"
-cp "$root/Resources/offline.html" "$root/Resources/AppIcon.png" "$app/Contents/Resources/"
+cp "$root/Resources/offline.html" "$root/Resources/AppIcon.png" "$root/Resources/link-policy.json" "$app/Contents/Resources/"
 
 iconset="$(mktemp -d)/AppIcon.iconset"
 mkdir -p "$iconset"

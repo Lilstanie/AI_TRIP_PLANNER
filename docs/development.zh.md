@@ -206,7 +206,9 @@ App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地
 网页。它会在 user agent 末尾加上 `TripPlannerMacApp`；网页据此在 `<html>` 上设置 `data-shell="mac-app"`，
 由 `app/styles/mac-app.css` 让控件使用箭头光标、标签不可选中、改用系统滚动条，并去掉整页回弹；Safari 不受
 影响。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md)。用
-`pnpm --filter @trip/web e2e mac-app-shell` 检查网页样式层。在装有 Xcode Command Line Tools 的 Mac 上：
+`pnpm --filter @trip/web e2e mac-app-shell` 检查网页样式层，用 `node apps/macos/tests/sign-in-links.e2e.mjs`
+检查哪些登录步骤留在 App 内（它会打开线上网站）。邮箱、管理员口令、Apple 和 GitHub 登录都留在 App 内（Apple 和
+GitHub 只检查到它们的登录页）；Google 登录会打开浏览器，App 本身不会因此登录。在装有 Xcode Command Line Tools 的 Mac 上：
 
 ```bash
 apps/macos/scripts/build-app.sh

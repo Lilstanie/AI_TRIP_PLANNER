@@ -262,7 +262,10 @@ desktop workspace and needs no web build of its own. It adds `TripPlannerMacApp`
 the web app then sets `data-shell="mac-app"` on `<html>`, and `app/styles/mac-app.css` gives controls
 the arrow cursor, unselectable labels, the system scrollbars and no rubber-banding. Safari is
 unchanged. See the [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md).
-Check the web layer with `pnpm --filter @trip/web e2e mac-app-shell`. On a Mac with the Xcode Command
+Check the web layer with `pnpm --filter @trip/web e2e mac-app-shell`, and which sign-in steps stay in
+the app with `node apps/macos/tests/sign-in-links.e2e.mjs` (it opens the deployed site). Email,
+passcode, Apple and GitHub sign-in stay in the app (Apple and GitHub are checked only up to their
+sign-in page); Google sign-in opens the browser and does not sign the app in. On a Mac with the Xcode Command
 Line Tools:
 
 ```bash
