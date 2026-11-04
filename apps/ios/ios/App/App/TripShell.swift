@@ -11,6 +11,7 @@ struct ShellTab {
 final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate {
     private let tabBar = UITabBar()
     private var tabIds: [String] = []
+    private var selectedIndex: Int?
     private let shell = TripShellPlugin()
     private let maps = TripMapPlugin()
 
@@ -60,14 +61,14 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
         for (index, tab) in tabs.enumerated() {
             tabBar.items?[index].badgeValue = tab.badge ? "" : nil
         }
-        if let selected, let index = ids.firstIndex(of: selected) {
-            tabBar.selectedItem = tabBar.items?[index]
-        }
+        selectedIndex = selected.flatMap { ids.firstIndex(of: $0) }
+        tabBar.selectedItem = selectedIndex.flatMap { tabBar.items?[$0] }
         tabBar.isHidden = hidden || tabs.isEmpty
         view.layoutIfNeeded()
     }
 
     func tabBar(_ tabBar: UITabBar, didSelect item: UITabBarItem) {
+        tabBar.selectedItem = selectedIndex.flatMap { tabBar.items?[$0] }
         guard tabIds.indices.contains(item.tag) else { return }
         let id = tabIds[item.tag]
         webView?.evaluateJavaScript("document.getElementById('phone-tab-\(id)')?.click()")
