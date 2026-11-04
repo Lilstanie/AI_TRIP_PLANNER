@@ -260,7 +260,7 @@ async function open({ language = "en", timezoneId = "Australia/Sydney", viewport
   });
   await page.route(/^(?!http:\/\/localhost|http:\/\/127\.0\.0\.1).*/, (route) => route.abort());
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   if ((viewport?.width ?? 1440) <= 520) {
     await page.locator(".phone-tabbar").waitFor();

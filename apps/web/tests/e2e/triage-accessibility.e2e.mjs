@@ -28,7 +28,7 @@ try {
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000", {
       waitUntil: "domcontentloaded",
     });
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     if (width === 375)
       await page.locator(".phone-tabbar").getByRole("tab", { name: /^Mine/ }).click();
     else

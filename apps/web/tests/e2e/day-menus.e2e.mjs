@@ -227,7 +227,7 @@ try {
       { catalog, savedAt },
     );
     await page.goto(BASE);
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
@@ -721,7 +721,7 @@ try {
     await waitPlan((p) => p.brief.dates[1] === "2030-10-05");
     const beforeReload = await savedPlan();
     await page.reload();
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await openTrip(true);
@@ -742,7 +742,7 @@ try {
 
     await page.evaluate(() => sessionStorage.setItem("lang", "zh"));
     await page.reload();
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await openTrip(true);

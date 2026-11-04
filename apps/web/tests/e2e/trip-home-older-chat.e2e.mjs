@@ -200,7 +200,7 @@ try {
   page.on("console", (message) => message.type() === "error" && currentErrors.push(message.text()));
   await page.route("**/api/places/**", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
   await openHome(page, /^Trip to Sydney/);
@@ -283,7 +283,7 @@ try {
   );
 
   await page.reload({ waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.waitForTimeout(1000);
   const reloaded = await stored(page);
   check(

@@ -88,7 +88,7 @@ try {
         {},
         seeded,
       );
-      await page.locator(".workspace-app").waitFor();
+      await page.locator(".workspace-app:not([aria-busy])").waitFor();
       const nav = page.locator(".sidebar-nav");
       if (collapsed) {
         await page.locator(".sidebar-toggle").click();
@@ -140,7 +140,7 @@ try {
     }
 
     const tablet = await open(browser, language, { width: 800, height: 900 });
-    await tablet.page.locator(".workspace-app").waitFor();
+    await tablet.page.locator(".workspace-app:not([aria-busy])").waitFor();
     await tablet.page.getByRole("button", { name: text.nav }).click();
     const drawer = tablet.page.locator(".workspace-drawer--nav");
     await drawer.getByRole("button", { name: new RegExp(`^${text.newChat}`) }).waitFor();

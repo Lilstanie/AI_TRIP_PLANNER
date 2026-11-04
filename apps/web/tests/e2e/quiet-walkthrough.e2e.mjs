@@ -338,7 +338,7 @@ try {
       { catalog, savedAt, zh },
     );
     await page.goto(BASE);
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.waitForLoadState("networkidle");
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
