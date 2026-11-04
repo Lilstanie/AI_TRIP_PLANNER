@@ -2,7 +2,7 @@
 date: 2026-11-05
 author: Claude Code
 branch: fix/TP-378-remove-chat-tabs
-pr: none
+pr: 974
 area: apps/web
 contract-impact: none
 ---
