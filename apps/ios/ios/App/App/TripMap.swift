@@ -61,10 +61,15 @@ final class TripLine: MKPolyline {
     var zIndex = 0
 }
 
-final class TripMapController: NSObject, MKMapViewDelegate {
+final class TripMapController: NSObject, MKMapViewDelegate, UIGestureRecognizerDelegate {
     let map = MKMapView()
     weak var plugin: TripMapPlugin?
     weak var webView: PassthroughWebView?
+    private let tap = UITapGestureRecognizer()
+    private let doubleTap = UITapGestureRecognizer()
+    private let pan = UIPanGestureRecognizer()
+    private let pinch = UIPinchGestureRecognizer()
+    private var regionMoving = false
     private var markers: [String: StopAnnotation] = [:]
     private var selected: Set<String> = []
     private var lines: [String: TripLine] = [:]
@@ -88,6 +93,60 @@ final class TripMapController: NSObject, MKMapViewDelegate {
         map.insetsLayoutMarginsFromSafeArea = false
         webView.insertSubview(map, at: 0)
         webView.mapView = map
+        tap.addTarget(self, action: #selector(tapped(_:)))
+        doubleTap.numberOfTapsRequired = 2
+        tap.require(toFail: doubleTap)
+        pan.addTarget(self, action: #selector(touched(_:)))
+        pinch.addTarget(self, action: #selector(touched(_:)))
+        for recognizer in [tap, doubleTap, pan, pinch] {
+            recognizer.delegate = self
+            recognizer.cancelsTouchesInView = false
+            recognizer.delaysTouchesEnded = false
+            map.addGestureRecognizer(recognizer)
+        }
+    }
+
+    func gestureRecognizer(
+        _ gestureRecognizer: UIGestureRecognizer,
+        shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+    ) -> Bool {
+        true
+    }
+
+    func gestureRecognizer(_ gestureRecognizer: UIGestureRecognizer, shouldReceive touch: UITouch) -> Bool {
+        guard gestureRecognizer === tap else { return true }
+        var view = touch.view
+        while let current = view, current !== map {
+            if let pin = current as? MKAnnotationView { return !pin.isEnabled }
+            view = current.superview
+        }
+        return true
+    }
+
+    @objc private func tapped(_ recognizer: UITapGestureRecognizer) {
+        guard recognizer.state == .ended else { return }
+        plugin?.notifyListeners("mapTap", data: [:])
+    }
+
+    private var touching: Bool {
+        [pan, pinch].contains { $0.state == .began || $0.state == .changed }
+    }
+
+    @objc private func touched(_ recognizer: UIGestureRecognizer) {
+        switch recognizer.state {
+        case .began where !gesture:
+            userMoved()
+            plugin?.notifyListeners("regionStart", data: ["gesture": true])
+        case .ended, .cancelled, .failed:
+            if !regionMoving && !touching { gesture = false }
+        default:
+            break
+        }
+    }
+
+    private func userMoved() {
+        gesture = true
+        lastMove = nil
     }
 
     func create(center: CLLocationCoordinate2D, zoom: Double, dark: Bool) {
@@ -322,17 +381,15 @@ final class TripMapController: NSObject, MKMapViewDelegate {
 
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
         changing = true
-        let touched = mapView.subviews.first?.gestureRecognizers?.contains {
-            $0.state == .began || $0.state == .changed
-        } ?? false
-        if touched {
-            gesture = true
-            lastMove = nil
-        }
+        regionMoving = true
+        guard !gesture else { return }
+        let touched = touching
+        if touched { userMoved() }
         plugin?.notifyListeners("regionStart", data: ["gesture": touched])
     }
 
     func mapView(_ mapView: MKMapView, regionDidChangeAnimated animated: Bool) {
+        regionMoving = false
         report()
     }
 
@@ -383,7 +440,6 @@ final class TripMapController: NSObject, MKMapViewDelegate {
     func mapView(_ mapView: MKMapView, didDeselect view: MKAnnotationView) {
         guard !applying, let stop = view.annotation as? StopAnnotation else { return }
         selected.remove(stop.id)
-        plugin?.notifyListeners("mapTap", data: [:])
     }
 
     func mapView(_ mapView: MKMapView, rendererFor overlay: MKOverlay) -> MKOverlayRenderer {

@@ -271,7 +271,48 @@ try {
       "the native map's visible area stops at a tall details panel",
       tall,
     );
+    await page.evaluate(() => window.__mapListeners["TripMap:mapTap"]?.());
+    await settle(page, 800);
+    const emptyTap = await page.evaluate(
+      (id) => ({
+        details: document.querySelectorAll(".phone-map-details").length,
+        selected: window.__mapCalls
+          .filter((call) => call.method === "setMarker" && call.id === id)
+          .at(-1)?.selected,
+      }),
+      stopId,
+    );
+    check(
+      emptyTap.details === 0 && emptyTap.selected !== true,
+      "a native tap on empty map closes the open stop and deselects its pin",
+      emptyTap,
+    );
     await shot(page, "native-tabbar-map");
+    const relayTap = (id) =>
+      page.evaluate(async (id) => {
+        const before = window.__shellCalls.length;
+        document.getElementById(`phone-tab-${id}`)?.click();
+        await new Promise((done) => setTimeout(done, 600));
+        return {
+          sent: window.__shellCalls.length - before,
+          native: window.__shellCalls.at(-1)?.selected,
+          web: document
+            .querySelector('.phone-tabbar__tab[aria-selected="true"]')
+            ?.id.replace(/^phone-tab-/, ""),
+        };
+      }, id);
+    const ignored = [await relayTap("map"), await relayTap("missing")];
+    check(
+      ignored.every((tap) => tap.sent === 0 && tap.native === "map" && tap.web === "map"),
+      "a relayed tab tap the web ignores sends no setTabs, so the native bar must keep its last tab",
+      ignored,
+    );
+    const switched = await relayTap("trip");
+    check(
+      switched.sent >= 1 && switched.native === "trip" && switched.web === "trip",
+      "a relayed tab tap that switches the web tab reports the new selection to the native bar",
+      switched,
+    );
     await context.close();
   }
 
