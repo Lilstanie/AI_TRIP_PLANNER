@@ -5,6 +5,7 @@ import type { ReactNode } from "react";
 import { IosAppBridge } from "@/components/pwa/ios-app-bridge";
 import { ServiceWorkerRegistration } from "@/components/pwa/service-worker-registration";
 import { authEnabled } from "@/lib/auth/config";
+import { SETTINGS_KEY } from "@/lib/account/settings";
 
 export const metadata: Metadata = {
   title: "AI Trip Planner",
@@ -23,12 +24,14 @@ export const viewport: Viewport = {
 };
 
 const IOS_APP_MARKER = `if (/TripPlannerIOSApp/.test(navigator.userAgent)) document.documentElement.dataset.shell = "ios-app";`;
+const SAVED_APPEARANCE = `try { const appearance = JSON.parse(localStorage.getItem(${JSON.stringify(SETTINGS_KEY)}) ?? "null")?.appearance; if (appearance === "dark" || appearance === "light") document.documentElement.dataset.theme = appearance; } catch {}`;
 
 export default function RootLayout({ children }: { children: ReactNode }) {
   return (
     <html lang="en" suppressHydrationWarning>
       <head>
         <script dangerouslySetInnerHTML={{ __html: IOS_APP_MARKER }} />
+        <script dangerouslySetInnerHTML={{ __html: SAVED_APPEARANCE }} />
       </head>
       <body>
         <ServiceWorkerRegistration />

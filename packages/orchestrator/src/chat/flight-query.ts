@@ -26,9 +26,12 @@ const EDIT_WORDS =
   /\b(?:change|swap|replace|update|move|instead|remove|cancel|rebook|make it)\b|改成|换成|改为|换一/i;
 const CHEAPEST_WORDS = /\b(?:cheapest|lowest|least expensive|best price|budget)\b|最便宜|最低价/i;
 
-const PAIR =
-  /(?:from\s+)?([A-Za-z][A-Za-z'’.\- ]{1,30}?)\s+(?:to|→)\s+([A-Za-z][A-Za-z'’.\- ]{1,30}?)(?=\s+(?:flights?|fly|on|for|in|departing|leaving|at|\d)|[,.?!]|$)/i;
-const PAIR_CN = /([\p{Script=Han}]{2,10})\s*(?:到|飞|前往)\s*([\p{Script=Han}]{2,10})/u;
+const DESTINATION = String.raw`\s+(?:to|→)\s+([A-Za-z][A-Za-z'’.\- ]{1,30}?)(?=\s+(?:flights?|fly|on|for|in|departing|leaving|at|\d)|[,.?!]|$)`;
+const PAIR_FROM = new RegExp(String.raw`\bfrom\s+([A-Za-z][A-Za-z'’.\- ]+?)${DESTINATION}`, "i");
+const PAIR = new RegExp(String.raw`\b([A-Za-z][A-Za-z'’.\- ]+?)${DESTINATION}`, "i");
+const CN_DESTINATION = String.raw`\s*(?:到|飞|前往)\s*([\p{Script=Han}]{2,10})`;
+const PAIR_CN_FROM = new RegExp(String.raw`从\s*([\p{Script=Han}]{2,}?)${CN_DESTINATION}`, "u");
+const PAIR_CN = new RegExp(String.raw`([\p{Script=Han}]{2,}?)${CN_DESTINATION}`, "u");
 
 const LEADING =
   /^(?:what(?:'s|s| is)?|which|the|a|an|any|cheap(?:est)?|lowest|best|price|prices|flights?|flying|fly|airfares?|fares?|tickets?|from|for|show|find|me|is|are|there)\s+/i;
@@ -36,7 +39,7 @@ const TRAILING =
   /\s+(?:flights?|flying|fly|airfares?|fares?|tickets?|price|prices|one[- ]way|return)$/i;
 
 const LEADING_CN =
-  /^(?:请|麻烦|帮忙|帮我|给我|我想|我要|想要|想|查询|查一下|查查|查|看一下|看看|看|搜索|搜一下|搜|找一下|找|从)/u;
+  /^(?:请|麻烦|帮忙|帮我|给我|我想|我要|想要|想|查询|查一下|查查|查|看一下|看看|看|搜索|搜一下|搜|找一下|找|从|(?:最便宜|最低价)的?)/u;
 const TRAILING_CN = /(?:的)?(?:机票|航班|飞机票|票价|价格|往返|来回|单程)$|的$/u;
 
 const TRIP_DATES = new RegExp(`${DATE_TOKEN}|${MONTH_DAY_TOKEN}`, "gi");
@@ -88,7 +91,11 @@ export function parseFlightQuery(
   if (PLANNING_WORDS.test(message) || EDIT_WORDS.test(message)) return undefined;
 
   const undated = message.replace(TRIP_DATES, ",");
-  const pair = undated.match(PAIR) ?? undated.match(PAIR_CN);
+  const pair =
+    undated.match(PAIR_FROM) ??
+    undated.match(PAIR) ??
+    undated.match(PAIR_CN_FROM) ??
+    undated.match(PAIR_CN);
   const from = city(pair?.[1]);
   const to = city(pair?.[2]);
   if (!from || !to || from.toLowerCase() === to.toLowerCase()) return undefined;

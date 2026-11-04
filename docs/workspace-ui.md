@@ -1452,7 +1452,7 @@ the account section explains that everything stays in this browser.
     no response text is matched. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
     timing notice) is stored as its key and values inside the plan's text (`storeNotice` and
     `readStoredNotice`, same file), so it is shown in the traveller's language; the English sentence in
-    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese) from the first frame, and a saved light or dark appearance is applied before the page paints. The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
     JPY has no decimals, other currencies have two. The trip's effective currency
