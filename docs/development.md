@@ -122,7 +122,8 @@ runs only when `VERCEL_ENV` is `production` and `DATABASE_URL` is set; preview b
 without a database skip it, and a failed migration fails the deploy. Vercel uses that script only when
 the project's Root Directory is `apps/web`. Any other database, such as a local or demo one, still
 needs `db:migrate` by hand; settings shows "Could not load remembered preferences" when it is
-missing the `account_memories` table from `0002_adorable_namor.sql`.
+missing the `account_memories` table from `0002_adorable_namor.sql`. Account writes and account
+deletion also need the `account_deletions` table from `0003_account_deletions.sql`.
 
 Only `main` deploys on Vercel: `apps/web/vercel.json` turns off Git deployments for every other
 branch, so a pull request gets no preview build. Previews sat behind Vercel login and were not used
@@ -633,6 +634,15 @@ legacy accommodation values, account-scoped undo and client cleanup, including c
 Its sequential transport does not establish independent-session Neon concurrency; the existing
 `accommodation-memory` fixture covers concurrent patches and undo races separately. Neither test
 establishes remote Neon or real Clerk acceptance.
+
+`LABEL=<unique-attempt> node apps/web/tests/e2e/account-deletion.e2e.mjs` runs the account delete,
+sync and settings routes through the installed Neon WebSocket and HTTP drivers against a real
+PostgreSQL it starts in a temporary directory, with Clerk replaced by a fixture module. It needs
+PostgreSQL server binaries (`initdb`, `postgres`, `pg_ctl`) on `PATH` or under
+`/usr/lib/postgresql/*/bin`; as root it runs them as the `postgres` user. It checks a sync racing the
+delete in both orders, a failing delete statement, a Clerk failure, push atomicity and the sync body
+limits, and writes `output/e2e/account-deletion/<unique-attempt>/summary.json`. Its failure list is
+`apps/web/tests/e2e/account-deletion.failures.md`.
 
 #### CLI acceptance in CI
 

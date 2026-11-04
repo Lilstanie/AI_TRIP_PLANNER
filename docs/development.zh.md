@@ -85,7 +85,7 @@ ln -s ../../.env.local apps/web/.env.local
 后，用 `pnpm --filter @trip/web db:generate` 生成迁移并提交到 `apps/web/drizzle/`。在 Vercel 上，Clerk
 和 Neon 的 Marketplace 集成会注入相同名称的变量。
 
-Vercel 的生产构建会在 `next build` 之前执行待运行的迁移（`apps/web/package.json` 里的 `vercel-build`），所以合并的迁移会随部署进入生产数据库。只有 `VERCEL_ENV` 是 `production` 且设置了 `DATABASE_URL` 时才执行；预览构建和没有数据库的构建会跳过，迁移失败会让部署失败。只有项目的 Root Directory 是 `apps/web` 时 Vercel 才会用这个脚本。其他数据库（本地或演示用的）仍要手动跑 `db:migrate`；缺少 `0002_adorable_namor.sql` 里的 `account_memories` 表时，设置里会显示“Could not load remembered preferences”。
+Vercel 的生产构建会在 `next build` 之前执行待运行的迁移（`apps/web/package.json` 里的 `vercel-build`），所以合并的迁移会随部署进入生产数据库。只有 `VERCEL_ENV` 是 `production` 且设置了 `DATABASE_URL` 时才执行；预览构建和没有数据库的构建会跳过，迁移失败会让部署失败。只有项目的 Root Directory 是 `apps/web` 时 Vercel 才会用这个脚本。其他数据库（本地或演示用的）仍要手动跑 `db:migrate`；缺少 `0002_adorable_namor.sql` 里的 `account_memories` 表时，设置里会显示“Could not load remembered preferences”。账号写入和账号删除还需要 `0003_account_deletions.sql` 里的 `account_deletions` 表。
 
 只有 `main` 会在 Vercel 上部署：`apps/web/vercel.json` 关掉了其他分支的 Git 部署，所以 PR 不再有预览构建。预览有 Vercel 登录保护，没人用来做检查，却每次推送都消耗部署额度；2026-11-01 额度用完一次，2026-11-02 又用完两次，合并的修复迟迟上不了线。线上行为在合并后到官网验证。
 
@@ -430,6 +430,13 @@ WebSocket 客户端和 Drizzle session 测试账号记忆写入；现有读取�
 检查覆盖提交、回滚、旧版住宿偏好值、账号级撤销和客户端清理，包括连接失败。
 这套串行传输不代表独立 Neon 会话之间的并发验证；已有 `accommodation-memory` 固定数据
 测试另行覆盖并发更新及撤销竞争。这两类测试都不能代替远程 Neon 或真实 Clerk 验收。
+
+`LABEL=<unique-attempt> node apps/web/tests/e2e/account-deletion.e2e.mjs` 通过已安装的 Neon WebSocket 和
+HTTP 驱动运行账号删除、同步和设置路由，后端是它在临时目录中启动的真实 PostgreSQL，Clerk 由固定模块替代。
+它需要 `PATH` 上或 `/usr/lib/postgresql/*/bin` 下的 PostgreSQL 服务端程序（`initdb`、`postgres`、`pg_ctl`）；
+以 root 运行时，它以 `postgres` 用户启动这些程序。检查覆盖两种顺序下与删除竞争的同步、失败的删除语句、
+Clerk 失败、推送原子性和同步请求体上限，结果写入 `output/e2e/account-deletion/<unique-attempt>/summary.json`。
+失败清单见 `apps/web/tests/e2e/account-deletion.failures.md`。
 
 <a id="cli-acceptance-in-ci"></a>
 

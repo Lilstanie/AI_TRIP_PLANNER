@@ -17,11 +17,42 @@ export type SyncedRecord = z.infer<typeof SyncedRecord>;
 
 export const MAX_RECORD_CHARS = 2_000_000;
 
+export const MAX_SYNC_RECORDS = 500;
+
 export const SyncPush = z.object({
-  trips: z.array(SyncedRecord).max(500),
-  conversations: z.array(SyncedRecord).max(500),
+  trips: z.array(SyncedRecord).max(MAX_SYNC_RECORDS),
+  conversations: z.array(SyncedRecord).max(MAX_SYNC_RECORDS),
 });
 export type SyncPush = z.infer<typeof SyncPush>;
+
+export const MAX_SYNC_BODY_BYTES = 6_200_000;
+
+const encoder = new TextEncoder();
+const byteLength = (value: unknown) => encoder.encode(JSON.stringify(value)).length;
+
+export function syncBatches(push: SyncPush): SyncPush[] {
+  const empty = (): SyncPush => ({ trips: [], conversations: [] });
+  const envelope = byteLength(empty());
+  const batches: SyncPush[] = [];
+  let batch = empty();
+  let size = envelope;
+  for (const kind of ["trips", "conversations"] as const)
+    for (const item of push[kind]) {
+      const itemSize = byteLength(item) + 1;
+      if (
+        (batch.trips.length || batch.conversations.length) &&
+        (size + itemSize > MAX_SYNC_BODY_BYTES || batch[kind].length >= MAX_SYNC_RECORDS)
+      ) {
+        batches.push(batch);
+        batch = empty();
+        size = envelope;
+      }
+      batch[kind].push(item);
+      size += itemSize;
+    }
+  if (batch.trips.length || batch.conversations.length) batches.push(batch);
+  return batches;
+}
 export type SyncPull = SyncPush;
 
 export const SyncResult = z.object({ accepted: SyncPush, conflicts: SyncPush });
