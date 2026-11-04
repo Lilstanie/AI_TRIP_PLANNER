@@ -23,6 +23,7 @@ import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { plural, summaryCopy } from "../summary-copy";
 import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
+import { lookupPlaces } from "../place-lookup";
 
 const DAY_MS = 86_400_000;
 const DINING_BUDGET_SHARE = 0.2;
@@ -236,15 +237,21 @@ async function planDining(
   const allPreferences = await ctx.mem.getLongTerm(brief.userId);
   ctx.signal?.throwIfAborted();
   const preferences = dietaryPreferencesForBrief(brief, allPreferences);
-  const candidatePlaces = await ctx.tools.maps.places({
-    near: brief.destination,
-    category: "restaurant",
-    ...(preferences.length
-      ? {
-          textQuery: `restaurant in ${brief.destination}; dietary requirements: ${preferences.map(({ value }) => value).join("; ")}`,
-        }
-      : {}),
-  });
+  const placeIssues: string[] = [];
+  const candidatePlaces = await lookupPlaces(
+    ctx,
+    "dining",
+    {
+      near: brief.destination,
+      category: "restaurant",
+      ...(preferences.length
+        ? {
+            textQuery: `restaurant in ${brief.destination}; dietary requirements: ${preferences.map(({ value }) => value).join("; ")}`,
+          }
+        : {}),
+    },
+    placeIssues,
+  );
   ctx.signal?.throwIfAborted();
   const places = dedupeEntries(candidatePlaces);
   const dailyBudgetPerPerson = mealRate(brief, days, revision, allocation);
@@ -297,6 +304,7 @@ async function planDining(
     ],
     assumptions: [
       "The priced item is a budget envelope, not a reservation or a sum of the unpriced venue candidates.",
+      ...placeIssues,
       "Venue data comes only from the injected MapsPort; menus, dietary suitability and availability require direct confirmation.",
       ...(preferences.length
         ? [
@@ -306,20 +314,27 @@ async function planDining(
       ...draft.assumptions,
     ],
     conflictsWith: [],
-    source: usedFallback
+    source: placeIssues.length
       ? {
-          kind: "fallback",
-          label: "Local fallback",
+          kind: "unavailable",
+          label: "Maps provider",
           freshness:
-            "The model dining draft was unavailable or invalid; deterministic meal guidance was used from the gathered venue evidence.",
+            "The restaurant lookup failed, so no venue was suggested; only the meal budget is shown.",
         }
-      : {
-          kind: !mockEnabled() ? "estimated" : "mock",
-          label: "Maps evidence and AI dining plan",
-          freshness: !mockEnabled()
-            ? "Venue details are provider estimates; menus, dietary suitability and availability require direct confirmation."
-            : "Venue details come from deterministic mock fixtures; not live verified.",
-        },
+      : usedFallback
+        ? {
+            kind: "fallback",
+            label: "Local fallback",
+            freshness:
+              "The model dining draft was unavailable or invalid; deterministic meal guidance was used from the gathered venue evidence.",
+          }
+        : {
+            kind: !mockEnabled() ? "estimated" : "mock",
+            label: "Maps evidence and AI dining plan",
+            freshness: !mockEnabled()
+              ? "Venue details are provider estimates; menus, dietary suitability and availability require direct confirmation."
+              : "Venue details come from deterministic mock fixtures; not live verified.",
+          },
   };
 }
 

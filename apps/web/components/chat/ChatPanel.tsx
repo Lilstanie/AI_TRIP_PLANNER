@@ -14,7 +14,7 @@ import type { PendingAsk, QuestionAnswer, QuestionProgress } from "@/lib/workspa
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 import type { Notice } from "@/lib/i18n/notice";
 import { useLocale } from "../account/LocaleProvider";
-import { ChatViewTabs, type ChatView } from "./ChatViewTabs";
+import type { ChatView } from "@/lib/workspace/layout";
 import { composerPlaceholders, PLACEHOLDER_ROTATE_MS } from "@/lib/chat/composer-placeholders";
 
 export function ChatPanel({
@@ -32,7 +32,6 @@ export function ChatPanel({
   onOpenDay,
   onEdit,
   phone = false,
-  showTabs = true,
   blankUntouched = false,
   facts,
   conversationId,
@@ -68,8 +67,6 @@ export function ChatPanel({
   onEdit: () => void;
 
   phone?: boolean;
-
-  showTabs?: boolean;
 
   blankUntouched?: boolean;
 
@@ -230,17 +227,12 @@ export function ChatPanel({
 
   return (
     <section className={`panel chat${hero ? " chat--hero" : ""}`} aria-label={t("chat")}>
-      {showTabs && !phone && <ChatViewTabs view={view} onChoose={choose} />}
       <div
         className="chat__stream"
         id="chat-panel-conversation"
         ref={stream}
         hidden={showTrajectory}
-        {...(phone
-          ? {}
-          : showTabs
-            ? { role: "tabpanel", "aria-labelledby": "chat-tab-conversation" }
-            : { role: "region", "aria-label": t("conversation") })}
+        {...(phone ? {} : { role: "region", "aria-label": t("conversation") })}
         aria-busy={busy}
         onScroll={(event) => {
           lastTop.current = event.currentTarget.scrollTop;
@@ -275,9 +267,8 @@ export function ChatPanel({
         <div
           className="chat__trajectory"
           id="chat-panel-trajectory"
-          role={showTabs ? "tabpanel" : "region"}
-          aria-labelledby={showTabs ? "chat-tab-trajectory" : undefined}
-          aria-label={showTabs ? undefined : t("trajectory")}
+          role="region"
+          aria-label={t("trajectory")}
         >
           <TrajectoryTab
             key={conversationId}
