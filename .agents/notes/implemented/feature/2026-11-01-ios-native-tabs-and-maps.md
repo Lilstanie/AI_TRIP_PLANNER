@@ -66,7 +66,8 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   this change keeps the web tab bar and map; Safari and the PWA never see either.
 - The Swift code compiled on the owner's Mac with no warnings and the app launched in the iOS
   Simulator; the native tab bar and Apple Maps still need a check against the deployed site. The map
-  tap, pan and pinch recognisers and the tab bar's restored selection still need an Xcode build.
+  tap, pan and pinch recognisers and the tab bar's restored selection build in Xcode on the owner's
+  Mac; they have not been tried on a device.
 - A web panel missing from the reported list lets touches through to the map; add its selector to
   `OCCLUDERS` in `apple-maps-renderer.ts`.
 - Satellite view works on Apple Maps; the animated route dashes are Google-only.
