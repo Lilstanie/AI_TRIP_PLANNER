@@ -11,10 +11,18 @@ TP-165 (2026-10-30) deleted 136 raw scripts that failed on `main`, guarded one o
 repeated a kept journey, together with their failure notes and unused fixtures. Their old entries are
 gone from this page; restore a script from Git history only with a reason it is needed again.
 
-`trajectory-tab` fails on `main` `ec70e0d` (2026-10-30, TP-167) with
-`pnpm --filter @trip/web e2e trajectory-tab`: after 59 passing checks at `en-1440`, the reload step
-reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` waiting for three
-`.msg-item--agent` messages.
+`trajectory-tab`, `trajectory-demo` and `summary-jump` open Trajectory from the sidebar entry since
+TP-377 (2026-11-05); before that they stopped at their first step, waiting for the removed
+Conversation/Trajectory chat tabs. Run against a mock-data dev server with
+`node apps/web/tests/e2e/<name>.e2e.mjs`, they still fail on turn content that no longer matches the
+planner after TP-373 (#962):
+
+- `trajectory-tab`: 48 checks pass; the turn checks expect results done, done, failed and a kept
+  revision, and get done, failed, failed with "revision discarded".
+- `trajectory-demo`: 13 checks pass; step 5 "only that specialist's records show" sees
+  `["dining","transport dining"]`.
+- `summary-jump`: 9 checks pass; only 2 of 3 replies have a summary button, so the third-turn step
+  times out.
 
 `accommodation-memory` fails on `main` `bc9daa1` (2026-11-04) with
 `node apps/web/tests/e2e/accommodation-memory.e2e.mjs`: the chat route calls Next.js `after()` while
