@@ -71,11 +71,11 @@ offline page and no control over which links leave the planner.
   and notarisation, or the user must allow it under System Settings → Privacy & Security.
 - In the app, sign in with email and password, the admin passcode, Apple or GitHub. Google sign-in
   completes only in the browser.
-- `apps/macos/tests/sign-in-links.e2e.mjs` drives the deployed sign-in page with the app's user agent
-  and the rules in `link-policy.json`. It checks that email and password and Sign up stay in, Apple
+- `apps/web/tests/app-shells/sign-in-links.e2e.mjs` drives the deployed sign-in page with the app's user agent
+  and the rules in `link-policy.json`, and the iOS app with the rules in `capacitor.config.json`. It checks that email and password and Sign up stay in, Apple
   and GitHub reach their sign-in pages in the app, Google goes to the browser, and ordinary GitHub,
   Apple and Google links do not stay in. It writes `result.json` and screenshots to
-  `output/playwright/mac-sign-in/`. It never enters credentials, so the steps after a provider's first
+  `output/playwright/app-sign-in/`. It never enters credentials, so the steps after a provider's first
   page (passwords, two-factor, the callback) are untested; they need the app on a Mac.
 - Browser emulation cannot run WKWebView or AppKit, so no E2E covers the native shell or the title bar
   tint. `apps/web/tests/e2e/mac-app-shell.e2e.mjs` checks the web layer at 1440 × 900 in light and

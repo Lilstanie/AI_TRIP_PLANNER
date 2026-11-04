@@ -14,6 +14,7 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
     private var selectedIndex: Int?
     private let shell = TripShellPlugin()
     private let maps = TripMapPlugin()
+    private let links = TripLinksPlugin()
 
     var tabBarHeight: CGFloat {
         tabBar.isHidden ? 0 : tabBar.frame.height
@@ -26,6 +27,7 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
     override func capacitorDidLoad() {
         shell.controller = self
         bridge?.registerPluginInstance(shell)
+        bridge?.registerPluginInstance(links)
         if let webView = webView as? PassthroughWebView {
             let controller = TripMapController(webView: webView)
             controller.plugin = maps
@@ -109,5 +111,21 @@ public class TripShellPlugin: CAPPlugin, CAPBridgedPlugin {
             controller.apply(tabs: tabs, selected: selected, hidden: hidden)
             call.resolve(["height": controller.tabBarHeight])
         }
+    }
+}
+
+public class TripLinksPlugin: CAPPlugin, CAPBridgedPlugin {
+    public let identifier = "TripLinksPlugin"
+    public let jsName = "TripLinks"
+    public let pluginMethods: [CAPPluginMethod] = []
+
+    private lazy var signInPaths: [String: [String]] =
+        (getConfig().getObject("signInPaths") ?? [:]).compactMapValues { $0 as? [String] }
+
+    override public func shouldOverrideLoad(_ navigationAction: WKNavigationAction) -> NSNumber? {
+        guard let url = navigationAction.request.url, url.scheme == "https", let host = url.host,
+              let prefixes = signInPaths[host], prefixes.contains(where: { url.path.hasPrefix($0) })
+        else { return nil }
+        return false
     }
 }

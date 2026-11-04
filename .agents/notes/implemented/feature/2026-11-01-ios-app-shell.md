@@ -25,7 +25,12 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
   a form is submitted. It does nothing outside the app, and a native change needs a new Xcode build.
 - Links to other hosts open in Safari, Capacitor's default outside `server.url`. The exception is the
   Clerk host `more-puma-666.clerk.accounts.dev` in `server.allowNavigation`: production redirects the
-  first request there, and without it the app opened Safari on launch.
+  first request there, and without it the app opened Safari on launch. Apple and GitHub sign-in also
+  stay in the app: the `TripLinks` plugin in `TripShell.swift` allows the paths listed under
+  `plugins.TripLinks.signInPaths` in `capacitor.config.json` (`appleid.apple.com/auth/…`,
+  `github.com/login…`, `github.com/session…`), the same paths the
+  [macOS app](2026-11-04-macos-app-shell.md) keeps in. `allowNavigation` matches whole hosts, so it
+  would also keep ordinary GitHub and Apple pages in the app.
 - The app appends `TripPlannerIOSApp` to its user agent. An inline script in `app/layout.tsx` sets
   `data-shell="ios-app"` on `<html>` before first paint when it sees that marker, and
   `app/styles/ios-app.css` styles only that state. Safari, the PWA and desktop never get the attribute.
@@ -62,8 +67,11 @@ reachable through Safari's Share menu, and an Xcode project is the only way to i
 
 - Web changes reach the app only after a production deploy, and the app breaks whenever production does.
 - A free Apple ID signature expires after seven days, and the bundle id must be unique to that team.
-- Production signs in with Clerk. The sign-in page opens in the app; Google blocks its sign-in inside
-  embedded web views, so Google sign-in will need to open in Safari. Not yet tried.
+- Production signs in with Clerk. Email and password, the admin passcode, Apple and GitHub sign in
+  inside the app. Google forbids its sign-in in embedded web views, so it opens in Safari and does not
+  sign the app in. Before the `TripLinks` plugin, Apple and GitHub also opened in Safari.
+  `apps/web/tests/app-shells/sign-in-links.e2e.mjs` checks this against the deployed site for both
+  app shells; it never enters credentials, so later provider steps need a check on an iPhone.
 - Browser emulation cannot show real safe areas, keyboard or backdrop rendering in WebKit; check those
   on the iOS Simulator or an iPhone.
 - `apps/web/tests/e2e/ios-app-shell.e2e.mjs` checks the marker, 16 px fields, glass tab bar and
