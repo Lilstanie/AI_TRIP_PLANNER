@@ -2,7 +2,7 @@
 date: 2026-11-04
 author: Claude Code
 branch: fix/unsearchable-stay
-pr: none
+pr: 962 (Jira TP-373)
 area: packages/agents, packages/shared, packages/orchestrator, apps/web, docs
 contract-impact: packages/shared
 ---
