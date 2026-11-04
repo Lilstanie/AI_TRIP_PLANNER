@@ -16,15 +16,17 @@ gone from this page; restore a script from Git history only with a reason it is 
 reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` waiting for three
 `.msg-item--agent` messages.
 
-`ui-language` fails on `main` `a184575` (2026-10-31) with `pnpm --filter @trip/web e2e ui-language`:
-it times out waiting for a "Conversation" tab that the workspace no longer shows.
-
 `accommodation-memory` fails on `main` `bc9daa1` (2026-11-04) with
 `node apps/web/tests/e2e/accommodation-memory.e2e.mjs`: the chat route calls Next.js `after()` while
 the script invokes it outside a request scope, so the process throws
 "`after` was called outside a request scope" before the memory checks run.
 
 ## Covered regressions
+
+- `ui-language` on `main` `a184575` (2026-10-31) timed out waiting for a "Conversation" tab (and its
+  Chinese "对话") that the workspace no longer shows. It now waits for the real workspace's sidebar
+  New chat entry in the expected language, and passes all 11 checks with
+  `node apps/web/tests/e2e/ui-language.e2e.mjs` against a mock-data dev server (2026-11-04).
 
 - `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on
   `getByText("No matching chats.", { exact: true })`, which matched both the sr-only chat-search
