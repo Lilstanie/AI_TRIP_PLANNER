@@ -85,8 +85,11 @@ The reference files are generic web guidance. Where one of them gives a value or
 ## Verify
 
 Walk the keyboard path in the running app. Read names and roles with the browser's accessibility
-tree (`read_page`). Then follow the [ui-verification skill](../ui-verification/SKILL.md) for the
-widths and evidence. List every check you could not run as `Not verified`.
+tree (`read_page`). Run `node apps/web/tests/e2e/axe-scan.e2e.mjs` against a running mock-data server:
+it walks the screen tour at desktop and phone width in light and dark and fails on any critical or
+serious axe violation, keeping every violation in `output/playwright/axe-scan/<LABEL>/`. Then follow the
+[ui-verification skill](../ui-verification/SKILL.md) for the widths and evidence. List every check you
+could not run as `Not verified`.
 
 ## Reporting
 

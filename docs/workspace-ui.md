@@ -768,8 +768,8 @@ and travellers, because the trip fact chips above it already show them; the open
 itinerary menu sit at the right of the budget row without covering its figures
 (`pnpm --filter @trip/web e2e trip-panel-head`).
 A count badge at the top of the Trip panel lists open items (on a phone it is a full-width row, the
-count plus "To check", and the page's only orange mark: "N unpriced", "needs a place" and "Not found
-on the map" are grey there, and a stop sheet for an unfound place shows that grey line with its
+count plus "To check", and the page's only orange mark: "N unpriced", "needs a place", "Not found
+on the map" and the travel-time notes under a day or stop are grey there, and a stop sheet for an unfound place shows that grey line with its
 place search instead of an orange hint): scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
