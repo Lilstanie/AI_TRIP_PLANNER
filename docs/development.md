@@ -252,8 +252,33 @@ pnpm --filter @trip/ios open
 In Xcode, choose the App target, set Signing & Capabilities to your Apple ID team, pick the iPhone and
 press Run. On the iPhone, trust the developer under Settings → General → VPN & Device Management.
 
+In the app, email, passcode, Apple and GitHub sign-in stay in the web view (the `TripLinks` plugin);
+Google sign-in opens Safari and does not sign the app in. After changing `capacitor.config.json`, run
+`pnpm --filter @trip/ios sync` again.
+
 The app also replaces the web tab bar with the system tab bar and shows the phone Map tab on Apple
 Maps; see the [native tab bar and Apple Maps note](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md).
+
+### macOS app
+
+`apps/macos/` is a native SwiftUI app whose `WKWebView` opens the deployed site, so it shows the
+desktop workspace and needs no web build of its own. It adds `TripPlannerMacApp` to its user agent;
+the web app then sets `data-shell="mac-app"` on `<html>`, and `app/styles/mac-app.css` gives controls
+the arrow cursor, unselectable labels, the system scrollbars and no rubber-banding. Safari is
+unchanged. See the [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md).
+Check the web layer with `pnpm --filter @trip/web e2e mac-app-shell`, and which sign-in steps stay in
+the Mac and iOS apps with `node apps/web/tests/app-shells/sign-in-links.e2e.mjs` (it opens the deployed site). Email,
+passcode, Apple and GitHub sign-in stay in the app (Apple and GitHub are checked only up to their
+sign-in page); Google sign-in opens the browser and does not sign the app in. On a Mac with the Xcode Command
+Line Tools:
+
+```bash
+apps/macos/scripts/build-app.sh
+```
+
+It builds `apps/macos/build/AI Trip Planner.app`, signed for this Mac only; drag it to Applications.
+Set `SIGN_IDENTITY` to a Developer ID to sign it for other Macs. To edit the Swift code in Xcode, open
+`apps/macos/Package.swift`.
 
 ## Licence and third-party code
 

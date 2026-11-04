@@ -1,0 +1,7 @@
+{
+  "appHosts": ["elec5620-ai-trip-planner.vercel.app", "more-puma-666.clerk.accounts.dev"],
+  "signInPaths": {
+    "appleid.apple.com": ["/auth/"],
+    "github.com": ["/login", "/session"]
+  }
+}

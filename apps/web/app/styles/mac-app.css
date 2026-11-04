@@ -1,0 +1,39 @@
+html[data-shell="mac-app"],
+html[data-shell="mac-app"] body {
+  overscroll-behavior: none;
+}
+
+html[data-shell="mac-app"]
+  :is(
+    button,
+    summary,
+    select,
+    label,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="option"],
+    [role="switch"],
+    [role="checkbox"]
+  ) {
+  cursor: default;
+}
+
+html[data-shell="mac-app"]
+  :is(
+    button,
+    summary,
+    [role="button"],
+    [role="tab"],
+    [role="menuitem"],
+    [role="menuitemradio"],
+    [role="option"]
+  ) {
+  -webkit-user-select: none;
+  user-select: none;
+}
+
+html[data-shell="mac-app"] :is(img, svg) {
+  -webkit-user-drag: none;
+}

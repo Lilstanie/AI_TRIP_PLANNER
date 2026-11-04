@@ -11,5 +11,13 @@
   "ios": {
     "contentInset": "never",
     "limitsNavigationsToAppBoundDomains": false
+  },
+  "plugins": {
+    "TripLinks": {
+      "signInPaths": {
+        "appleid.apple.com": ["/auth/"],
+        "github.com": ["/login", "/session"]
+      }
+    }
   }
 }

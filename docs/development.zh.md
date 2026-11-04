@@ -195,8 +195,31 @@ pnpm --filter @trip/ios open
 在 Xcode 里选中 App target，在 Signing & Capabilities 里选你的 Apple ID 团队，选择 iPhone 后点 Run。
 然后在 iPhone 的 设置 → 通用 → VPN 与设备管理 里信任这个开发者。
 
+在 App 内，邮箱、管理员口令、Apple 和 GitHub 登录都留在网页视图中（由 `TripLinks` 插件处理）；Google 登录会
+打开 Safari，App 本身不会因此登录。修改 `capacitor.config.json` 后，需要重新运行 `pnpm --filter @trip/ios sync`。
+
 App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地图；见
 [原生标签栏与 Apple 地图说明](../.agents/notes/implemented/feature/2026-11-01-ios-native-tabs-and-maps.md)。
+
+<a id="macos-app"></a>
+
+### macOS 应用
+
+`apps/macos/` 是一个原生 SwiftUI App，用 `WKWebView` 打开线上网站，因此显示桌面工作区，也不需要单独构建
+网页。它会在 user agent 末尾加上 `TripPlannerMacApp`；网页据此在 `<html>` 上设置 `data-shell="mac-app"`，
+由 `app/styles/mac-app.css` 让控件使用箭头光标、标签不可选中、改用系统滚动条，并去掉整页回弹；Safari 不受
+影响。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md)。用
+`pnpm --filter @trip/web e2e mac-app-shell` 检查网页样式层，用 `node apps/web/tests/app-shells/sign-in-links.e2e.mjs`
+检查 Mac 和 iOS App 中哪些登录步骤留在 App 内（它会打开线上网站）。邮箱、管理员口令、Apple 和 GitHub 登录都留在 App 内（Apple 和
+GitHub 只检查到它们的登录页）；Google 登录会打开浏览器，App 本身不会因此登录。在装有 Xcode Command Line Tools 的 Mac 上：
+
+```bash
+apps/macos/scripts/build-app.sh
+```
+
+它会生成 `apps/macos/build/AI Trip Planner.app`，签名只在本机有效，拖进“应用程序”即可。把
+`SIGN_IDENTITY` 设为 Developer ID 证书即可签名给其他 Mac 使用。要在 Xcode 里改 Swift 代码，打开
+`apps/macos/Package.swift`。
 
 <a id="licence-and-third-party-code"></a>
 
