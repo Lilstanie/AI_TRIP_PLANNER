@@ -94,7 +94,7 @@ const openPage = async (viewport = { width: 1440, height: 1000 }) => {
     return route.abort();
   });
   await page.goto(proxyUrl, { waitUntil: "domcontentloaded", timeout: WAIT });
-  await page.locator(".workspace-app").waitFor({ timeout: WAIT });
+  await page.locator(".workspace-app:not([aria-busy])").waitFor({ timeout: WAIT });
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   if (viewport.width <= 520) {
     await page.locator(".workspace-app[data-phone]").waitFor({ timeout: WAIT });
@@ -550,7 +550,7 @@ try {
   );
   await assertLatestPlan(conflictJourney.page, "conflict completion keeps visible P2");
   await conflictJourney.page.reload({ waitUntil: "domcontentloaded" });
-  await conflictJourney.page.locator(".workspace-app").waitFor({ timeout: WAIT });
+  await conflictJourney.page.locator(".workspace-app:not([aria-busy])").waitFor({ timeout: WAIT });
   await conflictJourney.page.addStyleTag({
     content: "nextjs-portal { display: none !important; }",
   });

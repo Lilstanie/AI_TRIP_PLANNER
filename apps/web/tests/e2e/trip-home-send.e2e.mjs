@@ -867,7 +867,7 @@ try {
       return route.abort();
     });
     await page.goto(proxyUrl, { waitUntil: "domcontentloaded" });
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     const label = labels[profile.language];
     if (profile.primary) await runPrimary(page, label);

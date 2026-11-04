@@ -279,7 +279,7 @@ async function openTrip(browser, { name, width, height, language }) {
     return route.fulfill({ response, json: body });
   });
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   const copy = COPY[language];
   if (phone) {
     await page.locator(".phone-tabbar").getByRole("tab", { name: copy.mine }).click();

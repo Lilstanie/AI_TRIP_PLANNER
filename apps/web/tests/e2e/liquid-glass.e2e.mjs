@@ -78,7 +78,7 @@ async function open(browser, { width, height, scheme, video }) {
 
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
 
   const live = page.getByRole("button", { name: /Live data/ });

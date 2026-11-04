@@ -195,7 +195,7 @@ const open = async (config, theme, { seed = false } = {}) => {
     else await route.fulfill({ json: { places: [] } });
   });
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   return { context, page, errors };
 };

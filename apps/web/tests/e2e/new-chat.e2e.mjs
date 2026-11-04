@@ -125,7 +125,7 @@ const openPage = async ({
     return route.abort();
   });
   await page.goto(proxyUrl, { waitUntil: "domcontentloaded", timeout: WAIT });
-  await page.locator(".workspace-app").waitFor({ timeout: WAIT });
+  await page.locator(".workspace-app:not([aria-busy])").waitFor({ timeout: WAIT });
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   return { context, page };
 };

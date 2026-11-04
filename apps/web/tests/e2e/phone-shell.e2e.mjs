@@ -36,7 +36,7 @@ async function open(browser, { width, height }, { touch = true } = {}) {
 
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.waitForLoadState("networkidle");
 
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });

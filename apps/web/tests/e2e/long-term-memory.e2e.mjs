@@ -289,7 +289,7 @@ try {
       { key: SETTINGS_KEY, enabled, defaults: defaultSettings() },
     );
     await page.reload();
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
   }
   await toggleMemory(false);
   const disabled = await send("I can eat spicy food now");
