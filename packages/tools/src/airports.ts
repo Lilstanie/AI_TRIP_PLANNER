@@ -224,17 +224,34 @@ for (const [city, names] of Object.entries(CHINESE_NAMES)) {
 
 const PASSTHROUGH = /^[A-Z]{3}$|^\/[mg]\//;
 
-export function airportCodeFor(city: string): string | undefined {
-  const trimmed = city.trim();
-  if (PASSTHROUGH.test(trimmed)) return trimmed;
-
-  const key = trimmed
+function tableCode(city: string): string | undefined {
+  const key = city
     .toLowerCase()
     .replace(/[.,'’]/g, "")
     .replace(/[-_]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
   return AIRPORTS[key] ?? AIRPORTS[key.replace(/(?<=\p{Script=Han})市$/u, "")];
+}
+
+export function airportCodeFor(city: string): string | undefined {
+  const trimmed = city.trim();
+  if (PASSTHROUGH.test(trimmed)) return trimmed;
+  return tableCode(trimmed);
+}
+
+/**
+ * Returns the longest trailing part of `text`, at least two characters long, that names a city in
+ * the airport table, or `undefined` when no trailing part does. It cuts at any character, so callers
+ * use it only on text without word boundaries, such as Han script.
+ */
+export function knownCitySuffix(text: string): string | undefined {
+  const trimmed = text.trim();
+  for (let start = 0; start <= trimmed.length - 2; start += 1) {
+    const suffix = trimmed.slice(start);
+    if (tableCode(suffix)) return suffix;
+  }
+  return undefined;
 }
 
 export const knownAirportCities = () => Object.keys(AIRPORTS).sort();

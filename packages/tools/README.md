@@ -19,7 +19,7 @@ data mode), B (maps and routes), C (booking and SerpApi), D (weather).
 | `google-places.ts`    | Shared Google Places `searchText` request                                                |
 | `booking.ts`          | Internal direct-adapter compatibility surface; not exported from the package entry point |
 | `serpapi.ts`          | SerpApi Google Hotels and Google Flights with a shared monthly quota and cache           |
-| `airports.ts`         | City to IATA code lookup for flight searches                                             |
+| `airports.ts`         | City to IATA code lookup for flight searches; exports `knownCitySuffix()`                |
 | `weather-port.ts`     | Deep Weather port selecting fixture, Google Weather, Open-Meteo forecast or archive      |
 | `weather.ts`          | Internal direct-adapter compatibility surface; not exported from the package entry point |
 | `mock-server.mjs`     | Optional stub HTTP server (`pnpm mock-server`); the app never calls it                   |
@@ -55,7 +55,8 @@ weather path.
 - Deep ports use the request-scoped mode captured in `ToolRuntimeConfig`; internal direct
   compatibility adapters obtain the same mode through `snapshotToolRuntime()`. Provider code never
   reads `process.env.USE_MOCK_TOOLS` directly ([data mode note](../../.agents/notes/implemented/feature/2026-09-21-request-scoped-data-mode.md)).
-- The production package entry point exports only `createToolGateway()` and request-mode helpers.
+- The production package entry point exports only `createToolGateway()`, request-mode helpers and
+  `knownCitySuffix()`, the read-only airport-table lookup the flight query parser uses.
   The compile-time and runtime boundary check in `tests/public-boundary.test.ts` rejects raw Maps,
   Booking and Weather namespace exports. Production specialists get provider evidence from `ctx.tools`;
   their remaining `mockEnabled()` reads label presentation-only fallback facts.
