@@ -337,7 +337,6 @@ export const enWorkspace = {
   editMessage: "Edit message",
   resend: "Resend",
   trajectory: "Trajectory",
-  chatView: "Chat view",
   countWorking: "{count} working",
   idle: "Idle",
   working: "Working",

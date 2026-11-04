@@ -34,9 +34,8 @@ import {
   type BackgroundTurn,
   type MobileView,
 } from "./workspace-helpers";
-import type { ChatView } from "../chat/ChatViewTabs";
 import { useWorkspaceLayout } from "./useWorkspaceLayout";
-import { isTripAction } from "@/lib/workspace/layout";
+import { isTripAction, type ChatView } from "@/lib/workspace/layout";
 import {
   idleSession,
   session as nextSession,
