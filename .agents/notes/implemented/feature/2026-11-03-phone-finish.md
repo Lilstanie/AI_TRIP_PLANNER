@@ -28,7 +28,8 @@ Phone only (`.workspace-app[data-phone]`, `html[data-shell="ios-app"]` or `max-w
   through collapsed, one third, half and full. Stop rows are one card with hairline separators.
 - The Trip home composer is one row: add, text, send.
 - The open-items badge is a full-width row (count plus "To check") and the only orange mark on the
-  Trip tab; unpriced, needs-a-place and not-found labels are grey.
+  Trip tab; unpriced, needs-a-place and not-found labels and the travel-time notes under a day or stop
+  are grey.
 - `KeyedNotice` (`lib/i18n/notice.ts`) folds every copy key without placeholders into one member.
   One member per key made any union that held a `Notice` too large: one more key failed `tsc` with
   TS2590 at `components/trip/plan-revision.ts:209`. With the fold, 40 extra placeholder keys still

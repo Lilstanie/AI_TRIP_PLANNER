@@ -768,8 +768,8 @@ and travellers, because the trip fact chips above it already show them; the open
 itinerary menu sit at the right of the budget row without covering its figures
 (`pnpm --filter @trip/web e2e trip-panel-head`).
 A count badge at the top of the Trip panel lists open items (on a phone it is a full-width row, the
-count plus "To check", and the page's only orange mark: "N unpriced", "needs a place" and "Not found
-on the map" are grey there, and a stop sheet for an unfound place shows that grey line with its
+count plus "To check", and the page's only orange mark: "N unpriced", "needs a place", "Not found
+on the map" and the travel-time notes under a day or stop are grey there, and a stop sheet for an unfound place shows that grey line with its
 place search instead of an orange hint): scheduled overlaps,
 unlocated stops and failed place lookups, plus any itinerary issue from an edit that names no stop
 (listed as plain text under Itinerary issue, because there is no stop to select). It is absent when
@@ -1452,7 +1452,7 @@ the account section explains that everything stays in this browser.
     no response text is matched. Edit preview differences arrive as values, not sentences. A notice kept on the plan (a leg or
     timing notice) is stored as its key and values inside the plan's text (`storeNotice` and
     `readStoredNotice`, same file), so it is shown in the traveller's language; the English sentence in
-    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese). The desktop sidebar and main content have an 8 px gutter.
+    the plan's `conflictsWith` is written for the chat and is not shown. With no saved choice it follows the browser language (`zh*` opens in Chinese) from the first frame, and a saved light or dark appearance is applied before the page paints. The desktop sidebar and main content have an 8 px gutter.
     Every workspace amount goes through the Money module (`apps/web/lib/money.ts`, read through
     `useLocale()`) and the shared approximate rate table. Converted displays carry its as-of date;
     JPY has no decimals, other currencies have two. The trip's effective currency

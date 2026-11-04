@@ -38,6 +38,9 @@ button.day-strip__day[aria-selected="true"] {
   border-color: var(--accent);
   background: var(--accent-bg);
 }
+button.day-strip__day[aria-selected="true"] :is(.day-strip__date, .day-strip__meta) {
+  color: color-mix(in srgb, var(--text-dim), var(--text) 25%);
+}
 .day-strip__title {
   font-size: var(--font-size-body);
   font-weight: 600;
@@ -82,7 +85,7 @@ button.day-strip__day[aria-selected="true"] {
   gap: var(--space-1);
   min-height: 44px;
   padding: 0 var(--space-2);
-  color: var(--accent);
+  color: color-mix(in srgb, var(--accent), var(--text) 15%);
   font-size: var(--font-size-meta);
   font-weight: 600;
 }

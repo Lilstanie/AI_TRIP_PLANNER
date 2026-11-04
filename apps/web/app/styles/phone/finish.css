@@ -40,6 +40,10 @@
 .workspace-app[data-phone] .timeline-tag--warn {
   background: var(--fill-hover) !important;
 }
+.workspace-app[data-phone] :is(.timeline-day__conflicts, .timeline-stop__conflicts) li {
+  background: var(--fill-hover);
+  color: var(--text-dim);
+}
 
 .workspace-app[data-phone] dialog.phone-trajectory,
 .workspace-app[data-phone] .phone-trajectory > .trajectory-tab {

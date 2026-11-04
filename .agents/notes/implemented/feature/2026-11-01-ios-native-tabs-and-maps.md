@@ -17,7 +17,9 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   present. Haptics and the keyboard hook use it too; they were silent before.
 - `TripShell.swift` replaces the root view controller. Its `TripShell.setTabs` plugin receives the web
   tabs (id, label, badge dot, selected, hidden) from a mutation observer in `ios-app-bridge.tsx` and
-  shows them in a `UITabBar`. A tap on a native tab clicks the matching web tab. The web tab bar stays
+  shows them in a `UITabBar`. A tap on a native tab clicks the matching web tab and puts the bar's
+  selection back; only the web's next `setTabs` moves it. The web sends `setTabs` only when its tabs
+  change, so a tap the web ignores leaves the bar on the web's tab. The web tab bar stays
   in the page as an invisible spacer of the native bar's height, so layout and tab state stay web.
 - The workspace Map tab on the phone uses a third map renderer, `apple-maps-renderer.ts`, behind the
   same `MapsSDK` seam as Google Maps and MapLibre. It sends the camera, stop pins (number, day colour,
@@ -33,7 +35,12 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
 - Native events come back as the Google-style events `TripMap` already listens to: `dragstart`,
   `zoom_changed`, `center_changed`, `idle` and `click`, and a pin tap fires the web marker's `gmp-click`.
   Only a touch gesture fires `zoom_changed` and `center_changed`, so layout moves never count as the
-  traveller's own.
+  traveller's own. The map's own pan and pinch recognisers, recognising alongside MapKit's, tell a
+  touch apart from a programmatic move; MapKit's private subviews are never read.
+- `click` comes from a single-tap recogniser on the `MKMapView` that ignores touches on an enabled
+  annotation view and waits for a double tap to fail, so a tap on empty map closes the open stop
+  whether or not MapKit had a pin selected, and a double-tap zoom does not. Deselecting a pin sends
+  nothing, so a tap from one pin to another only opens the second.
 - The renderer's camera state updates only from native region reports, so it can lag behind a fit made
   while the map was hidden. It drops a camera field that matches that state, so re-centring on the
   current centre after a resize never replaces a pending fit.
@@ -58,13 +65,16 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
 - The native parts need a new Xcode build and the web parts a production deploy. An app built before
   this change keeps the web tab bar and map; Safari and the PWA never see either.
 - The Swift code compiled on the owner's Mac with no warnings and the app launched in the iOS
-  Simulator; the native tab bar and Apple Maps still need a check against the deployed site.
+  Simulator; the native tab bar and Apple Maps still need a check against the deployed site. The map
+  tap, pan and pinch recognisers and the tab bar's restored selection build in Xcode on the owner's
+  Mac; they have not been tried on a device.
 - A web panel missing from the reported list lets touches through to the map; add its selector to
   `OCCLUDERS` in `apple-maps-renderer.ts`.
 - Satellite view works on Apple Maps; the animated route dashes are Google-only.
 - `apps/web/tests/e2e/ios-app-shell.e2e.mjs` checks the bridge with a fake native plugin: tab mirroring,
-  relayed taps, the Map tab's frame, pins and routes, a cleared backdrop, and a pin tap opening the
-  stop. Browser emulation cannot show MapKit.
+  relayed taps, the Map tab's frame, pins and routes, a cleared backdrop, a pin tap opening the stop,
+  a map tap closing it, and which relayed tab taps report a new selection. Browser emulation cannot
+  show MapKit or run the Swift recognisers.
 
 ## Sources
 

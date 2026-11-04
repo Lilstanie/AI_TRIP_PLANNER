@@ -47,6 +47,7 @@
     "@types/node": "^22.10.2",
     "@types/react": "^19.0.2",
     "@types/react-dom": "^19.0.2",
+    "axe-core": "4.13.0",
     "dotenv-cli": "^11.0.0",
     "drizzle-kit": "^0.31.11",
     "eslint": "^9.17.0",

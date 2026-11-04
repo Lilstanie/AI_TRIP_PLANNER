@@ -39,3 +39,8 @@ export const accountMemories = pgTable(
   },
   (table) => [primaryKey({ columns: [table.userId, table.key] })],
 );
+
+export const accountDeletions = pgTable("account_deletions", {
+  userId: text("user_id").primaryKey(),
+  requestedAt: timestamp("requested_at", { withTimezone: true }).notNull(),
+});

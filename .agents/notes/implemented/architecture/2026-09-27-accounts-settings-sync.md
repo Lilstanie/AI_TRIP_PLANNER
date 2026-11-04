@@ -29,7 +29,9 @@ cannot provision.
   `DATABASE_URL` is set and created lazily by `getDb()`. Migrations are generated SQL under
   `apps/web/drizzle/`. Tables: `user_settings` (one row per Clerk user id, settings as JSONB), and
   `trips` and `conversations` (primary key user id and record id, the catalog record as JSONB,
-  `updated_at`, `deleted_at` as a tombstone). There is no users table: Clerk owns identity.
+  `updated_at`, `deleted_at` as a tombstone), plus `account_deletions`, which marks deleted accounts
+  ([why](../bug-fix/2026-11-04-account-deletion-tombstone.md)). There is no users table: Clerk owns
+  identity.
 - **Routes** (`app/api/account/`): settings `GET`/`PUT`, sync `GET`/`POST`, export `GET` and account
   `DELETE`. Each resolves the user with `accountUser()` and filters every query by that id. Writes
   are last-write-wins in SQL (`ON CONFLICT … WHERE excluded.updated_at > updated_at`).
@@ -52,11 +54,13 @@ cannot provision.
 
 Failure modes, each with a defined outcome: missing Clerk keys → local mode; Clerk without
 `DATABASE_URL` → 503 on account routes, data stays local; no session → 401, sync stops, local data
-kept; invalid or oversized body → 400, nothing written; another user's record id → never visible,
+kept; invalid body → 400, nothing written; missing or oversized `Content-Length` → 411 or 413 before the
+body is read; another user's record id → never visible,
 every query is scoped; network or database failure → changes stay pending and go with the next
 push; concurrent edits on two devices → the newer record wins whole; deletion against a later edit
 → the later one wins; client clock skew → accepted for one person's devices; account deletion →
-rows first, then Clerk, 502 if Clerk fails; sign-out → this browser's copy stays.
+rows in one transaction under a per-account lock, then Clerk, 500 with nothing deleted if the
+transaction fails, 502 if Clerk fails; sign-out → this browser's copy stays.
 
 ## Alternatives considered
 

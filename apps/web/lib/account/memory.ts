@@ -1,11 +1,11 @@
 import { randomUUID } from "node:crypto";
 import { eq, and } from "drizzle-orm";
-import type { UserPreference } from "@trip/shared";
+import type { ChatTurn, UserPreference } from "@trip/shared";
 import { memory as ephemeralMemory } from "@trip/services";
 import { getDb, dbEnabled } from "../db/client";
-import { withMemoryTransaction } from "../db/memory-transaction";
 import { accountMemories } from "../db/schema";
 import { mergeAccommodationMemory } from "./accommodation-memory.mjs";
+import { AccountDeletedError, withAccountWrite } from "./deletion";
 
 const REMEMBERABLE_KEYS = new Set([
   "dietary",
@@ -42,7 +42,7 @@ export async function rememberAccountPreference(
 ) {
   if (!userId || !dbEnabled() || !REMEMBERABLE_KEYS.has(key)) return undefined;
   signal?.throwIfAborted();
-  return withMemoryTransaction(async (tx) => {
+  return withAccountWrite(userId, async (tx) => {
     signal?.throwIfAborted();
     const inserted = await tx
       .insert(accountMemories)
@@ -79,6 +79,9 @@ export async function rememberAccountPreference(
       action: inserted.length > 0 ? ("remembered" as const) : ("updated" as const),
       value: storedValue,
     };
+  }).catch((error: unknown) => {
+    if (error instanceof AccountDeletedError) return undefined;
+    throw error;
   });
 }
 
@@ -120,10 +123,14 @@ export async function undoAccountMemory(userId: string, token: string) {
   return affected.length > 0;
 }
 
+const shortTermScope = (userId: string | undefined, tripId: string) =>
+  userId ? `account:${userId}:${tripId}` : tripId;
+
 export function accountMemoryStore(userId?: string, enabled = true) {
   return {
-    getShortTerm: ephemeralMemory.getShortTerm.bind(ephemeralMemory),
-    appendShortTerm: ephemeralMemory.appendShortTerm.bind(ephemeralMemory),
+    getShortTerm: (tripId: string) => ephemeralMemory.getShortTerm(shortTermScope(userId, tripId)),
+    appendShortTerm: (tripId: string, turn: ChatTurn) =>
+      ephemeralMemory.appendShortTerm(shortTermScope(userId, tripId), turn),
     getLongTerm: async () => {
       if (!enabled) return [];
       try {

@@ -11,6 +11,16 @@ function cents(amount: number): number {
   return value;
 }
 
+const wholeCents = (amount: number) => Math.round(amount * 100 * 1e6) / 1e6;
+
+export function floorMoney(amount: number): number {
+  return Math.floor(wholeCents(amount)) / 100;
+}
+
+export function ceilMoney(amount: number): number {
+  return Math.ceil(wholeCents(amount)) / 100;
+}
+
 export function sumMoney(amounts: number[]): number {
   const total = amounts.reduce((sum, amount) => sum + cents(amount), 0);
   if (!Number.isSafeInteger(total)) throw new Error("AUD total exceeds supported precision.");

@@ -367,7 +367,7 @@ export function TripHomeCalendar({
               const day = tripDay(plan, time);
               const entry = day === undefined ? undefined : days[day - 1];
               return (
-                <section className="trip-home-calendar__week-day" role="listitem" key={time}>
+                <div className="trip-home-calendar__week-day" role="listitem" key={time}>
                   <span className="trip-home-calendar__weekday">
                     {weekdays.format(new Date(time))}
                   </span>
@@ -395,7 +395,7 @@ export function TripHomeCalendar({
                   ) : (
                     <span className="trip-home-calendar__outside" aria-hidden="true" />
                   )}
-                </section>
+                </div>
               );
             })}
           </div>
