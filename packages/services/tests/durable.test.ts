@@ -2,7 +2,7 @@ import { afterEach, describe, expect, it, vi } from "vitest";
 import { createServer } from "node:http";
 import type { ChatTurn, UserPreference } from "@trip/shared";
 import { createJsonStore } from "../src/durable";
-import { memory } from "../src/memory";
+import { memory, SHORT_TERM_TTL_SECONDS } from "../src/memory";
 
 describe("durable JSON store", () => {
   afterEach(() => {
@@ -142,5 +142,33 @@ describe("durable JSON store", () => {
     expect(turns).toHaveLength(20);
     expect(turns[0].content).toBe("第 280 轮规划 🧭");
     expect(turns.at(-1)?.content).toBe("第 299 轮规划 🧭");
+  });
+});
+
+describe("short-term chat memory", () => {
+  afterEach(() => {
+    vi.unstubAllEnvs();
+    vi.unstubAllGlobals();
+  });
+
+  it("expires a trip's turns instead of keeping them forever", async () => {
+    vi.stubEnv("KV_REST_API_URL", "https://redis.example");
+    vi.stubEnv("KV_REST_API_TOKEN", "test-token");
+    const commands: string[][] = [];
+    vi.stubGlobal(
+      "fetch",
+      vi.fn(async (_input: URL | string, init?: RequestInit) => {
+        commands.push(JSON.parse(String(init?.body)));
+        return new Response(JSON.stringify({ result: null }), { status: 200 });
+      }),
+    );
+    await memory.appendShortTerm("ttl-trip", {
+      role: "user",
+      content: "Plan Hobart",
+      at: new Date().toISOString(),
+    });
+    const set = commands.find((command) => command[0] === "set");
+    expect(set?.slice(-2)).toEqual(["EX", String(SHORT_TERM_TTL_SECONDS)]);
+    expect(SHORT_TERM_TTL_SECONDS).toBeGreaterThanOrEqual(7 * 24 * 60 * 60);
   });
 });
