@@ -13,6 +13,7 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
     private var tabIds: [String] = []
     private let shell = TripShellPlugin()
     private let maps = TripMapPlugin()
+    private var loading: NSKeyValueObservation?
 
     var tabBarHeight: CGFloat {
         tabBar.isHidden ? 0 : tabBar.frame.height
@@ -31,6 +32,15 @@ final class TripBridgeViewController: CAPBridgeViewController, UITabBarDelegate 
             maps.controller = controller
             bridge?.registerPluginInstance(maps)
         }
+        loading = webView?.observe(\.isLoading, options: [.new]) { [weak self] webView, _ in
+            guard webView.isLoading else { return }
+            DispatchQueue.main.async { self?.resetNativeChrome() }
+        }
+    }
+
+    private func resetNativeChrome() {
+        maps.controller?.destroy()
+        apply(tabs: [], selected: nil, hidden: true)
     }
 
     override func viewDidLoad() {
