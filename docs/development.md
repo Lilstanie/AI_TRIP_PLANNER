@@ -353,11 +353,12 @@ Prove the check fires: run it on the old code and quote the red output in the pu
 Evidence section. When no machine check can catch the bug class (model wording, map timing), say
 why in the pull request. Current rules:
 
-| Rule                                     | Where                         | Bug it locks                                  |
-| ---------------------------------------- | ----------------------------- | --------------------------------------------- |
-| No `toFixed(2)` for amounts              | `apps/web/.eslintrc.json`     | Hand-formatted money                          |
-| No `window.confirm`, `alert` or `prompt` | `apps/web/.eslintrc.json`     | False edit dialog on chat follow-ups (TP-257) |
-| `settlePlan` names the write             | `apps/web/lib/trip/settle.ts` | Background writes counted as edits (TP-247)   |
+| Rule                                     | Where                                               | Bug it locks                                  |
+| ---------------------------------------- | --------------------------------------------------- | --------------------------------------------- |
+| No `toFixed(2)` for amounts              | `apps/web/.eslintrc.json`                           | Hand-formatted money                          |
+| No `window.confirm`, `alert` or `prompt` | `apps/web/.eslintrc.json`                           | False edit dialog on chat follow-ups (TP-257) |
+| `settlePlan` names the write             | `apps/web/lib/trip/settle.ts`                       | Background writes counted as edits (TP-247)   |
+| E2E waits skip the loading skeleton      | `apps/web/tests/e2e-sources/workspace-wait.test.ts` | Checks run against the skeleton (TP-371)      |
 
 ## Verification
 
