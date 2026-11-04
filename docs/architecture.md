@@ -605,8 +605,11 @@ preserving planning. Agent Lab keeps its fixed benchmark preferences. See the
 Toll quotes in foreign currencies are labelled and excluded from the AUD estimate; unavailable quotes
 are not described as free. Each package's exports and configuration are in its own `README.md`.
 
-The `@trip/tools` package entry point exposes the zero-argument gateway factory and request-mode
-helpers, but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for
+The `@trip/tools` package entry point exposes the zero-argument gateway factory, request-mode
+helpers and `knownCitySuffix()`, a read-only airport-table lookup the flight query parser uses to find
+a Chinese city after a lead-in
+([city table note](../.agents/notes/implemented/architecture/2026-11-04-flight-query-city-table.md)),
+but not raw Maps, Booking or Weather adapters. Production specialists use `ctx.tools` for
 provider evidence; their remaining request-mode reads only label presentation-only fallback facts.
 The [provider-selection decision](../.agents/notes/implemented/architecture/2026-10-03-deep-provider-selection.md)
 records this boundary and its deliberately unchanged shared contracts.

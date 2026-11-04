@@ -210,6 +210,7 @@ export function useWorkspaceTransport({
                     ...(assistant ? { assistant } : {}),
                     interfaceLanguage,
                     displayCurrency,
+                    timeZone: Intl.DateTimeFormat().resolvedOptions().timeZone,
                   }),
                   signal,
                 }),

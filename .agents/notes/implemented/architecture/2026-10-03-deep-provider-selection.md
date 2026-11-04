@@ -16,9 +16,10 @@ Keep the shared `ToolGateway`, `MapsPort`, `BookingPort` and `WeatherPort` inter
 `createToolGateway()` snapshots the request-scoped data mode and provider configuration once per
 planning run, then composes three deep port modules. Each port module selects its concrete mock or
 live adapters and owns any cross-adapter fallback; the top-level gateway only assembles them.
-The package entry point exports the gateway and data-mode helpers, not raw maps, booking or weather
-adapters. Internal adapter files remain available to package tests through internal paths. A runtime
-and compile-time boundary test guards the public entry point.
+The package entry point exports the gateway, data-mode helpers and the read-only `knownCitySuffix()`
+airport-table lookup, not raw maps, booking or weather adapters. Internal adapter files remain
+available to package tests through internal paths. A runtime and compile-time boundary test guards
+the public entry point.
 
 The public factory remains `createToolGateway()` with no arguments. An internal factory accepts a
 normalised runtime configuration plus injectable network and clock dependencies for gateway-level

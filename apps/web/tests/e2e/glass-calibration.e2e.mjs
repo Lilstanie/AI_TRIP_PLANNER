@@ -138,7 +138,7 @@ try {
         }
       });
       await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-      await page.locator(".workspace-app").waitFor();
+      await page.locator(".workspace-app:not([aria-busy])").waitFor();
       const tag = `${width}-${scheme}`;
       page.__scheme = scheme;
       const phone = width < 521;

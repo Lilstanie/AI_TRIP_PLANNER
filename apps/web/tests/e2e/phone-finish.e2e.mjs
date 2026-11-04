@@ -47,7 +47,7 @@ async function open(browser, { width, height, language, motion = false }) {
   page.on("pageerror", (error) => errors.push(String(error)));
   await page.route("**/api/places/search", (route) => route.fulfill({ json: { places: [] } }));
   await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.waitForLoadState("networkidle");
   await startExamplePlan(page);

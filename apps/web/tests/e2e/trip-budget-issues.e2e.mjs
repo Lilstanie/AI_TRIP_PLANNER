@@ -331,7 +331,7 @@ try {
     { seed: catalog, userSettings: settings },
   );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.getByRole("button", { name: /^Chats/ }).click();
   const history = page.locator('.history-item__open[title="Sydney budget issues fixture"]');
   await history.waitFor();
@@ -507,7 +507,7 @@ try {
     { seed: catalog, userSettings: { ...settings, language: "zh" } },
   );
   await zhPage.goto(BASE, { waitUntil: "domcontentloaded" });
-  await zhPage.locator(".workspace-app").waitFor();
+  await zhPage.locator(".workspace-app:not([aria-busy])").waitFor();
   await zhPage.getByRole("button", { name: /^聊天/ }).click();
   await zhPage.locator('.history-item__open[title="Sydney budget issues fixture"]').click();
   const localizedOpenTrip = zhPage.getByRole("button", { name: "打开你的行程", exact: true });
@@ -581,7 +581,7 @@ try {
     { seed: catalog, userSettings: settings },
   );
   await phonePage.goto(BASE, { waitUntil: "domcontentloaded" });
-  await phonePage.locator(".workspace-app").waitFor();
+  await phonePage.locator(".workspace-app:not([aria-busy])").waitFor();
   await phonePage.getByRole("tab", { name: "Mine", exact: true }).click();
   await phonePage.locator('.history-item__open[title="Sydney budget issues fixture"]').click();
   await phonePage.getByRole("tab", { name: /^Trip/ }).click();
