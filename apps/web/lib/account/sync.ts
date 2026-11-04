@@ -25,16 +25,11 @@ export const SyncPush = z.object({
 });
 export type SyncPush = z.infer<typeof SyncPush>;
 
-/** Largest `POST /api/account/sync` body in UTF-8 bytes; it fits one record at the record limit. */
 export const MAX_SYNC_BODY_BYTES = 6_200_000;
 
 const encoder = new TextEncoder();
 const byteLength = (value: unknown) => encoder.encode(JSON.stringify(value)).length;
 
-/**
- * Splits a push into bodies of at most `MAX_SYNC_BODY_BYTES` and `MAX_SYNC_RECORDS` per kind,
- * keeping each kind's order. Returns no batch for an empty push.
- */
 export function syncBatches(push: SyncPush): SyncPush[] {
   const empty = (): SyncPush => ({ trips: [], conversations: [] });
   const envelope = byteLength(empty());

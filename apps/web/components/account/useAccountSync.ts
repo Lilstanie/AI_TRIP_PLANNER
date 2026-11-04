@@ -49,11 +49,6 @@ async function pushBatch(changes: SyncPush) {
   return SyncResult.parse(await response.json());
 }
 
-/**
- * Pushes changes in size-limited batches, one after another.
- * @throws when the first batch fails; a later failure returns the batches already accepted with
- * `complete: false`, so their acknowledgements are not lost.
- */
 async function push(changes: SyncPush) {
   const result: SyncResult & { complete: boolean } = {
     accepted: { trips: [], conversations: [] },
