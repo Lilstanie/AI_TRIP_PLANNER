@@ -24,3 +24,7 @@ Added 2026-11-03 for the leftovers (TP-354), from the final simulator pass:
 - A two-city day's weather note fills five lines above the stops.
 - A Mine trip row cuts its dates ("2 – 8 Jan 2027 · 7 …") or its title.
 - The weather line no longer opens to the whole note, or the stop sheet loses its place search.
+
+Added 2026-11-04, from a `MOCK_PLACES=multi` run whose days have tight legs:
+
+- A day's travel-time note ("Getting from … takes about 35 min …") stays orange on the Trip tab.
