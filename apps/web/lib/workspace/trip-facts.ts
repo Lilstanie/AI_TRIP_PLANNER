@@ -201,7 +201,7 @@ function whoLabel(draft: Draft, travellers: number, locale: AppLocale) {
     return count > 0
       ? locale === "zh"
         ? `${count} ${translate(locale, label)}`
-        : `${count} ${count === 1 ? singular : `${singular}s`}`
+        : `${count} ${count === 1 ? singular : label}`
       : undefined;
   }).filter((part): part is string => !!part);
   return parts.length ? parts.join(", ") : plain;

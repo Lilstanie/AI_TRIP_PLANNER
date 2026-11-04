@@ -153,7 +153,7 @@ export function extractBriefPatchLocally(message: string, knownGroupSize?: numbe
     /从\s*([\p{Script=Han}A-Za-z][\p{Script=Han}A-Za-z&·\- ]*?)(?=\s*(?:出发|飞|到|去|前往|，|,|。|$))/u,
   );
   const leadingDestination = message.match(
-    /^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.-]+?)(?:\s+from\s+([A-Za-z][A-Za-z &.-]+?))?\s*[,，]\s*\d{4}-\d{2}-\d{2}/i,
+    /^\s*(?:plan\s+)?([A-Za-z][A-Za-z &.-]+?)(?:\s+from\s+([A-Za-z][A-Za-z &.-]+?))?(?:\s*[,，]\s*|\s+)(?:from\s+)?\d{4}-\d{2}-\d{2}/i,
   );
   const origin = cleanDestination(
     fromTo?.[1] ?? departing?.[1] ?? chineseOrigin?.[1] ?? leadingDestination?.[2] ?? "",
