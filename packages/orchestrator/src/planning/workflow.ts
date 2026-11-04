@@ -31,7 +31,7 @@ import {
 } from "@trip/shared";
 import { createToolGateway } from "@trip/tools";
 import { z } from "zod/v4";
-import { assessBudget, costOf, rollUpCost } from "./budget";
+import { assessBudget, costOf, floorMoney, rollUpCost } from "./budget";
 import { detectConflicts, isInfeasible } from "./conflicts";
 export { detectConflicts } from "./conflicts";
 
@@ -418,7 +418,7 @@ export function createOrchestratorGraph(options: OrchestratorOptions = {}) {
         ...(saving !== undefined && previous
           ? {
               allocation: {
-                budget: Math.max(0, Math.floor((cost - saving) * 100) / 100),
+                budget: Math.max(0, floorMoney(cost - saving)),
                 basis: `${formatMoney(cost, currencyFor(state.brief))} last round, less the ${formatMoney(saving, currencyFor(state.brief))} this section must save for the plan to fit the budget`,
               },
             }
