@@ -24,3 +24,6 @@ origin is decided by the length cap rather than by the word that introduces it.
 - A Chinese lead-in that is not a known lead word and has no `从` ("你好洛杉矶到东京") still glues onto
   the origin, because Han text has no word boundary to cut at. This is a known limitation, not
   covered by the fix.
+- A polite 你 or 您 inside a Chinese lead-in without `从` ("麻烦你帮我看一下洛杉矶到东京",
+  "您帮我查一下洛杉矶到东京") stays in the origin ("你帮我看一下洛杉矶"), so the provider is asked for a city
+  that does not exist; 你 and 您 are lead words, not the start of a city.

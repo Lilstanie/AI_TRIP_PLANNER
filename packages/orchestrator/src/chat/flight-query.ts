@@ -39,7 +39,7 @@ const TRAILING =
   /\s+(?:flights?|flying|fly|airfares?|fares?|tickets?|price|prices|one[- ]way|return)$/i;
 
 const LEADING_CN =
-  /^(?:请|麻烦|帮忙|帮我|给我|我想|我要|想要|想|查询|查一下|查查|查|看一下|看看|看|搜索|搜一下|搜|找一下|找|从|(?:最便宜|最低价)的?)/u;
+  /^(?:请|麻烦|你|您|帮忙|帮我|给我|我想|我要|想要|想|查询|查一下|查查|查|看一下|看看|看|搜索|搜一下|搜|找一下|找|从|(?:最便宜|最低价)的?)/u;
 const TRAILING_CN = /(?:的)?(?:机票|航班|飞机票|票价|价格|往返|来回|单程)$|的$/u;
 
 const TRIP_DATES = new RegExp(`${DATE_TOKEN}|${MONTH_DAY_TOKEN}`, "gi");

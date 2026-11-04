@@ -138,6 +138,19 @@ describe("parseFlightQuery", () => {
       });
   });
 
+  it("strips a polite 你 or 您 from a Chinese lead-in without 从", () => {
+    for (const message of [
+      "麻烦你帮我看一下洛杉矶到东京的航班 12月3日",
+      "您帮我查一下洛杉矶到东京的机票 12月3日",
+      "请您查一下洛杉矶飞东京的航班 12月3日",
+    ])
+      expect(parseFlightQuery(message, today), message).toMatchObject({
+        from: "洛杉矶",
+        to: "东京",
+        depart: "2026-12-03",
+      });
+  });
+
   it("still declines long lead-ins that are not a dated flight question", () => {
     for (const message of [
       "Plan a trip from Los Angeles to Tokyo on Nov 4 with the cheapest flight",
