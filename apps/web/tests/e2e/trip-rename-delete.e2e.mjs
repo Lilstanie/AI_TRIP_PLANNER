@@ -92,7 +92,8 @@ try {
   const composer = page.getByRole("textbox", { name: "Message AI Trip Planner" });
   await composer.fill("Change the budget to AUD 6000");
   await composer.press("Enter");
-  await page.waitForFunction(() => !document.querySelector(".composer__input")?.disabled, null, {
+  await page.waitForFunction(() => document.querySelector(".composer__input")?.readOnly);
+  await page.waitForFunction(() => !document.querySelector(".composer__input")?.readOnly, null, {
     timeout: 120_000,
   });
   await settle(page, 1500);

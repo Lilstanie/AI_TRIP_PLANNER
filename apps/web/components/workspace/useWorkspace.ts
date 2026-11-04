@@ -5,7 +5,7 @@ import { useWorkspaceTransport } from "./useWorkspaceTransport";
 import { useTripDay } from "../trip/useTripDay";
 import { savedBrowsing, rememberBrowsing, validSelectedStop } from "@/lib/workspace/browsing";
 import { useTripPlaces } from "../map/useTripPlaces";
-import { effectiveCurrency, type TripPlan } from "@trip/shared";
+import type { TripPlan } from "@trip/shared";
 import type { RouteResult } from "@/lib/integrations/google";
 import type { QuestionProgress } from "@/lib/workspace/ask-user";
 import { blankDraft, type Draft, type Message } from "@/lib/workspace";
@@ -15,11 +15,9 @@ import {
   movedConversation,
   relinkConversation,
   reusableBlankConversation,
-  conversationTitle,
   latestSnapshot,
   tripConversations,
   upsertCurrent,
-  searchCatalog,
   updateCatalog,
   upsertConversationDraft,
   type ConversationRecord,
@@ -27,7 +25,8 @@ import {
   type TripRecord,
   type WorkspaceCatalog,
 } from "@/lib/workspace/catalog";
-import { distinctTripTitles, tripMeta, tripName } from "@/lib/workspace/trip-identity";
+import { tripName } from "@/lib/workspace/trip-identity";
+import { historyLists } from "@/lib/workspace/history";
 import {
   PLAN_CONFLICT,
   planChanged,
@@ -57,7 +56,6 @@ import type { SettingsSection } from "../account/SettingsDialog";
 import { useComposerAttachments } from "./useComposerAttachments";
 import { firstFactWithError, firstMissingFact, type FactKey } from "@/lib/workspace/trip-facts";
 import { translate } from "@/lib/i18n/locale";
-import { moneyDisplay } from "@/lib/money";
 import { destinationCities } from "@/lib/map/place-query";
 import type { PreparedAttachment } from "@/lib/chat/attachments";
 
@@ -467,34 +465,18 @@ export function useWorkspace({ restored }: { restored: RestoredWorkspace }) {
       onReject: (fields) => openPreferences(firstFactWithError(fields) ?? "preferences"),
     });
 
-  const tripTitles = distinctTripTitles(catalog.trips, (item) => tripName(item, t));
-  const filteredHistory = searchCatalog(catalog, historyQuery, (item) => [
-    tripTitles.get(item.id)!,
-    tripMeta(item, locale, settings.displayCurrency, t),
-  ]);
-  const historyChats = filteredHistory.conversations.map((item) => {
-    const trip = item.tripId && catalog.trips.find((record) => record.id === item.tripId);
-    return {
-      id: item.id,
-      title: conversationTitle(item, locale),
-      subtitle: trip ? tripTitles.get(trip.id) : undefined,
-      active: item.id === catalog.activeConversationId,
-      untouched: !item.renamed && isUntouchedConversation(item, defaults),
-    };
+  const { chats: historyChats, trips: historyTrips } = historyLists({
+    catalog,
+    query: historyQuery,
+    locale,
+    displayCurrency: settings.displayCurrency,
+    defaults,
+    blank,
+    t,
   });
   const activeTrip = blank
     ? undefined
     : catalog.trips.find((item) => item.id === catalog.activeTripId);
-  const historyTrips = filteredHistory.trips.map((item) => ({
-    id: item.id,
-    title: tripTitles.get(item.id)!,
-    destination: item.snapshot.plan.brief.destination,
-    subtitle: `${item.snapshot.plan.brief.dates.join(" – ")} · ${moneyDisplay({
-      currency: effectiveCurrency(item.snapshot.plan.brief, settings.displayCurrency),
-      locale,
-    }).money(item.snapshot.plan.estTotal)}`,
-    active: !blank && item.id === catalog.activeTripId,
-  }));
   function loadConversation(id: string) {
     const savedCatalog = flushSave();
     const conversation = savedCatalog.conversations.find((item) => item.id === id);
