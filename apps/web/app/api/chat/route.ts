@@ -104,7 +104,7 @@ export async function POST(req: Request) {
   };
   const turn = (async () => {
     try {
-      const flightQuery = parseFlightQuery(parsed.data.message);
+      const flightQuery = parseFlightQuery(parsed.data.message, new Date(), parsed.data.timeZone);
       if (flightQuery) {
         const answer = await runWithDataMode(dataMode, () =>
           answerFlightQuery(flightQuery, createToolGateway().booking),

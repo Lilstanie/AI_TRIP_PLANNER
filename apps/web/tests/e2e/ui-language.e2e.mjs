@@ -58,7 +58,10 @@ try {
   await zhPage.screenshot({ path: `${out}/desktop-zh-browser-default.png`, fullPage: true });
   await switchLanguage(zhPage, "en");
   await zhPage.reload();
-  await zhPage.getByRole("tab", { name: "Conversation", exact: true }).waitFor();
+  await zhPage
+    .locator(".workspace-app:not([aria-busy]) .sidebar-nav")
+    .getByRole("button", { name: /^New chat/ })
+    .waitFor();
   check((await htmlLang(zhPage)) === "en-AU", "saved English overrides a zh-CN browser");
   await zhContext.close();
   const context = await browser.newContext({
@@ -85,7 +88,10 @@ try {
   await switchLanguage(page, "zh");
   check((await htmlLang(page)) === "zh-CN", "Settings switches document to Chinese");
   await page.reload();
-  await page.getByRole("tab", { name: "对话", exact: true }).waitFor();
+  await page
+    .locator(".workspace-app:not([aria-busy]) .sidebar-nav")
+    .getByRole("button", { name: /^新聊天/ })
+    .waitFor();
   check((await htmlLang(page)) === "zh-CN", "language survives reload");
   const settings = await region(page);
   check(
