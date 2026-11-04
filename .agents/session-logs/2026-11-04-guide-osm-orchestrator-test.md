@@ -2,7 +2,7 @@
 date: 2026-11-04
 author: Claude Code
 branch: test/TP-372-guide-osm-orchestrator
-pr: none
+pr: 970
 area: packages/orchestrator, docs
 contract-impact: none
 ---
@@ -11,7 +11,7 @@ contract-impact: none
 
 ## What changed
 
-- `packages/orchestrator/tests/guide-osm-unreachable.e2e.test.ts` and its `.failures.md`, stacked on
+- `packages/orchestrator/tests/guide-osm-unreachable.e2e.test.ts` and its `.failures.md`, following
   #965: `runOrchestrator` with the itinerary and guide specialists and the real tool gateway in live
   OSM mode, every OSM URL at a closed local port, plus an abort case. Writes
   `output/e2e/guide-osm-unreachable/plan.json`.
@@ -26,7 +26,7 @@ because undici rejects port 9 as a "bad port" before connecting.
 
 ## Validation
 
-- `REDGREEN_RUN="pnpm --filter @trip/orchestrator exec vitest run" node scripts/redgreen.mjs --base origin/main guide-osm-unreachable -- packages/agents/src/destination-guide/index.ts`:
+- `REDGREEN_RUN="pnpm --filter @trip/orchestrator exec vitest run" node scripts/redgreen.mjs --base 12fe56b guide-osm-unreachable -- packages/agents/src/destination-guide/index.ts`:
   before exit 1 (`agent_failed` for destination-guide; `TypeError: fetch failed` instead of
   `AbortError`), after exit 0 (2 passed).
 
