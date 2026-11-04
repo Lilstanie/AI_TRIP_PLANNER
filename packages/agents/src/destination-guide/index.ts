@@ -18,6 +18,7 @@ import { rememberedPlanningPreferences, rankPlacesByInterests } from "../remembe
 import { TRAVELLER_PREFERENCES_RULE } from "../prompts/traveller-preferences";
 import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
+import { lookupPlaces } from "../place-lookup";
 import { firstSentence } from "./first-sentence";
 import {
   gatherWeatherEvidence,
@@ -213,13 +214,14 @@ async function planDestinationGuide(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const month = travelMonth(brief.dates[0]);
+  const placeIssues: string[] = [];
   const [cityPlaces, preferences] = await Promise.all([
     Promise.all(
       brief.destination.split("&").map(async (name) => {
         const city = name.trim();
         const [sights, museums] = await Promise.all([
-          ctx.tools.maps.places({ near: city, category: "sight" }),
-          ctx.tools.maps.places({ near: city, category: "museum" }),
+          lookupPlaces(ctx, "destination-guide", { near: city, category: "sight" }, placeIssues),
+          lookupPlaces(ctx, "destination-guide", { near: city, category: "museum" }, placeIssues),
         ]);
         return { city, places: dedupeEntries([...sights, ...museums]) };
       }),
@@ -304,9 +306,12 @@ async function planDestinationGuide(
     ],
     assumptions: [
       copy.entryHealthVerify.trim(),
-      mockEnabled()
-        ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
-        : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",
+      ...placeIssues,
+      !places.length
+        ? "No grounded places were available, so no attraction has been invented."
+        : mockEnabled()
+          ? "Attractions come only from the injected MapsPort and may still be mock or stale data."
+          : "Attractions come from provider candidates; opening hours and availability may be stale and require verification.",
       ...(weatherEvidence.length
         ? weatherEvidence.map(({ city, targetDate, result }) =>
             result
@@ -319,39 +324,47 @@ async function planDestinationGuide(
       ...draft.assumptions,
     ],
     conflictsWith: [],
-    source: usedFallback
+    source: placeIssues.length
       ? {
-          kind: "fallback",
-          label: "Local fallback",
-          freshness:
-            "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
+          kind: "unavailable",
+          label: "Maps provider",
+          freshness: places.length
+            ? "Some place lookups failed; tips use only the places the provider returned."
+            : "Place lookups failed, so no attraction tips were given.",
         }
-      : weatherUnavailable
+      : usedFallback
         ? {
-            kind: "unavailable",
-            label: "Weather provider",
+            kind: "fallback",
+            label: "Local fallback",
             freshness:
-              "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
+              "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
           }
-        : {
-            kind:
-              weatherResults.length > 0 &&
-              weatherResults.every((result) =>
-                /^(Google Weather API|Open-Meteo)/.test(result.provider),
-              )
-                ? "live"
+        : weatherUnavailable
+          ? {
+              kind: "unavailable",
+              label: "Weather provider",
+              freshness:
+                "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
+            }
+          : {
+              kind:
+                weatherResults.length > 0 &&
+                weatherResults.every((result) =>
+                  /^(Google Weather API|Open-Meteo)/.test(result.provider),
+                )
+                  ? "live"
+                  : !mockEnabled()
+                    ? "estimated"
+                    : "mock",
+              label: weatherResult
+                ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
+                : "Maps evidence and AI guide",
+              freshness: weatherResult
+                ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
                 : !mockEnabled()
-                  ? "estimated"
-                  : "mock",
-            label: weatherResult
-              ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
-              : "Maps evidence and AI guide",
-            freshness: weatherResult
-              ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
-              : !mockEnabled()
-                ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
-                : "Place details come from deterministic mock fixtures; not live verified.",
-          },
+                  ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
+                  : "Place details come from deterministic mock fixtures; not live verified.",
+            },
   };
 }
 

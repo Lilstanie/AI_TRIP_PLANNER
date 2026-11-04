@@ -271,6 +271,48 @@ describe("destination guide", () => {
     expect(ctx.tools.maps.places).not.toHaveBeenCalled();
   });
 
+  it("keeps the places one category returned when another lookup fails", async () => {
+    const ctx = context();
+    vi.mocked(ctx.tools.maps.places).mockImplementation(async ({ category }) => {
+      if (category === "sight") throw new TypeError("fetch failed");
+      return [{ name: "City Museum", category: "museum", rating: 4.6 }];
+    });
+    const result = AgentProposal.parse(
+      await createDestinationGuideAgent({ generator: false }).invoke({ brief, context: ctx }),
+    );
+    expect(
+      result.items.filter((item) => item.kind === "attraction").map((item) => item.location),
+    ).toEqual(["City Museum"]);
+    expect(result.source).toMatchObject({ kind: "unavailable", label: "Maps provider" });
+    expect(result.assumptions.join(" ")).toContain("sight");
+  });
+
+  it("degrades without inventing attractions when every place lookup fails", async () => {
+    const ctx = context();
+    vi.mocked(ctx.tools.maps.places).mockRejectedValue(new TypeError("fetch failed"));
+    const result = AgentProposal.parse(
+      await createDestinationGuideAgent({ generator: false }).invoke({ brief, context: ctx }),
+    );
+    expect(result.items.some((item) => item.kind === "attraction")).toBe(false);
+    expect(result.source).toMatchObject({ kind: "unavailable", label: "Maps provider" });
+    expect(result.assumptions.join(" ")).not.toContain("Attractions come from provider candidates");
+  });
+
+  it("rejects with the abort when a place lookup fails after cancellation", async () => {
+    const ctx = context();
+    const controller = new AbortController();
+    vi.mocked(ctx.tools.maps.places).mockImplementation(async () => {
+      controller.abort();
+      throw new TypeError("fetch failed");
+    });
+    await expect(
+      createDestinationGuideAgent({ generator: false }).invoke({
+        brief,
+        context: { ...ctx, signal: controller.signal },
+      }),
+    ).rejects.toMatchObject({ name: "AbortError" });
+  });
+
   it("honours cancellation before calling tools", async () => {
     const ctx = context();
     const controller = new AbortController();

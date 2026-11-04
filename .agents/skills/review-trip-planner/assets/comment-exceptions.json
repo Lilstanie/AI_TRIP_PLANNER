@@ -118,5 +118,15 @@
     "file": "apps/web/components/workspace/useWorkspaceTransport.ts",
     "text": "// eslint-disable-next-line no-restricted-properties",
     "reason": "Lint directive: the form replan confirm is the one listed exception to the browser-dialog ban until a replan Undo exists (TP-283, Agent Note 2026-11-02-lock-fixed-bugs)."
+  },
+  {
+    "file": "apps/web/tests/e2e/guide-places-unavailable.e2e.mjs",
+    "text": "// requires-env: OVERPASS_BASE_URL, NOMINATIM_BASE_URL",
+    "reason": "E2E discovery and legacy runner read this directive to skip the stubbed-OpenStreetMap acceptance unless the server is pointed at the script's stub."
+  },
+  {
+    "file": "packages/agents/src/place-lookup.ts",
+    "text": "/**\n * Runs one MapsPort place lookup for a specialist. A provider failure resolves to no places, is\n * logged under `agent` and appends one line to `issues` for the proposal's assumptions. An aborted\n * request rejects with the signal's reason instead of degrading.\n */",
+    "reason": "JSDoc contract for a non-obvious failure and timing rule: a provider failure resolves to no places and appends an assumption, while an aborted request rejects."
   }
 ]
