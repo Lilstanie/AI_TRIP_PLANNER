@@ -259,9 +259,11 @@ Maps; see the [native tab bar and Apple Maps note](../.agents/notes/implemented/
 
 `apps/macos/` is a native SwiftUI app whose `WKWebView` opens the deployed site, so it shows the
 desktop workspace and needs no web build of its own. It adds `TripPlannerMacApp` to its user agent;
-the web app does not style it yet, so it looks like the site in Safari. See the
-[Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md). On a Mac with the
-Xcode Command Line Tools:
+the web app then sets `data-shell="mac-app"` on `<html>`, and `app/styles/mac-app.css` gives controls
+the arrow cursor, unselectable labels, the system scrollbars and no rubber-banding. Safari is
+unchanged. See the [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md).
+Check the web layer with `pnpm --filter @trip/web e2e mac-app-shell`. On a Mac with the Xcode Command
+Line Tools:
 
 ```bash
 apps/macos/scripts/build-app.sh

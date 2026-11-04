@@ -15,7 +15,7 @@
   scroll-snap-type: x proximity;
   scrollbar-width: thin;
 }
-.day-strip::-webkit-scrollbar {
+html:not([data-shell="mac-app"]) .day-strip::-webkit-scrollbar {
   height: 6px;
 }
 button.day-strip__day {

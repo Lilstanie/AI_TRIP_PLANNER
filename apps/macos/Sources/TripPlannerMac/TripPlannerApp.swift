@@ -26,9 +26,34 @@ struct TripWindow: View {
 struct TripWebView: NSViewRepresentable {
     let browser: Browser
 
-    func makeNSView(context: Context) -> WKWebView { browser.webView }
+    func makeNSView(context: Context) -> WebContainer { WebContainer(browser: browser) }
 
-    func updateNSView(_ nsView: WKWebView, context: Context) {}
+    func updateNSView(_ nsView: WebContainer, context: Context) {}
+}
+
+final class WebContainer: NSView {
+    private let browser: Browser
+
+    init(browser: Browser) {
+        self.browser = browser
+        super.init(frame: .zero)
+        browser.webView.translatesAutoresizingMaskIntoConstraints = false
+        addSubview(browser.webView)
+        NSLayoutConstraint.activate([
+            browser.webView.leadingAnchor.constraint(equalTo: leadingAnchor),
+            browser.webView.trailingAnchor.constraint(equalTo: trailingAnchor),
+            browser.webView.topAnchor.constraint(equalTo: topAnchor),
+            browser.webView.bottomAnchor.constraint(equalTo: bottomAnchor),
+        ])
+    }
+
+    @available(*, unavailable)
+    required init?(coder: NSCoder) { return nil }
+
+    override func viewDidMoveToWindow() {
+        super.viewDidMoveToWindow()
+        browser.window = window
+    }
 }
 
 struct TripCommands: Commands {

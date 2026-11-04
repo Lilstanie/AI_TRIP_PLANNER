@@ -17,6 +17,9 @@ final class Browser: NSObject, ObservableObject {
     @Published private(set) var canGoBack = false
     @Published private(set) var canGoForward = false
     private var observations: [NSKeyValueObservation] = []
+    weak var window: NSWindow? {
+        didSet { tintTitleBar() }
+    }
 
     override init() {
         let configuration = WKWebViewConfiguration()
@@ -42,6 +45,9 @@ final class Browser: NSObject, ObservableObject {
             webView.observe(\.canGoForward) { [weak self] webView, _ in
                 Task { @MainActor in self?.canGoForward = webView.canGoForward }
             },
+            webView.observe(\.underPageBackgroundColor) { [weak self] _, _ in
+                Task { @MainActor in self?.tintTitleBar() }
+            },
         ]
         goHome()
     }
@@ -60,6 +66,12 @@ final class Browser: NSObject, ObservableObject {
 
     func changeZoom(by step: CGFloat) {
         setZoom(webView.pageZoom + step)
+    }
+
+    private func tintTitleBar() {
+        guard let window else { return }
+        window.titlebarAppearsTransparent = true
+        window.backgroundColor = webView.underPageBackgroundColor
     }
 
     static func opensInApp(_ url: URL) -> Bool {

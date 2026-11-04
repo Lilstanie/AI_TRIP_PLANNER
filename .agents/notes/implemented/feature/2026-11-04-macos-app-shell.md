@@ -18,8 +18,18 @@ offline page and no control over which links leave the planner.
 - `scripts/build-app.sh` runs `swift build`, puts the binary, `Resources/Info.plist`, the offline page
   and an `.icns` made from `Resources/AppIcon.png` into `build/AI Trip Planner.app`, and signs it ad hoc
   (or with `SIGN_IDENTITY`). It needs the Command Line Tools, not an Xcode project.
-- The web view appends `TripPlannerMacApp` to its user agent. The web app does not read it yet; a
-  Mac-only style layer can key on it the way `data-shell="ios-app"` keys on `TripPlannerIOSApp`.
+- The web view appends `TripPlannerMacApp` to its user agent. The inline script in `app/layout.tsx`
+  that marks the iOS app sets `data-shell="mac-app"` on `<html>` before first paint when it sees that
+  marker, and `app/styles/mac-app.css` styles only that state. Safari, the PWA and the iOS app never
+  get it.
+- The Mac layer makes the page behave like a Mac window rather than a web page: buttons, tabs, menu
+  items and other controls use the arrow cursor (links keep the pointing hand), their labels cannot be
+  selected, images and icons cannot be dragged out, and the window does not rubber-band. Chat replies,
+  the itinerary and text fields stay selectable. The web's thin `::-webkit-scrollbar` styles on panels,
+  the chat stream and the day strip apply everywhere except the app, so the app shows the system
+  overlay scrollbars.
+- The title bar is transparent and takes the web view's `underPageBackgroundColor`, which follows the
+  page background, so it matches the light or dark page colour and a saved appearance override.
 - The deployed host and the Clerk host `more-puma-666.clerk.accounts.dev` stay in the app, with
   `about:`, `blob:`, `data:`, `file:` and subframe loads. Every other link, including `window.open` and
   `target="_blank"`, opens in the default browser.
@@ -54,10 +64,14 @@ offline page and no control over which links leave the planner.
   and notarisation, or the user must allow it under System Settings → Privacy & Security.
 - Google blocks its sign-in inside embedded web views, and the app sends `accounts.google.com` to the
   browser, so Google sign-in through Clerk will not complete in the app. Other sign-in methods are untried.
-- No E2E covers the shell: browser emulation cannot run WKWebView or AppKit. The web app has no Mac
-  branch to test either, since it ignores the marker.
+- Browser emulation cannot run WKWebView or AppKit, so no E2E covers the native shell or the title bar
+  tint. `apps/web/tests/e2e/mac-app-shell.e2e.mjs` checks the web layer at 1440 × 900 in light and
+  dark: the marker in the server HTML, arrow cursors and unselectable labels in the sidebar and top
+  bar, selectable fields, replies and itinerary, no overscroll, no web scrollbar rules, and that Safari
+  on a Mac and the iOS app are unchanged. It writes screenshots and `result.json` to
+  `output/playwright/mac-app-shell/`; its failure list is `mac-app-shell.failures.md`.
 
 ## Sources
 
-The owner's request in the project thread on 2026-11-04 ("做一个 macapp 出来") and their choice of a
-native macOS shell over Mac Catalyst and Electron.
+The owner's requests in the project thread on 2026-11-04 ("做一个 macapp 出来", then "给网页加上 Mac
+专属样式") and their choice of a native macOS shell over Mac Catalyst and Electron.

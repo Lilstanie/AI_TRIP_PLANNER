@@ -203,9 +203,10 @@ App 还用系统标签栏替换网页标签栏，手机地图页改用 Apple 地
 ### macOS 应用
 
 `apps/macos/` 是一个原生 SwiftUI App，用 `WKWebView` 打开线上网站，因此显示桌面工作区，也不需要单独构建
-网页。它会在 user agent 末尾加上 `TripPlannerMacApp`；网页目前还没有为它单独设计样式，所以看起来和 Safari
-里的网站一样。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md)。在装有
-Xcode Command Line Tools 的 Mac 上：
+网页。它会在 user agent 末尾加上 `TripPlannerMacApp`；网页据此在 `<html>` 上设置 `data-shell="mac-app"`，
+由 `app/styles/mac-app.css` 让控件使用箭头光标、标签不可选中、改用系统滚动条，并去掉整页回弹；Safari 不受
+影响。原因见 [Agent Note](../.agents/notes/implemented/feature/2026-11-04-macos-app-shell.md)。用
+`pnpm --filter @trip/web e2e mac-app-shell` 检查网页样式层。在装有 Xcode Command Line Tools 的 Mac 上：
 
 ```bash
 apps/macos/scripts/build-app.sh

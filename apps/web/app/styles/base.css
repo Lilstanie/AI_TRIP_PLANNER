@@ -53,19 +53,16 @@ button {
   }
 }
 
-.panel::-webkit-scrollbar,
-.chat__stream::-webkit-scrollbar {
+html:not([data-shell="mac-app"]) :is(.panel, .chat__stream)::-webkit-scrollbar {
   width: 10px;
 }
-.panel::-webkit-scrollbar-thumb,
-.chat__stream::-webkit-scrollbar-thumb {
+html:not([data-shell="mac-app"]) :is(.panel, .chat__stream)::-webkit-scrollbar-thumb {
   background: var(--border);
   border: 3px solid transparent;
   background-clip: content-box;
   border-radius: var(--radius-pill);
 }
-.panel::-webkit-scrollbar-thumb:hover,
-.chat__stream::-webkit-scrollbar-thumb:hover {
+html:not([data-shell="mac-app"]) :is(.panel, .chat__stream)::-webkit-scrollbar-thumb:hover {
   background: var(--text-mut);
   background-clip: content-box;
 }
