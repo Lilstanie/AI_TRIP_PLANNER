@@ -172,3 +172,25 @@ describe("short-term chat memory", () => {
     expect(SHORT_TERM_TTL_SECONDS).toBeGreaterThanOrEqual(7 * 24 * 60 * 60);
   });
 });
+
+describe("process-memory expiry", () => {
+  it("keeps a value whose expiry is longer than the 24.8-day timer limit", async () => {
+    const store = createJsonStore();
+    await store.set("test:local:long-ttl", { kept: true }, { ttlSeconds: SHORT_TERM_TTL_SECONDS });
+    await new Promise((resolve) => setTimeout(resolve, 20));
+    expect(await store.get("test:local:long-ttl")).toEqual({ kept: true });
+  });
+
+  it("still drops a value once its expiry has passed", async () => {
+    vi.useFakeTimers({ now: new Date("2026-11-04T00:00:00Z") });
+    try {
+      const store = createJsonStore();
+      await store.set("test:local:short-ttl", { kept: false }, { ttlSeconds: 60 });
+      expect(await store.get("test:local:short-ttl")).toEqual({ kept: false });
+      vi.setSystemTime(new Date("2026-11-04T00:01:01Z"));
+      expect(await store.get("test:local:short-ttl")).toBeUndefined();
+    } finally {
+      vi.useRealTimers();
+    }
+  });
+});
