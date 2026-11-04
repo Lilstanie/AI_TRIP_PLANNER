@@ -32,4 +32,4 @@ because undici rejects port 9 as a "bad port" before connecting.
 
 ## Notes for the next person
 
-Retarget to `main` once #965 merges.
+#965 merged first; this PR was retargeted to `main`.

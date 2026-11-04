@@ -120,7 +120,7 @@ async function openTrip(browser, { width, height, edits, searches, external }) {
   });
   await installStopNames(page);
   await page.goto(BASE);
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.waitForLoadState("networkidle");
   await page

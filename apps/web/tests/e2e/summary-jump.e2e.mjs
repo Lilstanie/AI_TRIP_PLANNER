@@ -88,7 +88,7 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
     await page.goto(base);
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const live = page.getByRole("button", { name: /^(Live data|实时数据)/ });
@@ -106,7 +106,18 @@ try {
           await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
         }
         await bar.getByRole("tab", { name: copy.chat }).click();
-      } else await page.locator("#chat-tab-conversation").click();
+      } else if (
+        await page
+          .locator('.sidebar-nav .sidebar-nav__item[aria-current="true"]', {
+            hasText: copy.trajectory,
+          })
+          .count()
+      )
+        await page
+          .locator('.sidebar-nav .sidebar-nav__item[aria-current="true"]', {
+            hasText: copy.trajectory,
+          })
+          .click();
       await page.locator(".chat__stream").waitFor({ state: "visible" });
     };
     const trajectoryShown = async () => {
@@ -114,7 +125,13 @@ try {
         await page.locator("dialog.phone-trajectory[open]").waitFor();
         return true;
       }
-      return (await page.locator("#chat-tab-trajectory").getAttribute("aria-selected")) === "true";
+      return (
+        (await page
+          .locator('.sidebar-nav .sidebar-nav__item[aria-current="true"]', {
+            hasText: copy.trajectory,
+          })
+          .count()) === 1
+      );
     };
     if (phone) await toChat();
 

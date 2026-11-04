@@ -1,6 +1,7 @@
 # Agent Note: Preserve hotel-search failure without Google capability
 
 Status: implemented
+Archived: 2026-11-04
 
 ## Problem
 

@@ -310,7 +310,7 @@ async function open(language, viewport, phone = false, displayCurrency = "AUD", 
     route.fulfill({ status: 503, json: { error: "Action-panel fixture skips route durations" } }),
   );
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   current = page;
   currentErrors = errors;

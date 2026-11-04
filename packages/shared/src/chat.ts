@@ -131,6 +131,25 @@ export const INTERFACE_LANGUAGES = ["en", "zh"] as const;
 export const InterfaceLanguage = z.enum(INTERFACE_LANGUAGES);
 export type InterfaceLanguage = z.infer<typeof InterfaceLanguage>;
 
+const IANA_ZONE_NAME = /^[A-Za-z][A-Za-z_]*(?:\/[A-Za-z0-9_+-]+)*$/;
+
+const isTimeZone = (value: string): boolean => {
+  if (!IANA_ZONE_NAME.test(value)) return false;
+  try {
+    new Intl.DateTimeFormat("en", { timeZone: value });
+    return true;
+  } catch {
+    return false;
+  }
+};
+
+export const TimeZone = z
+  .string()
+  .min(1)
+  .max(64)
+  .refine(isTimeZone, "Use an IANA time zone such as Australia/Sydney");
+export type TimeZone = z.infer<typeof TimeZone>;
+
 export const MAX_CHAT_HISTORY_TURNS = 20;
 
 export const ChatHistoryTurn = z.object({
@@ -159,6 +178,7 @@ export const ChatRequest = z
     assistant: AssistantSettings.optional(),
     mentions: z.array(z.enum(AGENT_NAMES)).max(AGENT_NAMES.length).optional(),
     interfaceLanguage: InterfaceLanguage.optional(),
+    timeZone: TimeZone.optional(),
 
     displayCurrency: Currency.optional(),
     destinationLocation: z

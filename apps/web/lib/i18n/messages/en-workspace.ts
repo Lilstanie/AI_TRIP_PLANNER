@@ -43,6 +43,11 @@ export const enWorkspace = {
   itineraryIssue: "Itinerary issue",
   unlocatedPlace: "Unlocated place",
   placeLookupFailed: "Place lookup failed",
+  unpricedStay: "Unpriced stay",
+  stayCouldNotBeSearched:
+    "No stay could be searched in {city} for {checkIn} to {checkOut}, so those nights are not priced.",
+  noStayMeetsYourPreferences:
+    "No stay in {city} meets your accommodation preferences for {checkIn} to {checkOut}, so those nights are not priced.",
   meals: "Meals",
   activities: "Activities",
   notCosted: "Not costed",
@@ -736,8 +741,6 @@ export const enWorkspace = {
   yourChangesCouldNotBe: "Your changes could not be synced. Try again.",
   theRequestWasInvalidPlease: "The request was invalid. Please retry.",
   attachmentRejectedReason: "Attachment rejected: {reason}",
-  noStaysMatchYourAccommodation:
-    "No stays match your accommodation preferences. Lower the minimum rating or change cancellation preferences, then retry.",
   unableToUpdateThisTrip: "Unable to update this trip. Check the request and try again.",
   mapUnavailableConfigureTheBrowser: "Map unavailable: configure the browser Google Maps key.",
   googleMapsTookTooLong: "Google Maps took too long to load. Check your connection and retry.",

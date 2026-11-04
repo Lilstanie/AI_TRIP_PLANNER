@@ -25,7 +25,7 @@ export async function waitUntil(test, ms = 8000) {
 
 export async function openMockWorkspace(page, base) {
   await page.goto(base);
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   await page.waitForLoadState("networkidle");
   await page

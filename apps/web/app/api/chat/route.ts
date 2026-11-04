@@ -104,7 +104,7 @@ export async function POST(req: Request) {
   };
   const turn = (async () => {
     try {
-      const flightQuery = parseFlightQuery(parsed.data.message);
+      const flightQuery = parseFlightQuery(parsed.data.message, new Date(), parsed.data.timeZone);
       if (flightQuery) {
         const answer = await runWithDataMode(dataMode, () =>
           answerFlightQuery(flightQuery, createToolGateway().booking),
@@ -165,13 +165,7 @@ export async function POST(req: Request) {
         send(error.answer);
       } else {
         console.error("[chat] planning failed", error);
-        const notice: Notice =
-          error instanceof Error && error.message.startsWith("No valid stays")
-            ? {
-                key: "noStaysMatchYourAccommodation",
-              }
-            : { key: "unableToUpdateThisTrip" };
-        send({ type: "error", ...noticeBody(notice) });
+        send({ type: "error", ...noticeBody({ key: "unableToUpdateThisTrip" }) });
       }
     } finally {
       await recorder?.close();

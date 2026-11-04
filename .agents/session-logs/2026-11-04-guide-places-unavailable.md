@@ -41,4 +41,5 @@ itinerary already does.
 ## Notes for the next person
 
 With `MAPS_PROVIDER=osm`, accommodation fails on `Unsupported booking provider: osm`
-(`packages/tools/src/booking-port.ts`), so the E2E plans with `noAccommodation: true`. Jira: TP-372.
+(`packages/tools/src/booking-port.ts`), so the E2E plans with `noAccommodation: true`; #962 (TP-373)
+fixed that separately. Jira: TP-372.

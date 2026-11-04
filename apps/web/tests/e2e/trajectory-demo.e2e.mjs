@@ -23,6 +23,7 @@ const COPY = {
     close: "Close details",
     showAll: "Show all records",
     chat: /^Chat/,
+    trajectory: /^Trajectory/,
   },
   zh: {
     locale: "zh-CN",
@@ -33,6 +34,7 @@ const COPY = {
     close: "关闭详情",
     showAll: "显示全部记录",
     chat: /^聊天/,
+    trajectory: /^轨迹/,
   },
 };
 const UNITS = /\btok\b|\bms\b|token|令牌|毫秒|TTFT/i;
@@ -81,7 +83,7 @@ async function open(copy, width) {
     };
   });
   await page.goto(base);
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const live = page.getByRole("button", { name: /^(Live data|实时数据)/ });
@@ -141,7 +143,18 @@ try {
           await page.locator("dialog.phone-trajectory[open]").waitFor({ state: "hidden" });
         }
         if (phone) await bar.getByRole("tab", { name: copy.chat }).click();
-        else await page.locator("#chat-tab-conversation").click();
+        else if (
+          await page
+            .locator('.sidebar-nav .sidebar-nav__item[aria-current="true"]', {
+              hasText: copy.trajectory,
+            })
+            .count()
+        )
+          await page
+            .locator('.sidebar-nav .sidebar-nav__item[aria-current="true"]', {
+              hasText: copy.trajectory,
+            })
+            .click();
         await page.locator(".chat__stream").waitFor({ state: "visible" });
       };
       if (phone) await toChat();

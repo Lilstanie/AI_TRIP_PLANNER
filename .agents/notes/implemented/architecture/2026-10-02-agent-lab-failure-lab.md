@@ -26,10 +26,13 @@ what the workflow was observed to do, found by probing every provider call again
 | Profile                 | Injected into               | Observed result                                                          |
 | ----------------------- | --------------------------- | ------------------------------------------------------------------------ |
 | `provider-timeout`      | transport's flight search   | Section `unavailable` and unpriced, a conflict stays; the run carries on |
-| `provider-empty-result` | accommodation's stay search | The specialist throws rather than invent a stay; the run stops           |
+| `provider-empty-result` | accommodation's stay search | Section `unavailable`, nights unpriced, a conflict stays; carries on     |
 | `invalid-agent-output`  | dining's proposal           | Rejected at the proposal schema; the run stops                           |
 | `supervisor-failure`    | the supervisor              | Falls back to deterministic dispatch; the run completes                  |
 | `stalled-revision`      | transport's revision        | Best known plan kept, `no_improvement`; the run completes                |
+
+`provider-empty-result` stopped the run until accommodation learned to leave an unsearchable stay
+unpriced ([unsearchable stay](../bug-fix/2026-11-04-unsearchable-stay-unpriced.md)).
 
 Two optional facts and one option were added to the workflow, none changing its behaviour:
 `agent_output_rejected` (field paths only) and `delegation_fallback` decisions, and
@@ -53,11 +56,12 @@ download read the same. A failed artifact downloads and replays like any other.
 
 - **Let a visitor choose the tool, the error or the specialist.** Rejected: the public endpoint would become
   a way to break anything, and the result would not be repeatable evidence.
-- **Make every fault degrade gracefully.** Rejected: the workflow does not. The accommodation specialist
-  throws when its stay search fails or returns nothing; the destination and dining specialists mark their
-  section `unavailable` when their place search fails
-  ([place lookups degrade](../bug-fix/2026-11-04-place-lookups-degrade.md)). Showing the real terminal behaviour is the point, and inventing a recovery would
-  present fiction as a feature.
+- **Make every fault degrade gracefully.** Rejected: the workflow does not. An invalid dining output still
+  stops the run at the proposal schema. A failed or empty stay search leaves the Stay section
+  `unavailable` ([unsearchable stay](../bug-fix/2026-11-04-unsearchable-stay-unpriced.md)), and the
+  destination and dining specialists mark their section `unavailable` when their place search fails
+  ([place lookups degrade](../bug-fix/2026-11-04-place-lookups-degrade.md)). Showing the real terminal
+  behaviour is the point, and inventing a recovery would present fiction as a feature.
 - **Intercept faults inside the production workflow.** Rejected: wrappers outside the trace wrapper reuse the
   same boundaries without a test-only branch in the workflow.
 - **Add outcome and failure counts to the metrics contract.** Rejected: they are determined by the trace, so

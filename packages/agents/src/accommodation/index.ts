@@ -16,6 +16,7 @@ import {
   type PlanningBoard,
   type UserPreference,
   type InterfaceLanguage,
+  planIssue,
 } from "@trip/shared";
 import { createAgent, tool, toolErrorMiddleware } from "langchain";
 import { z } from "zod/v4";
@@ -38,6 +39,13 @@ import { revisionIntent, REVISION_INTENT_RULE } from "../revision-intent";
 
 const candidateId = (day: number, index: number) => `stay-${day}-${index}`;
 
+type StaySegment = ReturnType<typeof splitStay>[number];
+
+interface UnpricedStay {
+  segment: StaySegment;
+  issue: "stayUnavailable" | "stayNoMatch";
+}
+
 interface StayEvidence {
   currency: Currency;
   language?: InterfaceLanguage;
@@ -48,7 +56,8 @@ interface StayEvidence {
   roomAllocation: string;
   groupSize: number;
   budgetRevision: boolean;
-  searched: { segment: ReturnType<typeof splitStay>[number]; options: StayOption[] }[];
+  searched: { segment: StaySegment; options: StayOption[] }[];
+  unpriced: UnpricedStay[];
   preferences: UserPreference[];
   rememberedStayType?: string;
 }
@@ -81,27 +90,35 @@ async function gatherStayEvidence(
     prefs.roomAllocation === "individual" ? brief.groupSize : Math.ceil(brief.groupSize / 2);
   const { budget: budgetRevision } = revisionIntent(revision);
 
-  const searched = await Promise.all(
+  const results = await Promise.all(
     segments.map(async (segment) => {
-      const options = eligibleOptions(
-        await ctx.tools.booking.searchStays({
+      let found: StayOption[];
+      try {
+        found = await ctx.tools.booking.searchStays({
           city: segment.city,
           checkIn: segment.checkIn,
           checkOut: segment.checkOut,
           guests: brief.groupSize,
           ...(prefs.stayType ? { stayType: prefs.stayType } : {}),
-        }),
-        prefs,
-      );
-      ctx.signal?.throwIfAborted();
-      if (!options.length) {
-        throw new Error(
-          `No valid stays in ${segment.city} match the confirmed accommodation preferences.`,
+        });
+      } catch (error) {
+        ctx.signal?.throwIfAborted();
+        console.warn(
+          `[accommodation] Stay search failed for ${segment.city}; the stay stays unpriced: ${
+            error instanceof Error ? error.message : "unknown error"
+          }`,
         );
+        return { segment, options: [], issue: "stayUnavailable" as const };
       }
-      return { segment, options };
+      ctx.signal?.throwIfAborted();
+      const options = eligibleOptions(found, prefs);
+      return options.length
+        ? { segment, options }
+        : { segment, options, issue: "stayNoMatch" as const };
     }),
   );
+  const searched = results.filter((result) => !result.issue);
+  const unpriced = results.flatMap(({ segment, issue }) => (issue ? [{ segment, issue }] : []));
   return {
     currency: displayCurrencyOf(brief, ctx),
     ...(ctx.replyLanguage ? { language: ctx.replyLanguage } : {}),
@@ -111,6 +128,7 @@ async function gatherStayEvidence(
     groupSize: brief.groupSize,
     budgetRevision,
     searched,
+    unpriced,
     preferences,
     ...(prefs.stayType ? { rememberedStayType: prefs.stayType } : {}),
     ...(allocation ? { allocation } : {}),
@@ -134,6 +152,7 @@ function assembleStayProposal(
     groupSize,
     budgetRevision,
     searched,
+    unpriced,
     rememberedStayType,
     allocation,
     currency,
@@ -173,19 +192,33 @@ function assembleStayProposal(
   const savings = Math.round((initialTotal - total) * 100) / 100;
 
   const grounded = selections.every(({ options }) => options.every((option) => option.grounded));
-  const source = staySource(selections, sourceKind, grounded, currency);
+  const pricedSource = staySource(selections, sourceKind, grounded, currency);
+  const source = unpriced.length ? unavailableStaySource(unpriced) : pricedSource;
   const fixtureRates = selections.every(({ chosen }) => chosen.provenance?.kind === "mock");
+  const unpricedNights = unpriced.reduce((sum, { segment }) => sum + segment.nights, 0);
   const assumptions = [
     ...(rememberedStayType
       ? [
           `Remembered stay type: ${rememberedStayType}. This preference was included in the search query; candidate property types are not independently verified.`,
         ]
       : []),
-    source.kind === "live"
-      ? `${currency} per room per night; rates came from a live search and can change before booking.`
-      : source.kind === "estimated"
-        ? `${currency} per room per night; property data is grounded but the nightly price is an estimate, not a live quote.`
-        : `Booking mock convention: ${currency} per room per night; at most 2 guests per room; availability is simulated.`,
+    ...(!selections.length
+      ? []
+      : pricedSource.kind === "live"
+        ? [
+            `${currency} per room per night; rates came from a live search and can change before booking.`,
+          ]
+        : pricedSource.kind === "estimated"
+          ? [
+              `${currency} per room per night; property data is grounded but the nightly price is an estimate, not a live quote.`,
+            ]
+          : [
+              `Booking mock convention: ${currency} per room per night; at most 2 guests per room; availability is simulated.`,
+            ]),
+    ...unpriced.map(
+      ({ segment, issue }) =>
+        `${segment.city}: ${issue === "stayUnavailable" ? "the stay search failed" : "no candidate meets the confirmed preferences"}, so ${plural(segment.nights, "night", "nights")} from ${segment.checkIn} to ${segment.checkOut} are unpriced and not counted in estCost.`,
+    ),
     `${roomAllocation} allocation: ${plural(rooms, "room", "rooms")} for ${plural(groupSize, "guest", "guests")}; check-out day is not charged.`,
     fixtureRates
       ? "Only selected stays contribute to estCost. Taxes/fees are assumed included in mock rates."
@@ -258,24 +291,49 @@ function assembleStayProposal(
       cities: segments.map((segment) => segment.city),
       money: formatMoney(total, currency),
       lowestCost: budgetRevision && !allocation,
+      unpricedNights,
     }),
-    items: selections.map(({ segment, chosen, cost }) => ({
-      kind: "hotel",
-      day: segment.day,
-      selectionId: `stay-${segment.day}`,
-      estCost: cost,
-      detail: describeStayChoice({
-        ...chosen,
+    items: [
+      ...selections.map(({ segment, chosen, cost }) => ({
+        kind: "hotel" as const,
+        day: segment.day,
+        selectionId: `stay-${segment.day}`,
+        estCost: cost,
+        detail: describeStayChoice({
+          ...chosen,
+          checkIn: segment.checkIn,
+          checkOut: segment.checkOut,
+          rooms,
+          nights: segment.nights,
+          cost,
+          currency,
+        }),
+      })),
+      ...unpriced.map(({ segment }) => ({
+        kind: "hotel" as const,
+        day: segment.day,
+        detail: `${segment.city} stay — ${segment.checkIn} to ${segment.checkOut}; ${plural(rooms, "room", "rooms")} × ${plural(segment.nights, "night", "nights")}; not priced.`,
+      })),
+    ].sort((left, right) => left.day - right.day),
+    assumptions,
+    conflictsWith: unpriced.map(({ segment, issue }) =>
+      planIssue(issue, {
+        city: segment.city,
         checkIn: segment.checkIn,
         checkOut: segment.checkOut,
-        rooms,
-        nights: segment.nights,
-        cost,
-        currency,
       }),
-    })),
-    assumptions,
-    conflictsWith: [],
+    ),
+  };
+}
+
+function unavailableStaySource(unpriced: UnpricedStay[]): NonNullable<AgentProposal["source"]> {
+  const cities = unpriced.map(({ segment }) => segment.city).join(" & ");
+  return {
+    kind: "unavailable",
+    label: "Stay provider",
+    freshness: unpriced.some(({ issue }) => issue === "stayUnavailable")
+      ? `No stay could be searched for ${cities}; those nights remain unpriced.`
+      : `No stay in ${cities} meets the confirmed accommodation preferences; those nights remain unpriced.`,
   };
 }
 
@@ -362,7 +420,7 @@ const StaySelection = z.object({
         because: z.string().describe("One short sentence on why this candidate, for the traveller"),
       }),
     )
-    .describe("One entry per stay. Every stay must be chosen."),
+    .describe("One entry per stay that has candidates. Every such stay must be chosen."),
 });
 
 async function planStays(
@@ -398,13 +456,21 @@ async function planStays(
             totalCost: stayCost(option, segment.nights, evidence.rooms),
           })),
         })),
+        unpricedStays: evidence.unpriced.map(({ segment, issue }) => ({
+          stayId: `stay-${segment.day}`,
+          city: segment.city,
+          checkIn: segment.checkIn,
+          checkOut: segment.checkOut,
+          nights: segment.nights,
+          reason: issue === "stayUnavailable" ? "search_failed" : "no_eligible_candidate",
+        })),
         confirmedPreferences: evidence.preferences,
       };
     },
     {
       name: "search_accommodation_candidates",
       description:
-        "Search the injected booking port and return the eligible stay candidates for each city, with their ids and real total costs. It does not choose.",
+        "Search the injected booking port and return the eligible stay candidates for each city, with their ids and real total costs. Cities whose search failed or had no eligible candidate are listed under unpricedStays and stay unpriced; choose nothing for them. It does not choose.",
       schema: z.object({}),
     },
   );
@@ -414,7 +480,7 @@ async function planStays(
     tools: [search],
     middleware: [toolErrorMiddleware({ onError: () => undefined })],
     systemPrompt:
-      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns. You own that choice: weigh rating, free cancellation, remembered stay type and total cost against the traveller's brief and any revision. Treat confirmed rating and cancellation preferences as constraints; treat stay type as a preference only when candidate evidence supports it. Use only candidate fields actually provided as evidence. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
+      "You are the accommodation specialist. Call search_accommodation_candidates, then choose one candidate for every stay it returns under stays; never choose for unpricedStays. You own that choice: weigh rating, free cancellation, remembered stay type and total cost against the traveller's brief and any revision. Treat confirmed rating and cancellation preferences as constraints; treat stay type as a preference only when candidate evidence supports it. Use only candidate fields actually provided as evidence. When a stayBudget is given, keep the total of all chosen stays within maxTotalCost. A budget revision means prefer the highest-ranked eligible candidate whose total fits the stay's share of the revised budget; when none fits, take the cheapest. Refer to candidates only by the ids you were given -- never invent a property, a rate, a rating or a policy, and never state a price yourself. Return the requested structured selection. " +
       REVISION_INTENT_RULE +
       TRAVELLER_PREFERENCES_RULE +
       replyLanguageRule(ctx.replyLanguage),

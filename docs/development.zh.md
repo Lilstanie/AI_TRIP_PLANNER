@@ -269,11 +269,12 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 证明检查会触发：在旧代码上运行，并把报错输出贴进 PR 的 Evidence。若没有机器检查能挡住这类缺陷（模型措辞、地图时序），在 PR 中说明原因。现有规则：
 
-| 规则                                     | 位置                          | 锁住的缺陷                               |
-| ---------------------------------------- | ----------------------------- | ---------------------------------------- |
-| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`     | 手写金额格式                             |
-| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`     | 聊天追问时弹出错误的编辑确认框（TP-257） |
-| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts` | 后台写入被算成编辑（TP-247）             |
+| 规则                                     | 位置                                                | 锁住的缺陷                               |
+| ---------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
+| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`                           | 手写金额格式                             |
+| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`                           | 聊天追问时弹出错误的编辑确认框（TP-257） |
+| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts`                       | 后台写入被算成编辑（TP-247）             |
+| E2E 等待跳过加载骨架                     | `apps/web/tests/e2e-sources/workspace-wait.test.ts` | 检查在骨架屏上运行（TP-371）             |
 
 <a id="verification"></a>
 
@@ -381,6 +382,12 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 免费地图端点可通过 `PHOTON_BASE_URL`（默认 `https://photon.komoot.io`）、`NOMINATIM_BASE_URL`（默认 `https://nominatim.openstreetmap.org`）、`OVERPASS_BASE_URL`（默认 `https://overpass-api.de/api`）和 `TRANSITOUS_BASE_URL`（默认 `https://api.transitous.org`）配置。设置 `GEOAPIFY_API_KEY`（免费账号）后，景点、博物馆、餐厅和街区先查 Geoapify，失败或无结果时退回 Overpass。Geoapify 的景点和街区最多读三页、每类最多保留 60 个，跳过艺术品和纪念碑，街区只保留带 Wikipedia 或 Wikidata 链接的。`MAPS_PROVIDER=osm` 时网关不提供 `routeOptions`，路段使用 OSRM 估算。将 `OSM_USER_AGENT` 设为真实项目联系方式。公共服务限制和部署边界见[架构说明](architecture.zh.md#free-services-limits-and-terms)。
 
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
+
+`stay-unavailable` 在没有 `SERPAPI_KEY`、`MAPS_API_KEY` 和模型密钥的 Live 数据模式下规划里斯本行程，OpenStreetMap 由本地桩提供，因此 booking port 会拒绝每次住宿查询。它检查计划、预算卡、住宿行、“待确认”和日历中的未计价住宿，然后运行一个实时 Agent Lab 多城市场景。证据和截图位于 `output/playwright/stay-unavailable/<LABEL>/`；失败清单见 [stay-unavailable.failures.md](../apps/web/tests/e2e/stay-unavailable.failures.md)。
+
+```bash
+STAY_STUB_PORT=3417 NOMINATIM_BASE_URL=http://127.0.0.1:3417 OVERPASS_BASE_URL=http://127.0.0.1:3417 OSRM_BASE_URL=http://127.0.0.1:3417 OSRM_FOOT_BASE_URL=http://127.0.0.1:3417 OSRM_BIKE_BASE_URL=http://127.0.0.1:3417 PHOTON_BASE_URL=http://127.0.0.1:3417 TRANSITOUS_BASE_URL=http://127.0.0.1:3417 USE_MOCK_TOOLS=false MAPS_PROVIDER=osm WEB_MAPS_PROVIDER=osm pnpm --filter @trip/web e2e stay-unavailable
+```
 
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
 

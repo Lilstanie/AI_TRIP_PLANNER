@@ -8,12 +8,11 @@
 
 TP-165（2026-10-30）删除了 136 个原始脚本：它们在 `main` 上本就失败、只守护一次旧修复，或与保留的旅程重复；对应的失败清单和不再使用的 fixture 一并删除。它们的旧条目已从本页移除；只有在说明需要它的理由后，才从 Git 历史恢复脚本。
 
-`trajectory-tab` 在 `main` `ec70e0d` 上会失败（2026-10-30，TP-167），命令为
-`pnpm --filter @trip/web e2e trajectory-tab`：`en-1440` 通过 59 项检查后，刷新步骤从“聊天”重新打开
-“Tokyo from Sydney”，在 `page.waitForFunction` 处等待三条 `.msg-item--agent` 消息时超时。
+自 TP-377（2026-11-05）起，`trajectory-tab`、`trajectory-demo` 和 `summary-jump` 通过侧栏的“轨迹”入口打开轨迹；此前它们在第一步就停住，等待已移除的“对话/轨迹”聊天标签页。用 `node apps/web/tests/e2e/<name>.e2e.mjs` 对接模拟数据开发服务器运行时，它们仍会因回合内容与 TP-373（#962）之后的规划器不再一致而失败：
 
-`ui-language` 在 `main` `a184575`（2026-10-31）上失败，命令为 `pnpm --filter @trip/web e2e ui-language`：
-它等待工作区已不再显示的“Conversation”标签页，最终超时。
+- `trajectory-tab`：48 项检查通过；回合检查期望结果为完成、完成、失败且修订被保留，实际为完成、失败、失败且“修订被丢弃”。
+- `trajectory-demo`：13 项检查通过；第 5 步“只显示该专员的记录”看到 `["dining","transport dining"]`。
+- `summary-jump`：9 项检查通过；三条回复中只有 2 条有摘要按钮，因此第三回合步骤超时。
 
 `accommodation-memory` 在 `main` `bc9daa1`（2026-11-04）上失败，命令为
 `node apps/web/tests/e2e/accommodation-memory.e2e.mjs`：脚本在请求作用域之外调用聊天路由，而路由调用了
@@ -22,6 +21,8 @@ Next.js 的 `after()`，进程在记忆检查运行前抛出 "`after` was called
 <a id="covered-regressions"></a>
 
 ## 已有回归覆盖
+
+- `ui-language` 在 `main` `a184575`（2026-10-31）上等待工作区已不再显示的“Conversation”（中文“对话”）标签页，最终超时。现在它改为等待真实工作区侧栏中对应语言的“新聊天”入口，用 `node apps/web/tests/e2e/ui-language.e2e.mjs` 对接模拟数据开发服务器时 11 项检查全部通过（2026-11-04）。
 
 - `main` `8e168ba` 上的 `triage-accessibility`（2026-10-22）等待
   `getByText("No matching chats.", { exact: true })`，它同时匹配 sr-only 的聊天搜索状态和可见的 `.history-empty` 行，

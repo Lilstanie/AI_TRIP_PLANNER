@@ -10,6 +10,11 @@
     "reason": "E2E discovery and legacy runner read this directive to skip the stub-model acceptance unless the server is pointed at the script's stub."
   },
   {
+    "file": "apps/web/tests/e2e/stay-unavailable.e2e.mjs",
+    "text": "// requires-env: STAY_STUB_PORT, NOMINATIM_BASE_URL, OVERPASS_BASE_URL, OSRM_BASE_URL, PHOTON_BASE_URL",
+    "reason": "E2E discovery and legacy runner read this directive to skip the live stay-failure acceptance unless the server's OSM upstreams point at the script's stub."
+  },
+  {
     "file": "apps/web/components/trajectory/layout.ts",
     "text": "/*\n * Adapted from DeepSeek Harness (https://github.com/deepseek-ai/deepseek-harness), commit 687f282e86.\n * Copyright (c) 2026 DeepSeek. Licensed under the MIT licence; see THIRD_PARTY_NOTICES.md.\n */",
     "reason": "MIT licence header that the upstream DeepSeek Harness licence requires on this copied file; THIRD_PARTY_NOTICES.md lists it (#668)."

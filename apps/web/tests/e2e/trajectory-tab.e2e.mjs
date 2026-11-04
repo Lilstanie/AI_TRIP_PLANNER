@@ -233,7 +233,7 @@ try {
       await route.fulfill({ response, body: lines.join("\n") });
     });
     await page.goto(base);
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const live = page.getByRole("button", { name: /^(Live data|实时数据)/ });
@@ -241,22 +241,26 @@ try {
       await live.click();
     }
 
-    const conversationTab = page.getByRole("tab", { name: copy.conversation, exact: true });
-    const trajectoryTab = page.getByRole("tab", { name: copy.trajectory, exact: true });
+    const trajectoryEntry = page
+      .locator(".sidebar-nav")
+      .getByRole("button", { name: new RegExp(`^${copy.trajectory}`) });
+    const trajectoryOpen = async () =>
+      (await trajectoryEntry.getAttribute("aria-current")) === "true";
+    const openTrajectory = async () => {
+      if (!(await trajectoryOpen())) await trajectoryEntry.click();
+    };
+    const openConversation = async () => {
+      if (await trajectoryOpen()) await trajectoryEntry.click();
+    };
     const stream = page.locator(".chat__stream");
-    await conversationTab.waitFor({ timeout: 15_000 }).catch(() => undefined);
-    const tabsPresent =
-      (await conversationTab.count()) === 1 && (await trajectoryTab.count()) === 1;
-    check(tabsPresent, `${label}: the chat column has Conversation and Trajectory tabs`);
-    if (!tabsPresent) {
+    await trajectoryEntry.waitFor({ timeout: 15_000 }).catch(() => undefined);
+    const entryPresent = (await trajectoryEntry.count()) === 1;
+    check(entryPresent, `${label}: the sidebar has a Trajectory entry`);
+    if (!entryPresent) {
       await context.close();
       continue;
     }
-    check(
-      (await conversationTab.getAttribute("aria-selected")) === "true" &&
-        (await trajectoryTab.getAttribute("aria-selected")) === "false",
-      `${label}: Conversation is selected at first`,
-    );
+    check(!(await trajectoryOpen()), `${label}: the conversation shows at first`);
 
     await send(page, PLAN);
     budgetOverride = await (async () => {
@@ -272,17 +276,16 @@ try {
     failStay = false;
 
     const scrollBefore = await stream.evaluate((node) => node.scrollTop);
-    await trajectoryTab.click();
+    await openTrajectory();
     const view = page.locator("[data-trajectory-scroll]");
     const simple = page.locator("[data-trajectory-simple]");
     await simple.waitFor({ timeout: 10_000 });
-    check(
-      (await trajectoryTab.getAttribute("aria-selected")) === "true" &&
-        (await conversationTab.getAttribute("aria-selected")) === "false",
-      `${label}: the Trajectory tab becomes selected`,
-    );
+    check(await trajectoryOpen(), `${label}: the Trajectory entry becomes current`);
     check(!(await stream.isVisible()), `${label}: the conversation stream is hidden`);
-    check((await view.count()) === 0, `${label}: the tab opens on the simple list, not the ledger`);
+    check(
+      (await view.count()) === 0,
+      `${label}: Trajectory opens on the simple list, not the ledger`,
+    );
     const simpleSwitch = page.getByRole("button", { name: copy.simpleSwitch, exact: true });
     const fullSwitch = page.getByRole("button", { name: copy.fullSwitch, exact: true });
     check(
@@ -647,12 +650,11 @@ try {
       `${label}: no label is left in the other language`,
     );
 
-    await conversationTab.click();
+    await openConversation();
     await stream.waitFor({ timeout: 5000 });
     check(
-      (await stream.isVisible()) &&
-        (await conversationTab.getAttribute("aria-selected")) === "true",
-      `${label}: Conversation brings the stream back`,
+      (await stream.isVisible()) && !(await trajectoryOpen()),
+      `${label}: leaving Trajectory brings the stream back`,
     );
     const scrollAfter = await stream.evaluate((node) => node.scrollTop);
     check(
@@ -662,7 +664,7 @@ try {
     );
 
     await page.reload();
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     await page
       .getByRole("button", { name: /^(Chats|聊天)/ })
@@ -677,11 +679,11 @@ try {
       ".msg-item--agent",
       { timeout: 15_000 },
     );
-    await trajectoryTab.click();
+    await openTrajectory();
     await simple.waitFor({ timeout: 10_000 });
     check(
       (await view.count()) === 0,
-      `${label}: reopening the tab after the full view starts on the simple list again`,
+      `${label}: reopening Trajectory after the full view starts on the simple list again`,
     );
     await fullSwitch.click();
     await view.waitFor({ timeout: 10_000 });
@@ -699,7 +701,7 @@ try {
     await page.screenshot({ path: `${out}/${label}-reloaded.png` });
 
     await send(page, "thanks, that looks good");
-    await conversationTab.click();
+    await openConversation();
     await stream.waitFor({ timeout: 5000 });
     await page.waitForTimeout(400);
     const gap = await stream.evaluate(
@@ -707,7 +709,7 @@ try {
     );
     check(
       gap <= 4,
-      `${label}: a reply that arrived on the Trajectory tab is in view when Conversation returns`,
+      `${label}: a reply that arrived on Trajectory is in view when the conversation returns`,
       gap,
     );
 

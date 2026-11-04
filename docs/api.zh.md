@@ -122,6 +122,12 @@ Next.js 路由处理器位于 `apps/web/app/api/`。`/api/data-mode` 和 `/api/p
 只有当这条消息看不出语言时（例如只有地名、日期或数字），才由该字段决定回复语言。它不会改变界面语言。
 不传该字段时，协调器没有回退语言，仍像以前一样跟随最新消息的语言。specialist 不会收到该字段。
 
+可选的 `timeZone`：旅行者的 IANA 时区，例如 `Australia/Sydney`（`packages/shared/src/chat.ts` 中的 `TimeZone`）。
+网页端在每次聊天请求中发送浏览器的时区。不经规划直接回答的航班问题（`parseFlightQuery`）遇到不带年份的日期
+（例如 "Feb 28" 或 "11月4日"）时，取该时区内旅行者当天或之后最近的一次，因此当地已经过去的日子顺延到明年，当天仍是当天。
+不传该字段时，以 UTC 的日期为准。不是已知时区名的值（包括 `+11:00` 这样的纯偏移）会返回 400
+（[说明](../.agents/notes/implemented/bug-fix/2026-11-04-flight-query-local-date.md)）。
+
 可选的 `attachments`：旅行者附加到这条消息的文件，最多 4 个。
 
 ```json

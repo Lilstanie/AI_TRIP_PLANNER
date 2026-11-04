@@ -196,7 +196,7 @@ try {
       { catalog, settings },
     );
     await page.goto(BASE, { waitUntil: "domcontentloaded" });
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
 
     let tips = await openTrip(page, "Packing first", phone, zh);
     const weather = page.locator(".timeline-day__weather").filter({ visible: true });
@@ -242,7 +242,7 @@ try {
     await page.screenshot({ path: `${OUT}/${tag}-ticked.png`, fullPage: true });
 
     await page.reload({ waitUntil: "domcontentloaded" });
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     tips = await openTrip(page, "Packing first", phone, zh);
     check(
       JSON.stringify(await ticked(tips)) === JSON.stringify([items[0], items[2]]),

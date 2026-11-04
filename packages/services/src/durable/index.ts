@@ -5,7 +5,7 @@ type RedisResponse = { result?: unknown; error?: string };
 type LocalStore = {
   values: Map<string, StoredValue>;
   counters: Map<string, number>;
-  expiry: Map<string, ReturnType<typeof setTimeout>>;
+  expiry: Map<string, number>;
 };
 
 const processStore = globalThis as typeof globalThis & { __tripLocalJsonStore?: LocalStore };
@@ -62,7 +62,14 @@ export interface JsonStore {
 export function createJsonStore(): JsonStore {
   return {
     async get<T>(key: string) {
-      if (!durableStoreConfigured()) return localValues.get(key) as T | undefined;
+      if (!durableStoreConfigured()) {
+        const expiresAt = localExpiry.get(key);
+        if (expiresAt !== undefined && Date.now() >= expiresAt) {
+          localValues.delete(key);
+          localExpiry.delete(key);
+        }
+        return localValues.get(key) as T | undefined;
+      }
       const result = await redisCommand("get", [key]);
       if (result === null || result === undefined) return undefined;
       if (typeof result !== "string") return result as T;
@@ -72,15 +79,8 @@ export function createJsonStore(): JsonStore {
       const ttl = options?.ttlSeconds;
       if (!durableStoreConfigured()) {
         localValues.set(key, value);
-        clearTimeout(localExpiry.get(key));
-        if (ttl) {
-          const timer = setTimeout(() => {
-            localValues.delete(key);
-            localExpiry.delete(key);
-          }, ttl * 1000);
-          timer.unref?.();
-          localExpiry.set(key, timer);
-        }
+        if (ttl) localExpiry.set(key, Date.now() + ttl * 1000);
+        else localExpiry.delete(key);
         return;
       }
       await redisCommand(

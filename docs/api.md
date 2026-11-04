@@ -147,6 +147,14 @@ a place name, dates or numbers. It never changes the interface language. Without
 coordinator has no fallback language and follows the latest message as before. Specialists do not
 receive it.
 
+Optional `timeZone`: the traveller's IANA time zone, such as `Australia/Sydney` (`TimeZone` in
+`packages/shared/src/chat.ts`). The web app sends the browser's zone with every chat request. A flight
+question answered without planning (`parseFlightQuery`) reads a date without a year, such as "Feb 28"
+or "11月4日", as its next occurrence on or after the traveller's calendar day in that zone, so a day
+that has already passed locally moves to next year and today stays today. Without the field that day
+is the UTC one. A value that is not a known zone name, including a bare offset such as `+11:00`, is
+rejected with 400 ([note](../.agents/notes/implemented/bug-fix/2026-11-04-flight-query-local-date.md)).
+
 Optional `attachments`: up to 4 files the traveller attached to this message.
 
 ```json
