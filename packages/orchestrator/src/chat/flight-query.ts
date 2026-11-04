@@ -64,8 +64,13 @@ function city(value: string | undefined): string | undefined {
   return /[A-Za-z\p{Script=Han}]/u.test(cleaned) ? cleaned : undefined;
 }
 
-function tripDates(message: string, today: Date): ParsedDate[] {
-  let earliest = today.toISOString().slice(0, 10);
+const calendarDay = (now: Date, timeZone: string | undefined): string =>
+  timeZone
+    ? new Intl.DateTimeFormat("en-CA", { timeZone }).format(now)
+    : now.toISOString().slice(0, 10);
+
+function tripDates(message: string, today: Date, timeZone: string | undefined): ParsedDate[] {
+  let earliest = calendarDay(today, timeZone);
   return [...message.matchAll(TRIP_DATES)].map((match) => {
     const parsed = parseTripDate(match[0]) ?? parseMonthDay(match[0], earliest);
     if (parsed && "iso" in parsed) earliest = parsed.iso;
@@ -76,6 +81,7 @@ function tripDates(message: string, today: Date): ParsedDate[] {
 export function parseFlightQuery(
   message: string,
   today: Date = new Date(),
+  timeZone?: string,
 ): FlightQuery | undefined {
   if (!FLIGHT_WORDS.test(message)) return undefined;
 
@@ -87,7 +93,7 @@ export function parseFlightQuery(
   const to = city(pair?.[2]);
   if (!from || !to || from.toLowerCase() === to.toLowerCase()) return undefined;
 
-  const parsedDates = tripDates(message, today);
+  const parsedDates = tripDates(message, today, timeZone);
   if (parsedDates.some(isAmbiguous)) return undefined;
   const found = parsedDates.filter((parsed): parsed is { iso: string } => !!parsed);
   if (!found.length) return undefined;
