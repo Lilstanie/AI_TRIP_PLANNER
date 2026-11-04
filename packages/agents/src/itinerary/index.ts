@@ -48,6 +48,7 @@ import { replyLanguageRule } from "../prompts/reply-language";
 import { summaryCopy } from "../summary-copy";
 import { interestQueries, interleave, namedPlaces } from "./interest-places";
 import { fallbackDraft, planningPace } from "./fallback";
+import { lookupPlaces } from "../place-lookup";
 
 export { planningPace };
 
@@ -439,28 +440,18 @@ async function planItinerary(
     }));
   const evidenceIssues: string[] = [];
   const readPlaces = async (category: string, near: string, textQuery?: string) => {
-    try {
-      const found = await ctx.tools.maps.places({
-        near,
-        category,
-        ...(textQuery ? { textQuery } : {}),
-      });
-      return found.filter(
-        (place) =>
-          typeof place.name === "string" &&
-          place.name.trim().length > 0 &&
-          !isGenericPlace(place, near, brief.destination),
-      );
-    } catch (error) {
-      ctx.signal?.throwIfAborted();
-      console.warn(
-        `[itinerary] Place provider unavailable for ${category} in ${near}: ${error instanceof Error ? error.message : String(error)}`,
-      );
-      evidenceIssues.push(
-        `Place provider unavailable for ${category} in ${near}; using only remaining evidence.`,
-      );
-      return [];
-    }
+    const found = await lookupPlaces(
+      ctx,
+      "itinerary",
+      { near, category, ...(textQuery ? { textQuery } : {}) },
+      evidenceIssues,
+    );
+    return found.filter(
+      (place) =>
+        typeof place.name === "string" &&
+        place.name.trim().length > 0 &&
+        !isGenericPlace(place, near, brief.destination),
+    );
   };
 
   const cityNames = cities(brief.destination);
