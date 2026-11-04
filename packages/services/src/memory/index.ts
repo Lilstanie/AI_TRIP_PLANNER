@@ -2,6 +2,7 @@ import type { ChatTurn, UserPreference, MemoryStore } from "@trip/shared";
 import { jsonStore } from "../durable";
 
 const SHORT_TERM_TURNS = 20;
+export const SHORT_TERM_TTL_SECONDS = 30 * 24 * 60 * 60;
 
 const shortTermKey = (tripId: string) => `trip:memory:short:${tripId}`;
 const longTermKey = (userId: string) => `trip:memory:long:${userId}`;
@@ -12,7 +13,9 @@ export const memory: MemoryStore = {
   },
   async appendShortTerm(tripId, turn) {
     const current = (await jsonStore.get<ChatTurn[]>(shortTermKey(tripId))) ?? [];
-    await jsonStore.set(shortTermKey(tripId), [...current, turn].slice(-SHORT_TERM_TURNS));
+    await jsonStore.set(shortTermKey(tripId), [...current, turn].slice(-SHORT_TERM_TURNS), {
+      ttlSeconds: SHORT_TERM_TTL_SECONDS,
+    });
   },
   async getLongTerm(userId) {
     return (await jsonStore.get<UserPreference[]>(longTermKey(userId))) ?? [];
