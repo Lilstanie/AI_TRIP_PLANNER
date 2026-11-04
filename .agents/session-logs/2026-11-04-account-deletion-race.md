@@ -2,7 +2,7 @@
 date: 2026-11-04
 author: Claude Code
 branch: fix/account-deletion-race
-pr: none
+pr: 958
 area: apps/web, docs
 contract-impact: api
 ---
