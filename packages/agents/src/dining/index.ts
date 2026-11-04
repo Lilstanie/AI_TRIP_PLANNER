@@ -107,7 +107,7 @@ function mealRate(
   revision?: RevisionRequest,
   allocation?: BudgetAllocation,
 ): number {
-  const cents = (value: number) => Math.floor(value * 100) / 100;
+  const cents = (value: number) => Math.floor(Math.round(value * 100 * 1e6) / 1e6) / 100;
   if (allocation)
     return cents(Math.min(DAILY_MEAL_RATE, allocation.budget / (brief.groupSize * days)));
   const normal = Math.min(

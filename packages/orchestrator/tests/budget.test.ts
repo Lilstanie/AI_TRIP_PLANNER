@@ -1,6 +1,13 @@
 import { describe, expect, it } from "vitest";
 import type { AgentProposal, TripSection } from "@trip/shared";
-import { assessBudget, costOf, rollUpCost, ESCALATION_OVERRUN_PCT } from "../src/planning/budget";
+import {
+  assessBudget,
+  ceilMoney,
+  costOf,
+  floorMoney,
+  rollUpCost,
+  ESCALATION_OVERRUN_PCT,
+} from "../src/planning/budget";
 import { detectConflicts, runOrchestrator, DEMO_BRIEF } from "../src";
 import { minimumCost } from "../src/planning/conflicts";
 
@@ -118,8 +125,8 @@ describe("accommodation integration with negotiation", () => {
   it("fits the budget in the first round once each stage knows what earlier ones cost", async () => {
     const plan = await runOrchestrator(DEMO_BRIEF);
     expect(plan.round).toBe(1);
-    expect(plan.estTotal).toBe(3559.84);
-    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(219.84);
+    expect(plan.estTotal).toBe(3560);
+    expect(plan.sections.find((section) => section.id === "dining")!.estCost).toBe(220);
     expect(plan.sections.find((section) => section.id === "accommodation")!.estCost).toBe(1480);
 
     expect(plan.conflicts).toEqual([]);
@@ -139,5 +146,28 @@ describe("accommodation integration with negotiation", () => {
     expect(plan.round).toBe(1);
     expect(plan.overrunPct).toBeLessThanOrEqual(0);
     expect(plan.conflicts).toEqual([]);
+  });
+});
+
+describe("rounding an AUD amount to whole cents", () => {
+  it("keeps an amount that is already whole cents", () => {
+    for (const amount of [1250.35, 4.35, 1.1, 0.07, 0.29, 1999.99])
+      expect([floorMoney(amount), ceilMoney(amount)]).toEqual([amount, amount]);
+  });
+
+  it("rounds a fractional cent down or up", () => {
+    expect(floorMoney(1.234)).toBe(1.23);
+    expect(ceilMoney(1.234)).toBe(1.24);
+    expect(floorMoney(1250.355)).toBe(1250.35);
+    expect(ceilMoney(1250.351)).toBe(1250.36);
+  });
+
+  it("matches integer cent arithmetic for every cent up to AUD 2000", () => {
+    const wrong: number[] = [];
+    for (let value = 0; value <= 200_000; value += 1) {
+      const amount = value / 100;
+      if (floorMoney(amount) !== amount || ceilMoney(amount) !== amount) wrong.push(amount);
+    }
+    expect(wrong).toEqual([]);
   });
 });
