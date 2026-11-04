@@ -100,6 +100,57 @@ describe("parseFlightQuery", () => {
     });
   });
 
+  it("finds a multi-word origin after a long English lead-in", () => {
+    for (const [message, from, to] of [
+      ["cheapest flight from Los Angeles to Tokyo on Nov 4", "Los Angeles", "Tokyo"],
+      [
+        "what is the cheapest one way flight from Rio de Janeiro to Lisbon on Nov 4",
+        "Rio de Janeiro",
+        "Lisbon",
+      ],
+      [
+        "can you find me the cheapest flights from New York City to Tokyo on Nov 4",
+        "New York City",
+        "Tokyo",
+      ],
+      ["I want to fly from Sydney to Tokyo on Nov 4", "Sydney", "Tokyo"],
+      ["flights from Los Angeles to Rio de Janeiro on Nov 4", "Los Angeles", "Rio de Janeiro"],
+      ["cheapest Los Angeles to Tokyo flight on Nov 4", "Los Angeles", "Tokyo"],
+    ] as const)
+      expect(parseFlightQuery(message, today), message).toMatchObject({
+        from,
+        to,
+        depart: "2026-11-04",
+      });
+  });
+
+  it("finds the origin after a long Chinese lead-in", () => {
+    for (const [message, from] of [
+      ["请帮我查一下最便宜的从里约热内卢到东京的机票 11月4日", "里约热内卢"],
+      ["帮我查一下最便宜的从洛杉矶到东京的机票 11月4日", "洛杉矶"],
+      ["最便宜的洛杉矶到东京的机票 11月4日", "洛杉矶"],
+    ] as const)
+      expect(parseFlightQuery(message, today), message).toMatchObject({
+        from,
+        to: "东京",
+        depart: "2026-11-04",
+        cheapestFirst: true,
+      });
+  });
+
+  it("still declines long lead-ins that are not a dated flight question", () => {
+    for (const message of [
+      "Plan a trip from Los Angeles to Tokyo on Nov 4 with the cheapest flight",
+      "please change the cheapest flight from Los Angeles to Tokyo on Nov 4",
+      "what is the cheapest one way flight from Rio de Janeiro to Lisbon",
+      "can you find me the cheapest hotels from New York City to Tokyo on Nov 4",
+      "cheapest flight from Los Angeles to Los Angeles on Nov 4",
+      "帮我规划一下从洛杉矶到东京的行程 11月4日",
+      "请帮我查一下最便宜的从洛杉矶到东京的机票",
+    ])
+      expect(parseFlightQuery(message, today), message).toBeUndefined();
+  });
+
   it("reads English dates without a year", () => {
     expect(parseFlightQuery("flights Sydney to Tokyo on Dec 15th back Jan 5", today)).toMatchObject(
       {
