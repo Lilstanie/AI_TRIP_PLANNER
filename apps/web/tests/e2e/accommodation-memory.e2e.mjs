@@ -34,6 +34,7 @@ for (const migration of [
   "0000_fantastic_doomsday.sql",
   "0001_ambitious_micromacro.sql",
   "0002_adorable_namor.sql",
+  "0003_account_deletions.sql",
 ])
   await db.exec(await readFile(resolve(root, "apps/web/drizzle", migration), "utf8"));
 const schema = await runtime.ssrLoadModule("/apps/web/lib/db/schema.ts");

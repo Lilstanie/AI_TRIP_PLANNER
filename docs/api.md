@@ -467,6 +467,7 @@ Contracts: `UserSettings` in `apps/web/lib/account/settings.ts`, `SyncedRecord` 
 `PUT` takes `{ settings: UserSettings, revision }`. Revision `0` creates a row; subsequent writes must
 match its current server revision. Accepted writes return `{ settings, revision }` with the revision
 incremented by one. A stale write returns 409 `{ conflict: true }`; an invalid or legacy body returns 400.
+While the account is being deleted, or after it was deleted, `PUT` answers 410 and writes nothing.
 `updatedAt` is display metadata and never decides which edit wins.
 When a browser has no local checkpoint and no other account checkpoint, its existing settings migrate
 to the first signed-in account with revision `0`. On an account switch, unsynced settings are kept under
@@ -481,6 +482,14 @@ defaults, and does not receive settings owned by the previous identity.
 an edit or deletion must carry the server revision on which it was based. Each accepted write
 increments that revision. The response is `{ accepted: { trips, conversations }, conflicts: { trips,
 conversations } }`, including partial success. Only `accepted` records acknowledge local changes.
+
+The `POST` body must declare `Content-Length` and be at most 6,200,000 bytes
+(`MAX_SYNC_BODY_BYTES`), which fits one record at the record limit. The size is checked before the
+body is read: a missing or non-numeric `Content-Length` answers 411, a larger one 413. The client
+splits pending changes into batches within both limits and pushes them in order; when a later batch
+fails, the batches already accepted stay acknowledged and the status shows offline. All records in one
+push are written in one transaction: a database failure writes none of them and answers 500. While
+the account is being deleted, or after it was deleted, a push answers 410 and writes nothing.
 Conflicts repeat the rejected submissions; their local contents stay pending through reload and retry.
 Client timestamps do not authorize writes. The client validates pulled records with the catalog parsers
 and preserves any local change that has not been acknowledged. Pushes from one client are serialized.
@@ -529,8 +538,14 @@ restores the previous value. Stale tokens return `{ undone: false }`. Successful
 
 ### `DELETE /api/account`
 
-Deletes the account's trips, conversations, settings and long-term memory rows before deleting the
-Clerk user. If Clerk fails after the rows are gone it answers 502 and says so.
+Deletes the account's trips, conversations, settings and long-term memory rows in one transaction,
+then deletes the Clerk user. The transaction takes the account's deletion lock, so it waits for sync,
+settings and memory writes already in flight and holds new ones until it commits. It also records a
+deletion tombstone (`account_deletions`, migration `0003`) that is kept: afterwards those writes
+answer 410 or save nothing instead of recreating rows. Deletions of other accounts do not wait.
+If any delete fails, nothing is deleted and it answers 500 with the fixed notice
+`yourAccountCouldNotBe`. If Clerk fails after the rows are gone it answers 502 and says so; the
+tombstone stays, so a retry can still succeed and other tabs cannot write meanwhile.
 
 ## Related contracts
 
