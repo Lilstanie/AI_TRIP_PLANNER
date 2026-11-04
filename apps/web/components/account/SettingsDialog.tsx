@@ -824,7 +824,7 @@ export function SettingsDialog({
       <nav className="settings-nav" aria-label={t("settingsSections")}>
         <ul role="tablist" aria-orientation="vertical">
           {SECTIONS.map(([id, label]) => (
-            <li key={id}>
+            <li key={id} role="presentation">
               <button
                 type="button"
                 role="tab"
