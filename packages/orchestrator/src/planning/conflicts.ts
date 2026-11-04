@@ -1,6 +1,13 @@
 import { formatMoney, outboundArrival, planIssue } from "@trip/shared";
 import type { AgentName, Currency, AgentProposal, TripBrief, RevisionRequest } from "@trip/shared";
-import { assessBudget, costOf, moneyDifference, NEGOTIATION_OVERRUN_PCT, sumMoney } from "./budget";
+import {
+  assessBudget,
+  ceilMoney,
+  costOf,
+  moneyDifference,
+  NEGOTIATION_OVERRUN_PCT,
+  sumMoney,
+} from "./budget";
 
 export const INFEASIBLE_BUDGET = "infeasible budget";
 
@@ -15,8 +22,6 @@ const KIND_RANK: Record<RevisionKind, number> = {
   budget: 3,
   infeasible: 4,
 };
-
-const cents = (amount: number) => Math.ceil(amount * 100) / 100;
 
 export function minimumCost(proposals: AgentProposal[]): number {
   return sumMoney(proposals.map((proposal) => Math.min(costOf(proposal), proposal.floorCost ?? 0)));
@@ -78,7 +83,7 @@ export function detectConflicts(
       .filter(({ room }) => room > 0);
     const room = reducible.reduce((sum, entry) => sum + entry.room, 0);
     for (const { proposal, room: own } of reducible) {
-      const saving = cents(Math.min(own, (overrun * own) / room));
+      const saving = ceilMoney(Math.min(own, (overrun * own) / room));
       if (saving <= 0) continue;
       add(
         proposal.agent,

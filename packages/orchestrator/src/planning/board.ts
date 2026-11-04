@@ -8,7 +8,7 @@ import type {
   SpecialistRequest,
   TripBrief,
 } from "@trip/shared";
-import { costOf } from "./budget";
+import { costOf, floorMoney } from "./budget";
 
 const WAITS_FOR: Partial<Record<AgentName, readonly AgentName[]>> = {
   accommodation: ["transport"],
@@ -39,7 +39,7 @@ export function allocationFor(
     (name) => !settled.includes(name) && !(brief.noAccommodation && name === "accommodation"),
   );
   const weight = open.reduce((sum, name) => sum + SHARES[name]!, 0);
-  const budget = Math.floor(((remaining * share) / weight) * 100) / 100;
+  const budget = floorMoney((remaining * share) / weight);
   const after = settled.length ? ` after ${settled.join(" and ")} (${aud(spent)})` : "";
   return {
     budget,
