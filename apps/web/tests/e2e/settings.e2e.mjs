@@ -64,7 +64,7 @@ async function run(browser, { width, height, tag }) {
   await page.goto(BASE);
 
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await page.waitForLoadState("networkidle");
   if (width > 520 && width < 1000) {
     await page.getByRole("button", { name: "Open navigation" }).click();
@@ -248,7 +248,7 @@ async function run(browser, { width, height, tag }) {
   );
 
   await page.reload();
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await settle(page, 1200);
   check(
     (await page.evaluate(() => document.documentElement.dataset.theme)) === "dark",

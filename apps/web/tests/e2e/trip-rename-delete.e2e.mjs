@@ -111,7 +111,7 @@ try {
   );
 
   await page.reload();
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await settle(page, 800);
   await openChats();
   check(
@@ -191,7 +191,7 @@ try {
     "Undo brings back the trip with its name",
   );
   await page.reload();
-  await page.waitForSelector(".workspace-app");
+  await page.waitForSelector(".workspace-app:not([aria-busy])");
   await settle(page, 800);
   await openChats();
   await page

@@ -17,6 +17,7 @@ describe("@trip/tools production boundary", () => {
       "configuredDataMode",
       "createToolGateway",
       "dataMode",
+      "knownCitySuffix",
       "localCalendarDate",
       "mockEnabled",
       "parseDataMode",

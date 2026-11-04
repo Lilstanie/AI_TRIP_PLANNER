@@ -36,7 +36,7 @@ try {
   check(live === "Perth, Australia", "the open blank chat picks up the saved location", live);
   await page.keyboard.press("Escape");
   await page.reload();
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page
     .getByRole("button", { name: /^Where/ })
     .first()

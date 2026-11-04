@@ -36,7 +36,7 @@ try {
       const errors = [];
       page.on("pageerror", (error) => errors.push(String(error)));
       await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-      await page.locator(".workspace-app").waitFor();
+      await page.locator(".workspace-app:not([aria-busy])").waitFor();
       const nav = page.locator(".sidebar-nav");
       const entry = (name) => nav.getByRole("button", { name: new RegExp(`^${name}`) });
       if (collapsed) {

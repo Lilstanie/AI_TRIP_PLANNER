@@ -371,7 +371,7 @@ try {
     const only = (texts, code) => texts.length > 0 && texts.every((text) => has(text, code));
 
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     const log = { width };
     summary[width] = log;
 
@@ -530,7 +530,7 @@ try {
     check((await settingsCurrency()) === "CNY", tag("Settings is only what the traveller chose"));
 
     await page.reload();
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     texts = await cards();
     check(
       texts.length === 3 &&
@@ -623,7 +623,7 @@ try {
     const oldErrors = [];
     page.on("pageerror", (e) => oldErrors.push(String(e)));
     await page.goto(process.env.BASE_URL ?? "http://localhost:3000");
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     check((await settingsCurrency()) === "AUD", tag("legacy trip: Settings is AUD"));
 
     const [saved] = await cards();
