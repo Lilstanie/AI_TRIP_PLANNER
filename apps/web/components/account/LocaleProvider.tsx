@@ -1,6 +1,13 @@
 "use client";
 
-import { createContext, useContext, useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  createContext,
+  useContext,
+  useEffect,
+  useMemo,
+  useSyncExternalStore,
+  type ReactNode,
+} from "react";
 import { NextIntlClientProvider, useTranslations } from "next-intl";
 import {
   browserLocale,
@@ -36,9 +43,17 @@ const LocaleContext = createContext<LocaleState>({
 
 export function useInterfaceLocale(): AppLocale {
   const { settings } = useSettings();
-  const [browser, setBrowser] = useState<AppLocale>("en");
-  useEffect(() => setBrowser(browserLocale(navigator.languages ?? [navigator.language])), []);
+  const browser = useSyncExternalStore(subscribeLanguages, navigatorLocale, () => "en" as const);
   return settings.language ?? browser;
+}
+
+function subscribeLanguages(onChange: () => void) {
+  window.addEventListener("languagechange", onChange);
+  return () => window.removeEventListener("languagechange", onChange);
+}
+
+function navigatorLocale(): AppLocale {
+  return browserLocale(navigator.languages ?? [navigator.language]);
 }
 
 export function LocaleProvider({

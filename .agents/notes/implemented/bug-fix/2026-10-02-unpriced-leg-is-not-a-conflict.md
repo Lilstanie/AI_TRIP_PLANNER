@@ -5,8 +5,8 @@ Owner: A (@Lilstanie)
 
 ## Problem
 
-Every ground leg whose fare a provider did not publish raised a conflict: *"Transport fare
-unavailable on day N: budget total is incomplete, not a free trip."*
+Every ground leg whose fare a provider did not publish raised a conflict: _"Transport fare
+unavailable on day N: budget total is incomplete, not a free trip."_
 
 No revision can fix it. The fare is missing because the provider does not publish it — Google
 returns no `transitFare` for Australia at all — so the orchestrator spent a revision round on a
@@ -17,7 +17,7 @@ fixed the inter-city case by finding a real fare, and deliberately left itinerar
 quota — so those hops are permanently unpriced by design, and permanently conflicted.
 
 A conflict is the UI's "needs_you" state. Filling it with something the traveller cannot act on
-pushes the conflicts that *are* theirs to act on down the list.
+pushes the conflicts that _are_ theirs to act on down the list.
 
 ## Decision
 

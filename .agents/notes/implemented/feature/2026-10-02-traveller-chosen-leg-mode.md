@@ -13,7 +13,7 @@ would rather take the train to Sydney, or sit on a night bus to save the fare, h
 ten days.
 
 The seam was also the wrong width. `ModePreference` was `LegMode` (`"flight" | "ground"`), which
-cannot express "train, not the bus": train versus bus is a choice *within* ground travel, and
+cannot express "train, not the bus": train versus bus is a choice _within_ ground travel, and
 nothing could make it.
 
 ## Decision
@@ -51,7 +51,7 @@ search for that hop (one per flown hop, unchanged by replans).
 **A per-hop control in the Getting around section, posting to `/api/trip/preview-edit`.** That route
 recomputes routes directly through `integrations/google` with no agent round, so it is fast and fits
 the existing edit mechanism — but it cannot price a flight, which is the switch that matters most
-(Melbourne → Sydney: fly or take the train?). It remains the right home for a control *on top of*
+(Melbourne → Sydney: fly or take the train?). It remains the right home for a control _on top of_
 this contract field.
 
 **A trip-wide preference ("prefer cheapest" / "prefer fastest").** Simpler and needs no endpoint

@@ -10,7 +10,7 @@ nothing recorded which went with which. That was fine while nothing could change
 moment the traveller can swap a fare, the editor has to find the item that carries its cost, and the
 only handles available were the day and the location string.
 
-Both are wrong in cases the planner already produces. A day can carry a flight *and* a ground hop,
+Both are wrong in cases the planner already produces. A day can carry a flight _and_ a ground hop,
 so matching on day picks whichever comes first. Matching on `location` compares prose that the
 agents are free to reword.
 
