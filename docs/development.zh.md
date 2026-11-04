@@ -383,6 +383,12 @@ node scripts/check-file-length.mjs [--base <ref>] [--max <lines>]
 
 通过 `CHANNEL=chrome DATA_MODE=mock USE_MOCK_TOOLS=true MOCK_GOOGLE_MAPS=unavailable pnpm --filter @trip/web e2e map-fallback` 重跑回退界面检查。本地测试时清空模型、Maps 和 Clerk 密钥变量。截图和摘要位于 `output/playwright/map-fallback/after`。`map-provider-http` 使用本地上游测试真实 API 处理器：将 `MAP_STUB_PORT` 设为空闲端口，将上述三个基础 URL 设为 `http://127.0.0.1:$MAP_STUB_PORT`，并设 `WEB_MAPS_PROVIDER=osm`；限流时间戳、缓存命中、语言、范围和公交解析记录在 `output/e2e/map-provider-http/summary.json`。
 
+`stay-unavailable` 在没有 `SERPAPI_KEY`、`MAPS_API_KEY` 和模型密钥的 Live 数据模式下规划里斯本行程，OpenStreetMap 由本地桩提供，因此 booking port 会拒绝每次住宿查询。它检查计划、预算卡、住宿行、“待确认”和日历中的未计价住宿，然后运行一个实时 Agent Lab 多城市场景。证据和截图位于 `output/playwright/stay-unavailable/<LABEL>/`；失败清单见 [stay-unavailable.failures.md](../apps/web/tests/e2e/stay-unavailable.failures.md)。
+
+```bash
+STAY_STUB_PORT=3417 NOMINATIM_BASE_URL=http://127.0.0.1:3417 OVERPASS_BASE_URL=http://127.0.0.1:3417 OSRM_BASE_URL=http://127.0.0.1:3417 OSRM_FOOT_BASE_URL=http://127.0.0.1:3417 OSRM_BIKE_BASE_URL=http://127.0.0.1:3417 PHOTON_BASE_URL=http://127.0.0.1:3417 TRANSITOUS_BASE_URL=http://127.0.0.1:3417 USE_MOCK_TOOLS=false MAPS_PROVIDER=osm WEB_MAPS_PROVIDER=osm pnpm --filter @trip/web e2e stay-unavailable
+```
+
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` 显式启用真实免费服务检查。只有聊天回复使用固定数据；地点查询、瓦片和步行路线均为实时请求。结果及桌面／手机截图位于 `output/playwright/map-fallback-live/after`。这不代表公共交通覆盖所有目的地。
 
 `real-clerk-auth.e2e.mjs` 需要先启动配置 Clerk 测试密钥和已迁移账号数据库的本地服务。

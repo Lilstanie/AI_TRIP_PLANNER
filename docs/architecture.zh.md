@@ -212,7 +212,7 @@ specialist 走确定性路径，工具返回 mock fixture；它们不读取或�
 `POST /api/agent-lab/runs` 会拒绝任何其他组合。故障是包在工作流已在运行的 specialist 外面的包装器，位于轨迹包装器之外，
 因此会经过同样的进度工具和 schema 校验。工作流本身只增加两个可选的事实（`agent_output_rejected`，只带字段路径，以及 `delegation_fallback`）
 和一个可注入的 `supervisorModel`。每个故障的结果就是观察到的工作流行为：航班查询超时会让 transport 分段变为 `unavailable`、不定价并留下冲突，
-运行以较少内容继续；住宿查询为空会终止运行，因为 accommodation 拒绝编造住宿；dining 的非法输出在提案 schema 处被拒绝并终止运行；
+运行以较少内容继续；住宿查询为空对 accommodation 也是如此：分段变为 `unavailable`、各晚不定价，运行继续；dining 的非法输出在提案 schema 处被拒绝并终止运行；
 不委派任何人的 supervisor 会回退到确定性分发；无法改善计划的修订保留最佳已知计划并以 `no_improvement` 停止。
 被故障终止的运行会结束于一个 `failed` 产物，它保留轨迹并指明失败的 specialist，并且像其他产物一样可下载、可回放。决策见 [Agent Note](../.agents/notes/implemented/architecture/2026-10-02-agent-lab-failure-lab.md)。
 
@@ -333,7 +333,13 @@ Google Places 的景点和街区搜索使用旅行用语（“top tourist attrac
 
 餐厅搜索通过可选的 PlaceQuery.textQuery 把饮食要求传给 Google Places 或 OSM，同时保留餐厅类别。进度记录实际查询文字。未传搜索文字的现有调用仍使用类别与城市，模拟模式保持离线。搜索相关性不能验证食材、饮食适配性或过敏安全。
 
-交通和住宿包装计算器，使模型无法编造价格、路线或住宿设施。行程同样从不为停留点定价：
+交通和住宿包装计算器，使模型无法编造价格、路线或住宿设施。
+某个城市的住宿查询失败，或没有符合已确认偏好的住宿时，accommodation 保留其他城市已定价的住宿，
+并为该城市给出一个带日期和晚数、没有 `estCost` 的 hotel 条目。分段来源为 `unavailable`，
+`stayUnavailable` 或 `stayNoMatch` 计划问题作为冲突保留。预算卡把该条目计为未计价并说明冲突，
+住宿行和行程主页日历的住宿条仍覆盖这几晚，“待确认”把它列为未计价的住宿。其他 specialist 照常规划
+（[无法查询住宿的决策](../.agents/notes/implemented/bug-fix/2026-11-04-unsearchable-stay-unpriced.md)）。
+行程同样从不为停留点定价：
 Google Places 不提供门票价格，因此活动的 `estCost` 保持未设置，计划会说明有多少停留点尚未定价。它的摘要根据最终保留的停留点生成（天数和单日最多停留点数），从不采用模型自己写的摘要，因此不会把有停留点的一天说成空闲。
 回复会收到计划中的已知估算、预算、预算余量以及每个停留点的价格状态。未设置的活动价格会被排除，而非视为零；
 回复必须说明这一边界，只有计划中带有数值价格时才能引用停留点价格。Fixture 和无模型回复只能验证这一确定性边界，
@@ -467,7 +473,7 @@ Agent 通过 `AgentContext` 接收 `ctx.tools`（`ToolGateway`）和 `ctx.mem`�
 随后，Maps port 在内部选择进程内 fixture（`USE_MOCK_TOOLS=true`）、OpenStreetMap 或
 Google，并负责路线与地点能力，以及公共交通、城际铁路和驾车回退。Booking port 为每个
 gateway 私下选择一次 fixture 或 live adapter。Live 酒店先使用 SerpApi，并保留带明确标签的
-Google Places 估算回退，但仅在选择 Google Maps 且提供密钥时使用；否则保留原始 SerpApi 错误。Live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
+Google Places 估算回退，但仅在选择 Google Maps 且提供密钥时使用；否则保留原始 SerpApi 错误，由 accommodation specialist 把它变成未计价的住宿。Live 航班仍只使用 SerpApi，绝不以虚构票价回退。缺失凭据只在调用
 相应 Booking 能力时失败。Weather port 使用同一份已固定的配置和时钟：fixture 模式返回
 确定性的天气信息；live 模式在第 0–9 天使用 Google Weather 预报，第 10–14 天使用
 Open-Meteo 预报，第 14 天之后使用 Open-Meteo 历史归档作为气候背景。近期预报缺少密钥时，

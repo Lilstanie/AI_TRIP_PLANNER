@@ -94,6 +94,17 @@ export function OpenItemsBadge({
                     <li key={item.key}>
                       {item.kind === "Itinerary issue" ? (
                         notice(item.notice)
+                      ) : item.kind === "Unpriced stay" ? (
+                        <button
+                          type="button"
+                          aria-label={`${t(keyForText(kind))}: ${item.label}`}
+                          onClick={() => {
+                            if (item.day !== undefined) onSelectDay(item.day);
+                            setOpen(false);
+                          }}
+                        >
+                          {item.label}
+                        </button>
                       ) : (
                         <button
                           type="button"

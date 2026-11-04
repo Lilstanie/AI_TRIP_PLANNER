@@ -46,17 +46,17 @@ function modelCallingSearchRepeatedly() {
 }
 
 describe("accommodation provider search", () => {
-  it("stops after one failed search and reports the provider error", async () => {
+  it("searches once after a failed search and leaves the stay unpriced", async () => {
     modelCallingSearchRepeatedly();
     const warn = vi.spyOn(console, "warn").mockImplementation(() => {});
     const searchStays = vi.fn(async () => {
       throw new Error("provider down");
     });
-    await expect(
-      accommodationAgent.invoke({ brief, context: context(searchStays) }),
-    ).rejects.toThrow("provider down");
+    const proposal = await accommodationAgent.invoke({ brief, context: context(searchStays) });
     expect(searchStays).toHaveBeenCalledTimes(1);
-    expect(warn).not.toHaveBeenCalled();
+    expect(proposal.source?.kind).toBe("unavailable");
+    expect(proposal.items.every((item) => item.estCost === undefined)).toBe(true);
+    expect(warn).toHaveBeenCalledWith(expect.stringContaining("provider down"));
     warn.mockRestore();
   });
 

@@ -49,8 +49,9 @@ and never with a paid search.
 - Raise a typed error with a `reason` (see `SerpApiError`) instead of a message callers must parse.
 - Decide the fallback tier explicitly: a cheaper grounded source, a fixture, or a thrown error the
   agent turns into "unpriced" or "unavailable". A fallback that needs its own key checks that
-  configuration before it engages; without it, rethrow the primary's typed error rather than mask it
-  ([SerpApi stay failure](../../notes/implemented/bug-fix/2026-10-14-serpapi-osm-stay-failure.md)).
+  configuration before it engages; without it, rethrow the primary's typed error rather than mask it.
+  The specialist, not the port, turns that error into an unpriced, `unavailable` section
+  ([unsearchable stay](../../notes/implemented/bug-fix/2026-11-04-unsearchable-stay-unpriced.md)).
 - Count date windows such as a forecast horizon in the destination's local calendar, not UTC, and
   accept live evidence only when it covers the exact requested date
   ([weather boundaries](../../notes/implemented/bug-fix/2026-10-14-weather-calendar-boundaries.md)).

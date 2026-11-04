@@ -26,6 +26,8 @@ const ROUTE_FAILED = /^geography conflict on day (\d+): route provider failed$/;
 const ROUTE_FAILED_TAIL = "connection unverified";
 const ROUTE_UNCHECKED =
   /^geography conflict on day (\d+): (?:route provider unavailable for (.+?) → (.+)|(.+?) (?:to|→) (.+): (?:no route returned|invalid route duration, fare or mode|driving estimate cannot verify public transport timing))$/;
+const STAY_UNPRICED =
+  /^(?:Stay provider unavailable, so the stay in (.+?) from|No stay in (.+?) meets the confirmed accommodation preferences, so the stay from) (\d{4}-\d{2}-\d{2}) until (\d{4}-\d{2}-\d{2}) remains unpriced\.$/;
 const DAY = /\bday (\d+)\b/i;
 
 const minutes = (time: string) => Number(time.slice(0, 2)) * 60 + Number(time.slice(3, 5));
@@ -120,6 +122,19 @@ export function placeConflicts(plan: TripPlan): ConflictPlacement {
         addTo(placement.days, Number(day), {
           key: "routeBetweenNotChecked",
           params: { from: (providerFrom ?? from)!, to: (providerTo ?? to)! },
+        });
+        continue;
+      }
+      const stay = STAY_UNPRICED.exec(reason);
+      if (stay) {
+        const [, unavailableCity, unmatchedCity, checkIn, checkOut] = stay;
+        addOnce(placement.budget, {
+          key: unavailableCity ? "stayCouldNotBeSearched" : "noStayMeetsYourPreferences",
+          params: {
+            city: (unavailableCity ?? unmatchedCity)!,
+            checkIn: checkIn!,
+            checkOut: checkOut!,
+          },
         });
         continue;
       }
