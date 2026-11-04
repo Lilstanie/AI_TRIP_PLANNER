@@ -2,7 +2,7 @@
 date: 2026-11-04
 author: Claude Code
 branch: fix/flight-query-local-date
-pr: none
+pr: 955 (TP-368)
 area: packages/shared, packages/orchestrator, apps/web, docs
 contract-impact: packages/shared
 ---
