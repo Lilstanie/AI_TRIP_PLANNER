@@ -34,11 +34,11 @@ export const agentLabFaultProfiles: readonly AgentLabFaultProfile[] = [
     id: "provider-empty-result",
     title: "Empty stay search",
     summary:
-      "The accommodation specialist's stay search returns nothing. The workflow stops instead of inventing a stay.",
+      "The accommodation specialist's stay search returns nothing. Its section degrades to unavailable and unpriced instead of inventing a stay, and the other sections still plan.",
     capability: "accommodation",
     scenarioId: "tokyo-couple",
     strategyId: "multi-agent-no-revision",
-    expected: "terminal",
+    expected: "degraded",
   },
   {
     id: "invalid-agent-output",

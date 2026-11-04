@@ -98,8 +98,16 @@ export function faultOutcome(artifact: AgentLabRunArtifact): FaultOutcome {
   const unresolved = artifact.metrics.unresolvedConflicts;
   const facts: string[] = [];
   for (const item of fallbacks) facts.push(item.summary);
+  const emptied = unavailable.filter((section) =>
+    of("tool_completed").some((event) => event.agent === section.id && event.resultCount === 0),
+  );
   for (const section of unavailable) {
     facts.push(`The ${name(section.id)} section is unavailable and was not priced.`);
+  }
+  for (const section of emptied) {
+    facts.push(
+      `The ${name(section.id)} search returned no results, and the workflow did not invent any.`,
+    );
   }
   const notKept = of("lab_revision_scored").filter((event) => !event.kept);
   for (const item of notKept) {
@@ -129,6 +137,13 @@ export function faultOutcome(artifact: AgentLabRunArtifact): FaultOutcome {
     return outcome(
       "degraded",
       `The ${agents} provider call failed; the section is degraded`,
+      facts,
+    );
+  }
+  if (emptied.length) {
+    return outcome(
+      "degraded",
+      `The ${emptied.map((section) => name(section.id)).join(", ")} search returned nothing; the section is unpriced`,
       facts,
     );
   }

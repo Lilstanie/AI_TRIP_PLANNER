@@ -26,10 +26,13 @@ what the workflow was observed to do, found by probing every provider call again
 | Profile                 | Injected into               | Observed result                                                          |
 | ----------------------- | --------------------------- | ------------------------------------------------------------------------ |
 | `provider-timeout`      | transport's flight search   | Section `unavailable` and unpriced, a conflict stays; the run carries on |
-| `provider-empty-result` | accommodation's stay search | The specialist throws rather than invent a stay; the run stops           |
+| `provider-empty-result` | accommodation's stay search | Section `unavailable`, nights unpriced, a conflict stays; carries on     |
 | `invalid-agent-output`  | dining's proposal           | Rejected at the proposal schema; the run stops                           |
 | `supervisor-failure`    | the supervisor              | Falls back to deterministic dispatch; the run completes                  |
 | `stalled-revision`      | transport's revision        | Best known plan kept, `no_improvement`; the run completes                |
+
+`provider-empty-result` stopped the run until accommodation learned to leave an unsearchable stay
+unpriced ([unsearchable stay](../bug-fix/2026-11-04-unsearchable-stay-unpriced.md)).
 
 Two optional facts and one option were added to the workflow, none changing its behaviour:
 `agent_output_rejected` (field paths only) and `delegation_fallback` decisions, and

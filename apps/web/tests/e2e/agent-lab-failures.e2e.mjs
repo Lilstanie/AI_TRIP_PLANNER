@@ -22,8 +22,8 @@ const PROFILES = {
     capability: "accommodation",
     scenarioId: "tokyo-couple",
     strategyId: "multi-agent-no-revision",
-    outcome: "failed",
-    status: "error",
+    outcome: "degraded",
+    status: "complete",
   },
   "invalid-agent-output": {
     title: "Invalid specialist output",
@@ -90,6 +90,14 @@ function recompute(artifact) {
   if (artifact.status === "failed") kind = "failed";
   else if (eventsOf(artifact, "lab_supervisor_fallback").length) kind = "degraded";
   else if (toolFailed.length) kind = "degraded";
+  else if (
+    unavailable.some((section) =>
+      eventsOf(artifact, "tool_completed").some(
+        (event) => event.agent === section.id && event.resultCount === 0,
+      ),
+    )
+  )
+    kind = "degraded";
   else if (artifact.metrics.stopReason === "no_improvement") kind = "partial";
   else kind = "completed";
   return {
@@ -343,17 +351,18 @@ async function main() {
       const searched = eventsOf(artifact, "tool_completed").filter(
         (event) => event.agent === "accommodation" && event.resultCount === 0,
       );
+      const stay = artifact.plan.sections.find((section) => section.id === "accommodation");
       check(searched.length > 0, `${id}: the empty stay search is in the trace`);
       check(
-        artifact.failure.code === "agent_failed" &&
-          artifact.failure.agent === "accommodation" &&
-          artifact.failure.atSequence === artifact.events.length &&
-          artifact.metrics.eventCount === artifact.events.length,
-        `${id}: the failure names accommodation and the trace recorded before it was kept`,
+        stay.proposal.source.kind === "unavailable" &&
+          stay.estCost === 0 &&
+          stay.proposal.items.every((item) => item.estCost === undefined),
+        `${id}: the stay section is unavailable and its nights are unpriced`,
       );
       check(
-        !types(artifact).includes("lab_plan_validated") && shown.sections === 0,
-        `${id}: no plan was assembled, so none is shown and none was invented`,
+        artifact.metrics.failedAgents === 0 &&
+          artifact.plan.conflicts.some((item) => item.targetAgent === "accommodation"),
+        `${id}: no specialist failed and the unpriced stay stays visible as a conflict`,
       );
       check(
         shown.facts.some((fact) => /did not invent/i.test(fact)),

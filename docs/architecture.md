@@ -257,8 +257,8 @@ workflow already runs, applied outside the trace wrapper, so they pass through t
 and schema validation. The workflow itself gains only two optional facts (`agent_output_rejected`, with
 field paths, and `delegation_fallback`) and an injectable `supervisorModel`. What each fault does is what
 the workflow was observed to do. A flight search timeout leaves the transport section `unavailable`, unpriced,
-with a conflict, and the run carries on with less. An empty stay search stops the run, because accommodation
-refuses to invent a stay. An invalid dining output is rejected at the proposal schema and stops the run. A
+with a conflict, and the run carries on with less. An empty stay search does the same to accommodation: the
+section is `unavailable`, its nights are unpriced, and the run carries on. An invalid dining output is rejected at the proposal schema and stops the run. A
 supervisor that delegates to nobody falls back to deterministic dispatch. A revision that cannot improve the
 plan leaves the best known plan and stops with `no_improvement`. A run a fault stops ends in a `failed`
 artifact that keeps its trace and names the failing specialist, and that artifact downloads and replays like
@@ -401,6 +401,12 @@ region. Each sight is used once in a city before any repeats.
 Restaurant searches carry dietary requirements in optional PlaceQuery.textQuery through Google Places or OSM, retaining the restaurant category. Progress records the query used. Existing callers without search text keep the category-and-city query, and mock mode remains offline. Search relevance does not verify ingredients, dietary suitability or allergen safety.
 
 Transport and accommodation wrap calculators so models cannot invent prices, routes or properties.
+When a city's stay search fails or returns no stay that meets the confirmed preferences, accommodation
+keeps the other cities' priced stays and gives that city one hotel item with its dates and nights and no
+`estCost`. The section's source is `unavailable`, and a `stayUnavailable` or `stayNoMatch` plan issue
+stays open as a conflict. The budget card counts the item as unpriced and explains the conflict, the Stays
+row and the trip-home calendar bar still cover the nights, and "To check" lists it as an unpriced stay. The
+other specialists plan as usual ([unsearchable stay decision](../.agents/notes/implemented/bug-fix/2026-11-04-unsearchable-stay-unpriced.md)).
 The itinerary likewise never prices a stop: Google Places publishes no admission prices, so an
 activity's `estCost` is left unset and the plan says how many stops are unpriced.
 Its summary is written from the stops it keeps (day count and the most stops on one day), never
@@ -583,7 +589,7 @@ composes its ports. The Maps port then privately selects in-process fixtures
 (`USE_MOCK_TOOLS=true`), OpenStreetMap or Google and owns route/places capability plus transit,
 inter-city rail and driving fallback. The Booking port privately selects fixture or live adapters
 once per gateway. Live hotels use SerpApi first and retain the labelled Google Places estimate
-fallback only when Google Maps is selected and its key is present; otherwise the original SerpApi error is preserved. Live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
+fallback only when Google Maps is selected and its key is present; otherwise the original SerpApi error is preserved, and the accommodation specialist turns it into an unpriced stay. Live flights remain SerpApi-only and never receive a fictional fallback fare. Missing
 credentials fail only when the corresponding Booking capability is called. The Weather port uses
 the same captured configuration and clock to return fixture weather, Google Weather forecasts for
 days 0–9, Open-Meteo forecasts for days 10–14, or Open-Meteo historical climate context after

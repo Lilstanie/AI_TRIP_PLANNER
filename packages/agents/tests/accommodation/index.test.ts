@@ -182,15 +182,27 @@ describe("accommodation proposals", () => {
     expect(searchStays).not.toHaveBeenCalled();
   });
 
-  it("does not turn missing or invalid lodging prices into a successful zero-cost stay", async () => {
-    for (const stays of [
-      [],
-      [{ ...options[0]!, pricePerNight: NaN }],
-      [{ ...options[0]!, pricePerNight: -1 }],
+  it("keeps a stay with missing, invalid or unsearchable prices unpriced instead of zero-cost", async () => {
+    const failing = context();
+    failing.searchStays.mockRejectedValue(new Error("Unsupported booking provider: osm"));
+    vi.spyOn(console, "warn").mockImplementation(() => {});
+    for (const ctx of [
+      context([]).ctx,
+      context([{ ...options[0]!, pricePerNight: NaN }]).ctx,
+      context([{ ...options[0]!, pricePerNight: -1 }]).ctx,
+      failing.ctx,
     ]) {
-      await expect(
-        accommodationAgent.invoke({ brief, context: context(stays).ctx }),
-      ).rejects.toThrow("No valid stays");
+      const result = AgentProposal.parse(await accommodationAgent.invoke({ brief, context: ctx }));
+      expect(result.source?.kind).toBe("unavailable");
+      expect(result.stays).toEqual([]);
+      expect(result.floorCost).toBe(0);
+      expect(result.items).toHaveLength(1);
+      expect(result.items[0]).toMatchObject({ kind: "hotel", day: 1 });
+      expect(result.items[0]!.estCost).toBeUndefined();
+      expect(result.items[0]!.detail).toContain("2026-10-01 to 2026-10-05");
+      expect(result.items[0]!.detail).toContain("4 nights");
+      expect(result.conflictsWith).toHaveLength(1);
+      expect(result.conflictsWith[0]).toContain("remains unpriced");
     }
   });
 

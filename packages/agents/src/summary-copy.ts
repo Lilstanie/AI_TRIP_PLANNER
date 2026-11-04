@@ -8,6 +8,7 @@ interface StayLine {
   cities: string[];
   money: string;
   lowestCost: boolean;
+  unpricedNights: number;
 }
 
 interface TransportLine {
@@ -26,8 +27,12 @@ const route = (origin: string, destinations: string[]) =>
     : `${origin} ↔ ${destinations.join(" → ")}`;
 
 const ENGLISH = {
-  stays: ({ rooms, nights, cities, money, lowestCost }: StayLine) =>
-    `${plural(rooms, "room", "rooms")}, ${plural(nights, "night", "nights")} in ${cities.join(" & ")} · ${money}${lowestCost ? " (lowest eligible cost)" : ""}`,
+  stays: ({ rooms, nights, cities, money, lowestCost, unpricedNights }: StayLine) =>
+    `${plural(rooms, "room", "rooms")}, ${plural(nights, "night", "nights")} in ${cities.join(" & ")} · ${
+      unpricedNights >= nights
+        ? "not priced"
+        : `${money}${lowestCost ? " (lowest eligible cost)" : ""}${unpricedNights ? ` · ${plural(unpricedNights, "night", "nights")} unpriced` : ""}`
+    }`,
   bookedStay: (name: string, nights: number) =>
     `${name} · booked by you, ${plural(nights, "night", "nights")} · not priced`,
   guide: (destination: string, date: string) =>
@@ -91,8 +96,12 @@ const ENGLISH = {
 };
 
 const CHINESE: typeof ENGLISH = {
-  stays: ({ rooms, nights, cities, money, lowestCost }) =>
-    `${rooms} 间房，${cities.join("、")}共 ${nights} 晚 · ${money}${lowestCost ? "（最低可选价格）" : ""}`,
+  stays: ({ rooms, nights, cities, money, lowestCost, unpricedNights }) =>
+    `${rooms} 间房，${cities.join("、")}共 ${nights} 晚 · ${
+      unpricedNights >= nights
+        ? "未计价"
+        : `${money}${lowestCost ? "（最低可选价格）" : ""}${unpricedNights ? ` · ${unpricedNights} 晚未计价` : ""}`
+    }`,
   bookedStay: (name, nights) => `${name} · 你已预订，${nights} 晚 · 未计价`,
   guide: (destination, date) => `${destination}${month(date, "zh-CN")}出行指南`,
   dining: (summary, money) => `${summary} · 餐饮预算 ${money}`,
