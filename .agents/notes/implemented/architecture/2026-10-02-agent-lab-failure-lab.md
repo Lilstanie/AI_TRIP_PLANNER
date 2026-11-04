@@ -54,8 +54,9 @@ download read the same. A failed artifact downloads and replays like any other.
 - **Let a visitor choose the tool, the error or the specialist.** Rejected: the public endpoint would become
   a way to break anything, and the result would not be repeatable evidence.
 - **Make every fault degrade gracefully.** Rejected: the workflow does not. The accommodation specialist
-  throws when its stay search fails or returns nothing, and the destination and dining specialists throw when
-  their place search fails. Showing the real terminal behaviour is the point, and inventing a recovery would
+  throws when its stay search fails or returns nothing; the destination and dining specialists mark their
+  section `unavailable` when their place search fails
+  ([place lookups degrade](../bug-fix/2026-11-04-place-lookups-degrade.md)). Showing the real terminal behaviour is the point, and inventing a recovery would
   present fiction as a feature.
 - **Intercept faults inside the production workflow.** Rejected: wrappers outside the trace wrapper reuse the
   same boundaries without a test-only branch in the workflow.
