@@ -709,6 +709,9 @@ export const zhWorkspace = {
   signInToUseYour: "请先登录。",
   thoseSettingsAreNotValid: "这些设置有误。",
   invalidSyncRequest: "同步请求有误。",
+  thisAccountIsBeingDeleted: "这个账号正在删除，改动不会再保存。",
+  syncRequestIsTooLarge: "这次同步的内容太大了。",
+  yourChangesCouldNotBe: "改动没能同步，再试一次吧。",
   theRequestWasInvalidPlease: "请求有误，再试一次吧。",
   attachmentRejectedReason: "附件没加上：{reason}",
   noStaysMatchYourAccommodation:

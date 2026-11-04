@@ -15,6 +15,10 @@ TP-165（2026-10-30）删除了 136 个原始脚本：它们在 `main` 上本就
 `ui-language` 在 `main` `a184575`（2026-10-31）上失败，命令为 `pnpm --filter @trip/web e2e ui-language`：
 它等待工作区已不再显示的“Conversation”标签页，最终超时。
 
+`accommodation-memory` 在 `main` `bc9daa1`（2026-11-04）上失败，命令为
+`node apps/web/tests/e2e/accommodation-memory.e2e.mjs`：脚本在请求作用域之外调用聊天路由，而路由调用了
+Next.js 的 `after()`，进程在记忆检查运行前抛出 "`after` was called outside a request scope"。
+
 <a id="covered-regressions"></a>
 
 ## 已有回归覆盖

@@ -102,8 +102,14 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
   const current = useRef(settings);
   current.current = settings;
 
-  useEffect(() => setSettings(readLocalSettings()), []);
-  useEffect(() => applyAppearance(settings.appearance), [settings.appearance]);
+  const [restored, setRestored] = useState(false);
+  useEffect(() => {
+    setSettings(readLocalSettings());
+    setRestored(true);
+  }, []);
+  useEffect(() => {
+    if (restored) applyAppearance(settings.appearance);
+  }, [restored, settings.appearance]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
 

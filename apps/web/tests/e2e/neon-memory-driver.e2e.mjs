@@ -20,7 +20,8 @@ const runtime = await createServer({
   appType: "custom",
 });
 const db = new PGlite();
-await db.exec(await readFile(resolve(root, "apps/web/drizzle/0002_adorable_namor.sql"), "utf8"));
+for (const migration of ["0002_adorable_namor.sql", "0003_account_deletions.sql"])
+  await db.exec(await readFile(resolve(root, "apps/web/drizzle", migration), "utf8"));
 const neonModule = await import("@neondatabase/serverless");
 const { neonConfig, Client } = neonModule;
 const savedConfig = Object.fromEntries(

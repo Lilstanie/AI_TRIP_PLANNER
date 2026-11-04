@@ -17,6 +17,10 @@ vi.mock("@clerk/nextjs/server", () => ({
 }));
 vi.mock("@/lib/auth/config", () => ({ authEnabled: true }));
 vi.mock("@/lib/db/client", () => ({ getDb: () => db, dbEnabled: () => identity.enabled }));
+vi.mock("@/lib/db/memory-transaction", () => ({
+  withMemoryTransaction: (operation: Parameters<typeof db.transaction>[0]) =>
+    db.transaction(operation),
+}));
 import { GET, POST } from "@/app/api/account/sync/route";
 import { GET as settingsGet, PUT } from "@/app/api/account/settings/route";
 import { GET as exportGet } from "@/app/api/account/export/route";
@@ -30,11 +34,18 @@ beforeAll(async () => {
   );
   await engine.exec(await readFile(resolve("drizzle/0001_ambitious_micromacro.sql"), "utf8"));
   await engine.exec(await readFile(resolve("drizzle/0002_adorable_namor.sql"), "utf8"));
+  await engine.exec(await readFile(resolve("drizzle/0003_account_deletions.sql"), "utf8"));
   db = drizzle(engine);
 });
 afterAll(() => engine.close());
-const body = (value: unknown, method = "POST") =>
-  new Request("http://local/api/account/sync", { method, body: JSON.stringify(value) });
+const body = (value: unknown, method = "POST") => {
+  const text = JSON.stringify(value);
+  return new Request("http://local/api/account/sync", {
+    method,
+    headers: { "content-length": String(Buffer.byteLength(text)) },
+    body: text,
+  });
+};
 const send = async (trips: unknown[] = [], conversations: unknown[] = []) =>
   (await POST(body({ trips, conversations }))).json();
 

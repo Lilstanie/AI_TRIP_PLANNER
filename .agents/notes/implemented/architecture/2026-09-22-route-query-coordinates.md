@@ -20,7 +20,7 @@ planner held them, used them for nothing, and asked the provider to guess the sa
 
 `RouteQuery` gains optional `fromLocation` / `toLocation`, typed as a new exported `GeoPoint`
 (`Place.location` is now the same type, unchanged in shape). The names stay: they are what a
-traveller reads in a route note, and `from`/`to` remain required. The coordinates say only *which*
+traveller reads in a route note, and `from`/`to` remain required. The coordinates say only _which_
 place is meant.
 
 Providers prefer them and fall back to the name when they are absent or out of range — a hint, not a

@@ -19,6 +19,11 @@ reopens "Tokyo from Sydney" from Chats and times out in `page.waitForFunction` w
 `ui-language` fails on `main` `a184575` (2026-10-31) with `pnpm --filter @trip/web e2e ui-language`:
 it times out waiting for a "Conversation" tab that the workspace no longer shows.
 
+`accommodation-memory` fails on `main` `bc9daa1` (2026-11-04) with
+`node apps/web/tests/e2e/accommodation-memory.e2e.mjs`: the chat route calls Next.js `after()` while
+the script invokes it outside a request scope, so the process throws
+"`after` was called outside a request scope" before the memory checks run.
+
 ## Covered regressions
 
 - `triage-accessibility` on `main` `8e168ba` (2026-10-22) waited on
