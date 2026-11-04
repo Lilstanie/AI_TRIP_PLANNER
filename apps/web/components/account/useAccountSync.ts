@@ -8,7 +8,7 @@ import {
   parseSynced,
   type SyncCheckpoints,
 } from "@/lib/account/catalog-sync";
-import { SyncPush, SyncResult, type SyncPull } from "@/lib/account/sync";
+import { SyncPush, SyncResult, syncBatches, type SyncPull } from "@/lib/account/sync";
 import type { WorkspaceCatalog } from "@/lib/workspace/catalog";
 import { useAccount } from "./AccountProvider";
 
@@ -39,7 +39,7 @@ function writeSync(userId: string, synced: SyncCheckpoints) {
 
 const isEmpty = (push: SyncPush) => !push.trips.length && !push.conversations.length;
 
-async function push(changes: SyncPush) {
+async function pushBatch(changes: SyncPush) {
   const response = await fetch("/api/account/sync", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -47,6 +47,34 @@ async function push(changes: SyncPush) {
   });
   if (!response.ok) throw new Error(`Sync failed (${response.status}).`);
   return SyncResult.parse(await response.json());
+}
+
+/**
+ * Pushes changes in size-limited batches, one after another.
+ * @throws when the first batch fails; a later failure returns the batches already accepted with
+ * `complete: false`, so their acknowledgements are not lost.
+ */
+async function push(changes: SyncPush) {
+  const result: SyncResult & { complete: boolean } = {
+    accepted: { trips: [], conversations: [] },
+    conflicts: { trips: [], conversations: [] },
+    complete: true,
+  };
+  for (const [index, batch] of syncBatches(changes).entries()) {
+    let answer: SyncResult;
+    try {
+      answer = await pushBatch(batch);
+    } catch (error) {
+      if (index === 0) throw error;
+      result.complete = false;
+      break;
+    }
+    for (const kind of ["trips", "conversations"] as const) {
+      result.accepted[kind].push(...answer.accepted[kind]);
+      result.conflicts[kind].push(...answer.conflicts[kind]);
+    }
+  }
+  return result;
 }
 
 export function useAccountSync({
@@ -112,7 +140,9 @@ export function useAccountSync({
         setCatalog(latest);
 
         writeSync(userId, synced.current);
-        setStatus(result && !isEmpty(result.conflicts) ? "offline" : "synced");
+        setStatus(
+          result && (!result.complete || !isEmpty(result.conflicts)) ? "offline" : "synced",
+        );
         setReady(true);
       } catch {
         if (active) setStatus("offline");
@@ -139,7 +169,7 @@ export function useAccountSync({
           synced.current = acknowledge(synced.current, result.accepted);
           writeSync(userId, synced.current);
           setStatus(
-            !isEmpty(result.conflicts)
+            !result.complete || !isEmpty(result.conflicts)
               ? "offline"
               : isEmpty(pendingChanges(catalogRef.current, synced.current))
                 ? "synced"

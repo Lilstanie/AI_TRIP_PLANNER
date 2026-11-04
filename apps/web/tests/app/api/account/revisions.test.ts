@@ -1,11 +1,19 @@
 import { expect, it, vi } from "vitest";
-const db = vi.hoisted(() => ({ insert: vi.fn(), update: vi.fn() }));
+const db = vi.hoisted(() => ({
+  insert: vi.fn(),
+  update: vi.fn(),
+  execute: async () => [],
+  select: () => ({ from: () => ({ where: async () => [] }) }),
+}));
 vi.mock("@/lib/account/server", () => ({
   accountUser: async () => ({ userId: "user-a" }),
   badRequest: () => Response.json({ error: "invalid" }, { status: 400 }),
   noStore: { "Cache-Control": "no-store" },
 }));
 vi.mock("@/lib/db/client", () => ({ getDb: () => db }));
+vi.mock("@/lib/db/memory-transaction", () => ({
+  withMemoryTransaction: (operation: (tx: typeof db) => unknown) => operation(db),
+}));
 import { POST } from "@/app/api/account/sync/route";
 
 it("reports a compare-and-set rejection instead of acknowledging a stale write", async () => {
@@ -21,6 +29,7 @@ it("reports a compare-and-set rejection instead of acknowledging a stale write",
   const response = await POST(
     new Request("http://local/api/account/sync", {
       method: "POST",
+      headers: { "content-length": "200" },
       body: JSON.stringify({ trips: [edit], conversations: [] }),
     }),
   );
