@@ -429,7 +429,6 @@ export function WorkspaceView({ model }: { model: WorkspaceModel }) {
       onDismissAsk={session.dismissAsk}
       onEdit={edit}
       phone={phone}
-      showTabs={false}
       blankUntouched={untouched}
       {...(factsInChat ? { facts: factChips } : {})}
       conversationId={history.catalog.activeConversationId}
