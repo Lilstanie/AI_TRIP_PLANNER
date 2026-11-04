@@ -6,6 +6,7 @@ import { createDestinationGuideAgent } from "../src/destination-guide";
 const stay = {
   rooms: 1,
   nights: 4,
+  unpricedNights: 0,
   cities: ["Tokyo", "Kyoto"],
   money: "A$1,200",
   lowestCost: true,

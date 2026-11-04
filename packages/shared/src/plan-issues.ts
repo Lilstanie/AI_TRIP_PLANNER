@@ -107,6 +107,22 @@ const ISSUES = {
     pattern: /Required flight (.+?) → (.+?) has no valid fare; transport estimate is incomplete\./,
     zh: ([from, to]) => `${from} → ${to} 的必需航班没有有效票价，交通估算不完整`,
   }),
+  stayUnavailable: template<{ city: string; checkIn: string; checkOut: string }>({
+    en: ({ city, checkIn, checkOut }) =>
+      `Stay provider unavailable, so the stay in ${city} from ${checkIn} until ${checkOut} remains unpriced.`,
+    pattern:
+      /Stay provider unavailable, so the stay in (.+?) from (\d{4}-\d{2}-\d{2}) until (\d{4}-\d{2}-\d{2}) remains unpriced\./,
+    zh: ([city, checkIn, checkOut]) =>
+      `住宿服务不可用，${city} ${checkIn} 至 ${checkOut} 的住宿还没有价格`,
+  }),
+  stayNoMatch: template<{ city: string; checkIn: string; checkOut: string }>({
+    en: ({ city, checkIn, checkOut }) =>
+      `No stay in ${city} meets the confirmed accommodation preferences, so the stay from ${checkIn} until ${checkOut} remains unpriced.`,
+    pattern:
+      /No stay in (.+?) meets the confirmed accommodation preferences, so the stay from (\d{4}-\d{2}-\d{2}) until (\d{4}-\d{2}-\d{2}) remains unpriced\./,
+    zh: ([city, checkIn, checkOut]) =>
+      `${city} 没有符合已确认住宿偏好的住处，${checkIn} 至 ${checkOut} 的住宿还没有价格`,
+  }),
   hopTooLong: template<{ day: number; from: string; to: string; mode: string }>({
     en: ({ day, from, to, mode }) =>
       `time conflict on day ${day}: ${from} → ${to} by ${mode} cannot fit inside one planning day`,

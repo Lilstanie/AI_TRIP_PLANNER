@@ -20,6 +20,8 @@ const SAMPLES: { [K in PlanIssueKind]: Parameters<typeof planIssue<K>>[1] } = {
   noGroundedPlaces: {},
   flightUnavailable: { from: "珀斯", to: "巴厘岛" },
   flightNoFare: { from: "珀斯", to: "巴厘岛" },
+  stayUnavailable: { city: "里斯本", checkIn: "2027-03-10", checkOut: "2027-03-13" },
+  stayNoMatch: { city: "里斯本", checkIn: "2027-03-10", checkOut: "2027-03-13" },
   hopTooLong: { day: 9, from: "上海", to: "杭州", mode: "train" },
   routeTooLong: { day: 10 },
   noDaytimeSlot: { day: 11 },

@@ -1,7 +1,7 @@
 import type { ProposalItem, TripPlan } from "@trip/shared";
 import { translate, type AppLocale } from "../i18n/locale";
 import { itineraryActivities } from "./itinerary";
-import { dayCount, dayRows, flightRoute, type TimelineRow } from "./timeline";
+import { dayCount, dayRows, flightRoute, stayingAt, type TimelineRow } from "./timeline";
 
 export const DAY_MS = 86_400_000;
 
@@ -215,6 +215,18 @@ export function calendarDays(plan: TripPlan, locale: AppLocale = "en"): Calendar
     const entries = dayRows(plan, day, activities, locale).map((row) =>
       entryOf(row, day, date, locale),
     );
+    const staying = stayingAt(plan, day);
+    if (staying && !entries.some((entry) => entry.category === "stay" && entry.title === staying))
+      entries.push({
+        key: `stay-continued-${day}`,
+        category: "stay",
+        title: staying,
+        detail: translate(locale, "stay"),
+        date,
+        day,
+        allDay: true,
+        overlap: false,
+      });
     const timed = entries.filter((entry) => !entry.allDay);
     for (const entry of timed) {
       const current = interval(entry);

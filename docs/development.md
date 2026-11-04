@@ -579,6 +579,16 @@ upstreams: set `MAP_STUB_PORT` to a free port and all three base URLs above to
 `http://127.0.0.1:$MAP_STUB_PORT`, with `WEB_MAPS_PROVIDER=osm`; it records throttle timestamps,
 cache hits, language, bounds and transit parsing in `output/e2e/map-provider-http/summary.json`.
 
+`stay-unavailable` plans a Lisbon trip in Live data with no `SERPAPI_KEY`, no `MAPS_API_KEY` and no model
+keys, serving OpenStreetMap from a local stub, so the booking port rejects every stay search. It checks
+the unpriced stay in the plan, budget card, Stays row, "To check" and calendar, then runs a live Agent Lab
+multi-city scenario. Evidence and screenshots are in `output/playwright/stay-unavailable/<LABEL>/`; the
+failure inventory is [stay-unavailable.failures.md](../apps/web/tests/e2e/stay-unavailable.failures.md).
+
+```bash
+STAY_STUB_PORT=3417 NOMINATIM_BASE_URL=http://127.0.0.1:3417 OVERPASS_BASE_URL=http://127.0.0.1:3417 OSRM_BASE_URL=http://127.0.0.1:3417 OSRM_FOOT_BASE_URL=http://127.0.0.1:3417 OSRM_BIKE_BASE_URL=http://127.0.0.1:3417 PHOTON_BASE_URL=http://127.0.0.1:3417 TRANSITOUS_BASE_URL=http://127.0.0.1:3417 USE_MOCK_TOOLS=false MAPS_PROVIDER=osm WEB_MAPS_PROVIDER=osm pnpm --filter @trip/web e2e stay-unavailable
+```
+
 `RUN_LIVE_MAP_CHECK=1 WEB_MAPS_PROVIDER=osm CHANNEL=chrome USE_MOCK_TOOLS=true pnpm --filter @trip/web e2e map-fallback-live` opts into real free services. The chat reply alone uses fixtures; place lookup, tiles and the walking route are live. Results and desktop/phone screenshots are in `output/playwright/map-fallback-live/after`. This does not establish transit coverage in every destination.
 
 `real-clerk-auth.e2e.mjs` needs an already running local server with Clerk test keys and a migrated

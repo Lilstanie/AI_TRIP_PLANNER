@@ -15,7 +15,7 @@ const STRATEGIES = [
 ];
 const VIEWS = ["Run", "Compare", "Failures", "Architecture"];
 
-const FAULT = { id: "provider-empty-result", title: "Empty stay search", outcome: "failed" };
+const FAULT = { id: "provider-empty-result", title: "Empty stay search", outcome: "degraded" };
 const LABELS = {
   completed: "Completed",
   degraded: "Degraded",
@@ -65,6 +65,14 @@ function outcomeOf(artifact) {
   if (artifact.status === "failed") return "failed";
   if (eventsOf(artifact, "lab_supervisor_fallback").length) return "degraded";
   if (eventsOf(artifact, "tool_failed").length) return "degraded";
+  const emptied = artifact.plan.sections.some(
+    (section) =>
+      section.proposal?.source?.kind === "unavailable" &&
+      eventsOf(artifact, "tool_completed").some(
+        (event) => event.agent === section.id && event.resultCount === 0,
+      ),
+  );
+  if (emptied) return "degraded";
   if (artifact.metrics.stopReason === "no_improvement") return "partial";
   return "completed";
 }
@@ -716,7 +724,7 @@ async function main() {
     [
       "# Agent Lab release evidence",
       "",
-      `Public flow against ${BASE}: four views, three scenarios compared under all three strategies, one representative failed fault, download and offline replay, a ${matrix.length}-cell layout matrix, and the ordinary workspace.`,
+      `Public flow against ${BASE}: four views, three scenarios compared under all three strategies, one representative degraded fault, download and offline replay, a ${matrix.length}-cell layout matrix, and the ordinary workspace.`,
       "",
       ...runs.flatMap(([id, title]) => [
         `## ${title}`,

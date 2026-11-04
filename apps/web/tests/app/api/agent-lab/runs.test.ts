@@ -145,15 +145,15 @@ describe("POST /api/agent-lab/runs", () => {
       scenarioId: "tokyo-couple",
       strategyId: "multi-agent-no-revision",
       dataMode: "fixture",
-      faultProfileId: "provider-empty-result",
+      faultProfileId: "invalid-agent-output",
     });
     expect(response.status).toBe(200);
     const all = await frames(response);
     const last = all.at(-1);
     expect(last.type).toBe("error");
     expect(last.artifact.status).toBe("failed");
-    expect(last.artifact.faultProfileId).toBe("provider-empty-result");
-    expect(last.artifact.failure).toMatchObject({ code: "agent_failed", agent: "accommodation" });
+    expect(last.artifact.faultProfileId).toBe("invalid-agent-output");
+    expect(last.artifact.failure).toMatchObject({ agent: "dining" });
     expect(last.error).toBe(last.artifact.failure.message);
     expect(last.artifact.events).toHaveLength(all.length - 1);
     expect(all.some((frame) => frame.type === "complete")).toBe(false);

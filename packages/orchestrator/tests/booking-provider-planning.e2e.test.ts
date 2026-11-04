@@ -30,15 +30,17 @@ const mem: MemoryStore = {
 };
 
 afterEach(() => {
+  vi.restoreAllMocks();
   vi.unstubAllEnvs();
   vi.unstubAllGlobals();
 });
 
-it("preserves the hotel provider failure through accommodation planning", async () => {
+it("plans an unpriced stay when the hotel provider fails without Google", async () => {
   vi.stubEnv("USE_MOCK_TOOLS", "false");
   vi.stubEnv("MAPS_PROVIDER", "osm");
   vi.stubEnv("MAPS_API_KEY", "");
   vi.stubEnv("SERPAPI_KEY", "serp-key");
+  vi.spyOn(console, "warn").mockImplementation(() => {});
   const requests: string[] = [];
   const networkFailure = vi.fn(async (input: string | URL | Request) => {
     requests.push(String(input));
@@ -46,7 +48,7 @@ it("preserves the hotel provider failure through accommodation planning", async 
   });
   vi.stubGlobal("fetch", networkFailure);
   const events: AgentProgressEvent[] = [];
-  const failure = await runWithModelsDisabled(() =>
+  const plan = await runWithModelsDisabled(() =>
     runOrchestrator(brief, {
       specialists: [accommodationAgent],
       tools: withProgressTools(createToolGateway(), "accommodation", 1, (event) =>
@@ -56,10 +58,8 @@ it("preserves the hotel provider failure through accommodation planning", async 
       maxRounds: 1,
       onProgress: (event) => events.push(event),
     }),
-  ).catch((error: unknown) => error);
+  );
 
-  expect(failure).toMatchObject({ name: "SerpApiError", reason: "request_failed" });
-  expect((failure as Error).message).toContain("synthetic SerpApi network failure");
   expect(requests).toHaveLength(1);
   expect(requests[0]).toContain("serpapi.com");
   expect(events).toContainEqual(
@@ -70,31 +70,21 @@ it("preserves the hotel provider failure through accommodation planning", async 
       error: "Stay search could not complete. Retry the plan or adjust the stay details.",
     }),
   );
-  expect(events).toContainEqual(
-    expect.objectContaining({
-      type: "agent_failed",
-      agent: "accommodation",
-      error: "This specialist could not finish. Retry the request.",
-    }),
-  );
-  expect(events).not.toContainEqual(
-    expect.objectContaining({ type: "agent_completed", agent: "accommodation" }),
+  expect(events).not.toContainEqual(expect.objectContaining({ type: "agent_failed" }));
+  const stay = plan.sections.find((section) => section.id === "accommodation")!;
+  expect(stay.proposal?.source?.kind).toBe("unavailable");
+  expect(stay.estCost).toBe(0);
+  expect(stay.proposal?.items).toEqual([expect.objectContaining({ kind: "hotel", day: 1 })]);
+  expect(stay.proposal?.items[0]?.estCost).toBeUndefined();
+  expect(plan.conflicts?.map((conflict) => conflict.reason)).toContainEqual(
+    expect.stringContaining("Stay provider unavailable, so the stay in Tokyo"),
   );
 
   mkdirSync(output, { recursive: true });
-  const artifact = {
-    brief,
-    failure: {
-      name: (failure as Error).name,
-      reason: (failure as { reason: string }).reason,
-      message: (failure as Error).message,
-    },
-    requests,
-    events,
-  };
+  const artifact = { brief, requests, events, accommodation: stay, conflicts: plan.conflicts };
   writeFileSync(resolve(output, "osm-no-google.json"), `${JSON.stringify(artifact, null, 2)}\n`);
   expect(JSON.parse(JSON.stringify(artifact))).toMatchObject({
-    failure: { name: "SerpApiError", reason: "request_failed" },
+    accommodation: { proposal: { source: { kind: "unavailable" } } },
     requests: [expect.stringContaining("serpapi.com")],
   });
 });

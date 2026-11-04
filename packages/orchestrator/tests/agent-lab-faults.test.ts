@@ -1,6 +1,5 @@
 import { describe, expect, it } from "vitest";
 import {
-  AgentLabFailedRunArtifact,
   AgentLabRunRequest,
   type AgentLabEventPayload,
   type AgentLabRunArtifact,
@@ -116,24 +115,27 @@ describe("provider-timeout", () => {
 });
 
 describe("provider-empty-result", () => {
-  it("stops instead of inventing a stay, and names the capability", async () => {
+  it("leaves the stay unpriced and unavailable instead of inventing one, and carries on", async () => {
     const artifact = await run("provider-empty-result");
-    expect(artifact.status).toBe("failed");
-    expect(AgentLabFailedRunArtifact.safeParse(artifact).success).toBe(true);
-    if (artifact.status !== "failed") return;
+    expect(artifact.status).toBe("completed");
+    if (artifact.status !== "completed") return;
     expect(artifact.faultProfileId).toBe("provider-empty-result");
-    expect(artifact.failure).toMatchObject({ code: "agent_failed", agent: "accommodation" });
-    expect(artifact.failure.atSequence).toBe(artifact.events.length);
-    expect(artifact.metrics.eventCount).toBe(artifact.events.length);
 
     const searched = ofType(artifact, "tool_completed").filter(
       (event) => event.agent === "accommodation",
     );
     expect(searched.some((event) => event.resultCount === 0)).toBe(true);
-    const failed = ofType(artifact, "agent_failed");
-    expect(failed).toHaveLength(1);
-    expect(failed[0]?.agent).toBe("accommodation");
-    expect(ofType(artifact, "lab_plan_validated")).toHaveLength(0);
+    expect(ofType(artifact, "agent_failed")).toHaveLength(0);
+
+    const stay = artifact.plan.sections.find((section) => section.id === "accommodation")!;
+    expect(stay.proposal?.source?.kind).toBe("unavailable");
+    expect(stay.estCost).toBe(0);
+    expect(stay.proposal?.items.every((item) => item.estCost === undefined)).toBe(true);
+    expect(artifact.plan.conflicts?.some((item) => item.targetAgent === "accommodation")).toBe(
+      true,
+    );
+    expect(artifact.plan.sections.filter((section) => section.proposal)).toHaveLength(5);
+    expect(artifact.metrics.failedAgents).toBe(0);
   });
 });
 

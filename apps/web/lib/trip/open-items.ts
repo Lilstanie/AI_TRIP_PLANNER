@@ -4,16 +4,23 @@ import { placeConflicts, unplacedIssues } from "./conflicts";
 import { noticeText, type Notice } from "@/lib/i18n/notice";
 
 export type OpenItemKind =
-  "Time conflict" | "Unlocated place" | "Place lookup failed" | "Itinerary issue";
+  "Time conflict" | "Unlocated place" | "Place lookup failed" | "Unpriced stay" | "Itinerary issue";
 
 export type OpenItem =
-  | { kind: Exclude<OpenItemKind, "Itinerary issue">; stopId: string; label: string; key: string }
+  | {
+      kind: Exclude<OpenItemKind, "Itinerary issue" | "Unpriced stay">;
+      stopId: string;
+      label: string;
+      key: string;
+    }
+  | { kind: "Unpriced stay"; day: number | undefined; label: string; key: string }
   | { kind: "Itinerary issue"; notice: Notice; key: string };
 
 export const OPEN_ITEM_KINDS: readonly OpenItemKind[] = [
   "Time conflict",
   "Unlocated place",
   "Place lookup failed",
+  "Unpriced stay",
   "Itinerary issue",
 ];
 
@@ -63,6 +70,18 @@ export function deriveOpenItems(plan: TripPlan, tripPlaces: TripPlaces): OpenIte
       key: `conflict-${id}`,
     });
   }
+  const accommodation = plan.sections.find((section) => section.id === "accommodation")?.proposal;
+  const selectedStays = new Set((accommodation?.stays ?? []).map((stay) => stay.id));
+  (accommodation?.items ?? []).forEach((item, index) => {
+    if (item.kind !== "hotel" || item.booked || item.estCost !== undefined) return;
+    if (item.selectionId && selectedStays.has(item.selectionId)) return;
+    found.push({
+      kind: "Unpriced stay",
+      day: item.day,
+      label: item.detail.split(" — ")[0]!.trim(),
+      key: `stay-${item.id ?? index}`,
+    });
+  });
   unplacedIssues(plan).forEach((notice, index) =>
     found.push({ kind: "Itinerary issue", notice, key: `issue-${index}` }),
   );

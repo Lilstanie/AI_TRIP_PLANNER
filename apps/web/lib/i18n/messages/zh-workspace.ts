@@ -44,6 +44,10 @@ export const zhWorkspace = {
   itineraryIssue: "行程问题",
   unlocatedPlace: "地图上找不到的地点",
   placeLookupFailed: "地点没查到",
+  unpricedStay: "未计价的住宿",
+  stayCouldNotBeSearched: "{city} {checkIn} 至 {checkOut} 的住宿没能查到，这几晚还没有价格。",
+  noStayMeetsYourPreferences:
+    "{city} {checkIn} 至 {checkOut} 没有符合你住宿偏好的地方，这几晚还没有价格。",
   meals: "餐饮",
   activities: "活动",
   notCosted: "未计价",
@@ -711,8 +715,6 @@ export const zhWorkspace = {
   invalidSyncRequest: "同步请求有误。",
   theRequestWasInvalidPlease: "请求有误，再试一次吧。",
   attachmentRejectedReason: "附件没加上：{reason}",
-  noStaysMatchYourAccommodation:
-    "没有符合住宿偏好的地方。把最低评分调低一点，或者改一下取消政策的要求，再试一次。",
   unableToUpdateThisTrip: "这个行程没更新成功，检查一下请求再试。",
   mapUnavailableConfigureTheBrowser: "地图用不了：需要配置浏览器端的 Google 地图密钥。",
   googleMapsTookTooLong: "Google 地图加载太久了，检查一下网络再试。",
