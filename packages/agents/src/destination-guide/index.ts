@@ -213,13 +213,28 @@ async function planDestinationGuide(
   ctx.signal?.throwIfAborted();
   const brief = TripBriefSchema.parse(briefInput);
   const month = travelMonth(brief.dates[0]);
+  const evidenceIssues: string[] = [];
+  const readPlaces = async (near: string, category: string) => {
+    try {
+      return await ctx.tools.maps.places({ near, category });
+    } catch (error) {
+      ctx.signal?.throwIfAborted();
+      console.warn(
+        `[destination-guide] Place provider unavailable for ${category} in ${near}: ${error instanceof Error ? error.message : String(error)}`,
+      );
+      evidenceIssues.push(
+        `Place provider unavailable for ${category} in ${near}; using only remaining evidence.`,
+      );
+      return [];
+    }
+  };
   const [cityPlaces, preferences] = await Promise.all([
     Promise.all(
       brief.destination.split("&").map(async (name) => {
         const city = name.trim();
         const [sights, museums] = await Promise.all([
-          ctx.tools.maps.places({ near: city, category: "sight" }),
-          ctx.tools.maps.places({ near: city, category: "museum" }),
+          readPlaces(city, "sight"),
+          readPlaces(city, "museum"),
         ]);
         return { city, places: dedupeEntries([...sights, ...museums]) };
       }),
@@ -316,42 +331,51 @@ async function planDestinationGuide(
         : [
             "Weather is general model context, not a forecast; entry, health and safety guidance requires official verification.",
           ]),
+      ...evidenceIssues,
       ...draft.assumptions,
     ],
     conflictsWith: [],
-    source: usedFallback
+    source: evidenceIssues.length
       ? {
-          kind: "fallback",
-          label: "Local fallback",
-          freshness:
-            "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
+          kind: "unavailable",
+          label: "Maps provider",
+          freshness: places.length
+            ? "Some place lookups failed; attraction tips use only the places that were returned."
+            : "No place data was available, so no attraction tip was given.",
         }
-      : weatherUnavailable
+      : usedFallback
         ? {
-            kind: "unavailable",
-            label: "Weather provider",
+            kind: "fallback",
+            label: "Local fallback",
             freshness:
-              "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
+              "The model guide was unavailable or invalid; deterministic destination guidance was used from the gathered place evidence.",
           }
-        : {
-            kind:
-              weatherResults.length > 0 &&
-              weatherResults.every((result) =>
-                /^(Google Weather API|Open-Meteo)/.test(result.provider),
-              )
-                ? "live"
+        : weatherUnavailable
+          ? {
+              kind: "unavailable",
+              label: "Weather provider",
+              freshness:
+                "Some requested destination dates have no weather evidence; unavailable dates are listed explicitly.",
+            }
+          : {
+              kind:
+                weatherResults.length > 0 &&
+                weatherResults.every((result) =>
+                  /^(Google Weather API|Open-Meteo)/.test(result.provider),
+                )
+                  ? "live"
+                  : !mockEnabled()
+                    ? "estimated"
+                    : "mock",
+              label: weatherResult
+                ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
+                : "Maps evidence and AI guide",
+              freshness: weatherResult
+                ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
                 : !mockEnabled()
-                  ? "estimated"
-                  : "mock",
-            label: weatherResult
-              ? [...new Set(weatherResults.map(({ provider }) => provider))].join(" / ")
-              : "Maps evidence and AI guide",
-            freshness: weatherResult
-              ? `Weather evidence for ${brief.dates[0]} through ${brief.dates[1]}; each dated entry records its forecast or historical climate horizon and observation time. Conditions and provider availability may change.`
-              : !mockEnabled()
-                ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
-                : "Place details come from deterministic mock fixtures; not live verified.",
-          },
+                  ? "Place details are provider estimates; weather, entry, health and safety claims require official verification."
+                  : "Place details come from deterministic mock fixtures; not live verified.",
+            },
   };
 }
 
