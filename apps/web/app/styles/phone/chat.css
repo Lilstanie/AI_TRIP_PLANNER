@@ -62,6 +62,8 @@
   font-size: 15px;
   line-height: 1.25;
   white-space: normal;
+  word-break: keep-all;
+  overflow-wrap: anywhere;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
