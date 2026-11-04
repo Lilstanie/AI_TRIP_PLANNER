@@ -125,10 +125,6 @@
 .topbar-leading .team-control {
   flex: none;
 }
-.topbar-chat-tabs {
-  flex: none;
-  padding: 0;
-}
 .topbar-leading .team-popover {
   right: auto;
   left: 0;

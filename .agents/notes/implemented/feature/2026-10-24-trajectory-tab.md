@@ -40,9 +40,10 @@ different question, the cost and timing of one benchmark run, and is not the pla
   per-agent, under
   [its own note](../architecture/2026-10-07-agent-lab-trace-step-axis.md); the two views answer different questions and
   neither follows the other.
-- **Tabs.** On desktop `ChatPanel` shows Conversation and Trajectory tabs. The stream stays mounted and
-  hidden so its scroll position and animations survive, and the Trajectory is mounted only while open.
-  Phone width has no tabs. Since #735 the tab opens on a simple list and the ledger is the "Full view"
+- **Tabs.** On desktop the sidebar's Trajectory entry swaps the conversation for the Trajectory region
+  ([chat header navigation](2026-10-30-chat-header-navigation.md)); `ChatPanel` renders no tabs of its own.
+  The stream stays mounted and hidden so its scroll position and animations survive, and the Trajectory is
+  mounted only while open. Phone width has no tabs. Since #735 the tab opens on a simple list and the ledger is the "Full view"
   behind a switch; see [the superseding note](2026-10-27-trajectory-simple-default.md).
 
 - **Search steps, it does not only filter.** The copied search narrows the ledger to matches. Ticket

@@ -331,7 +331,6 @@ export const zhWorkspace = {
   editMessage: "编辑消息",
   resend: "重新发送",
   trajectory: "轨迹",
-  chatView: "聊天视图",
   countWorking: "{count} 位在忙",
   idle: "空闲",
   working: "忙碌中",
