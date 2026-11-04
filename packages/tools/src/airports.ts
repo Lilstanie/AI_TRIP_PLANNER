@@ -240,11 +240,6 @@ export function airportCodeFor(city: string): string | undefined {
   return tableCode(trimmed);
 }
 
-/**
- * Returns the longest trailing part of `text`, at least two characters long, that names a city in
- * the airport table, or `undefined` when no trailing part does. It cuts at any character, so callers
- * use it only on text without word boundaries, such as Han script.
- */
 export function knownCitySuffix(text: string): string | undefined {
   const trimmed = text.trim();
   for (let start = 0; start <= trimmed.length - 2; start += 1) {
