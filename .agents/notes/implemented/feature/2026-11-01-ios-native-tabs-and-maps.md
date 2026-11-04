@@ -42,6 +42,13 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   `visibleMapRect` for that area, so the native code sizes rects and zoom levels by that inner area
   and never offsets the centre itself. When the insets change before the traveller touches the map,
   it repeats its last fit or camera move, so stops stay framed above the sheet as it settles.
+- When the web view starts loading a page (reload, sign-out, an expired session's redirect or the
+  offline page), `TripShell.swift` clears the native map and hides the native tab bar, because a page
+  that unloads never runs the React cleanup that would. The next page sends its own tabs and map.
+- The renderer measures again when any CSS transition ends, so the map's visible area follows the day
+  sheet's height animation instead of the frame when it started. The tab mirror also watches text
+  changes, so a language switch relabels the native tabs, and a failed `setTabs` is sent again on the
+  next change.
 - The app asks for location while in use, so the map's location button works in the web view.
 
 ## Alternatives considered
@@ -63,8 +70,8 @@ system tab bar with real Liquid Glass and Apple Maps on the Map tab, with chat a
   `OCCLUDERS` in `apple-maps-renderer.ts`.
 - Satellite view works on Apple Maps; the animated route dashes are Google-only.
 - `apps/web/tests/e2e/ios-app-shell.e2e.mjs` checks the bridge with a fake native plugin: tab mirroring,
-  relayed taps, the Map tab's frame, pins and routes, a cleared backdrop, and a pin tap opening the
-  stop. Browser emulation cannot show MapKit.
+  relayed taps, relabelled tabs, the Map tab's frame, pins and routes, the visible area after the
+  sheet animates, a cleared backdrop, and a pin tap opening the stop. Browser emulation cannot show MapKit.
 
 ## Sources
 

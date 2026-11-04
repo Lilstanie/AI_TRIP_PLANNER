@@ -39,6 +39,7 @@ function mirrorTabBar(shell: NativePlugin) {
         if (height > 0) root.style.setProperty("--native-tabbar-height", `${height}px`);
       })
       .catch(() => {
+        sent = "";
         delete root.dataset.nativeTabbar;
       });
   };
@@ -49,6 +50,7 @@ function mirrorTabBar(shell: NativePlugin) {
   observer.observe(document.body, {
     subtree: true,
     childList: true,
+    characterData: true,
     attributes: true,
     attributeFilter: ["aria-selected", "data-hidden", "data-phone"],
   });

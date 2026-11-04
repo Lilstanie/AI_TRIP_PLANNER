@@ -237,6 +237,35 @@ try {
       "Map tab hands stops, routes and its frame to native Apple Maps and clears the web backdrop",
       native,
     );
+    await page.evaluate(() => {
+      document.querySelector("#phone-tab-chat .phone-tabbar__label").firstChild.nodeValue = "聊天";
+    });
+    await settle(page, 400);
+    const relabelled = await page.evaluate(() => window.__shellCalls.at(-1)?.tabs[0]?.label);
+    check(
+      relabelled === "聊天",
+      "a tab label's text change reaches the native tab bar",
+      relabelled,
+    );
+    await page.emulateMedia({ reducedMotion: "no-preference" });
+    await page.locator(".phone-map-sheet__handle").focus();
+    await page.keyboard.press("Home");
+    await settle(page, 800);
+    const collapsed = await page.evaluate(() => {
+      const { frame, inset } = window.__mapCalls.filter((call) => call.method === "layout").at(-1);
+      const canvas = document.querySelector(".trip-map-canvas").getBoundingClientRect();
+      const sheet = document.querySelector(".phone-map-sheet").getBoundingClientRect().top;
+      return {
+        floor: frame.y + frame.height - inset.bottom,
+        expected: Math.max(Math.min(canvas.bottom, sheet), canvas.top + canvas.height / 4),
+      };
+    });
+    check(
+      Math.abs(collapsed.floor - collapsed.expected) <= 1,
+      "the native map's visible area follows the day sheet after its height animation",
+      collapsed,
+    );
+    await page.emulateMedia({ reducedMotion: "reduce" });
     const stopId = await page.evaluate(() => {
       const stop = window.__mapCalls.find(
         (call) => call.method === "setMarker" && call.kind === "stop",

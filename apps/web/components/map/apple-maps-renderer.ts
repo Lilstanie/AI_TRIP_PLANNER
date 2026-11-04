@@ -129,10 +129,12 @@ class AppleMap {
     const mutations = new MutationObserver(schedule);
     mutations.observe(document.body, { subtree: true, childList: true, attributes: true });
     window.addEventListener("resize", schedule);
+    document.addEventListener("transitionend", schedule, true);
     this.observers = [
       resize,
       mutations,
       { disconnect: () => window.removeEventListener("resize", schedule) },
+      { disconnect: () => document.removeEventListener("transitionend", schedule, true) },
     ];
     schedule();
   }
