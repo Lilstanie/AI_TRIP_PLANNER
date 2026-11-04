@@ -1,7 +1,7 @@
 # Agent Note: a failed place lookup degrades its section instead of failing the plan
 
 Status: implemented
-Owner: A (@Lilstanie)
+Owner: D (@jbia0391)
 
 ## Problem
 
@@ -41,8 +41,8 @@ and a retry hides the failure instead of reporting it.
 
 - A guide or dining section planned during a place-provider outage shows `unavailable`, even when the
   model drafted the remaining tips.
-- With `MAPS_PROVIDER=osm`, accommodation still fails earlier on `Unsupported booking provider: osm`
-  (`packages/tools/src/booking-port.ts`); that is a separate defect, so the
-  `guide-places-unavailable` E2E plans with `noAccommodation: true`.
+- The `guide-places-unavailable` E2E plans with `noAccommodation: true` so that it checks only the
+  guide and dining; a failed stay search is covered by
+  [unsearchable stay](2026-11-04-unsearchable-stay-unpriced.md).
 - The E2E needs the server started with OpenStreetMap URLs that point at the stub's port; its header
   and `apps/web/tests/e2e/guide-places-unavailable.failures.md` list them.
