@@ -2,7 +2,7 @@
 date: 2026-11-04
 author: Claude Code
 branch: fix/guide-places-unavailable
-pr: none
+pr: 965
 area: packages/agents, apps/web/tests/e2e, docs
 contract-impact: none
 ---
@@ -41,5 +41,4 @@ itinerary already does.
 ## Notes for the next person
 
 With `MAPS_PROVIDER=osm`, accommodation fails on `Unsupported booking provider: osm`
-(`packages/tools/src/booking-port.ts`), so the E2E plans with `noAccommodation: true`. No Jira story
-yet.
+(`packages/tools/src/booking-port.ts`), so the E2E plans with `noAccommodation: true`. Jira: TP-372.
