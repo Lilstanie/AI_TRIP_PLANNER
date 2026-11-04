@@ -1,3 +1,4 @@
+import { knownCitySuffix } from "@trip/tools";
 import {
   DATE_TOKEN,
   MONTH_DAY_TOKEN,
@@ -64,7 +65,8 @@ function city(value: string | undefined): string | undefined {
     .trim();
 
   if (!cleaned || cleaned.split(" ").length > 3) return undefined;
-  return /[A-Za-z\p{Script=Han}]/u.test(cleaned) ? cleaned : undefined;
+  if (/\p{Script=Han}/u.test(cleaned)) return knownCitySuffix(cleaned) ?? cleaned;
+  return /[A-Za-z]/u.test(cleaned) ? cleaned : undefined;
 }
 
 function tripDates(message: string, today: Date): ParsedDate[] {

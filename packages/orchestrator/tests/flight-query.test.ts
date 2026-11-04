@@ -138,6 +138,35 @@ describe("parseFlightQuery", () => {
       });
   });
 
+  it("finds a known city after an unlisted Chinese lead-in", () => {
+    for (const [message, from, to] of [
+      ["你好洛杉矶到东京的机票 11月4日", "洛杉矶", "东京"],
+      ["您好里约热内卢到东京的航班 11月4日", "里约热内卢", "东京"],
+      ["早上好悉尼到首尔的机票 11月4日", "悉尼", "首尔"],
+      ["请问一下北京到东京的航班 11月4日", "北京", "东京"],
+      ["你好布宜诺斯艾利斯到东京的机票 11月4日", "布宜诺斯艾利斯", "东京"],
+    ] as const)
+      expect(parseFlightQuery(message, today), message).toMatchObject({
+        from,
+        to,
+        depart: "2026-11-04",
+      });
+  });
+
+  it("keeps a Chinese origin the airport table does not know", () => {
+    expect(parseFlightQuery("你好火星基地到东京的机票 11月4日", today)?.from).toBe("你好火星基地");
+  });
+
+  it("declines unlisted Chinese lead-ins that are not a dated flight question", () => {
+    for (const message of [
+      "你好东京到东京的机票 11月4日",
+      "你好洛杉矶到东京的机票",
+      "你好帮我规划洛杉矶到东京的行程 11月4日",
+      "你好把洛杉矶到东京的机票换成更便宜的 11月4日",
+    ])
+      expect(parseFlightQuery(message, today), message).toBeUndefined();
+  });
+
   it("still declines long lead-ins that are not a dated flight question", () => {
     for (const message of [
       "Plan a trip from Los Angeles to Tokyo on Nov 4 with the cheapest flight",
