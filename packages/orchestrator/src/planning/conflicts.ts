@@ -23,7 +23,6 @@ const KIND_RANK: Record<RevisionKind, number> = {
   infeasible: 4,
 };
 
-
 export function minimumCost(proposals: AgentProposal[]): number {
   return sumMoney(proposals.map((proposal) => Math.min(costOf(proposal), proposal.floorCost ?? 0)));
 }
