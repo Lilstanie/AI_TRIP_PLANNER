@@ -199,7 +199,7 @@ try {
           { catalog, settings: { ...settings, language } },
         );
         await page.goto(BASE, { waitUntil: "domcontentloaded" });
-        await page.locator(".workspace-app").waitFor();
+        await page.locator(".workspace-app:not([aria-busy])").waitFor();
         const history = page.locator('.history-item__open[title="Sydney one-line budget"]');
         if (width === 390)
           await page.getByRole("tab", { name: zh ? "我的" : "Mine", exact: true }).click();

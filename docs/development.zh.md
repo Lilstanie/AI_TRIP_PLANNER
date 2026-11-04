@@ -269,11 +269,12 @@ Libraries.dev skill 支持 `libraries reveal`、`libraries review` 和 `librarie
 
 证明检查会触发：在旧代码上运行，并把报错输出贴进 PR 的 Evidence。若没有机器检查能挡住这类缺陷（模型措辞、地图时序），在 PR 中说明原因。现有规则：
 
-| 规则                                     | 位置                          | 锁住的缺陷                               |
-| ---------------------------------------- | ----------------------------- | ---------------------------------------- |
-| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`     | 手写金额格式                             |
-| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`     | 聊天追问时弹出错误的编辑确认框（TP-257） |
-| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts` | 后台写入被算成编辑（TP-247）             |
+| 规则                                     | 位置                                                | 锁住的缺陷                               |
+| ---------------------------------------- | --------------------------------------------------- | ---------------------------------------- |
+| 金额不用 `toFixed(2)`                    | `apps/web/.eslintrc.json`                           | 手写金额格式                             |
+| 不用 `window.confirm`、`alert`、`prompt` | `apps/web/.eslintrc.json`                           | 聊天追问时弹出错误的编辑确认框（TP-257） |
+| `settlePlan` 说明写入来源                | `apps/web/lib/trip/settle.ts`                       | 后台写入被算成编辑（TP-247）             |
+| E2E 等待跳过加载骨架                     | `apps/web/tests/e2e-sources/workspace-wait.test.ts` | 检查在骨架屏上运行（TP-371）             |
 
 <a id="verification"></a>
 

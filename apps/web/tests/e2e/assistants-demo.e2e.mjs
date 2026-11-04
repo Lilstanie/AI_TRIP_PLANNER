@@ -67,7 +67,7 @@ async function open(locale, width) {
     };
   });
   await page.goto(base);
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   for (let attempt = 0; attempt < 5; attempt += 1) {
     const live = page.getByRole("button", { name: /^(Live data|实时数据)/ });
@@ -473,7 +473,7 @@ try {
       await step(9, "no-plan", async () => {
         await page.evaluate(() => localStorage.clear());
         await page.reload();
-        await page.locator(".workspace-app").waitFor();
+        await page.locator(".workspace-app:not([aria-busy])").waitFor();
         await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
         if (width === 390) await toChat(page);
         await send(page, `@${STAY[locale]} when are hotels cheapest?`);

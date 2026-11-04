@@ -88,7 +88,7 @@ try {
     const errors = [];
     page.on("pageerror", (error) => errors.push(String(error)));
     await page.goto(base);
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
     for (let attempt = 0; attempt < 5; attempt += 1) {
       const live = page.getByRole("button", { name: /^(Live data|实时数据)/ });

@@ -235,7 +235,7 @@ try {
       catalog,
     );
     await page.goto(process.env.BASE_URL ?? "http://localhost:3115");
-    await page.locator(".workspace-app").waitFor();
+    await page.locator(".workspace-app:not([aria-busy])").waitFor();
     if (width <= 520) {
       await page.getByRole("tab", { name: "Mine", exact: true }).click();
       await openTripWorkspace(

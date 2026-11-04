@@ -210,7 +210,7 @@ async function open({ language = "en", width = 1440, height = 1000, phone = fals
     });
   });
   await page.goto(BASE, { waitUntil: "domcontentloaded" });
-  await page.locator(".workspace-app").waitFor();
+  await page.locator(".workspace-app:not([aria-busy])").waitFor();
   await page.addStyleTag({ content: "nextjs-portal { display: none !important; }" });
   current = page;
   currentErrors = errors;

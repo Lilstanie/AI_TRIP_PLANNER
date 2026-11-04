@@ -152,7 +152,7 @@ try {
       `${viewport.width}: debug question renders without a progress persistence callback`,
     );
     await page.goto(BASE);
-    await page.waitForSelector(".workspace-app");
+    await page.waitForSelector(".workspace-app:not([aria-busy])");
     await page.waitForFunction(
       (language) => document.documentElement.lang === language,
       zh ? "zh-CN" : "en-AU",
@@ -190,7 +190,7 @@ try {
       localStorage.setItem("trip-workspace-catalog-v3", JSON.stringify(catalog));
     });
     await page.reload();
-    await page.waitForSelector(".workspace-app");
+    await page.waitForSelector(".workspace-app:not([aria-busy])");
     await page.getByRole("heading", { name: "Which Atlantis do you mean?" }).waitFor();
     check(
       await choice.isVisible(),
@@ -219,7 +219,7 @@ try {
       await page.evaluate(() => localStorage.getItem("trip-workspace-catalog-v3")),
     );
     await page.reload();
-    await page.waitForSelector(".workspace-app");
+    await page.waitForSelector(".workspace-app:not([aria-busy])");
     await page.getByRole("heading", { name: "What matters most for your arrival?" }).waitFor();
     await page.screenshot({ path: `${OUT}/${viewport.width}-after.png` });
     const restored = (await customAnswer.inputValue()) === "A quiet room near the beach";
@@ -284,7 +284,7 @@ try {
       releaseAnswer();
       await page.getByRole("button", { name: labels.retry }).waitFor();
       await page.reload();
-      await page.waitForSelector(".workspace-app");
+      await page.waitForSelector(".workspace-app:not([aria-busy])");
       await page.getByRole("heading", { name: "What matters most for your arrival?" }).waitFor();
       const answerableAfterFailure =
         (await page
@@ -346,7 +346,7 @@ try {
             return conversation && !conversation.ask;
           });
           await page.reload();
-          await page.waitForSelector(".workspace-app");
+          await page.waitForSelector(".workspace-app:not([aria-busy])");
           await page.getByText("Answer received.", { exact: true }).waitFor();
           check(
             (await page
