@@ -362,8 +362,8 @@ final class TripMapController: NSObject, MKMapViewDelegate, UIGestureRecognizerD
 
     private func report() {
         guard map.bounds.width > 0 else { return }
-        let region = map.region
         let center = visibleCenter
+        let bounds = visibleBounds
         lastZoom = currentZoom
         let byUser = gesture
         gesture = false
@@ -372,11 +372,26 @@ final class TripMapController: NSObject, MKMapViewDelegate, UIGestureRecognizerD
             "lat": center.latitude,
             "lng": center.longitude,
             "zoom": currentZoom,
-            "north": region.center.latitude + region.span.latitudeDelta / 2,
-            "south": region.center.latitude - region.span.latitudeDelta / 2,
-            "east": region.center.longitude + region.span.longitudeDelta / 2,
-            "west": region.center.longitude - region.span.longitudeDelta / 2,
+            "north": bounds.north,
+            "south": bounds.south,
+            "east": bounds.east,
+            "west": bounds.west,
         ])
+    }
+
+    private var visibleBounds: (north: Double, south: Double, east: Double, west: Double) {
+        let rect = map.visibleMapRect
+        let northWest = MKMapPoint(x: rect.minX, y: rect.minY).coordinate
+        let southEast = MKMapPoint(x: rect.maxX, y: rect.maxY).coordinate
+        if rect.width >= MKMapSize.world.width {
+            return (northWest.latitude, southEast.latitude, 180, -180)
+        }
+        return (northWest.latitude, southEast.latitude, Self.wrapped(southEast.longitude), Self.wrapped(northWest.longitude))
+    }
+
+    private static func wrapped(_ longitude: Double) -> Double {
+        let turned = (longitude + 180).truncatingRemainder(dividingBy: 360)
+        return (turned < 0 ? turned + 360 : turned) - 180
     }
 
     func mapView(_ mapView: MKMapView, regionWillChangeAnimated animated: Bool) {
