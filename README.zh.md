@@ -1,22 +1,75 @@
-[English](README.md) | 简体中文
+<div align="center">
+
+<img src="apps/web/public/icons/icon-512.png" width="128" alt="AI Trip Planner 图标">
 
 # AI Trip Planner
 
-[![CI](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
+**一句话说出行程，五位 AI 专家帮你规划、算钱、标到地图上**
 
-AI Trip Planner 是一个面向单个用户的多智能体旅行工作区。用户可以在对话中描述行程，也可以通过顶部栏的信息标签修改行程事实。LangGraph 工作流会调度五个 LangChain 专家 agent，生成经过校验的旅行计划，包含日程、交通、住宿、餐饮、目的地指南和预算，并为每项信息标注数据来源。用户可以继续通过对话、按天排列的时间线和地图（优先使用 Google，Google 无法响应时改用 OpenStreetMap）编辑计划，并将行程保存在浏览器中，也可以通过账号在多台设备间同步。
+[![English](https://img.shields.io/badge/Language-English-0A84FF?style=for-the-badge)](README.md)
+[![简体中文](https://img.shields.io/badge/语言-简体中文-E5484D?style=for-the-badge)](README.zh.md)
 
-每个保存的行程都有 Trip home：行程事实、关联的聊天、新聊天的输入框，以及在行程地图旁打开的 Itinerary、Ideas、Bookings、Trip preferences 和 Calendar 面板。Your trips 页面列出所有行程，并提供周视图和月视图日历。在聊天中，用户可以 @ 提及五位 specialist 中的任意一位，查看 Agent Team 的工作状态，并打开 Trajectory 逐步查看每个 agent 做了什么。
+[![Live](https://img.shields.io/badge/live-elec5620--ai--trip--planner.vercel.app-000?style=flat-square&logo=vercel)](https://elec5620-ai-trip-planner.vercel.app)
+![Web](https://img.shields.io/badge/web-installable%20PWA-5A0FC8?style=flat-square&logo=pwa)
+![iPhone](https://img.shields.io/badge/iPhone-native%20app-555?style=flat-square&logo=apple)
+![macOS](https://img.shields.io/badge/macOS-native%20app-black?style=flat-square&logo=apple)
+[![CI](https://img.shields.io/github/actions/workflow/status/Lilstanie/AI_TRIP_PLANNER/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
 
-界面支持中英文，每个行程的金额按该行程自己的显示币种展示，窄屏下切换为手机布局，并可作为应用安装。独立的 `/agent-lab` 页面在固定场景上对比不同的规划策略。
+<img src="docs/readme/mac-light-trip.png" width="820" alt="Mac 版里规划好的京都行程：按天时间线和行程地图">
 
-Agent Lab 基准版本为 1.0.7。汇总结果尚未测量，计划质量也尚未评估。运行
-`pnpm --filter @trip/web e2e agent-lab-benchmark` 可在
-`output/playwright/agent-lab-benchmark/` 生成 fixture 报告和回放截图；实时子集需通过
-`AGENT_LAB_BENCHMARK_LIVE=true` 单独启用，且仍受部署门控限制。详见[基准指南](docs/development.zh.md#agent-lab-benchmark)
-和[发布记录模板](docs/agent-lab-release-record-template.md)。
+<img src="docs/readme/mac-light-chat.png" width="405" alt="对话回复和计划摘要 · Mac 版浅色">&nbsp;<img src="docs/readme/mac-dark-trip.png" width="405" alt="行程时间线和地图 · Mac 版深色">
 
-在线演示：[elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app)。顶部栏的切换开关会显示请求使用模拟数据还是实时数据提供方；地点和酒店名称中带有“Mock …”的内容来自模拟模式，并不表示实时集成失败。演示站点的版本可能落后于你正在查看的分支。
+<sub>Mac 版：规划这趟行程的对话（左）和深色模式下的行程（右）</sub>
+
+<img src="docs/readme/ios-chat.png" width="200" alt="iPhone 版的对话">&nbsp;&nbsp;<img src="docs/readme/ios-trip.png" width="200" alt="iPhone 版的按天行程">&nbsp;&nbsp;<img src="docs/readme/ios-map.png" width="200" alt="iPhone 版的行程地图">&nbsp;&nbsp;<img src="docs/readme/ios-mine.png" width="200" alt="iPhone 版的“我的”页">
+
+<sub>iPhone 版：Chat、Trip、Map 和 Mine 四个标签页</sub>
+
+</div>
+
+## 功能
+
+- **一句话规划。** 说清去哪、什么时候、几个人、多少预算。需求模型会提取目的地、日期、出行人、预算、节奏、饮食和兴趣，只追问缺的信息。
+- **五位专家。** LangGraph 工作流把行程交给交通、住宿、日程、餐饮和指南五个 agent，检查预算和时间冲突，只让相关 agent 再改一轮。
+- **有依据、有价格。** 航班、住宿、地点、路线和天气来自实时数据源，每一项都标注数据来源。金额按每个行程自己的币种显示（AUD、CNY、USD 或 JPY）。
+- **怎么改都行。** 在对话里改，或直接在按天时间线和地图上改。修改立即生效，可以撤销。
+- **每个行程一个主页。** 保存的行程有自己的事实、关联对话，以及在行程地图旁的 Itinerary、Ideas、Bookings、Trip preferences 和 Calendar。Your trips 另有周视图和月视图日历。
+- **看见团队在干活。** @ 任意一位专家，看 Agent Team 面板，打开 Trajectory 逐步查看每个 agent 做了什么。
+- **地图不掉线。** 优先 Google Maps；Google 无法响应时由 OpenStreetMap 和 MapLibre 接上。
+- **同步并记住你。** 行程存在浏览器里；登录后（Clerk 和 Neon Postgres），对话、行程和设置跨设备同步，让助手记住的偏好随账号保存。
+- **中英文。** 在设置里切换界面语言；回复跟随你写的语言。
+- **Agent Lab。** `/agent-lab` 在固定场景上对比规划策略（单 agent、五专家不返工、定向返工）。
+
+## 平台
+
+| 平台      | 位置         | 说明                                                                                  |
+| --------- | ------------ | ------------------------------------------------------------------------------------- |
+| Web       | `apps/web`   | 部署在 Vercel 的 Next.js 15 工作区；窄屏切换为手机布局，可作为应用安装（PWA）         |
+| iPhone 版 | `apps/ios`   | 包住线上站点的 Capacitor 外壳，液态玻璃外观、系统标签栏，Map 标签页用 Apple 地图      |
+| Mac 版    | `apps/macos` | 包住线上站点的原生 SwiftUI 窗口，Mac 光标、系统滚动条，Apple 和 GitHub 登录留在应用内 |
+
+两个原生应用都加载线上站点，所以每次网页部署都会直接到达，不用重新构建。
+
+### 安装
+
+- **Web：** 打开 <https://elec5620-ai-trip-planner.vercel.app>。想安装的话，用 Chrome 或 Edge 的安装按钮；iPhone 上用 Safari 的分享 → 添加到主屏幕。
+- **iPhone 版：** 在装了 Xcode 的 Mac 上运行下面的命令，在 Signing & Capabilities 里选你的 Apple ID 团队，选中 iPhone 后点 Run。在 iPhone 上到 设置 → 通用 → VPN 与设备管理 信任开发者。
+
+  ```bash
+  pnpm install
+  pnpm --filter @trip/ios sync
+  pnpm --filter @trip/ios open
+  ```
+
+- **Mac 版：** 装好 Xcode Command Line Tools 后运行下面的脚本，再把 `apps/macos/build/AI Trip Planner.app` 拖进“应用程序”。给其他 Mac 用时把 `SIGN_IDENTITY` 设为 Developer ID。
+
+  ```bash
+  apps/macos/scripts/build-app.sh
+  ```
+
+邮箱、口令、Apple 和 GitHub 登录都留在两个应用内；Google 登录会打开浏览器。详见 [iOS 应用](docs/development.zh.md#ios-应用)和 [macOS 应用](docs/development.zh.md#macos-应用)。
+
+在线演示可能落后于你正在看的分支。顶部栏的开关显示请求用的是模拟数据还是实时数据；带“Mock …”的名称来自模拟模式，不代表实时集成失败。
 
 <a id="elec5620-stage-2-report"></a>
 
@@ -73,9 +126,19 @@ flowchart LR
     UI -->|places and routes| MAP[Map provider: Google first, OSM fallback]
 ```
 
+| 部分     | 位置                     | 作用                                                                        |
+| -------- | ------------------------ | --------------------------------------------------------------------------- |
+| 工作区   | `apps/web`               | Next.js 界面和 API 路由：对话、Trip home、地图、日历、Trajectory、Agent Lab |
+| 编排     | `packages/orchestrator`  | LangGraph 工作流、supervisor、对话接入、预算和冲突检查、返工                |
+| Agents   | `packages/agents`        | 五个 LangChain 专家、DeepSeek 路由和确定性回退                              |
+| 工具     | `packages/tools`         | 地图、预订、SerpApi 和天气适配器，模拟数据，工具网关                        |
+| 契约     | `packages/shared`        | 所有包共用的 Zod 契约、计划类型和端口                                       |
+| 存储     | `packages/services`      | 记忆和行程存储（Redis REST store 或进程内）                                 |
+| 原生外壳 | `apps/ios`、`apps/macos` | 包住线上站点的 iPhone 和 Mac 应用                                           |
+
 LangGraph 图负责控制流程、冲突检查和修订轮次；supervisor 只负责选择要调用哪些专家。DeepSeek 负责从对话中提取需求、驱动专家并生成回复。如果缺少密钥或模型调用失败，系统会回退到经过校验的确定性结果，因此请求仍可完成。详情见[架构文档](docs/architecture.zh.md)和[架构图](docs/architecture-diagrams.zh.md)。
 
-## 快速开始
+## 从源码构建
 
 需要 Node.js 22 或更高版本，以及 pnpm 9.15.0（由 `corepack enable` 选择）。
 
@@ -90,6 +153,8 @@ pnpm dev                     # http://localhost:3000
 
 环境变量、Google Maps 配置、可选模拟服务器、Docker 和 CI 检查（`pnpm typecheck`、`pnpm lint`、`pnpm test`、`pnpm build`）详见[开发文档](docs/development.zh.md)。
 
+Agent Lab 基准版本为 1.0.7，汇总结果和计划质量尚未测量。`pnpm --filter @trip/web e2e agent-lab-benchmark` 会在 `output/playwright/agent-lab-benchmark/` 生成 fixture 报告和回放截图；实时子集需用 `AGENT_LAB_BENCHMARK_LIVE=true` 单独启用，且仍受部署门控限制。详见[基准指南](docs/development.zh.md#agent-lab-benchmark)和[发布记录模板](docs/agent-lab-release-record-template.zh.md)。
+
 ## 仓库目录
 
 ```text
@@ -100,6 +165,8 @@ apps/web/                 Next.js workspace UI and API routes
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code
+apps/ios/                 Capacitor iPhone app around the deployed site
+apps/macos/               SwiftUI Mac app around the deployed site
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
   tests/                  agent tests by domain
