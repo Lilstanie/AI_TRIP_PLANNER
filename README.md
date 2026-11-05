@@ -1,37 +1,75 @@
-English | [简体中文](README.zh.md)
+<div align="center">
+
+<img src="apps/web/public/icons/icon-512.png" width="128" alt="AI Trip Planner icon">
 
 # AI Trip Planner
 
-[![CI](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml/badge.svg)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
+**Describe a trip in one sentence; five AI specialists plan it, price it and put it on the map**
 
-AI Trip Planner is a single-user, multi-agent travel workspace. A user describes a trip in chat or
-edits its facts from the top-bar chips; a LangGraph workflow delegates to five LangChain specialist agents and returns a
-validated plan with itinerary, transport, accommodation, dining, destination guidance and budget,
-each labelled with where its data came from. The user edits the plan by chatting or directly on the
-day timeline and map (Google first, OpenStreetMap when Google cannot answer), and saves trips in the
-browser, optionally synced to an account across devices.
+[![English](https://img.shields.io/badge/Language-English-0A84FF?style=for-the-badge)](README.md)
+[![简体中文](https://img.shields.io/badge/语言-简体中文-E5484D?style=for-the-badge)](README.zh.md)
 
-Each saved trip has a Trip home: its facts, the chats linked to it, a composer for a new chat, and
-Itinerary, Ideas, Bookings, Trip preferences and Calendar panels beside the trip map. Your trips lists
-every trip and a Week and Month calendar. In chat the traveller can @-mention any of the five
-specialists, see the Agent Team at work, and open Trajectory for a step-by-step record of
-what each agent did.
+[![Live](https://img.shields.io/badge/live-elec5620--ai--trip--planner.vercel.app-000?style=flat-square&logo=vercel)](https://elec5620-ai-trip-planner.vercel.app)
+![Web](https://img.shields.io/badge/web-installable%20PWA-5A0FC8?style=flat-square&logo=pwa)
+![iPhone](https://img.shields.io/badge/iPhone-native%20app-555?style=flat-square&logo=apple)
+![macOS](https://img.shields.io/badge/macOS-native%20app-black?style=flat-square&logo=apple)
+[![CI](https://img.shields.io/github/actions/workflow/status/Lilstanie/AI_TRIP_PLANNER/ci.yml?branch=main&style=flat-square&label=CI&logo=githubactions&logoColor=white)](https://github.com/Lilstanie/AI_TRIP_PLANNER/actions/workflows/ci.yml)
 
-The interface is available in English and Chinese, shows each trip's amounts in its own display
-currency, switches to a phone layout at narrow widths and can be installed as an app. A separate
-`/agent-lab` page compares planning strategies on fixed scenarios.
+<img src="docs/readme/mac-light-trip.png" width="820" alt="A planned Kyoto trip in the Mac app: day timeline beside the trip map">
 
-The Agent Lab benchmark is versioned at 1.0.7. Aggregate results are not yet measured, and plan
-quality has not yet been assessed. Run `pnpm --filter @trip/web e2e agent-lab-benchmark` to generate
-a fixture report and replay screenshot under `output/playwright/agent-lab-benchmark/`; the live subset
-is separately opt-in with `AGENT_LAB_BENCHMARK_LIVE=true` and remains subject to the deployment gate.
-See the [benchmark guide](docs/development.md#agent-lab-benchmark) and
-[release record template](docs/agent-lab-release-record-template.md).
+<img src="docs/readme/mac-light-chat.png" width="405" alt="Chat reply with the plan summary · Mac app, light">&nbsp;<img src="docs/readme/mac-dark-trip.png" width="405" alt="Trip timeline and map · Mac app, dark">
 
-Live demo: [elec5620-ai-trip-planner.vercel.app](https://elec5620-ai-trip-planner.vercel.app). The
-top-bar toggle shows whether a request uses mock fixtures or live providers; place and hotel names
-labelled “Mock …” come from mock mode, not a failed live integration. The demo may lag behind the
-branch you are reading.
+<sub>The Mac app: the chat that planned the trip (left) and the trip in dark mode (right)</sub>
+
+<img src="docs/readme/ios-chat.png" width="200" alt="Chat on the iPhone app">&nbsp;&nbsp;<img src="docs/readme/ios-trip.png" width="200" alt="Day-by-day itinerary on the iPhone app">&nbsp;&nbsp;<img src="docs/readme/ios-map.png" width="200" alt="Trip map on the iPhone app">&nbsp;&nbsp;<img src="docs/readme/ios-mine.png" width="200" alt="Mine tab on the iPhone app">
+
+<sub>The iPhone app: Chat, Trip, Map and Mine tabs</sub>
+
+</div>
+
+## Features
+
+- **Plan in one sentence.** Say where, when, who and how much. The brief model picks out destinations, dates, party, budget, pace, diet and interests, and asks only for what is missing.
+- **Five specialists.** A LangGraph workflow hands the trip to transport, stay, itinerary, dining and guide agents, checks budget and timing conflicts, and sends only the agents involved back for another round.
+- **Grounded and priced.** Flights, stays, places, routes and weather come from live providers, and every item says where its data came from. Amounts show in each trip's own currency (AUD, CNY, USD or JPY).
+- **Edit any way.** Change the plan by chatting, or directly on the day timeline and the map. Edits apply at once and can be undone.
+- **A home for every trip.** Each saved trip has its facts, linked chats, Itinerary, Ideas, Bookings, Trip preferences and Calendar beside the trip map. Your trips adds a Week and Month calendar.
+- **See the team work.** @-mention any specialist, watch the Agent Team panel, and open Trajectory for a step-by-step record of what each agent did.
+- **Maps that keep working.** Google Maps first; OpenStreetMap and MapLibre take over when Google cannot answer.
+- **Synced and remembered.** Trips live in the browser; signed in (Clerk and Neon Postgres), chats, trips and settings sync across devices, and preferences you ask it to remember stay with the account.
+- **English and Chinese.** Switch the interface language in Settings; the reply follows the language you write in.
+- **Agent Lab.** `/agent-lab` compares planning strategies (one agent, five without revision, targeted revision) on fixed scenarios.
+
+## Platforms
+
+| Platform   | Where        | What it is                                                                                                          |
+| ---------- | ------------ | ------------------------------------------------------------------------------------------------------------------- |
+| Web        | `apps/web`   | Next.js 15 workspace on Vercel; switches to a phone layout at narrow widths and installs as an app (PWA)            |
+| iPhone app | `apps/ios`   | Capacitor shell around the live site, with a liquid-glass look, the system tab bar and Apple Maps on the Map tab    |
+| Mac app    | `apps/macos` | Native SwiftUI window around the live site, with Mac cursors, system scrollbars and in-app Apple and GitHub sign-in |
+
+Both native apps load the deployed site, so every web deploy reaches them without a new build.
+
+### Install
+
+- **Web:** open <https://elec5620-ai-trip-planner.vercel.app>. To install it, use Chrome's or Edge's install button, or Safari's Share → Add to Home Screen on an iPhone.
+- **iPhone app:** on a Mac with Xcode, run the commands below, pick your Apple ID team under Signing & Capabilities, choose the iPhone and press Run. On the iPhone, trust the developer under Settings → General → VPN & Device Management.
+
+  ```bash
+  pnpm install
+  pnpm --filter @trip/ios sync
+  pnpm --filter @trip/ios open
+  ```
+
+- **Mac app:** with the Xcode Command Line Tools, run the script below, then drag `apps/macos/build/AI Trip Planner.app` to Applications. Set `SIGN_IDENTITY` to a Developer ID to sign it for other Macs.
+
+  ```bash
+  apps/macos/scripts/build-app.sh
+  ```
+
+Email, passcode, Apple and GitHub sign-in stay inside both apps; Google sign-in opens the browser. Details: [iOS app](docs/development.md#ios-app) and [macOS app](docs/development.md#macos-app).
+
+The live demo may lag behind the branch you are reading. The top-bar switch shows whether a request uses mock fixtures or live providers; names labelled “Mock …” come from mock mode, not a failed live integration.
 
 ## ELEC5620 Stage 2 report
 
@@ -110,13 +148,23 @@ flowchart LR
     UI -->|places and routes| MAP[Map provider: Google first, OSM fallback]
 ```
 
+| Part          | Where                    | What it does                                                                      |
+| ------------- | ------------------------ | --------------------------------------------------------------------------------- |
+| Workspace     | `apps/web`               | Next.js UI and API routes: chat, Trip home, map, calendar, Trajectory, Agent Lab  |
+| Orchestrator  | `packages/orchestrator`  | LangGraph workflow, supervisor, chat intake, budget and conflict checks, revision |
+| Agents        | `packages/agents`        | Five LangChain specialists, DeepSeek routing and deterministic fallbacks          |
+| Tools         | `packages/tools`         | Maps, booking, SerpApi and weather adapters, mock fixtures, tool gateway          |
+| Contracts     | `packages/shared`        | Zod contracts, plan types and ports shared by every package                       |
+| Storage       | `packages/services`      | Memory and trip storage (Redis REST store or in-process)                          |
+| Native shells | `apps/ios`, `apps/macos` | iPhone and Mac apps around the deployed site                                      |
+
 The LangGraph graph owns control flow, conflict checks and revision rounds; the supervisor only
 chooses which specialists to call. DeepSeek handles chat extraction, the specialists and the reply,
 and any missing key or failed model call falls back to validated deterministic output, so requests
 still complete. Details: [architecture](docs/architecture.md) and the
 [architecture diagrams](docs/architecture-diagrams.md).
 
-## Quick start
+## Build from source
 
 Requires Node.js 22+ and pnpm 9.15.0 (selected by `corepack enable`).
 
@@ -136,6 +184,13 @@ Environment variables, Google Maps setup, the optional mock server, Docker and t
 (`pnpm typecheck`, `pnpm lint`, `pnpm test`, `pnpm build`) are covered in
 [development](docs/development.md).
 
+The Agent Lab benchmark is versioned at 1.0.7; aggregate results and plan quality are not yet
+measured. `pnpm --filter @trip/web e2e agent-lab-benchmark` writes a fixture report and replay
+screenshot under `output/playwright/agent-lab-benchmark/`; the live subset is opt-in with
+`AGENT_LAB_BENCHMARK_LIVE=true` and stays behind the deployment gate. See the
+[benchmark guide](docs/development.md#agent-lab-benchmark) and
+[release record template](docs/agent-lab-release-record-template.md).
+
 ## Repository layout
 
 ```text
@@ -146,6 +201,8 @@ apps/web/                 Next.js workspace UI and API routes
                           integrations and domain rules grouped by responsibility
   tests/{app,components,lib,e2e,cli-e2e,ci,fixtures}
                           web tests and E2E runners, kept separate from production code
+apps/ios/                 Capacitor iPhone app around the deployed site
+apps/macos/               SwiftUI Mac app around the deployed site
 packages/agents/          Five specialist LangChain agents, model routing and fallbacks
   src/                    production agent code by domain
   tests/                  agent tests by domain
