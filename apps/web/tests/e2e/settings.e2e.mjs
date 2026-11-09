@@ -149,7 +149,7 @@ async function run(browser, { width, height, tag }) {
 
   await dialog.getByRole("tab", { name: "Your account" }).click();
   await settle(page, 300);
-  await dialog.getByRole("button", { name: "Change Theme" }).click();
+  await dialog.getByRole("button", { name: "Change Appearance" }).click();
   await dialog.getByRole("button", { name: "Dark" }).click();
   check(
     (await page.evaluate(() => document.documentElement.dataset.theme)) === "dark",

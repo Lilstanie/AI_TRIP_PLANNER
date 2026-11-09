@@ -71,6 +71,17 @@ Use the semantic tokens in `apps/web/app/styles/tokens.css` as the only color co
 
 Both light and dark token values are required. Native controls must follow the active system theme, and focus rings must remain visible.
 
+### Themes
+
+`apps/web/app/styles/themes.css` holds the optional themes and accent colours. Each theme overrides only colour tokens; spacing, radii and the glass recipe stay shared.
+
+- Settings (Your account) offers a Theme (Default, Island, Sunset, Forest, City night, OLED black, High contrast), an Accent colour (Theme colour, Blue, Green, Orange, Purple, Pink) and the Light, Dark or System appearance. The choices are saved with the other settings.
+- `lib/account/theme.ts` writes four attributes on `<html>`: `data-scheme` (always the resolved light or dark), `data-theme` (only when the scheme is forced), `data-palette` and `data-accent`. The inline script in `app/layout.tsx` applies them before the first paint.
+- City night and OLED black are always dark, so Settings hides the appearance choice while one of them is active. The other themes have a light and a dark set.
+- Theme rules use `:root[data-palette][data-scheme]` and accent rules `:root[data-accent][data-scheme]`, both after the theme rules, so an accent wins over a theme's own accent and both win over the iOS shell's glass values.
+- High contrast sets the glass tokens to the solid surface with no blur, sheen or ambient colour.
+- Every theme and accent keeps text, secondary text and accent text at WCAG AA on its page and surface, and white text at AA on its filled accent. The `themes` E2E measures this in both schemes and saves screenshots and `results.json` under `output/playwright/themes/`; its failure list is `apps/web/tests/e2e/themes.failures.md`.
+
 ## Typography
 
 Everything uses the Apple system face: `--font-text` (SF Pro Text) for body, controls and labels, `--font-display` (SF Pro Display) for headings with `--tracking-title` tightening. Both stacks fall through to PingFang and Hiragino so mixed Chinese and Latin text stays usable; no web font is loaded.

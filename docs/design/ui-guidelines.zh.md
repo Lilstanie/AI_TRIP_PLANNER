@@ -53,6 +53,19 @@
 
 必须同时提供浅色和深色 token 值。原生控件必须跟随当前系统主题，焦点环必须始终可见。
 
+<a id="themes"></a>
+
+### 主题
+
+`apps/web/app/styles/themes.css` 存放可选主题和强调色。每个主题只覆盖颜色 token；间距、圆角和玻璃配方保持共用。
+
+- 设置（Your account）提供主题（默认、海岛、日落、森林、城市夜景、纯黑、高对比）、强调色（跟随主题、蓝、绿、橙、紫、粉）以及浅色、深色或跟随系统的外观。这些选择和其他设置一起保存。
+- `lib/account/theme.ts` 在 `<html>` 上写四个属性：`data-scheme`（始终是解析后的浅色或深色）、`data-theme`（仅在方案被强制时）、`data-palette` 和 `data-accent`。`app/layout.tsx` 中的内联脚本在首次绘制前应用它们。
+- 城市夜景和纯黑始终是深色，因此选中其中之一时，设置会隐藏外观选项。其他主题各有一套浅色和深色值。
+- 主题规则使用 `:root[data-palette][data-scheme]`，强调色规则使用 `:root[data-accent][data-scheme]` 并写在主题规则之后，所以强调色优先于主题自带的强调色，两者都优先于 iOS 外壳的玻璃值。
+- 高对比把玻璃 token 设为实色表面，不模糊、无反光、无环境色。
+- 每个主题和强调色都让正文、次要文字和强调色文字在页面和表面上满足 WCAG AA，白色文字在实色强调色上满足 AA。`themes` E2E 在两种方案下测量这一点，并把截图和 `results.json` 保存在 `output/playwright/themes/`；失败清单是 `apps/web/tests/e2e/themes.failures.md`。
+
 <a id="typography"></a>
 
 ## 排版

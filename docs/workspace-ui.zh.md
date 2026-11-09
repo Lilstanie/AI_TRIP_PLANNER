@@ -397,9 +397,8 @@ Fold rounds 会隐藏属于某一轮的所有行，只为每一轮保留一个�
   - 说明文字、提示、同步说明和脚注使用 `--text-dim`，在两种主题下与对话框玻璃底的对比度都至少为 4.5:1。
   - 打开 Clerk 登录、注册、更改头像或账号管理窗口前，先关闭设置对话框，避免原生模态层遮挡 Clerk 的控件。
   - **Edit profile：** 头像、名和姓，保存到 Clerk（Change profile photo 打开 Clerk）。Location 即常住城市。
-  - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme（System、Light、Dark，设置在
-    `<html data-theme>` 上，地图同样跟随）；Export；Sign out；以及需确认的 Delete my account。未登录或未启用账号时，
-    该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme。
+  - **Your account：** 邮箱（Manage 在 Clerk 中打开）及其已验证标记；Theme、Accent colour 和 Appearance（System、Light、Dark；见[主题](design/ui-guidelines.zh.md#themes)，地图同样跟随）；Export；Sign out；以及需确认的 Delete my account。未登录或未启用账号时，
+    该分区说明如何登录或数据保存在浏览器中，下方仍有 Theme、Accent colour 和 Appearance。
   - **Personalization：**
     - **Communication style：** Neutral、Friendly、Concise 或 Detailed。
     - **助手名称：** 协调员和五位 specialist 各有一个可编辑的名称，随账户保存为 `assistant.names`。留空则恢复为当前界面语言的角色名称。

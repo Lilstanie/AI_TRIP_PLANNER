@@ -3,6 +3,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import { COMMUNICATION_STYLES, MAX_ASSISTANT_NAME_LENGTH, type AssistantId } from "@trip/shared";
 import { blankDraft, type Draft } from "@/lib/workspace";
 import { DIETARY, INTERESTS, type UserSettings } from "@/lib/account/settings";
+import { ACCENTS, DARK_ONLY_THEMES, THEMES, type Accent, type Theme } from "@/lib/account/theme";
 import { memoryDisplay } from "@/lib/account/memory-display";
 import { PreferenceList } from "../preferences/PreferenceList";
 import { ASSISTANT_ROLE_KEYS } from "../chat/assistants";
@@ -41,7 +42,24 @@ const STYLE_LABEL: Record<(typeof COMMUNICATION_STYLES)[number], MessageKey> = {
   detailed: "detailed",
 };
 const PACE_LABEL = { relaxed: "relaxed", balanced: "balanced", packed: "packed" } as const;
-const THEME_LABEL = { system: "systemPreference", light: "light", dark: "dark" } as const;
+const APPEARANCE_LABEL = { system: "systemPreference", light: "light", dark: "dark" } as const;
+const THEME_LABEL: Record<Theme, MessageKey> = {
+  default: "themeDefault",
+  island: "themeIsland",
+  sunset: "themeSunset",
+  forest: "themeForest",
+  "city-night": "themeCityNight",
+  oled: "themeOled",
+  contrast: "themeContrast",
+};
+const ACCENT_LABEL: Record<Accent, MessageKey> = {
+  theme: "followTheme",
+  blue: "accentBlue",
+  green: "accentGreen",
+  orange: "accentOrange",
+  purple: "accentPurple",
+  pink: "accentPink",
+};
 const MEMORY_CATEGORY_LABEL: Record<string, MessageKey> = {
   dietary: "dietaryNeeds",
   pace: "pace",
@@ -170,29 +188,100 @@ function ProfileSection({ onAccountModal }: AccountModalProps) {
   );
 }
 
+function ThemeRows() {
+  const { t } = useLocale();
+  const { settings, update } = useSettings();
+  const theme = settings.theme ?? "default";
+  const accent = settings.accent ?? "theme";
+  const darkOnly = DARK_ONLY_THEMES.includes(theme);
+  return (
+    <>
+      <SettingRow label={t("theme")} value={t(THEME_LABEL[theme])}>
+        {() => (
+          <SwatchGroup
+            label={t("theme")}
+            kind="theme"
+            options={THEMES.map((option) => [option, t(THEME_LABEL[option])] as const)}
+            value={theme}
+            onChange={(next) => update({ theme: next })}
+          />
+        )}
+      </SettingRow>
+      <SettingRow label={t("accentColour")} value={t(ACCENT_LABEL[accent])}>
+        {() => (
+          <SwatchGroup
+            label={t("accentColour")}
+            kind="accent"
+            options={ACCENTS.map((option) => [option, t(ACCENT_LABEL[option])] as const)}
+            value={accent}
+            onChange={(next) => update({ accent: next })}
+          />
+        )}
+      </SettingRow>
+      {darkOnly ? (
+        <SettingRow label={t("appearance")} value={t("dark")} />
+      ) : (
+        <SettingRow label={t("appearance")} value={t(APPEARANCE_LABEL[settings.appearance])}>
+          {() => (
+            <Segmented
+              label={t("appearance")}
+              options={[
+                ["system", t("system")],
+                ["light", t("light")],
+                ["dark", t("dark")],
+              ]}
+              value={settings.appearance}
+              onChange={(value) => value && update({ appearance: value })}
+            />
+          )}
+        </SettingRow>
+      )}
+    </>
+  );
+}
+
+function SwatchGroup<T extends string>({
+  label,
+  kind,
+  options,
+  value,
+  onChange,
+}: {
+  label: string;
+  kind: "theme" | "accent";
+  options: readonly (readonly [T, string])[];
+  value: T;
+  onChange(next: T): void;
+}) {
+  return (
+    <div className="settings-chips" role="group" aria-label={label}>
+      {options.map(([option, text]) => (
+        <button
+          key={option}
+          type="button"
+          className="settings-chip settings-swatch"
+          aria-pressed={value === option}
+          onClick={() => onChange(option)}
+        >
+          <span
+            className="settings-swatch__dot"
+            data-swatch={`${kind}-${option}`}
+            aria-hidden="true"
+          />
+          {text}
+        </button>
+      ))}
+    </div>
+  );
+}
+
 function AccountSection({ onAccountModal }: AccountModalProps) {
   const { t, notice: localizeNotice } = useLocale();
   const account = useAccount();
-  const { settings, update } = useSettings();
   const [deleting, setDeleting] = useState<"idle" | "confirm" | "working" | "failed">("idle");
   const [problem, setProblem] = useState<Notice>();
 
-  const theme = (
-    <SettingRow label={t("theme")} value={t(THEME_LABEL[settings.appearance])}>
-      {() => (
-        <Segmented
-          label={t("theme")}
-          options={[
-            ["system", t("system")],
-            ["light", t("light")],
-            ["dark", t("dark")],
-          ]}
-          value={settings.appearance}
-          onChange={(value) => value && update({ appearance: value })}
-        />
-      )}
-    </SettingRow>
-  );
+  const theme = <ThemeRows />;
 
   if (account.status !== "signed-in")
     return (

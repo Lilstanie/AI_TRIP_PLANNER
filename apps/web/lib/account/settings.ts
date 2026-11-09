@@ -8,6 +8,7 @@ import {
 } from "@trip/shared";
 import { blankDraft, type Draft } from "../workspace/workspace";
 import { LOCALES } from "../i18n/locale";
+import { ACCENTS, THEMES } from "./theme";
 
 export const INTERESTS = [
   "Food",
@@ -74,6 +75,8 @@ export const UserSettings = z.object({
 
   dataMode: z.enum(["default", "live", "mock"]),
   appearance: z.enum(["system", "light", "dark"]),
+  theme: z.enum(THEMES).optional(),
+  accent: z.enum(ACCENTS).optional(),
 
   language: z.enum(LOCALES).optional(),
 
