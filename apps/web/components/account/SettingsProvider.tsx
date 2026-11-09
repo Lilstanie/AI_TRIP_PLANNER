@@ -4,11 +4,13 @@ import {
   useCallback,
   useContext,
   useEffect,
+  useLayoutEffect,
   useRef,
   useState,
   type ReactNode,
 } from "react";
 import { SETTINGS_KEY, UserSettings, defaultSettings } from "@/lib/account/settings";
+import { applyTheme } from "@/lib/account/theme";
 import { useAccount } from "./AccountProvider";
 
 type SettingsState = {
@@ -42,12 +44,6 @@ function writeLocal(settings: UserSettings) {
   } catch {
     return;
   }
-}
-
-function applyAppearance(appearance: UserSettings["appearance"]) {
-  const root = document.documentElement;
-  if (appearance === "system") delete root.dataset.theme;
-  else root.dataset.theme = appearance;
 }
 
 type SettingsCheckpoint = { revision: number; contents: string };
@@ -107,9 +103,16 @@ export function SettingsProvider({ children }: { children: ReactNode }) {
     setSettings(readLocalSettings());
     setRestored(true);
   }, []);
-  useEffect(() => {
-    if (restored) applyAppearance(settings.appearance);
-  }, [restored, settings.appearance]);
+  const { appearance, theme, accent } = settings;
+  useLayoutEffect(() => {
+    if (!restored) return;
+    const query = window.matchMedia?.("(prefers-color-scheme: dark)");
+    const apply = () =>
+      applyTheme(document.documentElement, { appearance, theme, accent }, !!query?.matches);
+    apply();
+    query?.addEventListener?.("change", apply);
+    return () => query?.removeEventListener?.("change", apply);
+  }, [restored, appearance, theme, accent]);
 
   const signedIn = account.status === "signed-in" ? account.userId : undefined;
 

@@ -1,6 +1,7 @@
 @import "tailwindcss";
 @import "maplibre-gl/dist/maplibre-gl.css";
 @import "./styles/tokens.css";
+@import "./styles/themes.css";
 @import "./styles/base.css";
 @import "./styles/chat/chat.css";
 @import "./styles/chat/thinking.css";

@@ -1,0 +1,242 @@
+:root[data-palette],
+:root[data-accent] {
+  --ring: 0 0 0 3.5px color-mix(in srgb, var(--accent-fill) 38%, transparent);
+}
+
+:root[data-palette="island"][data-scheme="light"] {
+  --page: #f1f8f8;
+  --surface: #ffffff;
+  --surface-2: #e6f3f2;
+  --text: #12302e;
+  --text-dim: #4f6b69;
+  --text-mut: #4f6b69;
+  --border: #d3e6e4;
+  --accent: #00716f;
+  --accent-fill: #00787a;
+  --accent-bg: #e0f4f3;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(0 168 168 / 16%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(244 205 140 / 22%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(0 140 200 / 12%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(120 210 190 / 14%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+:root[data-palette="island"][data-scheme="dark"] {
+  --page: #021414;
+  --surface: #0d2322;
+  --surface-2: #153130;
+  --text: #eef7f6;
+  --text-dim: #9dbcb9;
+  --text-mut: #9dbcb9;
+  --border: #24403f;
+  --accent: #3fd4cf;
+  --accent-fill: #00797d;
+  --accent-bg: #08302f;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(0 190 180 / 24%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(230 190 120 / 12%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(0 120 200 / 20%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(60 200 170 / 12%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+
+:root[data-palette="sunset"][data-scheme="light"] {
+  --page: #fbf5f1;
+  --surface: #ffffff;
+  --surface-2: #f6ece6;
+  --text: #2a1a14;
+  --text-dim: #74594d;
+  --text-mut: #74594d;
+  --border: #ecdcd2;
+  --accent: #b93a0a;
+  --accent-fill: #c2410c;
+  --accent-bg: #fdeee6;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(255 120 60 / 16%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(255 190 80 / 18%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(220 70 140 / 13%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(150 80 200 / 10%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+:root[data-palette="sunset"][data-scheme="dark"] {
+  --page: #140a0a;
+  --surface: #22151a;
+  --surface-2: #2e1d22;
+  --text: #fbefe9;
+  --text-dim: #c9a99f;
+  --text-mut: #c9a99f;
+  --border: #44292f;
+  --accent: #ff8a5c;
+  --accent-fill: #b8430f;
+  --accent-bg: #3a1a10;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(255 110 50 / 24%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(255 180 60 / 12%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(220 60 140 / 22%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(140 70 210 / 16%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+
+:root[data-palette="forest"][data-scheme="light"] {
+  --page: #f4f5ee;
+  --surface: #fffffb;
+  --surface-2: #ebeee2;
+  --text: #1b2617;
+  --text-dim: #56664f;
+  --text-mut: #56664f;
+  --border: #dde2d2;
+  --accent: #2f6b2f;
+  --accent-fill: #2f7a3a;
+  --accent-bg: #e6f1e2;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(60 140 70 / 15%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(210 190 140 / 22%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(30 100 60 / 12%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(150 180 90 / 14%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+:root[data-palette="forest"][data-scheme="dark"] {
+  --page: #0a110b;
+  --surface: #151e16;
+  --surface-2: #1f2a20;
+  --text: #eef3ea;
+  --text-dim: #a7b8a2;
+  --text-mut: #a7b8a2;
+  --border: #2f3d30;
+  --accent: #7fcf7a;
+  --accent-fill: #2f7a3a;
+  --accent-bg: #16301a;
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(70 160 80 / 22%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(200 180 120 / 10%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(30 120 70 / 20%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(140 180 80 / 10%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+
+:root[data-palette="city-night"][data-scheme="dark"] {
+  --page: #070b1a;
+  --surface: #11172b;
+  --surface-2: #1a2140;
+  --text: #eef0ff;
+  --text-dim: #a6acd0;
+  --text-mut: #a6acd0;
+  --border: #2a3358;
+  --accent: #b48cff;
+  --accent-fill: #7444f0;
+  --accent-bg: #24184a;
+  --glass-tint: rgb(17 23 43 / 86%);
+  --ambient:
+    radial-gradient(70% 55% at 0% 0%, rgb(255 45 149 / 20%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(0 212 255 / 16%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(124 68 240 / 26%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(0 140 255 / 14%), transparent 70%);
+  --ios-backdrop: var(--ambient);
+}
+
+:root[data-palette="oled"][data-scheme="dark"] {
+  --page: #000000;
+  --surface: #0a0a0a;
+  --surface-2: #161616;
+  --border: #262626;
+  --glass-tint: rgb(0 0 0 / 82%);
+  --glass-border: rgb(255 255 255 / 12%);
+  --ambient: none;
+  --ios-backdrop: none;
+}
+
+:root[data-palette="contrast"][data-scheme] {
+  --glass-tint: var(--surface);
+  --glass-border: var(--border);
+  --glass-edge: transparent;
+  --glass-highlight: 0 0 #0000;
+  --glass-sheen: none;
+  --glass-shadow: 0 0 #0000;
+  --glass-shadow-raised: 0 0 #0000;
+  --glass-blur: 0px;
+  --glass-saturate: 100%;
+  --ambient: none;
+  --ios-backdrop: none;
+  --ios-lens: var(--surface-2);
+  --ios-lens-shadow: 0 0 #0000;
+  --scrim-blur: 0px;
+}
+:root[data-palette="contrast"][data-scheme="light"] {
+  --page: #ffffff;
+  --surface: #ffffff;
+  --surface-2: #ebebeb;
+  --text: #000000;
+  --text-dim: #3a3a3c;
+  --text-mut: #3a3a3c;
+  --border: #6e6e73;
+  --accent: #0040a0;
+  --accent-fill: #0050b8;
+  --accent-bg: #dce8fb;
+  --fill-hover: rgb(0 0 0 / 10%);
+  --fill-press: rgb(0 0 0 / 18%);
+}
+:root[data-palette="contrast"][data-scheme="dark"] {
+  --page: #000000;
+  --surface: #121212;
+  --surface-2: #232323;
+  --text: #ffffff;
+  --text-dim: #d1d1d6;
+  --text-mut: #d1d1d6;
+  --border: #a1a1a6;
+  --accent: #6cb4ff;
+  --accent-fill: #0050b8;
+  --accent-bg: #0a2a50;
+  --fill-hover: rgb(255 255 255 / 14%);
+  --fill-press: rgb(255 255 255 / 24%);
+}
+
+:root[data-accent="blue"][data-scheme="light"] {
+  --accent: #0066cc;
+  --accent-fill: #0071e3;
+  --accent-bg: #e8f1fd;
+}
+:root[data-accent="blue"][data-scheme="dark"] {
+  --accent: #2997ff;
+  --accent-fill: #0a6fd8;
+  --accent-bg: #0b2a4a;
+}
+:root[data-accent="green"][data-scheme="light"] {
+  --accent: #1a7f37;
+  --accent-fill: #1a7f37;
+  --accent-bg: #e7f6ea;
+}
+:root[data-accent="green"][data-scheme="dark"] {
+  --accent: #30d158;
+  --accent-fill: #1a7f37;
+  --accent-bg: #0c2e17;
+}
+:root[data-accent="orange"][data-scheme="light"] {
+  --accent: #b24a00;
+  --accent-fill: #b84c00;
+  --accent-bg: #fff1e3;
+}
+:root[data-accent="orange"][data-scheme="dark"] {
+  --accent: #ff9f0a;
+  --accent-fill: #b84c00;
+  --accent-bg: #33230a;
+}
+:root[data-accent="purple"][data-scheme="light"] {
+  --accent: #7a3db8;
+  --accent-fill: #8040c4;
+  --accent-bg: #f3ebfb;
+}
+:root[data-accent="purple"][data-scheme="dark"] {
+  --accent: #c77dff;
+  --accent-fill: #8040c4;
+  --accent-bg: #2a1638;
+}
+:root[data-accent="pink"][data-scheme="light"] {
+  --accent: #c2185b;
+  --accent-fill: #c8195e;
+  --accent-bg: #fde8f0;
+}
+:root[data-accent="pink"][data-scheme="dark"] {
+  --accent: #ff6b9a;
+  --accent-fill: #c2185b;
+  --accent-bg: #3a1222;
+}

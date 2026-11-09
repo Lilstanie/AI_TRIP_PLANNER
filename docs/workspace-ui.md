@@ -1395,10 +1395,11 @@ the account section explains that everything stays in this browser.
     settings dialog closes so its native modal layer cannot cover Clerk's controls.
   - **Edit profile:** picture, first and last name, saved to Clerk (Change profile photo opens
     Clerk). Location is the home city.
-  - **Your account:** email, which Manage opens in Clerk, with its verified mark; Theme (System,
-    Light, Dark, set on `<html data-theme>` and followed by the map); Export; Sign out; and Delete
+  - **Your account:** email, which Manage opens in Clerk, with its verified mark; Theme, Accent
+    colour and Appearance (System, Light, Dark; see [Themes](design/ui-guidelines.md#themes), followed
+    by the map); Export; Sign out; and Delete
     my account behind a confirmation. Signed out or without accounts, the section shows how to sign
-    in, or that data stays in the browser, with Theme below.
+    in, or that data stays in the browser, with Theme, Accent colour and Appearance below.
   - **Personalization:**
     - **Communication style:** Neutral, Friendly, Concise or Detailed.
     - **Assistant names:** one editable name for the Coordinator and each of the five specialists, stored

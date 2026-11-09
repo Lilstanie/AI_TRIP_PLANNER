@@ -21,6 +21,7 @@ import {
 import type { UserLocation } from "./useUserLocation";
 import { LayersIcon, LocateIcon, MinusIcon, PlusIcon } from "../ui/icons";
 import { useSettings } from "../account/SettingsProvider";
+import { resolveScheme } from "@/lib/account/theme";
 
 import { loadRenderer } from "./map-renderer";
 
@@ -137,8 +138,8 @@ export function TripMap({
   const reducedMotion = useMediaQuery("(prefers-reduced-motion: reduce)");
   const systemDark = useMediaQuery("(prefers-color-scheme: dark)");
 
-  const { appearance } = useSettings().settings;
-  const dark = appearance === "system" ? systemDark : appearance === "dark";
+  const { appearance, theme, accent } = useSettings().settings;
+  const dark = resolveScheme({ appearance, theme }, systemDark) === "dark";
   const { location, request: requestLocation } = userLocation;
   const [nearbyRoute, setNearbyRoute] = useState<
     RouteResult | { status: "loading" } | { status: "error"; notice: Notice }
@@ -536,7 +537,7 @@ export function TripMap({
       layer();
       if (routeLayer.current === layer) routeLayer.current = null;
     });
-  }, [runtime, lines, routes, focusDay, dark, locale, ownCleanup]);
+  }, [runtime, lines, routes, focusDay, dark, theme, accent, locale, ownCleanup]);
 
   useEffect(() => {
     routeLayer.current?.setAnimationEnabled(visible && !reducedMotion);
