@@ -4,133 +4,146 @@
 }
 
 :root[data-palette="island"][data-scheme="light"] {
-  --page: #f1f8f8;
-  --surface: #ffffff;
-  --surface-2: #e6f3f2;
-  --text: #12302e;
-  --text-dim: #4f6b69;
-  --text-mut: #4f6b69;
-  --border: #d3e6e4;
-  --accent: #00716f;
-  --accent-fill: #00787a;
-  --accent-bg: #e0f4f3;
+  --page: #d4eeeb;
+  --surface: #f6fcfb;
+  --surface-2: #dcf1ee;
+  --text: #0d2b29;
+  --text-dim: #3f5f5c;
+  --text-mut: #3f5f5c;
+  --border: #b5dbd6;
+  --accent: #00676a;
+  --accent-fill: #00747a;
+  --accent-bg: #d3efec;
+  --glass-tint: rgb(240 251 249 / 80%);
+  --glass-border: rgb(255 255 255 / 60%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(0 168 168 / 16%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(244 205 140 / 22%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(0 140 200 / 12%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(120 210 190 / 14%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(0 170 165 / 38%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(244 200 120 / 45%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(0 130 200 / 26%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(110 215 190 / 30%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 :root[data-palette="island"][data-scheme="dark"] {
-  --page: #021414;
-  --surface: #0d2322;
-  --surface-2: #153130;
-  --text: #eef7f6;
-  --text-dim: #9dbcb9;
-  --text-mut: #9dbcb9;
-  --border: #24403f;
-  --accent: #3fd4cf;
-  --accent-fill: #00797d;
-  --accent-bg: #08302f;
+  --page: #03201f;
+  --surface: #0b2d2c;
+  --surface-2: #123a38;
+  --text: #eaf8f6;
+  --text-dim: #a3c9c5;
+  --text-mut: #a3c9c5;
+  --border: #21504d;
+  --accent: #4fe0da;
+  --accent-fill: #007a7f;
+  --accent-bg: #0a3a38;
+  --glass-tint: rgb(8 44 43 / 80%);
+  --glass-border: rgb(120 230 220 / 16%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(0 190 180 / 24%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(230 190 120 / 12%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(0 120 200 / 20%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(60 200 170 / 12%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(0 200 190 / 38%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(230 190 110 / 16%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(0 120 210 / 32%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(50 210 175 / 20%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 
 :root[data-palette="sunset"][data-scheme="light"] {
-  --page: #fbf5f1;
-  --surface: #ffffff;
-  --surface-2: #f6ece6;
-  --text: #2a1a14;
-  --text-dim: #74594d;
-  --text-mut: #74594d;
-  --border: #ecdcd2;
-  --accent: #b93a0a;
-  --accent-fill: #c2410c;
-  --accent-bg: #fdeee6;
+  --page: #fbdccb;
+  --surface: #fff7f2;
+  --surface-2: #fde6da;
+  --text: #2a140c;
+  --text-dim: #6e4637;
+  --text-mut: #6e4637;
+  --border: #f0c6b2;
+  --accent: #b0360a;
+  --accent-fill: #bf3e0d;
+  --accent-bg: #fde0d1;
+  --glass-tint: rgb(255 246 239 / 80%);
+  --glass-border: rgb(255 255 255 / 60%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(255 120 60 / 16%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(255 190 80 / 18%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(220 70 140 / 13%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(150 80 200 / 10%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(255 110 50 / 36%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(255 185 70 / 42%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(230 60 140 / 30%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(150 80 210 / 20%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 :root[data-palette="sunset"][data-scheme="dark"] {
-  --page: #140a0a;
-  --surface: #22151a;
-  --surface-2: #2e1d22;
-  --text: #fbefe9;
-  --text-dim: #c9a99f;
-  --text-mut: #c9a99f;
-  --border: #44292f;
-  --accent: #ff8a5c;
+  --page: #200b12;
+  --surface: #2e131b;
+  --surface-2: #3d1a23;
+  --text: #fdeee8;
+  --text-dim: #d6aca0;
+  --text-mut: #d6aca0;
+  --border: #5a2a33;
+  --accent: #ff9466;
   --accent-fill: #b8430f;
-  --accent-bg: #3a1a10;
+  --accent-bg: #46200f;
+  --glass-tint: rgb(48 18 27 / 80%);
+  --glass-border: rgb(255 160 120 / 16%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(255 110 50 / 24%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(255 180 60 / 12%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(220 60 140 / 22%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(140 70 210 / 16%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(255 100 40 / 36%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(255 170 50 / 18%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(230 50 140 / 34%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(140 60 220 / 24%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 
 :root[data-palette="forest"][data-scheme="light"] {
-  --page: #f4f5ee;
-  --surface: #fffffb;
-  --surface-2: #ebeee2;
-  --text: #1b2617;
-  --text-dim: #56664f;
-  --text-mut: #56664f;
-  --border: #dde2d2;
-  --accent: #2f6b2f;
-  --accent-fill: #2f7a3a;
-  --accent-bg: #e6f1e2;
+  --page: #dbe5cc;
+  --surface: #f8faf1;
+  --surface-2: #e4ecd6;
+  --text: #16220f;
+  --text-dim: #4a5b40;
+  --text-mut: #4a5b40;
+  --border: #c3d1af;
+  --accent: #2a632a;
+  --accent-fill: #2d7336;
+  --accent-bg: #dcebd4;
+  --glass-tint: rgb(246 250 238 / 80%);
+  --glass-border: rgb(255 255 255 / 60%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(60 140 70 / 15%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(210 190 140 / 22%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(30 100 60 / 12%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(150 180 90 / 14%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(60 150 70 / 32%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(215 190 130 / 42%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(20 100 55 / 26%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(150 185 80 / 30%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 :root[data-palette="forest"][data-scheme="dark"] {
-  --page: #0a110b;
-  --surface: #151e16;
-  --surface-2: #1f2a20;
-  --text: #eef3ea;
-  --text-dim: #a7b8a2;
-  --text-mut: #a7b8a2;
-  --border: #2f3d30;
-  --accent: #7fcf7a;
-  --accent-fill: #2f7a3a;
-  --accent-bg: #16301a;
+  --page: #07160b;
+  --surface: #112317;
+  --surface-2: #1a301f;
+  --text: #ecf5e7;
+  --text-dim: #aac3a3;
+  --text-mut: #aac3a3;
+  --border: #2c4a32;
+  --accent: #86d681;
+  --accent-fill: #2d7336;
+  --accent-bg: #173a1d;
+  --glass-tint: rgb(16 36 22 / 80%);
+  --glass-border: rgb(150 220 140 / 14%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(70 160 80 / 22%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(200 180 120 / 10%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(30 120 70 / 20%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(140 180 80 / 10%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(70 170 80 / 34%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(200 180 110 / 14%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(20 130 70 / 30%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(140 185 70 / 16%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 
 :root[data-palette="city-night"][data-scheme="dark"] {
-  --page: #070b1a;
-  --surface: #11172b;
-  --surface-2: #1a2140;
-  --text: #eef0ff;
-  --text-dim: #a6acd0;
-  --text-mut: #a6acd0;
-  --border: #2a3358;
-  --accent: #b48cff;
+  --page: #0a0920;
+  --surface: #16163a;
+  --surface-2: #21204d;
+  --text: #f0eeff;
+  --text-dim: #b3aee0;
+  --text-mut: #b3aee0;
+  --border: #34337a;
+  --accent: #c4a2ff;
   --accent-fill: #7444f0;
-  --accent-bg: #24184a;
-  --glass-tint: rgb(17 23 43 / 86%);
+  --accent-bg: #2c1e5c;
+  --glass-tint: rgb(22 20 58 / 74%);
+  --glass-border: rgb(180 150 255 / 22%);
   --ambient:
-    radial-gradient(70% 55% at 0% 0%, rgb(255 45 149 / 20%), transparent 70%),
-    radial-gradient(55% 50% at 100% 0%, rgb(0 212 255 / 16%), transparent 70%),
-    radial-gradient(65% 60% at 60% 110%, rgb(124 68 240 / 26%), transparent 70%),
-    radial-gradient(45% 45% at 0% 100%, rgb(0 140 255 / 14%), transparent 70%);
+    radial-gradient(70% 55% at 0% 0%, rgb(255 45 149 / 40%), transparent 70%),
+    radial-gradient(55% 50% at 100% 0%, rgb(0 212 255 / 32%), transparent 70%),
+    radial-gradient(65% 60% at 60% 110%, rgb(124 68 240 / 46%), transparent 70%),
+    radial-gradient(45% 45% at 0% 100%, rgb(0 140 255 / 28%), transparent 70%);
   --ios-backdrop: var(--ambient);
 }
 

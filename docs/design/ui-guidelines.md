@@ -73,7 +73,7 @@ Both light and dark token values are required. Native controls must follow the a
 
 ### Themes
 
-`apps/web/app/styles/themes.css` holds the optional themes and accent colours. Each theme overrides only colour tokens; spacing, radii and the glass recipe stay shared.
+`apps/web/app/styles/themes.css` holds the optional themes and accent colours. Each theme overrides only colour tokens, including its own glass tint and border and a stronger ambient wash, so the whole workspace takes the theme colour; spacing, radii, blur and saturation stay shared.
 
 - Settings (Your account) offers a Theme (Default, Island, Sunset, Forest, City night, OLED black, High contrast), an Accent colour (Theme colour, Blue, Green, Orange, Purple, Pink) and the Light, Dark or System appearance. The choices are saved with the other settings.
 - `lib/account/theme.ts` writes four attributes on `<html>`: `data-scheme` (always the resolved light or dark), `data-theme` (only when the scheme is forced), `data-palette` and `data-accent`. The inline script in `app/layout.tsx` applies them before the first paint.
