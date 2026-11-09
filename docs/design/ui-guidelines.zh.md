@@ -57,7 +57,7 @@
 
 ### 主题
 
-`apps/web/app/styles/themes.css` 存放可选主题和强调色。每个主题只覆盖颜色 token；间距、圆角和玻璃配方保持共用。
+`apps/web/app/styles/themes.css` 存放可选主题和强调色。每个主题只覆盖颜色 token，包括自己的玻璃底色、玻璃边框和更浓的环境色，让整个工作区都带上主题色；间距、圆角、模糊和饱和度保持共用。
 
 - 设置（Your account）提供主题（默认、海岛、日落、森林、城市夜景、纯黑、高对比）、强调色（跟随主题、蓝、绿、橙、紫、粉）以及浅色、深色或跟随系统的外观。这些选择和其他设置一起保存。
 - `lib/account/theme.ts` 在 `<html>` 上写四个属性：`data-scheme`（始终是解析后的浅色或深色）、`data-theme`（仅在方案被强制时）、`data-palette` 和 `data-accent`。`app/layout.tsx` 中的内联脚本在首次绘制前应用它们。
