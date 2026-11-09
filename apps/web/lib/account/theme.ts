@@ -18,18 +18,12 @@ export const DARK_ONLY_THEMES: readonly Theme[] = ["city-night", "oled"];
 
 export type ThemeChoice = { appearance: Appearance; theme?: Theme; accent?: Accent };
 
-/** Returns the colour scheme the page renders in; dark-only themes ignore the Light appearance. */
 export function resolveScheme(choice: ThemeChoice, systemDark: boolean): "light" | "dark" {
   if (choice.theme && DARK_ONLY_THEMES.includes(choice.theme)) return "dark";
   if (choice.appearance === "system") return systemDark ? "dark" : "light";
   return choice.appearance;
 }
 
-/**
- * Writes the theme attributes on `<html>`: `data-theme` (only when the scheme is forced),
- * `data-scheme` (always the resolved scheme), `data-palette` and `data-accent`
- * (absent for the defaults). `tokens.css` and `themes.css` read these attributes.
- */
 export function applyTheme(root: HTMLElement, choice: ThemeChoice, systemDark: boolean) {
   const scheme = resolveScheme(choice, systemDark);
   const forced = choice.appearance !== "system" || scheme !== (systemDark ? "dark" : "light");
@@ -42,7 +36,6 @@ export function applyTheme(root: HTMLElement, choice: ThemeChoice, systemDark: b
   else delete root.dataset.accent;
 }
 
-/** Inline `<head>` script that applies the saved theme before first paint, mirroring `applyTheme`. */
 export function savedThemeScript(settingsKey: string) {
   return `try {
 var s = JSON.parse(localStorage.getItem(${JSON.stringify(settingsKey)}) ?? "null") || {};
